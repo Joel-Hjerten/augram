@@ -1,0 +1,52 @@
+# ADR-0001: App shell & language
+
+**Status: PROPOSED** — recommendation made, awaiting Joel's decision. Do not treat as closed.
+
+## Context
+
+Augram is a tray-resident background utility whose hot path is OS-level: a global mouse hook that must *suppress* events, a click-through overlay for the trail, and input synthesis. The UI (settings/training window) is secondary — opened occasionally, not an editor someone lives in. Runs 24/7, so idle footprint matters. Must eventually ship on Windows + macOS; Joel currently has no Mac to test on.
+
+Joel's prior app Chimera is Electron, so Electron is the familiar path ("Electron once again?").
+
+## The hard constraint that drives everything
+
+The suppress-then-replay loop (requirements F1) cannot be written in JavaScript. Electron has no API for global input hooks, and the npm ecosystem's standard answer, `uiohook-napi` (wraps the same libuiohook that SharpHook wraps), is **listen-only — it cannot suppress/consume events**, which is the one capability this app is built around. An Electron build would therefore need a custom C/C++ native addon per platform, or a separate native helper process doing hook + overlay + synthesis, with Electron reduced to the settings UI talking to it over IPC.
+
+So the real choice is not "Electron vs native" — the hot path is native in every scenario. The choice is what the *shell around the native core* is.
+
+## Options
+
+### A. C# / .NET 8 + SharpHook + Avalonia — RECOMMENDED
+Single language, single process. SharpHook (libuiohook) provides hooks **with suppression** (`SuppressEvent`, verified working in our spike) and input simulation, cross-platform. Avalonia provides the tray icon, settings UI, and windows on both OSes from one codebase. Thin platform adapters for the few OS-specific bits (overlay window tuning, volume, window management, macOS permission prompts).
+
+- ✅ Suppression already proven here (spike, 2026-07-24); the riskiest requirement is de-risked on this stack
+- ✅ One language, one process, one deployment (`dotnet publish` self-contained per platform)
+- ✅ Idle footprint ~40–80 MB — acceptable for 24/7 tray residency
+- ✅ StrokesPlus.net itself was C#/.NET — proof the feel is achievable here
+- ➖ XAML/Avalonia is less familiar than web UI to Joel; UI iteration is likely agent-driven anyway, and Avalonia is well-documented
+- ➖ Avalonia tray/overlay have occasional per-platform quirks — mitigated by keeping overlay behind a platform adapter where we can drop to native APIs
+
+### B. Electron UI + native helper process
+Chimera-style Electron app for settings; separate native daemon (C#, Rust, or C++) owns hook/overlay/actions; JSON-RPC between them.
+
+- ✅ Web UI familiarity; could reuse Chimera UI conventions/styles
+- ➖ Two runtimes, two processes, IPC protocol, two things to keep alive and update
+- ➖ ~150–300 MB idle for a utility that mostly sits in the tray
+- ➖ The native helper is basically Option A minus its UI — Electron is *additional* work, not alternative work
+
+### C. Rust core + Tauri or minimal native UI
+- ✅ Smallest possible footprint
+- ➖ Rust global-hook crates have weaker/patchier event-suppression support than SharpHook; the riskiest part gets riskier
+- ➖ Slowest development for the team we actually have (Joel + agents iterate faster in C#/JS than Rust)
+
+## Recommendation
+
+**Option A.** The app is 90% background engine, 10% settings UI. Pick the stack that makes the engine safest (suppression proven, one process, low RAM) and accept a less-familiar-but-mainstream UI framework for the settings window. Electron optimizes the 10% at heavy cost to the 90%.
+
+Note on familiarity: what actually transfers from Chimera is the *agent workflow* — CLAUDE.md conventions, docs taxonomy, read-first tables, screenshot-verification habits — and all of that is language-independent and already being replicated here.
+
+## Consequences (if accepted)
+
+- Repo stays a .NET solution; core engine and platform adapters get separate projects with interfaces at the boundaries (requirements N1/N3)
+- The spike's SharpHook findings (SimpleGlobalHook-only suppression, `IsEventSimulated` for replay) become architecture constraints documented in reference docs
+- macOS work later = implementing the platform-adapter interfaces + permissions onboarding + signing; no UI rewrite

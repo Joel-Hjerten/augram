@@ -16,7 +16,7 @@ Inspired by [StrokesPlus.net](https://www.strokesplus.net/) (Windows-only, aband
 
 ## Status
 
-Early spike phase. See [docs/handoff.md](docs/handoff.md) for the full research handoff (prior art, recognition algorithm, platform notes, build order).
+**Planning phase.** Requirements are being worked out in [docs/requirements.md](docs/requirements.md); documentation conventions in [docs/README.md](docs/README.md). See [docs/handoff.md](docs/handoff.md) for the original research handoff (prior art, recognition algorithm, platform notes, build order).
 
 - `src/Augram.Spike` — risk spike: capture a chosen mouse button globally, suppress it, collect stroke points, and replay the original click when the stroke isn't a gesture. Also records strokes to JSON for recognizer development.
 
