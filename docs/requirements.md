@@ -46,7 +46,7 @@ A simplified, cross-platform (Windows + macOS) mouse gesture utility inspired by
 ### F5. Actions — DECIDED (initial set)
 - Keystroke shortcut and *sequences* of shortcuts (close tab, new tab, min/max window, arbitrary chains).
 - System volume up/down and media keys.
-- OPEN: does v1 need per-application gesture→action overrides (StrokesPlus's killer feature for power users), or is one global mapping enough to start? Architecture should allow adding it either way.
+- **Per-application scoping — DECIDED v1 (Joel, 2026-07-24):** the mapping model has global commands, app-specific command overrides, and an ignore/exclude list of apps where Augram stays out of the way entirely. The UI is organized around these sections (see F7).
 - OPEN: other action types worth having day one? (launch app, open URL, paste text?)
 
 ### F6. Trail overlay — DECIDED (feature)
@@ -56,6 +56,11 @@ A simplified, cross-platform (Windows + macOS) mouse gesture utility inspired by
 ### F7. Tray presence + settings app — DECIDED
 - Tray icon (menu bar extra on macOS): open settings, enable/disable, quit.
 - Settings window is where gestures/actions/training/options live. Closed = app keeps running in tray.
+- **The UI is a real workbench, not an afterthought (Joel, 2026-07-24):** it is used heavily while setting up, testing, and configuring gestures. Required capabilities:
+  - Gesture list showing each user-defined gesture as its auto-generated icon (F4)
+  - Sections/navigation for: global commands · app-specific commands · ignored apps · options
+  - Standard desktop controls done properly: tabs, sectioned lists, checkboxes, radio groups, etc.
+  - **Single UI implementation for both Windows and macOS** — the framework choice must not force writing the UI twice (constraint feeds ADR-0001)
 - OPEN: start-on-login default? First-run onboarding (macOS permissions especially)?
 
 ### F8. Configuration — LEANING
@@ -88,8 +93,8 @@ This is an explicit requirement, not an aspiration:
 | # | Decision | Status |
 |---|----------|--------|
 | D1 | App shell / language ([ADR-0001](decisions/0001-app-shell-and-language.md)) | LEANING .NET+Avalonia — awaiting Joel |
-| D2 | UI design (layout, look, training flow) | OPEN — Joel wants to think this through |
-| D3 | Per-app gesture overrides in v1? | OPEN |
+| D2 | UI design (layout, look, training flow) | OPEN — Joel wants to think this through; required capabilities now listed in F7 |
+| D3 | Per-app gesture overrides in v1? | **DECIDED — yes**, incl. ignore-list (2026-07-24, see F5) |
 | D4 | Gesture timeout + modifier/rocker behaviors | OPEN |
 | D5 | Config format & location | LEANING JSON |
 | D6 | macOS "maximize" semantics (zoom/fullscreen/tile) | OPEN — deferrable until macOS port |

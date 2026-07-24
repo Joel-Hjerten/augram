@@ -4,7 +4,9 @@
 
 ## Context
 
-Augram is a tray-resident background utility whose hot path is OS-level: a global mouse hook that must *suppress* events, a click-through overlay for the trail, and input synthesis. The UI (settings/training window) is secondary — opened occasionally, not an editor someone lives in. Runs 24/7, so idle footprint matters. Must eventually ship on Windows + macOS; Joel currently has no Mac to test on.
+Augram is a tray-resident background utility whose hot path is OS-level: a global mouse hook that must *suppress* events, a click-through overlay for the trail, and input synthesis. Runs 24/7, so idle footprint matters. Must eventually ship on Windows + macOS; Joel currently has no Mac to test on.
+
+The UI is a **real workbench** (Joel, 2026-07-24 — correcting an earlier draft of this ADR that undersold it): used heavily when setting up, testing, and configuring gestures. It needs gesture lists rendered as icons, sections for global/app-specific/ignored-app command scopes, tabs, checkboxes, radio groups — a proper desktop settings application. Hard constraint: **one UI implementation must serve both Windows and macOS** — no double-build.
 
 Joel's prior app Chimera is Electron, so Electron is the familiar path ("Electron once again?").
 
@@ -41,7 +43,7 @@ Chimera-style Electron app for settings; separate native daemon (C#, Rust, or C+
 
 ## Recommendation
 
-**Option A.** The app is 90% background engine, 10% settings UI. Pick the stack that makes the engine safest (suppression proven, one process, low RAM) and accept a less-familiar-but-mainstream UI framework for the settings window. Electron optimizes the 10% at heavy cost to the 90%.
+**Option A.** Both halves matter — the engine's quality bars are unforgiving, and the UI is a real workbench — but only Electron treats them asymmetrically (first-class UI, engine exiled to a helper process). Avalonia serves both from one codebase: it is a full cross-platform desktop UI framework (WPF's spiritual successor, self-rendering via Skia, so the UI is *identical* on Windows and macOS — one implementation, no double-build). Tabs, sectioned lists, tree views, checkboxes/radios, data-bound list virtualization are all standard; gesture icons are a natural fit for its vector drawing (render each template's polyline + arrowhead straight into the list — no bitmap assets). Everything F7 requires is squarely inside what Avalonia does well; Electron's UI advantage only becomes decisive for web-canvas-heavy editors like Chimera, which this is not.
 
 Note on familiarity: what actually transfers from Chimera is the *agent workflow* — CLAUDE.md conventions, docs taxonomy, read-first tables, screenshot-verification habits — and all of that is language-independent and already being replicated here.
 
