@@ -153,6 +153,14 @@ This is an explicit requirement, not an aspiration:
 - **Agent-oriented docs:** CLAUDE.md conventions + docs taxonomy modeled on the Chimera repo (see [docs/README.md](README.md)) — read-first table, ADRs for closed decisions so future agents don't relitigate or reimplement, learnings/ for hard-won insight, plans/ with completed/ archive.
 - **Comments at load-bearing spots:** invariants documented where an agent would otherwise "fix" them (e.g. *why* rotation sensitivity must be preserved, *why* handlers must stay synchronous).
 
+### N4. Observability — DECIDED (Joel, 2026-10-05)
+Instead of one-off probe runs, the app logs its own health and timings continuously so problems are caught during development and during long runs as the app matures.
+- **Structured event log** with levels, written as rolling files (`logs/` beside the config, daily rotation, a week retained) and available live in a **Diagnostics tab** (tail, filter by level/source, "open log folder", "copy last N lines" for pasting at an agent).
+- **What is always logged:** hook installed / lost / reinstalled with timings, session switch, power and display changes; each stroke's capture timings (points, first-trail-segment latency, handler worst case), recognition result (top matches with scores), target window and the activation technique used and whether it succeeded, each step executed with its result code, settle delays applied, config loads/saves/migrations, unhandled exceptions. Verbose level adds per-event hook traces.
+- **Health summary** at the top of the Diagnostics tab: hook alive since, events in the last minute, last stroke latency, last activation outcome, overlay first-frame latency, uptime, memory.
+- Logging is a Core port (`IEventLog`, structured, allocation-free on the hot path: the hook thread enqueues, a worker writes); Engine/App implement it with Microsoft.Extensions.Logging plus a file sink. No logging call may block the hook thread.
+- Consequence for plan 0001: spike 2's probes fold into the engine's built-in diagnostics; the B-risks are closed by reading real logs over real use rather than by separate test runs.
+
 ## 4. Out of scope for v1 (DECIDED — from handoff)
 
 - No scripting engine, no text expansion, no floaters, no window-automation API, no plugin system (extensible ≠ pluggable-by-users).
@@ -209,10 +217,10 @@ Items to walk through before the first implementation plan is written. Each row 
 
 | # | Risk | What to verify | Status |
 |---|---|---|---|
-| B1 | Activating another app's window from a background process is restricted on Windows | `AttachThreadInput` + `SetForegroundWindow` (StrokeIt and GestureSign both use it) works from the hook worker for Chrome, Explorer, a borderless game | OPEN — probe built; Joel to run `activate` ([learnings 0001](learnings/0001-spike2.md)) |
-| B2 | Avalonia transparent click-through overlay | Pre-created window appears within one frame of stroke start, over borderless-fullscreen games, across monitors with different DPI, and never takes focus. Fallback: native layered window (GestureSign technique) | PARTIAL — 3–11 ms to first segment, never takes focus, on one monitor; game + multi-DPI pending; Show() resets ex-style (fix known) |
-| B3 | Hook resilience over days of uptime | Health check + reinstall after sleep, lock, session switch, and after Windows drops a slow hook | PARTIAL — watchdog + reinstall built and runs; sleep/lock hours pending |
-| B4 | SharpHook keyboard suppression (incl. Win key) for hotkey capture; media key simulation; text entry into a game console | Each works via SharpHook on Windows, or we know which needs a Platform call | PARTIAL — media keys and text entry verified; Win+L suppression and game-console typing pending |
+| B1 | Activating another app's window from a background process is restricted on Windows | `AttachThreadInput` + `SetForegroundWindow` (StrokeIt and GestureSign both use it) works from the hook worker for Chrome, Explorer, a borderless game | OPEN — closed by the engine's activation log (N4) during M2 use, not by a separate run |
+| B2 | Avalonia transparent click-through overlay | Pre-created window appears within one frame of stroke start, over borderless-fullscreen games, across monitors with different DPI, and never takes focus. Fallback: native layered window (GestureSign technique) | PARTIAL — 3–11 ms to first segment, never takes focus, on one monitor ([learnings 0001](learnings/0001-spike2.md)); game + multi-DPI judged from the overlay timings in the Diagnostics tab during M1 |
+| B3 | Hook resilience over days of uptime | Health check + reinstall after sleep, lock, session switch, and after Windows drops a slow hook | PARTIAL — watchdog + reinstall design verified; becomes the engine's hook health monitor, judged from logs over days |
+| B4 | SharpHook keyboard suppression (incl. Win key) for hotkey capture; media key simulation; text entry into a game console | Each works via SharpHook on Windows, or we know which needs a Platform call | PARTIAL — media keys and text entry verified; Win+L suppression judged when the hotkey field exists (M2) via its own log line |
 
 ### C. To be written in the plan
 
