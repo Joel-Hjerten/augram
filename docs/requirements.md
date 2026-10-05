@@ -116,6 +116,7 @@ App
   - **Navigation is tabs with sub-tab pages (DECIDED — Joel, 2026-10-05):** top-level tabs for Gestures · Commands · Ignored · Options; each tab may hold sub-tabs (e.g. Options › General / Trail / Shortcuts / Diagnostics). Tabs and sub-tabs are declared in the navigation registry (ADR-0002 §5c), so adding a page is adding an entry.
   - Standard desktop controls done properly: tabs, sectioned lists, checkboxes, radio groups, etc.
   - **Single UI implementation for both Windows and macOS** — the framework choice must not force writing the UI twice (constraint feeds ADR-0001)
+- **Dark mode from the start (DECIDED — Joel, 2026-10-06):** the app renders dark by default (Avalonia dark variant, dark token values in the Wireframe theme); a light variant is a token swap later, not a redesign.
 - **Single-source UI components (DECIDED — Joel, 2026-10-05):** every UI element (button, list row, section header, toggle, gesture tile, dialog chrome…) is implemented once and shared app-wide. No per-screen one-offs.
 - **Declarative, rearrangeable screens (DECIDED — Joel, 2026-10-05):** screens are declared as section/field trees (toggles, dropdowns, text, numbers, hotkeys, notes, custom components) and lists as specs, rendered by generic components. Adding a subsection or moving a checkbox is a one-place edit. See ADR-0002 §5c.
 - **Layout inspector (good-to-have — Joel, 2026-10-05):** in dev/debug builds, holding **F1** outlines and labels every UI region so the structure is visible on the running app. See ADR-0002 §5d.

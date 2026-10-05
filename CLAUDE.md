@@ -13,6 +13,7 @@ Requirements are in [docs/requirements.md](docs/requirements.md); both ADRs are 
 - **Docs taxonomy** (what goes where, lifecycle): [docs/README.md](docs/README.md).
 - Keep this file lean — link out, don't inline. When a subsystem gains invariants, it gets a doc and a read-first row, not a paragraph here.
 - Platform: Windows 11 dev machine, PowerShell. No Mac available for testing yet — macOS code paths are design-for, not test-on.
+- **Never launch Augram.App, a spike, or anything that installs a global hook or a full-screen overlay on this machine from a subagent or without telling Joel first.** A bug there takes his mouse or keyboard away while he works (it happened: a click-opaque overlay ate every left click on 2026-10-06). Only the lead session runs the app, after saying so, and kills it afterwards. Tests use fakes, never real hooks.
 - **CI runs on every push** (`.github/workflows/ci.yml`: format, build, test on a clean Windows runner). After pushing, check it: `node scripts/ci-status.mjs` prints recent runs and the failing test names (no token needed). A red main is yours to fix before moving on.
 
 ## Architecture invariants (already established)
