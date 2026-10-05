@@ -1,8 +1,11 @@
+using Augram.App.Components.Fields;
 using Augram.App.Declarations;
 using Augram.App.ViewModels;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Recognition;
+using Avalonia.Controls;
+using Avalonia.Layout;
 
 namespace Augram.App.Screens;
 
@@ -14,11 +17,17 @@ public static class OptionsScreen
         ArgumentNullException.ThrowIfNull(vm);
         return new FormScreen("Options",
         [
+            new Section("Changes",
+            [
+                new CustomField("Undo / redo", () => UndoRedoEditor(vm), vm, "Every change is saved at once; undo and redo step through them."),
+            ]),
             new Section("General",
             [
                 new ButtonRadioField<MouseButton>("Stroke button", Choice.FromEnum<MouseButton>(),
                     new DelegateBinding<MouseButton>(() => vm.StrokeButton, v => vm.StrokeButton = v, vm),
                     "Hold this button and draw. Right is the fresh-install default; SP.net keeps Middle while it runs."),
+                new CustomField("Detect button", () => DetectButtonEditor(vm), vm,
+                    "Press the button you want within 5 seconds. If nothing is seen, its vendor software consumes it before Augram can."),
                 new DropdownField<IgnoreKeys>("Ignore key", Choice.FromEnum<IgnoreKeys>(),
                     new DelegateBinding<IgnoreKeys>(() => vm.IgnoreKey, v => vm.IgnoreKey = v, vm),
                     "Hold this key to use the stroke button normally."),
@@ -26,8 +35,8 @@ public static class OptionsScreen
                     new DelegateBinding<bool>(() => vm.StartAtLogin, v => vm.StartAtLogin = v, vm),
                     "Also in the tray menu."),
                 new TextField("Config folder",
-                    new DelegateBinding<string>(() => vm.ConfigFolder, v => vm.ConfigFolder = v, vm),
-                    "Settings, gestures and logs live here."),
+                    new DelegateBinding<string>(() => vm.ConfigFolder, owner: vm),
+                    "Settings, gestures and logs live here; change it via the --config-folder <path> argument."),
             ]),
             new Section("Capture",
             [
@@ -57,5 +66,32 @@ public static class OptionsScreen
                     "Legacy reproduces StrokesPlus exactly, quirks included."),
             ]),
         ]);
+    }
+
+    /// <summary>Two toolbar buttons bound to the store's undo history; enabled state follows <c>CanUndo</c> / <c>CanRedo</c>.</summary>
+    private static Control UndoRedoEditor(AppSettingsViewModel vm)
+    {
+        var undo = ToolbarButton("Undo", vm.Undo, new DelegateBinding<bool>(() => vm.CanUndo, owner: vm));
+        var redo = ToolbarButton("Redo", vm.Redo, new DelegateBinding<bool>(() => vm.CanRedo, owner: vm));
+        return new StackPanel { Orientation = Orientation.Horizontal, Children = { undo, redo } };
+    }
+
+    /// <summary>A button that starts detect-to-assign (F1) and a status line beside it.</summary>
+    private static Control DetectButtonEditor(AppSettingsViewModel vm)
+    {
+        var detect = ToolbarButton("Detect…", vm.DetectButton, new DelegateBinding<bool>(() => !vm.IsDetecting, owner: vm, propertyName: nameof(vm.IsDetecting)));
+        var status = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+        status.Classes.Add("help");
+        BindingObserver.Attach(status, new DelegateBinding<string>(() => vm.DetectStatus, owner: vm), value => status.Text = value);
+        return new StackPanel { Orientation = Orientation.Horizontal, Children = { detect, status } };
+    }
+
+    private static Button ToolbarButton(string label, Action click, IValueBinding<bool> enabled)
+    {
+        var button = new Button { Content = label };
+        button.Classes.Add("toolbar");
+        button.Click += (_, _) => click();
+        BindingObserver.Attach(button, enabled, value => button.IsEnabled = value);
+        return button;
     }
 }

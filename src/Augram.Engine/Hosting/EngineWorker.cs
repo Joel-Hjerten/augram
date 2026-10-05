@@ -79,6 +79,9 @@ internal sealed class EngineWorker
                 EndTrail();
                 _log.Info(LogSources.Capture, "Capture reset", ("reason", (string)message.Payload!));
                 break;
+            case WorkerMessage.MessageKind.ButtonObserved:
+                _host.OnButtonObserved((MouseButton)message.Payload!);
+                break;
         }
 
         AfterMachineChange();

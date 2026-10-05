@@ -16,6 +16,7 @@ internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, Ca
         SetStrokeButton,
         SetThresholds,
         Reset,
+        ButtonObserved,
     }
 
     public static WorkerMessage Input(CaptureEvent e, bool hookSuppressed) => new(MessageKind.Input, e, hookSuppressed);
@@ -25,4 +26,7 @@ internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, Ca
     public static WorkerMessage Thresholds(CaptureThresholds thresholds) => new(MessageKind.SetThresholds, Payload: thresholds);
 
     public static WorkerMessage Reset(string reason) => new(MessageKind.Reset, Payload: reason);
+
+    /// <summary>A physical press seen while <c>EngineHost.CaptureNextButtonPress</c> was pending (F1 detect-to-assign).</summary>
+    public static WorkerMessage ButtonObserved(MouseButton button) => new(MessageKind.ButtonObserved, Payload: button);
 }

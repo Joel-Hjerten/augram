@@ -16,7 +16,7 @@ Wires Core to SharpHook: the hook adapter (`IInputSource`), input simulation (`I
 | health poll | `System.Threading.Timer`, 1 s | `HookHealthMonitor.Poll`: first-event report, events-per-minute ring, reinstall when the source reported Lost or the cursor watchdog fires, log every transition, raise `ResetRequested` | run inside a source callback (a loss reported from the hook thread is only flagged there and acted on at the next poll) |
 | log drain | thread-pool task | hand events to sinks, flush on idle, report drops (`Diagnostics/`) | touch the hook, the worker, or a UI type |
 | file flush timer | `System.Threading.Timer`, 500 ms | `RollingFileSink.Flush` | throw |
-| UI / settings | the App's | `EngineHost.Enabled`, `IgnoreKey` (volatile writes read by the hook thread); `StrokeButton`, `SetThresholds` (messages on the same channel, applied by the worker in order with the input around them) | call `Handle` or anything on the machine |
+| UI / settings | the App's | `EngineHost.Enabled`, `IgnoreKey` (volatile writes read by the hook thread); `StrokeButton`, `SetThresholds` (messages on the same channel, applied by the worker in order with the input around them); `CaptureNextButtonPress` (arms a one-shot flag the hook thread turns into a `ButtonObserved` message) | call `Handle` or anything on the machine |
 
 No other thread hops. `docs/reference/threading.md` is this table; it lives here because the Engine is the only place with threads.
 
@@ -48,7 +48,7 @@ The machine is owned by the worker and lags the hook by the queue depth, so the 
 | Type | Role |
 |---|---|
 | `InputGate` (internal) | everything that runs on the hook thread: the three volatiles the hook reads, the `SuppressionShadow`, the one `TryWrite`, the worst-handler stopwatch and the drop counters |
-| `EngineHost` | composition point for the engine (the App's composition root creates one): ports in `EnginePorts`, tunables in `EngineHostOptions`, gestures and `RecognitionOptions` as delegates. `Start`/`Stop`/`Dispose`, `Enabled`, `StrokeButton`, `IgnoreKey`, `SetThresholds`, `State`, `Health`, `EventRaised` |
+| `EngineHost` | composition point for the engine (the App's composition root creates one): ports in `EnginePorts`, tunables in `EngineHostOptions`, gestures and `RecognitionOptions` as delegates. `Start`/`Stop`/`Dispose`, `Enabled`, `StrokeButton`, `IgnoreKey`, `SetThresholds`, `State`, `Health`, `EventRaised`, `CaptureNextButtonPress` (F1 detect-to-assign: the next physical press is reported once, on the worker, without changing how it is handled) |
 | `EngineWorker` (internal) | the worker loop above; queue depth warning at half capacity; dropped moves/ticks reported as a Warning, a dropped button/wheel event as an Error plus a capture reset |
 | `StrokeRecognizer` (internal) | button-up only: `GestureMatcher.Rank`, top 3, threshold, one `RecognitionLogEntry` and one Info line with the same facts |
 | `EngineEvent` | `GestureRecognized`, `NoMatch`, `WheelTriggered`; raised on the worker thread with the raw points so training can keep them |

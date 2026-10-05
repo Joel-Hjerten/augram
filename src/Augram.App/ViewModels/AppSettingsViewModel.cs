@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Augram.App.Hosting;
 using Augram.Core.Capture;
 using Augram.Core.Config;
@@ -9,36 +8,45 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Augram.App.ViewModels;
 
 /// <summary>
-/// What the Options page binds to. Holds a Core <see cref="Settings"/> value in memory for M1 step 6;
-/// wiring it to <c>SettingsStore</c> (read <c>Current</c>, write through <c>Apply</c>) is the only change
-/// this file needs later, because every property already round-trips the Core record.
-/// <see cref="StartAtLogin"/> is shared with the tray through <see cref="AppState"/>.
+/// What the Options page binds to: a projection over <see cref="SettingsStore"/> (ADR-0002 §5a). Every
+/// getter reads <c>Current</c>; every setter is one undo step through the store; every store change,
+/// undo and redo included, refreshes all bindings at once (an empty property name). Start at login
+/// goes through <see cref="AppState"/>, which also keeps the OS registration in step, and detect-to-assign
+/// through <see cref="StrokeButtonDetection"/>. A rejected value (out of range) leaves the store untouched
+/// and is reported in <see cref="LastError"/>.
 /// </summary>
-public sealed class AppSettingsViewModel : ObservableObject
+public sealed class AppSettingsViewModel : ObservableObject, IDisposable
 {
+    private readonly SettingsStore _settings;
     private readonly AppState _state;
-    private Settings _settings = Settings.Default;
+    private readonly StrokeButtonDetection _detection;
 
-    public AppSettingsViewModel(AppState state)
+    public AppSettingsViewModel(SettingsStore settings, AppState state, StrokeButtonDetection detection)
     {
+        ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(detection);
+        _settings = settings;
         _state = state;
-        _state.PropertyChanged += OnStateChanged;
+        _detection = detection;
         ConfigFolder = AppPaths.ConfigFolder;
+        _settings.Changed += OnSettingsChanged;
+        _state.PropertyChanged += OnStateChanged;
+        _detection.PropertyChanged += OnDetectionChanged;
     }
 
-    public Settings Current => _settings;
+    public Settings Current => _settings.Current;
 
     public MouseButton StrokeButton
     {
-        get => _settings.General.StrokeButton;
-        set => Update(_settings with { General = _settings.General with { StrokeButton = value } });
+        get => Current.General.StrokeButton;
+        set => Apply(s => s with { General = s.General with { StrokeButton = value } });
     }
 
     public IgnoreKeys IgnoreKey
     {
-        get => _settings.General.IgnoreKey;
-        set => Update(_settings with { General = _settings.General with { IgnoreKey = value } });
+        get => Current.General.IgnoreKey;
+        set => Apply(s => s with { General = s.General with { IgnoreKey = value } });
     }
 
     public bool StartAtLogin
@@ -47,77 +55,108 @@ public sealed class AppSettingsViewModel : ObservableObject
         set => _state.StartAtLogin = value;
     }
 
-    public string ConfigFolder
-    {
-        get;
-        set => SetProperty(ref field, value);
-    }
+    /// <summary>Read-only for now: change it with <c>--config-folder &lt;path&gt;</c> (A17).</summary>
+    public string ConfigFolder { get; }
 
     public double StartDistancePx
     {
-        get => _settings.Capture.StartDistancePx;
-        set => Update(_settings with { Capture = _settings.Capture with { StartDistancePx = (int)Math.Round(value) } });
+        get => Current.Capture.StartDistancePx;
+        set => Apply(s => s with { Capture = s.Capture with { StartDistancePx = (int)Math.Round(value) } });
     }
 
     public double CancelDelayMs
     {
-        get => _settings.Capture.CancelDelayMs;
-        set => Update(_settings with { Capture = _settings.Capture with { CancelDelayMs = (int)Math.Round(value) } });
+        get => Current.Capture.CancelDelayMs;
+        set => Apply(s => s with { Capture = s.Capture with { CancelDelayMs = (int)Math.Round(value) } });
     }
 
     public NoMatchBehaviour NoMatch
     {
-        get => _settings.NoMatch;
-        set => Update(_settings with { NoMatch = value });
+        get => Current.NoMatch;
+        set => Apply(s => s with { NoMatch = value });
     }
 
     public RgbColor TrailColour
     {
-        get => _settings.Trail.Colour;
-        set => Update(_settings with { Trail = _settings.Trail with { Colour = value } });
+        get => Current.Trail.Colour;
+        set => Apply(s => s with { Trail = s.Trail with { Colour = value } });
     }
 
     public double TrailWidth
     {
-        get => _settings.Trail.WidthPx;
-        set => Update(_settings with { Trail = _settings.Trail with { WidthPx = value } });
+        get => Current.Trail.WidthPx;
+        set => Apply(s => s with { Trail = s.Trail with { WidthPx = value } });
     }
 
     public double TrailOpacity
     {
-        get => _settings.Trail.Opacity;
-        set => Update(_settings with { Trail = _settings.Trail with { Opacity = value } });
+        get => Current.Trail.Opacity;
+        set => Apply(s => s with { Trail = s.Trail with { Opacity = value } });
     }
 
     public double Threshold
     {
-        get => _settings.Recognition.Threshold;
-        set => Update(_settings with { Recognition = _settings.Recognition with { Threshold = value } });
+        get => Current.Recognition.Threshold;
+        set => Apply(s => s with { Recognition = s.Recognition with { Threshold = value } });
     }
 
     public double Precision
     {
-        get => _settings.Recognition.Precision;
-        set => Update(_settings with { Recognition = _settings.Recognition with { Precision = (int)Math.Round(value) } });
+        get => Current.Recognition.Precision;
+        set => Apply(s => s with { Recognition = s.Recognition with { Precision = (int)Math.Round(value) } });
     }
 
     public ScoringMode ScoringMode
     {
-        get => _settings.Recognition.ScoringMode;
-        set => Update(_settings with { Recognition = _settings.Recognition with { ScoringMode = value } });
+        get => Current.Recognition.ScoringMode;
+        set => Apply(s => s with { Recognition = s.Recognition with { ScoringMode = value } });
     }
 
-    private void Update(Settings next, [CallerMemberName] string? propertyName = null)
+    public bool CanUndo => _settings.CanUndo;
+
+    public bool CanRedo => _settings.CanRedo;
+
+    public string DetectStatus => _detection.Status;
+
+    public bool IsDetecting => _detection.IsListening;
+
+    /// <summary>The last validation message from the store, or null; cleared by the next accepted change.</summary>
+    public string? LastError { get; private set => SetProperty(ref field, value); }
+
+    public void Undo() => _settings.Undo();
+
+    public void Redo() => _settings.Redo();
+
+    public void DetectButton() => _detection.Start();
+
+    public void Dispose()
     {
-        if (next == _settings)
+        _settings.Changed -= OnSettingsChanged;
+        _state.PropertyChanged -= OnStateChanged;
+        _detection.PropertyChanged -= OnDetectionChanged;
+    }
+
+    private void Apply(Func<Settings, Settings> change)
+    {
+        var next = change(Current);
+        if (next == Current)
         {
             return;
         }
 
-        _settings = next;
-        OnPropertyChanged(propertyName);
-        OnPropertyChanged(nameof(Current));
+        try
+        {
+            _settings.Apply(_ => next);
+            LastError = null;
+        }
+        catch (SettingsValidationException exception)
+        {
+            LastError = exception.Message;
+            OnPropertyChanged(string.Empty);
+        }
     }
+
+    private void OnSettingsChanged(object? sender, EventArgs e) => OnPropertyChanged(string.Empty);
 
     private void OnStateChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -125,5 +164,11 @@ public sealed class AppSettingsViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(StartAtLogin));
         }
+    }
+
+    private void OnDetectionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(DetectStatus));
+        OnPropertyChanged(nameof(IsDetecting));
     }
 }

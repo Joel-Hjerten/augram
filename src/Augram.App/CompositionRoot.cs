@@ -19,7 +19,8 @@ internal static class CompositionRoot
 
     /// <param name="guard">The process's single-instance guard; null in tests.</param>
     /// <param name="logsFolder">Overrides <see cref="AppPaths.LogsFolder"/>; tests point it at a temp folder.</param>
-    public static ServiceProvider Build(SingleInstanceGuard? guard = null, string? logsFolder = null)
+    /// <param name="configFolder">Overrides <see cref="AppPaths.ConfigFolder"/>; tests point it at a temp folder so they never touch the real config.</param>
+    public static ServiceProvider Build(SingleInstanceGuard? guard = null, string? logsFolder = null, string? configFolder = null)
     {
         var logs = logsFolder ?? AppPaths.LogsFolder;
         var services = new ServiceCollection();
@@ -41,7 +42,10 @@ internal static class CompositionRoot
             services.AddSingleton(guard);
         }
 
-        // EngineHost registration lands in step 4b (hook adapter, worker, capture, recognition feeding RecognitionLog).
+        // Engine slice: config session and stores, Platform adapters, overlay, EngineHost (started in App.StartDesktop).
+        EngineModule.Register(services, new EngineModuleOptions { ConfigFolder = configFolder });
+        // Gestures tab slice: training session, presenters, view model.
+        GesturesModule.Register(services);
 
         // View models: projections over the stores above (ADR-0002 §5a).
         services.AddSingleton<AppSettingsViewModel>();

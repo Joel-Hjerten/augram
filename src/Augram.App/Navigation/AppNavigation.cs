@@ -1,3 +1,4 @@
+using Augram.App.Hosting;
 using Augram.App.Screens;
 using Augram.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ public static class AppNavigation
         ArgumentNullException.ThrowIfNull(services);
         var entries = new List<NavEntry>
         {
-            new("Gestures", GesturesKey, GesturesScreen.Declare),
+            GesturesModule.NavEntry(services),
             new("Commands", CommandsKey, CommandsScreen.Declare),
             new("Ignored", IgnoredKey, IgnoredScreen.Declare),
             new("Options", OptionsKey, () => OptionsScreen.Declare(services.GetRequiredService<AppSettingsViewModel>())),

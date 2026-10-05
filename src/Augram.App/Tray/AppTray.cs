@@ -9,7 +9,7 @@ using Avalonia.Threading;
 namespace Augram.App.Tray;
 
 /// <summary>
-/// The tray presence (F7): single click toggles <see cref="AppState.Enabled"/>, double click opens the
+/// The tray presence (F7): single click toggles <see cref="AppState.Enabled"/> (the persisted setting the engine follows), double click opens the
 /// window, the menu has Open · Enabled · Start at login · Quit. Single versus double is decided by
 /// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click
 /// takes effect only after the double-click window (250 ms) has passed; Avalonia offers no better signal.
@@ -99,9 +99,10 @@ public sealed class AppTray : IDisposable
 
     private void OnStateChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // The engine logs "Engine enabled" / "Engine disabled" itself; here only the icon follows the store.
         if (e.PropertyName == nameof(AppState.Enabled))
         {
-            _log.Info(LogSource, _state.Enabled ? "Gestures enabled" : "Gestures disabled", ("via", "tray"));
+            _log.Debug(LogSource, "Tray icon updated", ("enabled", _state.Enabled));
         }
 
         Sync();

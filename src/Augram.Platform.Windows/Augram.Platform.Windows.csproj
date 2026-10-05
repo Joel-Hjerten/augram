@@ -7,6 +7,10 @@
     <ProjectReference Include="../Augram.Core/Augram.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Session, power and display notifications for Input/Win32SystemEvents; a package, not in the shared framework. -->
+    <PackageReference Include="Microsoft.Win32.SystemEvents" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Augram.Platform.Windows.Tests" />
   </ItemGroup>
 </Project>

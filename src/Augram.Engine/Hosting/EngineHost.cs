@@ -34,6 +34,7 @@ public sealed class EngineHost : IDisposable
     private int _started;
     private int _disposed;
     private long _lastStrokeLatencyMs = -1;
+    private Action<MouseButton>? _buttonObserver;
 
     public EngineHost(EnginePorts ports, Func<IReadOnlyList<Gesture>> gestures, Func<RecognitionOptions> recognition, EngineHostOptions? options = null)
     {
@@ -114,6 +115,20 @@ public sealed class EngineHost : IDisposable
         _gate.Post(WorkerMessage.Thresholds(thresholds), critical: true);
     }
 
+    /// <summary>
+    /// Detect-to-assign (F1): <paramref name="callback"/> receives the next physical button press, on the
+    /// worker thread, once. The press is observed, not swallowed: it is captured, suppressed or passed
+    /// through exactly as it would be otherwise. A later call replaces an earlier one; disposing the
+    /// result cancels. The caller marshals to its own thread and applies the timeout.
+    /// </summary>
+    public IDisposable CaptureNextButtonPress(Action<MouseButton> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        Volatile.Write(ref _buttonObserver, callback);
+        _gate.ObserveNextPress(true);
+        return new ButtonCapture(this, callback);
+    }
+
     public void Start()
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
@@ -161,6 +176,24 @@ public sealed class EngineHost : IDisposable
 
     internal void PublishStrokeLatency(long latencyMs) => Volatile.Write(ref _lastStrokeLatencyMs, latencyMs);
 
+    internal void OnButtonObserved(MouseButton button)
+    {
+        var observer = Interlocked.Exchange(ref _buttonObserver, null);
+        if (observer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            observer(button);
+        }
+        catch (Exception exception)
+        {
+            _log.Error(LogSources.Engine, "Button capture callback threw", exception, ("button", button));
+        }
+    }
+
     internal void ArmTick(bool armed)
     {
         var next = armed ? 1 : 0;
@@ -188,5 +221,16 @@ public sealed class EngineHost : IDisposable
     {
         _gate.ResetShadow();
         _gate.Post(WorkerMessage.Reset(reason), critical: true);
+    }
+
+    private sealed class ButtonCapture(EngineHost host, Action<MouseButton> callback) : IDisposable
+    {
+        public void Dispose()
+        {
+            if (Interlocked.CompareExchange(ref host._buttonObserver, null, callback) == callback)
+            {
+                host._gate.ObserveNextPress(false);
+            }
+        }
     }
 }

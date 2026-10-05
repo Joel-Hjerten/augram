@@ -11,7 +11,9 @@ namespace Augram.App.Tests;
 public static class TestAppBuilder
 {
     public static ServiceProvider Services { get; } =
-        CompositionRoot.Build(logsFolder: Path.Combine(Path.GetTempPath(), "augram-app-tests", "logs"));
+        CompositionRoot.Build(
+            logsFolder: Path.Combine(Path.GetTempPath(), "augram-app-tests", "logs"),
+            configFolder: Path.Combine(Path.GetTempPath(), "augram-app-tests", "config"));
 
     public static AppBuilder BuildAvaloniaApp() =>
         Program.BuildAvaloniaApp(Services)

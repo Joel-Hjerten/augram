@@ -1,10 +1,10 @@
 # Augram.Platform.Windows
 
-Windows implementations of the Core ports that need the OS: `IWindowSystem` (this step, M1 step 5), later `IWindowOperations`, `IProcessLauncher` where Engine cannot, and the layered-window overlay fallback if the Avalonia overlay fails the B2 decision.
+Windows implementations of the Core ports that need the OS: `IWindowSystem` (M1 step 5), `ICursorProbe`, `ISystemEvents`, `IStartupRegistration` and `IOverlayWindowStyle` (M1 final wiring), later `IWindowOperations`, `IProcessLauncher` where Engine cannot, and the layered-window overlay fallback if the Avalonia overlay fails the B2 decision.
 
-**May reference:** `Augram.Core` only. Win32 goes through `P/Invoke` in `Interop/NativeMethods.cs` and nowhere else; types that touch it carry `[SupportedOSPlatform("windows")]`. The assembly has `[DisableRuntimeMarshalling]` so `LibraryImport` generates direct calls (blittable structs and `Span<char>` buffers only).
+**May reference:** `Augram.Core` and the `Microsoft.Win32.SystemEvents` package (session, power and display notifications; `Microsoft.Win32.Registry` is in the shared framework). Win32 goes through `P/Invoke` in `Interop/NativeMethods.cs` and nowhere else; types that touch it carry `[SupportedOSPlatform("windows")]`. The assembly has `[DisableRuntimeMarshalling]` so `LibraryImport` generates direct calls (blittable structs and `Span<char>` buffers only).
 
-**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem`.
+**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem` and the adapters below through `EngineModule`.
 
 ## Layout
 
@@ -12,6 +12,9 @@ Windows implementations of the Core ports that need the OS: `IWindowSystem` (thi
 |---|---|
 | `Interop/` | `NativeMethods` (the P/Invoke surface, no logic) and `Win32Windows` (the real `IWin32Windows` + `IWin32Foreground`, thin wrappers) |
 | `WindowSystem/` | `Win32WindowSystem` (public adapter) and everything it is made of: `WindowIdentityReader`, `ForegroundActivator`, and the pure rules `ActivationPolicy`, `DesktopRule`, `FullScreenRule`, `UwpHostRule` |
+| `Input/` | `Win32CursorProbe` (`GetCursorPos`, physical pixels, for the hook watchdog) and `Win32SystemEvents` (`SystemEvents.SessionSwitch` / `PowerModeChanged` / `DisplaySettingsChanged` / `SessionEnding` mapped to `SystemEventKind`; the static `Map` functions are the tested part) |
+| `Startup/` | `RunKeyStartupRegistration`: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `Augram` = the quoted executable path; `IsEnabled` is "the value exists", `Set(true)` always rewrites the command so toggling repairs a moved exe. Per-user, no elevation |
+| `Overlay/` | `OverlayWindowStyle`: ORs `WS_EX_LAYERED` + `WS_EX_TRANSPARENT` (the documented click-through pair for a top-level window; alpha set opaque), `WS_EX_NOACTIVATE` and `WS_EX_TOOLWINDOW` into the overlay window, re-asserts topmost without activating, and returns an `OverlayStyleReport` read back from `GWL_EXSTYLE`. Avalonia rewrites the style on every `Show()` (learnings 0001 B2), so the App applies before and after showing and hides the window unless the report says click-through |
 
 The two facade interfaces exist so the rules and the reader are unit-tested against a scripted window tree (`tests/Augram.Platform.Windows.Tests`); one smoke test touches real Win32 at the cursor.
 
@@ -47,3 +50,7 @@ Otherwise `ForegroundActivator` tries, in order, each verified by polling `GetFo
 Each attempt is logged at `Info` with source `window` and properties `technique`, `elapsedMs`, `process`; total failure logs a `Warning` with `technique=none`. The result's `Technique` lets the Diagnostics tab tally which one wins per app, which closes checklist B1 during M2 use (N4).
 
 Differences from the Spike2 `ActivateMode` probe: the "attach foreground **and** target threads" variant was dropped (it never adds rights beyond attaching the foreground thread and risks deadlocking against a hung target); the 50 ms fixed sleep became a 5 ms poll so the common case returns in one check; and the own-console skip is gone because A20's foreground-root comparison already covers our own windows.
+
+## System events thread
+
+`Microsoft.Win32.SystemEvents` creates its broadcast window on the thread that first touches it when that thread is STA (the App's UI thread, which pumps messages, so `ISystemEvents.Occurred` fires there); otherwise on its own hidden-window thread. Either way a listener must return at once; the hook health monitor only stamps a time and, on resume or unlock, posts a reset to the engine worker.

@@ -29,6 +29,7 @@ internal sealed class InputGate
     private long _worstHandlerTicks;
     private long _droppedMoves;
     private long _droppedButtons;
+    private int _observeNextPress;
 
     public InputGate(ChannelWriter<WorkerMessage> writer, IEventLog log, MouseButton strokeButton, KeyModifiers ignoreKey, bool enabled)
     {
@@ -62,6 +63,9 @@ internal sealed class InputGate
     public void PublishStrokeButton(MouseButton button) => Volatile.Write(ref _strokeButton, (int)button);
 
     public void ResetShadow() => _shadow.Reset();
+
+    /// <summary>Arms (or disarms) a one-shot report of the next physical press, posted to the worker as <c>ButtonObserved</c>; the press itself is handled as usual.</summary>
+    public void ObserveNextPress(bool armed) => Volatile.Write(ref _observeNextPress, armed ? 1 : 0);
 
     public double TakeWorstHandlerMicroseconds() => Interlocked.Exchange(ref _worstHandlerTicks, 0) * 1_000_000.0 / Stopwatch.Frequency;
 
@@ -104,6 +108,11 @@ internal sealed class InputGate
                 {
                     _shadow.Restore(owedBefore);
                     suppress = false;
+                }
+
+                if (Interlocked.Exchange(ref _observeNextPress, 0) != 0)
+                {
+                    Post(WorkerMessage.ButtonObserved(input.Button), critical: true);
                 }
 
                 break;

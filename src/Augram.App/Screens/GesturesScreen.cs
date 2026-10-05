@@ -12,13 +12,6 @@ namespace Augram.App.Screens;
 /// </summary>
 public static class GesturesScreen
 {
-    /// <summary>
-    /// Step 6 placeholder, kept only so <c>AppNavigation</c> compiles until the lead swaps its Gestures
-    /// entry for <c>GesturesModule.NavEntry(services)</c>; delete this overload in that change.
-    /// </summary>
-    public static ScreenDeclaration Declare() =>
-        new TextScreen("Gestures", "The Gestures grid is wired through GesturesModule.NavEntry; this placeholder means the navigation entry has not been swapped yet.");
-
     public static ScreenDeclaration Declare(GesturesViewModel vm)
     {
         ArgumentNullException.ThrowIfNull(vm);

@@ -21,3 +21,5 @@ The rest land with their first consumer.
 | `IStrokeTrail` | `Begin`, `Extend`, `End` | App overlay; `NullStrokeTrail` in Core | ADR-0002's `IOverlay`. Called on the engine worker; must return at once. |
 | `ICursorProbe` | `TryGetPosition` | Platform.* | For the hook watchdog; optional. |
 | `ISystemEvents` | `Occurred` (`SystemEventKind`) | Platform.* | Session, power, display; optional. |
+| `IOverlayWindowStyle` | `Apply(handle)` → `OverlayStyleReport` | Platform.Windows `OverlayWindowStyle`; `NullOverlayWindowStyle` default | Applies the click-through / no-activate / tool-window styles the toolkit drops on `Show()` (learnings 0001 B2) and reads them back; the App shows the overlay only when the report says click-through. The handle is opaque to Core. |
+| `IStartupRegistration` | `IsEnabled`, `Set(bool)` | Platform.Windows `RunKeyStartupRegistration`; `NullStartupRegistration` for tests and platforms without one | F7 start at login as the OS sees it; `Config.GeneralSettings.StartAtLogin` is the user's choice and the App keeps them in step. |

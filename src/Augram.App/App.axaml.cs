@@ -54,6 +54,7 @@ public sealed class App : Application
         }
 #endif
         desktop.MainWindow = _services.GetRequiredService<MainWindow>();
+        EngineModule.Start(_services);
         _tray = new AppTray(_services.GetRequiredService<AppState>(), ShowMainWindow, () => desktop.Shutdown(), log);
         if (_services.GetService<SingleInstanceGuard>() is { } guard)
         {

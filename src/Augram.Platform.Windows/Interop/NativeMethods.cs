@@ -18,6 +18,17 @@ internal static partial class NativeMethods
     public const uint InputKeyboard = 1;
     public const uint KeyEventKeyUp = 0x0002;
     public const ushort VkMenu = 0x12;
+    public const int GwlExStyle = -20;
+    public const long WsExTransparent = 0x00000020;
+    public const long WsExLayered = 0x00080000;
+    public const uint LwaAlpha = 0x00000002;
+    public const long WsExToolWindow = 0x00000080;
+    public const long WsExNoActivate = 0x08000000;
+    public const uint SwpNoSize = 0x0001;
+    public const uint SwpNoMove = 0x0002;
+    public const uint SwpNoActivate = 0x0010;
+    public const uint SwpNoOwnerZOrder = 0x0200;
+    public static readonly nint HwndTopmost = -1;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Point
@@ -148,4 +159,19 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetCursorPos(out Point point);
+
+    // 64-bit entry points only (user32 has no GetWindowLongPtrW on 32-bit); Augram ships x64.
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    public static partial nint GetWindowLongPtr(nint hwnd, int index);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    public static partial nint SetWindowLongPtr(nint hwnd, int index, nint value);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int width, int height, uint flags);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetLayeredWindowAttributes(nint hwnd, uint colorKey, byte alpha, uint flags);
 }
