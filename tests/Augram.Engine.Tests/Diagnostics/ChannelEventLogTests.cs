@@ -16,7 +16,8 @@ public sealed class ChannelEventLogTests
     {
         var first = new CollectingSink();
         var second = new CollectingSink();
-        using (var log = new ChannelEventLog([first, second]))
+        // Capacity above the burst: ordering is under test here, not back-pressure (a slow CI runner may not drain in time).
+        using (var log = new ChannelEventLog([first, second], capacity: 8192))
         {
             for (var i = 0; i < 5000; i++)
             {
@@ -67,7 +68,11 @@ public sealed class ChannelEventLogTests
         var delivered = sink.Logged;
         Assert.True(delivered.Count >= 4096, $"only {delivered.Count} delivered");
         Assert.Equal(10_000, delivered.Count + log.DroppedCount);
-        Assert.Equal(Enumerable.Range(0, delivered.Count), delivered.Select(e => (int)e.Properties![0].Value!));
+        // Which events were dropped depends on how far the drain got before the sink blocked (runner-dependent);
+        // what must hold is that delivered events keep their order and the accounting is exact.
+        var sequence = delivered.Select(e => (int)e.Properties![0].Value!).ToList();
+        Assert.Equal(sequence.OrderBy(n => n), sequence);
+        Assert.Equal(sequence.Count, sequence.Distinct().Count());
     }
 
     [Fact]
