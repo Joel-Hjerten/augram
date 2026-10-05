@@ -25,6 +25,7 @@ These come from research + the spike; they are quality-bar-critical, not prefere
 3. **Recognition is rotation-SENSITIVE by design** (up-flick ≠ down-flick). Never "fix" this by normalizing rotation. See [docs/handoff.md §3](docs/handoff.md).
 4. **Recognition runs on button-up only**, never during capture.
 5. Gesture templates are stored as **raw point lists**, resampled at match time — precision must stay adjustable.
+6. **The trail overlay is never visible while idle and never shown unless its click-through style has been verified** (Windows: `WS_EX_TRANSPARENT` read back after every `Show()`). A watchdog hides it after 3 s without a stroke. An unverified full-screen window swallows every left click on the machine (2026-10-06, twice). `--no-engine` / `AUGRAM_NO_ENGINE=1` keep the app from installing hooks or overlays at all.
 
 ## Read-first table
 
