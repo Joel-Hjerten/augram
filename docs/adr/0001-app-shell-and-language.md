@@ -1,6 +1,6 @@
 # ADR-0001: App shell & language
 
-**Status: PROPOSED** — recommendation made, awaiting Joel's decision. Do not treat as closed.
+**Status: ACCEPTED** (Joel, 2026-10-05). Target framework is **.NET 10 LTS** (supported to November 2028), not .NET 8 as the spike used; .NET 8 support ends November 2026.
 
 ## Context
 

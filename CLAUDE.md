@@ -9,7 +9,7 @@ Requirements are being worked out in [docs/requirements.md](docs/requirements.md
 ## Ground rules for agents
 
 - **Don't reimplement — extend.** Check [docs/requirements.md](docs/requirements.md), the read-first table below, and `docs/reference/` before writing. If a pattern exists, add to it. If it's missing, add the pattern *and its doc* in the same change.
-- **Closed decisions live in [docs/adr/](docs/adr/) as ADRs.** Don't relitigate an ACCEPTED ADR unless Joel reopens it. Current: [ADR-0001 app shell/language](docs/adr/0001-app-shell-and-language.md) (PROPOSED, awaiting Joel) and [ADR-0002 code/repo structure](docs/adr/0002-code-and-repo-structure.md) (ACCEPTED 2026-10-05).
+- **Closed decisions live in [docs/adr/](docs/adr/) as ADRs.** Don't relitigate an ACCEPTED ADR unless Joel reopens it. Current: [ADR-0001 app shell/language](docs/adr/0001-app-shell-and-language.md) (ACCEPTED 2026-10-05: .NET 10 + SharpHook + Avalonia) and [ADR-0002 code/repo structure](docs/adr/0002-code-and-repo-structure.md) (ACCEPTED 2026-10-05).
 - **Docs taxonomy** (what goes where, lifecycle): [docs/README.md](docs/README.md).
 - Keep this file lean — link out, don't inline. When a subsystem gains invariants, it gets a doc and a read-first row, not a paragraph here.
 - Platform: Windows 11 dev machine, PowerShell. No Mac available for testing yet — macOS code paths are design-for, not test-on.
