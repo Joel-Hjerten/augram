@@ -7,7 +7,7 @@ Agent-for-agent documentation, modeled on the Chimera repo's system with a few r
 | Folder / file | What goes there | Lifecycle |
 |---|---|---|
 | [requirements.md](requirements.md) | The living v1 requirements, each item tagged DECIDED / LEANING / OPEN | Updated as decisions land; the open-decisions index at the bottom is the planning dashboard |
-| [decisions/](decisions/) | ADRs (`NNNN-title.md`) — one per significant decision, with status PROPOSED / ACCEPTED / SUPERSEDED. **Closed ADRs are not relitigated** unless Joel reopens them. | Append-only; supersede rather than edit history |
+| [adr/](adr/) | ADRs (`NNNN-title.md`) — one per significant decision, with status PROPOSED / ACCEPTED / SUPERSEDED. **Closed ADRs are not relitigated** unless Joel reopens them. | Append-only; supersede rather than edit history |
 | `plans/` | Active implementation plans for features being built | Move to `plans/completed/` when shipped — completed plans are the historical record of *why the code is shaped this way* |
 | `reference/` | Durable how-it-works docs for subsystems (the things an agent must read before editing an area) | Kept current with the code |
 | `learnings/` | Hard-won debugging insight and "we tried X, it fails because Y" write-ups | Append; these prevent repeat burns |

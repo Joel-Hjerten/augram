@@ -9,7 +9,7 @@ Requirements are being worked out in [docs/requirements.md](docs/requirements.md
 ## Ground rules for agents
 
 - **Don't reimplement — extend.** Check [docs/requirements.md](docs/requirements.md), the read-first table below, and `docs/reference/` before writing. If a pattern exists, add to it. If it's missing, add the pattern *and its doc* in the same change.
-- **Closed decisions live in [docs/decisions/](docs/decisions/) as ADRs.** Don't relitigate an ACCEPTED ADR unless Joel reopens it. Current: [ADR-0001 app shell/language](docs/decisions/0001-app-shell-and-language.md) — status PROPOSED, awaiting Joel.
+- **Closed decisions live in [docs/adr/](docs/adr/) as ADRs.** Don't relitigate an ACCEPTED ADR unless Joel reopens it. Current: [ADR-0001 app shell/language](docs/adr/0001-app-shell-and-language.md) (PROPOSED, awaiting Joel) and [ADR-0002 code/repo structure](docs/adr/0002-code-and-repo-structure.md) (ACCEPTED 2026-10-05).
 - **Docs taxonomy** (what goes where, lifecycle): [docs/README.md](docs/README.md).
 - Keep this file lean — link out, don't inline. When a subsystem gains invariants, it gets a doc and a read-first row, not a paragraph here.
 - Platform: Windows 11 dev machine, PowerShell. No Mac available for testing yet — macOS code paths are design-for, not test-on.
@@ -29,5 +29,6 @@ These come from research + the spike; they are quality-bar-critical, not prefere
 | Editing… | Read first |
 |---|---|
 | Anything (this phase) | [docs/requirements.md](docs/requirements.md) |
-| Recognition math | [docs/handoff.md](docs/handoff.md) §3 (algorithm + MIT attribution requirements) |
-| Hook / capture / replay | [docs/handoff.md](docs/handoff.md) §5–7 + `src/Augram.Spike/Program.cs` (annotated spike) |
+| Recognition math | [docs/reference/strokesplus-classic-source.md](docs/reference/strokesplus-classic-source.md) §1 (exact algorithm incl. the divide-by-P quirk) + [docs/handoff.md](docs/handoff.md) §3 (MIT attribution requirements) |
+| Hook / capture / replay | [docs/reference/strokesplus-classic-source.md](docs/reference/strokesplus-classic-source.md) §2 (the state machine table) + [docs/handoff.md](docs/handoff.md) §5–7 + `src/Augram.Spike/Program.cs` (annotated spike) |
+| Actions, app matching, capture thresholds, SP.net import | [docs/reference/strokesplus-net-config.md](docs/reference/strokesplus-net-config.md) (Joel's real usage = the spec) + [docs/reference/gesturesign-notes.md](docs/reference/gesturesign-notes.md) (GPL, read-only reference) + [docs/reference/strokeit-notes.md](docs/reference/strokeit-notes.md) (cancel-by-click, activation trick) + [docs/reference/stroke-notes.md](docs/reference/stroke-notes.md) (GPL; minimal engine, overlay hidden when idle) + [docs/reference/bettermouse-notes.md](docs/reference/bettermouse-notes.md) (MIT; hold-modifier-across-wheel pattern, anti-patterns) |
