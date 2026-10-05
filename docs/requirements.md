@@ -181,7 +181,7 @@ Instead of one-off probe runs, the app logs its own health and timings continuou
 | D8 | Start-on-login, onboarding | OPEN |
 | D9 | Import from StrokesPlus.net JSON in v1 | LEANING yes (see F8) |
 | D11 | Pre-plan checklist (§6) | OPEN — walk through with Joel, then write the plan |
-| D10 | Initial implementation shape (project layout, build order, first milestone) | **DECIDED** — layout in [ADR-0002](adr/0002-code-and-repo-structure.md), build order in [plans/0001-first-version.md](plans/0001-first-version.md) |
+| D10 | Initial implementation shape (project layout, build order, first milestone) | **DECIDED** — layout in [ADR-0002](adr/0002-code-and-repo-structure.md), build order in [plans/0001-first-version.md](plans/0001-first-version.md). **M1 reached 2026-10-06** (tag `m1`); Joel's acceptance pass pending |
 
 ## 6. Pre-plan checklist (2026-10-05)
 
