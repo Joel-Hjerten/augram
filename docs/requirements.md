@@ -209,10 +209,10 @@ Items to walk through before the first implementation plan is written. Each row 
 
 | # | Risk | What to verify | Status |
 |---|---|---|---|
-| B1 | Activating another app's window from a background process is restricted on Windows | `AttachThreadInput` + `SetForegroundWindow` (StrokeIt and GestureSign both use it) works from the hook worker for Chrome, Explorer, a borderless game | OPEN |
-| B2 | Avalonia transparent click-through overlay | Pre-created window appears within one frame of stroke start, over borderless-fullscreen games, across monitors with different DPI, and never takes focus. Fallback: native layered window (GestureSign technique) | OPEN |
-| B3 | Hook resilience over days of uptime | Health check + reinstall after sleep, lock, session switch, and after Windows drops a slow hook | OPEN |
-| B4 | SharpHook keyboard suppression (incl. Win key) for hotkey capture; media key simulation; text entry into a game console | Each works via SharpHook on Windows, or we know which needs a Platform call | OPEN |
+| B1 | Activating another app's window from a background process is restricted on Windows | `AttachThreadInput` + `SetForegroundWindow` (StrokeIt and GestureSign both use it) works from the hook worker for Chrome, Explorer, a borderless game | OPEN — probe built; Joel to run `activate` ([learnings 0001](learnings/0001-spike2.md)) |
+| B2 | Avalonia transparent click-through overlay | Pre-created window appears within one frame of stroke start, over borderless-fullscreen games, across monitors with different DPI, and never takes focus. Fallback: native layered window (GestureSign technique) | PARTIAL — 3–11 ms to first segment, never takes focus, on one monitor; game + multi-DPI pending; Show() resets ex-style (fix known) |
+| B3 | Hook resilience over days of uptime | Health check + reinstall after sleep, lock, session switch, and after Windows drops a slow hook | PARTIAL — watchdog + reinstall built and runs; sleep/lock hours pending |
+| B4 | SharpHook keyboard suppression (incl. Win key) for hotkey capture; media key simulation; text entry into a game console | Each works via SharpHook on Windows, or we know which needs a Platform call | PARTIAL — media keys and text entry verified; Win+L suppression and game-console typing pending |
 
 ### C. To be written in the plan
 
