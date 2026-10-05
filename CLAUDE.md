@@ -2,9 +2,9 @@
 
 Cross-platform (Windows + macOS) mouse gesture utility: hold a chosen mouse button, draw a stroke, fire an action. Replaces StrokesPlus.net (abandoned). Tray-resident, tiny footprint, zero perceptible latency.
 
-## Current phase: PLANNING
+## Current phase: BUILDING — plan 0001, milestone M0
 
-Requirements are being worked out in [docs/requirements.md](docs/requirements.md) — read it before proposing or writing any code. **Do not write feature code yet.** The only code that exists is `src/Augram.Spike`, a throwaway risk spike (capture/suppress/replay via SharpHook) — learn from it, don't build on it without a plan saying so.
+Requirements are in [docs/requirements.md](docs/requirements.md); both ADRs are ACCEPTED; the build order is [docs/plans/0001-first-version.md](docs/plans/0001-first-version.md). Feature code follows that plan and [ADR-0002](docs/adr/0002-code-and-repo-structure.md)'s structure rules, nothing else. `src/Augram.Spike` is the first throwaway spike (capture/suppress/replay via SharpHook): learn from it, do not build on it.
 
 ## Ground rules for agents
 
@@ -28,7 +28,8 @@ These come from research + the spike; they are quality-bar-critical, not prefere
 
 | Editing… | Read first |
 |---|---|
-| Anything (this phase) | [docs/requirements.md](docs/requirements.md) |
+| Anything | [docs/requirements.md](docs/requirements.md), then [docs/plans/0001-first-version.md](docs/plans/0001-first-version.md) for what is in scope now |
+| Project layout, where a new file goes, UI components, state | [docs/adr/0002-code-and-repo-structure.md](docs/adr/0002-code-and-repo-structure.md) |
 | Recognition math | [docs/reference/strokesplus-classic-source.md](docs/reference/strokesplus-classic-source.md) §1 (exact algorithm incl. the divide-by-P quirk) + [docs/handoff.md](docs/handoff.md) §3 (MIT attribution requirements) |
 | Hook / capture / replay | [docs/reference/strokesplus-classic-source.md](docs/reference/strokesplus-classic-source.md) §2 (the state machine table) + [docs/handoff.md](docs/handoff.md) §5–7 + `src/Augram.Spike/Program.cs` (annotated spike) |
 | Actions, app matching, capture thresholds, SP.net import | [docs/reference/strokesplus-net-config.md](docs/reference/strokesplus-net-config.md) (Joel's real usage = the spec) + [docs/reference/gesturesign-notes.md](docs/reference/gesturesign-notes.md) (GPL, read-only reference) + [docs/reference/strokeit-notes.md](docs/reference/strokeit-notes.md) (cancel-by-click, activation trick) + [docs/reference/stroke-notes.md](docs/reference/stroke-notes.md) (GPL; minimal engine, overlay hidden when idle) + [docs/reference/bettermouse-notes.md](docs/reference/bettermouse-notes.md) (MIT; hold-modifier-across-wheel pattern, anti-patterns) |
