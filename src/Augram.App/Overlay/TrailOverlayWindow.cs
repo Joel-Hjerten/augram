@@ -145,7 +145,7 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     {
         if (IsVisible && !_buffer.IsActive && now - _visibleSince > IdleVisibleLimit)
         {
-            HideIdle();
+            HideNow();
             _log.Error(LogSource, "Overlay visible without a stroke, hidden", ("visibleForMs", (now - _visibleSince).TotalMilliseconds));
         }
     }
@@ -177,7 +177,30 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
         }
     }
 
+    /// <summary>
+    /// Clears the canvas and hides the window only after the empty frame has been painted. Hiding right away
+    /// leaves the previous stroke in the retained surface, which the compositor shows for a frame when the window
+    /// is next shown (Joel saw the previous gesture flash at the start of each new stroke, 2026-10-06).
+    /// </summary>
     private void HideIdle()
+    {
+        _canvas.SetPoints([]);
+        if (!IsVisible)
+        {
+            return;
+        }
+
+        RequestAnimationFrame(_ =>
+        {
+            if (!_buffer.IsActive && IsVisible)
+            {
+                Hide();
+            }
+        });
+    }
+
+    /// <summary>Safety path: hide now, stale surface or not.</summary>
+    private void HideNow()
     {
         _canvas.SetPoints([]);
         if (IsVisible)
@@ -206,7 +229,7 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
 
         Volatile.Write(ref _usable, 0);
         _buffer.End();
-        HideIdle();
+        HideNow();
         _log.Error(LogSource, "Overlay not click-through, hidden", ("reason", reason), ("style", report.Raw));
         return false;
     }
