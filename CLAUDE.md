@@ -4,7 +4,7 @@ Cross-platform (Windows + macOS) mouse gesture utility: hold a chosen mouse butt
 
 ## Current phase: BUILDING — plan 0001, milestone M0
 
-Requirements are in [docs/requirements.md](docs/requirements.md); both ADRs are ACCEPTED; the build order is [docs/plans/0001-first-version.md](docs/plans/0001-first-version.md). Feature code follows that plan and [ADR-0002](docs/adr/0002-code-and-repo-structure.md)'s structure rules, nothing else. `src/Augram.Spike` is the first throwaway spike (capture/suppress/replay via SharpHook): learn from it, do not build on it.
+Requirements are in [docs/requirements.md](docs/requirements.md); both ADRs are ACCEPTED; the build order is [docs/plans/0001-first-version.md](docs/plans/0001-first-version.md). Feature code follows that plan and [ADR-0002](docs/adr/0002-code-and-repo-structure.md)'s structure rules, nothing else. `src/Augram.Spike` is the first throwaway spike (capture/suppress/replay via SharpHook): learn from it, do not build on it. Session-only context (how Joel works, easy-to-get-wrong items, what is in flight) is in [docs/session-handoff.md](docs/session-handoff.md).
 
 ## Ground rules for agents
 
