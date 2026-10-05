@@ -2,11 +2,14 @@
 
 For an agent (or a compacted context) picking up where this planning session left off. Everything decided is in [requirements.md](requirements.md), the two ADRs, and [plans/0001-first-version.md](plans/0001-first-version.md). This note only holds context that lives nowhere else.
 
-## State at handoff
+## State at handoff (updated 2026-10-06 01:30)
 
-- Phase: BUILDING, plan 0001 milestone **M0** in progress. Two subagents were launched 2026-10-05 evening: (1) solution scaffold + CI + architecture tests (ADR-0002 §1, §7; plan M0 steps 1–2), (2) `src/Augram.Spike2` with four probe modes for risks B1–B4 (plan M0 step 3). Neither commits; the lead reviews and commits. If you find uncommitted work under `src/`, that is theirs: review against ADR-0002, build, test, then commit.
+- Phase: BUILDING, plan 0001. **M1 reached and tagged `m1`** (commit 187818f): tray, dark wireframe window with Gestures / Commands (placeholder) / Ignored (placeholder) / Options / Diagnostics tabs, training popup, SP.net gesture import, settings with live save and undo, SharpHook engine with hook health monitor, recognizer, parked trail overlay. 448+ tests green; check CI with `node scripts/ci-status.mjs`.
+- Verified on Joel's machine: strokes recognised from the starter set, no left-button lockout, no stroke flash. **Pending Joel's acceptance pass:** import his SP.net gestures via the Gestures tab, train one gesture, exercise Options (undo, Detect button) and the F1 inspector. Then M2 (commands, steps, per-app scoping, hotkey capture, full import) per plan 0001.
+- Two incidents on 2026-10-06 shaped hard rules: agents must never launch the app or anything with a hook or overlay (CLAUDE.md ground rule); the overlay is parked at 1×1 between strokes, never hidden, and never shown unverified (invariant 6). `--no-engine` / `AUGRAM_NO_ENGINE=1` is the safe way to run the UI. Only the lead runs the app, after telling Joel, and kills it afterwards.
 - Toolchain on Joel's machine: .NET SDK 10.0.201 (also 8.0 and 9.0), node 25, no Python, `gh` not installed, Git Bash available. Repo remote: github.com/Joel-Hjerten/augram.
-- Spike 2 needs Joel at the keyboard for the interactive parts (hover over Chrome/Explorer/a game; sleep and lock the machine; press Win+L while suppression is on). Results go to `docs/learnings/0001-spike2.md` and close checklist rows B1–B4.
+- Config on Joel's machine: `%APPDATA%\Augram\augram.json` (20 starter gestures, stroke button Right); logs in `%APPDATA%\Augram\logs`.
+- `src/Augram.Spike` and `src/Augram.Spike2` are still in the solution; delete them at the start of M2 (their findings are in `docs/learnings/0001-spike2.md`).
 
 ## How Joel works (observed)
 
