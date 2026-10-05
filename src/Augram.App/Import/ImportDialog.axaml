@@ -1,0 +1,15 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Augram.App.ViewModels"
+        xmlns:import="using:Augram.App.Import"
+        x:Class="Augram.App.Import.ImportDialog"
+        x:DataType="vm:ImportViewModel"
+        Title="Import from StrokesPlus.net"
+        Width="640"
+        Height="520"
+        MinWidth="420"
+        MinHeight="320"
+        WindowStartupLocation="CenterOwner">
+  <!-- The import dialog (F8): hosts ImportView; closes when the view model finishes. -->
+  <import:ImportView />
+</Window>

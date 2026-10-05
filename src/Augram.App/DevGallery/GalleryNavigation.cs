@@ -24,6 +24,11 @@ public static class GalleryNavigation
         new("Shell", Key + ".shell", ShellPage),
         new("ColorEditor", Key + ".coloreditor", ColorEditorPage),
         new("TextPanel", Key + ".textpanel", () => new TextScreen("TextPanel", "A TextPanel: wrapped text with theme padding. Placeholder tabs use it.")),
+        new("GestureGlyph", Key + ".gestureglyph", GestureGalleryPages.GlyphPage),
+        new("GestureGrid", Key + ".gesturegrid", GestureGalleryPages.GridPage),
+        new("GestureDrawArea", Key + ".gesturedrawarea", GestureGalleryPages.DrawAreaPage),
+        new("Training", Key + ".training", GestureGalleryPages.TrainingPage),
+        new("Import", Key + ".import", GestureGalleryPages.ImportPage),
     ]);
 
     private static ScreenDeclaration SectionFormPage()

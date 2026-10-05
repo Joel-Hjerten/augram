@@ -5,7 +5,10 @@
         xmlns:form="using:Augram.App.Components.SectionForm"
         xmlns:list="using:Augram.App.Components.ItemList"
         xmlns:text="using:Augram.App.Components.TextPanel"
-        xmlns:color="using:Augram.App.Components.Fields.Color">
+        xmlns:color="using:Augram.App.Components.Fields.Color"
+        xmlns:glyph="using:Augram.App.Components.GestureGlyph"
+        xmlns:grid="using:Augram.App.Components.GestureGrid"
+        xmlns:draw="using:Augram.App.Components.GestureDrawArea">
   <!--
     Wireframe theme (ADR-0002 §5b): grey boxes, 1 px borders, system font, text where icons would go.
     Every lookless component's ControlTheme lives here; Tokens.axaml supplies the values. Replacing the
@@ -152,6 +155,132 @@
           </ControlTemplate>
         </Setter>
       </ControlTheme>
+
+      <!-- Gestures tab (M1 step 7): glyph, tile, grid and the training draw area. -->
+      <ControlTheme x:Key="{x:Type glyph:GestureGlyph}" TargetType="glyph:GestureGlyph">
+        <Setter Property="Width" Value="64" />
+        <Setter Property="Height" Value="64" />
+        <Setter Property="Padding" Value="{StaticResource Pad.M}" />
+        <Setter Property="ArrowLength" Value="8" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{StaticResource Brush.Surface}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}">
+              <Path Name="PART_Stroke"
+                    Data="{TemplateBinding Geometry}"
+                    Stroke="{StaticResource Brush.Text}"
+                    StrokeThickness="2"
+                    StrokeLineCap="Round"
+                    StrokeJoin="Round" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:inactive /template/ Path#PART_Stroke">
+          <Setter Property="Stroke" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type grid:GestureTile}" TargetType="grid:GestureTile">
+        <Setter Property="Width" Value="96" />
+        <Setter Property="Margin" Value="{StaticResource Pad.S}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Padding="{StaticResource Pad.S}">
+              <StackPanel Spacing="{StaticResource Space.S}">
+                <glyph:GestureGlyph Points="{TemplateBinding Points}" IsActive="{TemplateBinding IsActive}" HorizontalAlignment="Center" />
+                <TextBlock Name="PART_Name"
+                           Classes="tile-name"
+                           Text="{TemplateBinding NameText}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+              </StackPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:inactive /template/ TextBlock#PART_Name">
+          <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type grid:GestureGrid}" TargetType="grid:GestureGrid">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Background="{StaticResource Brush.Surface}"
+                    Margin="{StaticResource Pad.S}">
+              <DockPanel>
+                <Border DockPanel.Dock="Top"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="{StaticResource Border.Bottom}"
+                        Padding="{StaticResource Pad.S}">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                    <TextBlock Classes="section-title" Text="Gestures" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Button Name="PART_New" Classes="toolbar" Content="Add new gesture…" />
+                    <Button Name="PART_Import" Classes="toolbar" Content="Import from StrokesPlus.net…" />
+                    <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
+                    <Button Name="PART_Redo" Classes="toolbar" Content="Redo" IsEnabled="{TemplateBinding CanRedo}" />
+                  </StackPanel>
+                </Border>
+                <Border DockPanel.Dock="Bottom"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="0,1,0,0"
+                        Padding="{StaticResource Pad.S}">
+                  <StackPanel Spacing="{StaticResource Space.XS}">
+                    <TextBlock Classes="note" Text="{TemplateBinding Message}" IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="diagnostic" Text="{TemplateBinding Diagnostic}" IsVisible="{TemplateBinding Diagnostic, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="help" Text="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
+                  </StackPanel>
+                </Border>
+                <ListBox Name="PART_Tiles"
+                         ItemsSource="{TemplateBinding TileControls}"
+                         Background="{StaticResource Brush.Surface}"
+                         SelectionMode="Single">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type draw:GestureDrawArea}" TargetType="draw:GestureDrawArea">
+        <Setter Property="MinHeight" Value="240" />
+        <Setter Property="ArrowLength" Value="14" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{StaticResource Brush.Background}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    ClipToBounds="True">
+              <Panel>
+                <TextBlock Name="PART_Hint"
+                           Classes="help"
+                           Text="Draw here"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           IsVisible="False" />
+                <Path Name="PART_Stroke"
+                      Data="{TemplateBinding Geometry}"
+                      Stroke="{StaticResource Brush.Accent}"
+                      StrokeThickness="4"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round" />
+              </Panel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:empty /template/ TextBlock#PART_Hint">
+          <Setter Property="IsVisible" Value="True" />
+        </Style>
+      </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
 
@@ -215,6 +344,40 @@
   </Style>
   <Style Selector="TabControl.sub /template/ WrapPanel">
     <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+  </Style>
+  <!-- Gestures tab, training popup and import dialog roles. -->
+  <Style Selector="TextBlock.tile-name">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+  </Style>
+  <Style Selector="TextBox.tile-editor">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+  </Style>
+  <Style Selector="TextBlock.diagnostic">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="DockPanel.dialog">
+    <Setter Property="Margin" Value="{StaticResource Pad.L}" />
+  </Style>
+  <Style Selector="StackPanel.dialog-buttons">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
+    <Setter Property="Margin" Value="0,8,0,0" />
+  </Style>
+  <Style Selector="StackPanel.dialog-row, Grid.dialog-row">
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+  <Style Selector="StackPanel.dialog-row">
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
   </Style>
   <Style Selector="TabItem">
     <Setter Property="FontSize" Value="{StaticResource Font.M}" />

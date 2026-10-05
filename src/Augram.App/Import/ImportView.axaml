@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Augram.App.ViewModels"
+             xmlns:import="using:Augram.App.Import"
+             x:Class="Augram.App.Import.ImportView"
+             x:DataType="vm:ImportViewModel">
+  <!-- The import dialog's content (F8): stats line, warnings, the merge plan with a choice per conflict, Apply and Cancel. Also shown in the gallery. -->
+  <DockPanel Classes="dialog">
+    <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
+      <Button Classes="toolbar" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
+      <Button Classes="toolbar" Content="Apply" Command="{Binding ApplyCommand}" IsDefault="True" />
+    </StackPanel>
+    <TextBlock DockPanel.Dock="Top" Classes="section-title" Text="Import from StrokesPlus.net" />
+    <TextBlock DockPanel.Dock="Top" Classes="help" Text="{Binding SourcePath}" />
+    <TextBlock DockPanel.Dock="Top" Classes="note" Text="{Binding StatsText}" />
+    <TextBlock DockPanel.Dock="Top" Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+    <TextBlock DockPanel.Dock="Top" Classes="note" Text="{Binding PlanText}" />
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Classes="dialog-row" IsVisible="{Binding HasConflicts}">
+      <TextBlock Classes="field-label" Text="For every conflict:" VerticalAlignment="Center" />
+      <ComboBox Name="AllChoices" Classes="field-editor" ItemsSource="{Binding Choices}" DisplayMemberBinding="{Binding Label}" />
+      <Button Name="ApplyToAll" Classes="toolbar" Content="Apply to all" />
+    </StackPanel>
+    <Expander DockPanel.Dock="Bottom" Header="Warnings" IsVisible="{Binding HasWarnings}" MaxHeight="160">
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Warnings}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="help" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Expander>
+    <ScrollViewer>
+      <ItemsControl ItemsSource="{Binding Conflicts}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="import:ImportConflictItem">
+            <Grid ColumnDefinitions="*,Auto" Classes="list-row dialog-row">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="field-label" Text="{Binding Name}" />
+                <TextBlock Classes="help" Text="{Binding Summary}" />
+              </StackPanel>
+              <ComboBox Grid.Column="1" Classes="field-editor" ItemsSource="{x:Static import:ImportConflictItem.Choices}" DisplayMemberBinding="{Binding Label}" SelectedItem="{Binding SelectedChoice}" VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

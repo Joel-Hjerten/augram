@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Augram.App.ViewModels"
+        xmlns:training="using:Augram.App.Training"
+        x:Class="Augram.App.Training.TrainingWindow"
+        x:DataType="vm:TrainingViewModel"
+        Title="{Binding Title}"
+        Width="520"
+        Height="560"
+        MinWidth="360"
+        MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+  <!-- The semi-large training popup (F3): hosts TrainingView; closes itself when the session ends. -->
+  <training:TrainingView />
+</Window>
