@@ -1,0 +1,227 @@
+using Augram.Core.Abstractions;
+using Augram.Core.Capture;
+using SharpHook;
+using SharpHook.Data;
+
+namespace Augram.Engine.Input;
+
+/// <summary>
+/// <see cref="IInputSource"/> over SharpHook's <see cref="SimpleGlobalHook"/>, the only hook type whose
+/// handlers run synchronously and can therefore set <c>SuppressEvent</c> (CLAUDE.md invariant 2). Mouse
+/// and keyboard, one hook per <see cref="Start"/> on its own named thread (<c>augram-hook-gN</c>). A
+/// handler translates the event to a <see cref="RawInput"/>, calls the <see cref="InputHandler"/>, copies
+/// its answer to <c>SuppressEvent</c>, returns; nothing else. Simulated events are dropped before the
+/// handler: <c>IsEventSimulated</c> is true for input injected by any process, so other utilities'
+/// synthetic input is ignored too (learnings 0001, B4). <see cref="SuppressAllKeys"/> swallows every
+/// key event, for the hotkey-capture flow later; off by default. Thin and untested on purpose: it
+/// needs a desktop, and everything above it is driven through a fake source in tests.
+/// </summary>
+public sealed class SharpHookInputSource : IInputSource
+{
+    private static readonly TimeSpan JoinTimeout = TimeSpan.FromSeconds(5);
+
+    private readonly IClock _clock;
+    private readonly object _gate = new();
+    private Generation? _current;
+    private InputHandler? _handler;
+    private int _generation;
+    private bool _suppressAllKeys;
+
+    public SharpHookInputSource(IClock clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        _clock = clock;
+    }
+
+    public event EventHandler<HookHealth>? HookHealthChanged;
+
+    public bool IsRunning => _current?.Hook.IsRunning ?? false;
+
+    /// <summary>Installs since construction; the thread name carries it.</summary>
+    public int GenerationCount => Volatile.Read(ref _generation);
+
+    public bool SuppressAllKeys
+    {
+        get => Volatile.Read(ref _suppressAllKeys);
+        set => Volatile.Write(ref _suppressAllKeys, value);
+    }
+
+    public void Start(InputHandler handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        lock (_gate)
+        {
+            if (_current is not null)
+            {
+                throw new InvalidOperationException("The hook is already installed; Stop it first.");
+            }
+
+            _handler = handler;
+            var generation = new Generation(new SimpleGlobalHook(GlobalHookType.All), ++_generation);
+            var hook = generation.Hook;
+            hook.HookEnabled += (_, _) => Raise(HookHealthKind.Installed, generation, null);
+            hook.HookDisabled += (_, _) => OnDisabled(generation, "HookDisabled");
+            hook.MousePressed += OnButton;
+            hook.MouseReleased += OnButton;
+            hook.MouseMoved += OnMove;
+            hook.MouseDragged += OnMove;
+            hook.MouseWheel += OnWheel;
+            hook.KeyPressed += OnKey;
+            hook.KeyReleased += OnKey;
+            generation.Thread = new Thread(() => Run(generation)) { IsBackground = true, Name = $"augram-hook-g{generation.Number}" };
+            _current = generation;
+            generation.Thread.Start();
+        }
+    }
+
+    public void Stop()
+    {
+        Generation? generation;
+        lock (_gate)
+        {
+            generation = _current;
+            _current = null;
+        }
+
+        if (generation is null)
+        {
+            return;
+        }
+
+        generation.Stopping = true;
+        try
+        {
+            generation.Hook.Dispose();
+        }
+        catch (Exception)
+        {
+            // A hook that already failed may throw on dispose; the thread is joined below regardless.
+        }
+
+        if (generation.Thread is { } thread && thread != Thread.CurrentThread)
+        {
+            thread.Join(JoinTimeout);
+        }
+    }
+
+    public void Dispose() => Stop();
+
+    private static KeyModifiers Modifiers(EventMask mask)
+    {
+        var modifiers = KeyModifiers.None;
+        if ((mask & EventMask.Ctrl) != 0)
+        {
+            modifiers |= KeyModifiers.Control;
+        }
+
+        if ((mask & EventMask.Alt) != 0)
+        {
+            modifiers |= KeyModifiers.Alt;
+        }
+
+        if ((mask & EventMask.Shift) != 0)
+        {
+            modifiers |= KeyModifiers.Shift;
+        }
+
+        if ((mask & EventMask.Meta) != 0)
+        {
+            modifiers |= KeyModifiers.Meta;
+        }
+
+        return modifiers;
+    }
+
+    private void Run(Generation generation)
+    {
+        try
+        {
+            generation.Hook.Run();
+        }
+        catch (HookException e)
+        {
+            OnDisabled(generation, $"{e.Result}: {e.Message}");
+        }
+        catch (Exception e)
+        {
+            OnDisabled(generation, $"{e.GetType().Name}: {e.Message}");
+        }
+    }
+
+    private void OnDisabled(Generation generation, string detail)
+    {
+        if (Interlocked.Exchange(ref generation.EndReported, 1) != 0)
+        {
+            return;
+        }
+
+        Raise(generation.Stopping ? HookHealthKind.Stopped : HookHealthKind.Lost, generation, detail);
+    }
+
+    private void Raise(HookHealthKind kind, Generation generation, string? detail) =>
+        HookHealthChanged?.Invoke(this, new HookHealth(kind, generation.Number, detail));
+
+    private void OnButton(object? sender, MouseHookEventArgs e)
+    {
+        if (e.IsEventSimulated || !MouseButtonMap.TryToCore(e.Data.Button, out var button))
+        {
+            return;
+        }
+
+        var raw = e.RawEvent.Type == EventType.MousePressed
+            ? RawInput.ButtonDown(button, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask))
+            : RawInput.ButtonUp(button, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask));
+        e.SuppressEvent = _handler!(in raw);
+    }
+
+    private void OnMove(object? sender, MouseHookEventArgs e)
+    {
+        if (e.IsEventSimulated)
+        {
+            return;
+        }
+
+        var raw = RawInput.Move(e.Data.X, e.Data.Y, _clock.MonotonicMs);
+        _handler!(in raw);
+    }
+
+    private void OnWheel(object? sender, MouseWheelHookEventArgs e)
+    {
+        if (e.IsEventSimulated || e.Data.Direction != MouseWheelScrollDirection.Vertical || e.Data.Rotation == 0)
+        {
+            return;
+        }
+
+        // SharpHook: positive rotation is up (away from the user).
+        var direction = e.Data.Rotation > 0 ? WheelDirection.Up : WheelDirection.Down;
+        var raw = RawInput.WheelTick(direction, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask));
+        e.SuppressEvent = _handler!(in raw);
+    }
+
+    private void OnKey(object? sender, KeyboardHookEventArgs e)
+    {
+        if (e.IsEventSimulated)
+        {
+            return;
+        }
+
+        var key = KeyCodeMap.ToCore(e.Data.KeyCode);
+        var raw = e.RawEvent.Type == EventType.KeyPressed
+            ? RawInput.KeyDown(key, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask))
+            : RawInput.KeyUp(key, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask));
+        e.SuppressEvent = _handler!(in raw) | SuppressAllKeys;
+    }
+
+    private sealed class Generation(SimpleGlobalHook hook, int number)
+    {
+        public int EndReported;
+
+        public SimpleGlobalHook Hook { get; } = hook;
+
+        public int Number { get; } = number;
+
+        public Thread? Thread { get; set; }
+
+        public volatile bool Stopping;
+    }
+}

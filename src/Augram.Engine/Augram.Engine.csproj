@@ -5,4 +5,7 @@
   <ItemGroup>
     <PackageReference Include="SharpHook" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Augram.Engine.Tests" />
+  </ItemGroup>
 </Project>
