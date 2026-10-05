@@ -1,0 +1,7 @@
+# Normalise line endings: LF in the repo, LF in working copies too (dotnet format and CI agree).
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.gif binary
+*.jpg binary
+*.zip binary
