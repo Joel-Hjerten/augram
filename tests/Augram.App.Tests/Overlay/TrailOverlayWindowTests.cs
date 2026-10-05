@@ -4,7 +4,6 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Diagnostics;
-using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Xunit;
@@ -18,7 +17,7 @@ namespace Augram.App.Tests.Overlay;
 public sealed class TrailOverlayWindowTests
 {
     [AvaloniaFact]
-    public void ShownOnBegin_OneFramePerRequest_HiddenOnEnd()
+    public void ShownOnBegin_OneFramePerRequest_ParkedOnEnd()
     {
         var log = new ListEventLog();
         var style = new FakeOverlayStyle(OverlayStyleReport.NotApplicable);
@@ -61,10 +60,11 @@ public sealed class TrailOverlayWindowTests
 
         Assert.Equal(2, window.FramesRendered);
         Assert.Equal(0, window.PointsOnScreen);
-        // The window hides one frame after painting the empty canvas (no stale stroke on the next show), so pump a frame.
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        Dispatcher.UIThread.RunJobs();
-        Assert.False(window.IsVisible);
+        // Between strokes the window stays shown but parked at one pixel, so no stale surface can flash on the next stroke.
+        Assert.True(window.IsVisible);
+        Assert.True(window.IsParked);
+        Assert.Equal(1, window.Width);
+        Assert.Equal(1, window.Height);
         Assert.DoesNotContain(log.Events, e => e.Level == EventLevel.Error);
     }
 

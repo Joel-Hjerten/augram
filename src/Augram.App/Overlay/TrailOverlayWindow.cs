@@ -40,6 +40,7 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     private long _strokeStartedTicks;
     private bool _firstFramePending;
     private int _usable = 1;
+    private bool _parked;
     private DateTimeOffset _visibleSince;
 
     public TrailOverlayWindow(Func<TrailSettings> trail, IOverlayWindowStyle style, IEventLog log, HealthRegistry? health)
@@ -86,6 +87,9 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
 
     public int PointsOnScreen => _canvas.PointCount;
 
+    /// <summary>True while the window is shown but shrunk to one pixel between strokes (see <see cref="Park"/>).</summary>
+    public bool IsParked => _parked;
+
     internal TrailBuffer Buffer => _buffer;
 
     public void Begin(CapturePoint start)
@@ -131,6 +135,7 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
         if (VerifyOrHide("show"))
         {
             FitVirtualScreen();
+            _parked = false;
         }
     }
 
@@ -143,7 +148,7 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     /// <summary>The watchdog's check, with the clock injected for tests: a window still visible <see cref="IdleVisibleLimit"/> after the stroke ended is hidden and reported.</summary>
     internal void CheckIdle(DateTimeOffset now)
     {
-        if (IsVisible && !_buffer.IsActive && now - _visibleSince > IdleVisibleLimit)
+        if (IsVisible && !_parked && !_buffer.IsActive && now - _visibleSince > IdleVisibleLimit)
         {
             HideNow();
             _log.Error(LogSource, "Overlay visible without a stroke, hidden", ("visibleForMs", (now - _visibleSince).TotalMilliseconds));
@@ -169,6 +174,13 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
             {
                 Show();
             }
+            else if (_parked)
+            {
+                // Paint the new stroke into the parked 1x1 window first, then grow it: the first full-size frame is the new stroke.
+                _canvas.SetPoints(frame.Points.Select(ToDip));
+                Unpark();
+                return;
+            }
         }
 
         if (IsVisible)
@@ -178,31 +190,42 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     }
 
     /// <summary>
-    /// Clears the canvas and hides the window only after the empty frame has been painted. Hiding right away
-    /// leaves the previous stroke in the retained surface, which the compositor shows for a frame when the window
-    /// is next shown (Joel saw the previous gesture flash at the start of each new stroke, 2026-10-06).
+    /// Between strokes the window stays shown but is shrunk to one pixel at the virtual-screen origin ("parked").
+    /// Hiding it instead left the previous stroke in the retained surface, which the compositor presented for a
+    /// frame on the next Show (Joel saw the previous gesture flash, 2026-10-06, twice despite a deferred hide).
+    /// A parked window covers nothing, is click-through and non-activating, and needs no Show() per stroke.
     /// </summary>
     private void HideIdle()
     {
         _canvas.SetPoints([]);
-        if (!IsVisible)
+        if (IsVisible && !_parked)
         {
-            return;
+            Park();
         }
+    }
 
-        RequestAnimationFrame(_ =>
-        {
-            if (!_buffer.IsActive && IsVisible)
-            {
-                Hide();
-            }
-        });
+    private void Park()
+    {
+        var bounds = VirtualScreenBounds();
+        Width = 1;
+        Height = 1;
+        var handle = TryGetPlatformHandle()?.Handle ?? 0;
+        _style.Place(handle, bounds.X, bounds.Y, 1, 1);
+        _parked = true;
+    }
+
+    private void Unpark()
+    {
+        _visibleSince = DateTimeOffset.UtcNow;
+        FitVirtualScreen();
+        _parked = false;
     }
 
     /// <summary>Safety path: hide now, stale surface or not.</summary>
     private void HideNow()
     {
         _canvas.SetPoints([]);
+        _parked = false;
         if (IsVisible)
         {
             Hide();
