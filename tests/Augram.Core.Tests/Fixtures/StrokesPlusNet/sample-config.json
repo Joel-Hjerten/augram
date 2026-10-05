@@ -1,0 +1,161 @@
+﻿{
+  "Version": "0.5.8.0",
+  "StrokeButton": 4194304,
+  "SecondaryStrokeButton": 0,
+  "MatchProbabilityThreshold": 75,
+  "MatchPrecision": 100,
+  "MinGestureStartDistance": 30,
+  "CancelDelay": 1000,
+  "PenColor": { "R": 0, "G": 255, "B": 64 },
+  "Floaters": [],
+  "Hotkeys": null,
+  "Gestures": [
+    {
+      "Name": "Synthetic Up Stock",
+      "Active": true,
+      "MatchCount": 7,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 0, "Y": 500 }, { "X": 0, "Y": 100 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic L Shape",
+      "Active": true,
+      "MatchCount": 0,
+      "PointPatterns": [
+        { "Order": 2, "Points": [ { "X": 10, "Y": 0 }, { "X": 10, "Y": 90 }, { "X": 100, "Y": 90 } ] },
+        { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 0, "Y": 100 }, { "X": 0, "Y": 200 }, { "X": 100, "Y": 200 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Dot",
+      "Active": true,
+      "MatchCount": 0,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 5, "Y": 5 } ] },
+        { "Order": 2, "Points": [ { "X": 0, "Y": 0 }, { "X": 50, "Y": 50 }, { "X": 100, "Y": 100 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Twin",
+      "Active": true,
+      "MatchCount": 1,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 100, "Y": 0 }, { "X": 200, "Y": 0 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Twin",
+      "Active": true,
+      "MatchCount": 2,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 200, "Y": 0 }, { "X": 100, "Y": 0 }, { "X": 0, "Y": 0 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Sleeper",
+      "Active": false,
+      "MatchCount": 0,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 0, "Y": 100 }, { "X": 0, "Y": 200 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Zigzag",
+      "Active": true,
+      "MatchCount": 3,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 50, "Y": 100 }, { "X": 100, "Y": 0 }, { "X": 150, "Y": 100 }, { "X": 200.5, "Y": 0 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Circle",
+      "Active": true,
+      "MatchCount": 0,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 100, "Y": 0 }, { "X": 171, "Y": 29 }, { "X": 200, "Y": 100 }, { "X": 171, "Y": 171 }, { "X": 100, "Y": 200 }, { "X": 29, "Y": 171 }, { "X": 0, "Y": 100 }, { "X": 29, "Y": 29 }, { "X": 100, "Y": 0 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Empty",
+      "Active": true,
+      "MatchCount": 0,
+      "PointPatterns": null,
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "  Synthetic Padded  ",
+      "Active": true,
+      "MatchCount": 0,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 0, "Y": 100 }, { "X": 100, "Y": 100 }, { "X": 100, "Y": 0 } ] }
+      ]
+    },
+    {
+      "Name": "Synthetic Same Point Twice",
+      "Active": true,
+      "MatchCount": 0,
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 1, "Y": 1 }, { "X": 1, "Y": 1 } ] }
+      ],
+      "MultiPointPatterns": null
+    },
+    {
+      "Name": "Synthetic Check",
+      "Active": true,
+      "MatchCount": 12,
+      "UnknownFutureMember": { "nested": [ 1, 2, 3 ] },
+      "PointPatterns": [
+        { "Order": 1, "Points": [ { "X": 0, "Y": 50 }, { "X": 40, "Y": 100 }, { "X": 120, "Y": 0 } ] }
+      ],
+      "MultiPointPatterns": null
+    }
+  ],
+  "GlobalApplication": {
+    "Description": null,
+    "Active": true,
+    "Actions": [
+      {
+        "Description": "Synthetic Close Window",
+        "Active": true,
+        "GestureName": "Synthetic Up Stock",
+        "Steps": [ { "Method": "CloseWindow", "MethodParameters": [] } ],
+        "Script": ""
+      },
+      {
+        "Description": "Synthetic Dangling Reference",
+        "Active": true,
+        "GestureName": "Synthetic Gone",
+        "Steps": [ { "Method": "Delay", "MethodParameters": [ { "Name": "milliseconds", "Value": "100" } ] } ],
+        "Script": ""
+      }
+    ]
+  },
+  "Applications": [
+    {
+      "Description": "Synthetic Browser",
+      "Active": true,
+      "FileName": { "Value": "synthetic-browser.exe", "IsRegex": false },
+      "Actions": [
+        {
+          "Description": "Synthetic Close Tab",
+          "Active": true,
+          "GestureName": "Synthetic Up Stock",
+          "Steps": [ { "Method": "SendHotKey", "MethodParameters": [ { "Name": "hotkey", "Value": "Ctrl+W" } ] } ],
+          "Script": ""
+        }
+      ]
+    }
+  ],
+  "IgnoredApplications": [],
+  "TextExpansions": [],
+  "Plugins": null
+}
