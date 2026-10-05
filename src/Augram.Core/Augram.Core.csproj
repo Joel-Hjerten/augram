@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pure .NET. No package references, ever (ADR-0002 §1). Enforced by tests/Augram.Core.Tests/Architecture. -->
+</Project>

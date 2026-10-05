@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Depends on Core only. No package references (System.Text.Json is BCL). -->
+  <ItemGroup>
+    <ProjectReference Include="../Augram.Core/Augram.Core.csproj" />
+  </ItemGroup>
+</Project>

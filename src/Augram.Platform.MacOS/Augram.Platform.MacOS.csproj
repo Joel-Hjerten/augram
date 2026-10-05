@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Augram.Core/Augram.Core.csproj" />
+  </ItemGroup>
+</Project>
