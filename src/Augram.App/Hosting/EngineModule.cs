@@ -66,6 +66,14 @@ public static class EngineModule
             return;
         }
 
+        if (!OperatingSystem.IsWindows())
+        {
+            // Plan 0002: the macOS adapters (overlay style verification, window system, startup) do not exist yet.
+            // Starting the hook here would show an overlay whose click-through state cannot be verified (invariant 6).
+            services.GetRequiredService<IEventLog>().Info(LogSources.Engine, "Engine disabled: no platform adapters for this OS yet", ("os", Environment.OSVersion.Platform));
+            return;
+        }
+
         var host = services.GetRequiredService<EngineHost>();
         // A completed stroke that started over an open training canvas belongs to the training popup (F3), not to commands.
         if (services.GetService<ITrainingSession>() is { } training)
