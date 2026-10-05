@@ -102,7 +102,7 @@ App
 
 ### F6. Trail overlay — DECIDED (feature)
 - Visible stroke trail over all apps while drawing; transparent, click-through, per-platform native window; points batched per frame (handoff §7).
-- LEANING: hardcoded-nice first with Joel's SP.net look as the default (width 5 px, 50% opacity, green 0/255/64); color/width become options later. Pen width must scale with the DPI of the monitor the stroke starts on (GestureSign lesson).
+- **Stroke colour and width are settings on the Options page (DECIDED — Joel, 2026-10-05)**, with opacity alongside. Defaults are Joel's SP.net look: width 5 px, 50% opacity, green 0/255/64. Pen width scales with the DPI of the monitor the stroke starts on (GestureSign lesson). Needs a `Color` field kind in the declarative form (ADR-0002 §5c) in M1.
 
 ### F7. Tray presence + settings app — DECIDED
 - Tray icon (menu bar extra on macOS): open settings, enable/disable, quit.

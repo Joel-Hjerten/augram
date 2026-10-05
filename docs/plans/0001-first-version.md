@@ -35,7 +35,7 @@ Order matters: each step is testable without the next.
 5. **Platform.Windows**: `IWindowSystem` (window under point, root owner, process name/path/title/class chain, foreground root) and `IOverlay` per the B2 decision.
 6. **App shell**: composition root with DI; tray icon (single-click toggle, double-click open, menu: Open, Enable/Disable, Start at login, Quit); single instance; wireframe theme; navigation registry with Gestures / Commands / Ignored / Options tabs (Commands and Ignored are empty placeholders in M1); `SectionForm` and `ItemList` renderers with the first field kinds (Toggle, Dropdown, Text, Number, ButtonRadio, Note, Custom); dev gallery; F1 inspector with click-to-copy.
 7. **Gestures tab**: `GestureGrid` of `GestureGlyph` tiles (active/inactive styling), Add new gesture → training popup (canvas, Cancel, Accept, redraw replaces, name field, live "looks like X, N%"), rename (F2/Return), delete with undo, toggle active.
-8. **Options tab (M1 subset)**: stroke button with detect-to-assign, Ignore Key, start distance, cancel delay, no-match behaviour, trail defaults, threshold and precision, config folder, start at login.
+8. **Options tab (M1 subset)**: stroke button with detect-to-assign, Ignore Key, start distance, cancel delay, no-match behaviour, **trail colour, width and opacity** (needs the `Color` field kind), threshold and precision, config folder, start at login.
 9. **Recognition log panel** (Options › Diagnostics or its own tab): live view of the `RecognitionLog`.
 10. **Gesture import only** from SP.net JSON (`Gestures[]` → library) so Joel's 90 gestures are available on day one. Full import is M2.
 
