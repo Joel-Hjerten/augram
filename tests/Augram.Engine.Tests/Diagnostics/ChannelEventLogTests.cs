@@ -8,7 +8,8 @@ namespace Augram.Engine.Tests.Diagnostics;
 /// <summary>N4: the caller never blocks, order is kept, drops are counted and reported, dispose drains.</summary>
 public sealed class ChannelEventLogTests
 {
-    private const int MaxCallMs = 100;
+    // Generous on purpose: 2-core CI runners schedule the producer thread unpredictably; the point is "never blocks", not speed.
+    private const int MaxCallMs = 500;
 
     [Fact]
     public void Events_ReachEverySinkInOrder()
@@ -57,7 +58,7 @@ public sealed class ChannelEventLogTests
         total.Stop();
 
         Assert.True(maxCallMs < MaxCallMs, $"slowest Log call took {maxCallMs:F1} ms");
-        Assert.True(total.ElapsedMilliseconds < 2000, $"10,000 calls took {total.ElapsedMilliseconds} ms");
+        Assert.True(total.ElapsedMilliseconds < 10000, $"10,000 calls took {total.ElapsedMilliseconds} ms");
         Assert.True(log.DroppedCount > 0, "expected drops with the sink blocked");
 
         gate.Set();

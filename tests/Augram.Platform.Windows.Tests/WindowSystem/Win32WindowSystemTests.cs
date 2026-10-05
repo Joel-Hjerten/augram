@@ -52,7 +52,8 @@ public sealed class Win32WindowSystemTests
     [Fact]
     public void WindowAt_Cursor_ReturnsSaneIdentityOrNull()
     {
-        if (!Environment.UserInteractive || !OperatingSystem.IsWindows() || !NativeMethods.GetCursorPos(out var cursor))
+        // Needs a real interactive desktop; GitHub-hosted runners report UserInteractive but have no usable session.
+        if (!Environment.UserInteractive || !OperatingSystem.IsWindows() || Environment.GetEnvironmentVariable("GITHUB_ACTIONS") is not null || !NativeMethods.GetCursorPos(out var cursor))
         {
             return;
         }
