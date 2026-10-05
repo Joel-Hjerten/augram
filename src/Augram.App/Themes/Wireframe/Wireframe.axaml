@@ -1,0 +1,224 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:Augram.App.Components.Shell"
+        xmlns:host="using:Augram.App.Components.ScreenHost"
+        xmlns:form="using:Augram.App.Components.SectionForm"
+        xmlns:list="using:Augram.App.Components.ItemList"
+        xmlns:text="using:Augram.App.Components.TextPanel"
+        xmlns:color="using:Augram.App.Components.Fields.Color">
+  <!--
+    Wireframe theme (ADR-0002 §5b): grey boxes, 1 px borders, system font, text where icons would go.
+    Every lookless component's ControlTheme lives here; Tokens.axaml supplies the values. Replacing the
+    look means writing another file like this one and pointing ThemeSelector at it.
+  -->
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <ControlTheme x:Key="{x:Type shell:Shell}" TargetType="shell:Shell">
+        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}">
+              <TabControl Name="PART_Tabs" ItemsSource="{TemplateBinding Tabs}" Padding="{StaticResource Pad.M}" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type host:ScreenHost}" TargetType="host:ScreenHost">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <ContentPresenter Content="{TemplateBinding Content}" />
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type form:SectionForm}" TargetType="form:SectionForm">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{TemplateBinding Sections}" Margin="{StaticResource Pad.S}" />
+            </ScrollViewer>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type form:SectionView}" TargetType="form:SectionView">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Background="{StaticResource Brush.Surface}"
+                    Padding="{StaticResource Pad.M}"
+                    Margin="{StaticResource Pad.S}">
+              <StackPanel Spacing="{StaticResource Space.S}">
+                <TextBlock Classes="section-title" Text="{TemplateBinding Title}" />
+                <TextBlock Classes="help" Text="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
+                <ItemsControl ItemsSource="{TemplateBinding Rows}" />
+              </StackPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type form:FieldRow}" TargetType="form:FieldRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Bottom}"
+                    Padding="{StaticResource Pad.S}">
+              <Grid ColumnDefinitions="220,*">
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                  <TextBlock Classes="field-label" Text="{TemplateBinding Label}" />
+                  <TextBlock Classes="help" Text="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
+                </StackPanel>
+                <ContentPresenter Grid.Column="1"
+                                  Content="{TemplateBinding Editor}"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type list:ItemList}" TargetType="list:ItemList">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Background="{StaticResource Brush.Surface}"
+                    Margin="{StaticResource Pad.S}">
+              <DockPanel>
+                <Border DockPanel.Dock="Top"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="{StaticResource Border.Bottom}"
+                        Padding="{StaticResource Pad.S}">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                    <TextBlock Classes="section-title" Text="{TemplateBinding Title}" VerticalAlignment="Center" />
+                    <ItemsControl ItemsSource="{TemplateBinding ToolbarItems}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+                <Border DockPanel.Dock="Top"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="{StaticResource Border.Bottom}"
+                        Padding="{StaticResource Pad.S}">
+                  <ContentPresenter Content="{TemplateBinding HeaderRow}" />
+                </Border>
+                <ListBox Name="PART_Rows"
+                         ItemsSource="{TemplateBinding Rows}"
+                         ItemTemplate="{TemplateBinding RowTemplate}"
+                         Background="{StaticResource Brush.Surface}" />
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type text:TextPanel}" TargetType="text:TextPanel">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Padding="{StaticResource Pad.L}">
+              <TextBlock Text="{TemplateBinding Text}" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text}" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type color:ColorEditor}" TargetType="color:ColorEditor">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+              <Border Width="24" Height="24"
+                      BorderBrush="{StaticResource Brush.Border}"
+                      BorderThickness="{StaticResource Border.Hairline}"
+                      Background="{TemplateBinding Swatch}" />
+              <TextBlock Classes="help" Text="R" VerticalAlignment="Center" />
+              <NumericUpDown Name="PART_Red" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+              <TextBlock Classes="help" Text="G" VerticalAlignment="Center" />
+              <NumericUpDown Name="PART_Green" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+              <TextBlock Classes="help" Text="B" VerticalAlignment="Center" />
+              <NumericUpDown Name="PART_Blue" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+            </StackPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!-- Standard editors and text roles used inside the components, keyed by class. -->
+  <Style Selector="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Family}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+  </Style>
+  <Style Selector="TextBlock.section-title">
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="{StaticResource Font.L}" />
+  </Style>
+  <Style Selector="TextBlock.field-label">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.help">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.note">
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+  </Style>
+  <Style Selector="TextBlock.column-header">
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+  </Style>
+  <Style Selector="TextBlock.cell">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+  </Style>
+  <Style Selector="ComboBox.field-editor, TextBox.field-editor, NumericUpDown.field-editor">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.MinWidth}" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+  </Style>
+  <Style Selector="NumericUpDown.channel">
+    <Setter Property="Width" Value="130" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="RadioButton.button-radio">
+    <Setter Property="Margin" Value="0,0,8,0" />
+  </Style>
+  <Style Selector="Button.toolbar">
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+  </Style>
+  <Style Selector="StackPanel.list-filter">
+    <Setter Property="Spacing" Value="{StaticResource Space.S}" />
+  </Style>
+  <Style Selector="ListBox > ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <Style Selector="TabControl.sub">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="TabControl.sub /template/ WrapPanel">
+    <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+  </Style>
+  <Style Selector="TabItem">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="12,4" />
+  </Style>
+</Styles>

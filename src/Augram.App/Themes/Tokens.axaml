@@ -1,0 +1,52 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Semantic tokens (ADR-0002 §5, §5b). Components reference these keys and nothing else; the
+    architecture test fails any literal colour under Components/. A theme may override any key.
+  -->
+
+  <!-- Colours -->
+  <Color x:Key="Color.Background">#F5F5F5</Color>
+  <Color x:Key="Color.Surface">#FFFFFF</Color>
+  <Color x:Key="Color.Border">#9E9E9E</Color>
+  <Color x:Key="Color.Text">#202020</Color>
+  <Color x:Key="Color.TextMuted">#6E6E6E</Color>
+  <Color x:Key="Color.Accent">#3A6EA5</Color>
+  <Color x:Key="Color.Danger">#B3261E</Color>
+
+  <SolidColorBrush x:Key="Brush.Background" Color="#F5F5F5" />
+  <SolidColorBrush x:Key="Brush.Surface" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Border" Color="#9E9E9E" />
+  <SolidColorBrush x:Key="Brush.Text" Color="#202020" />
+  <SolidColorBrush x:Key="Brush.TextMuted" Color="#6E6E6E" />
+  <SolidColorBrush x:Key="Brush.Accent" Color="#3A6EA5" />
+  <SolidColorBrush x:Key="Brush.Danger" Color="#B3261E" />
+
+  <!-- F1 inspector outline colours by nesting depth (ADR-0002 §5d) -->
+  <Color x:Key="Inspector.Depth0">#D32F2F</Color>
+  <Color x:Key="Inspector.Depth1">#1976D2</Color>
+  <Color x:Key="Inspector.Depth2">#388E3C</Color>
+  <Color x:Key="Inspector.Depth3">#F57C00</Color>
+  <Color x:Key="Inspector.Label">#FFFFFF</Color>
+
+  <!-- Spacing -->
+  <x:Double x:Key="Space.XS">2</x:Double>
+  <x:Double x:Key="Space.S">4</x:Double>
+  <x:Double x:Key="Space.M">8</x:Double>
+  <x:Double x:Key="Space.L">16</x:Double>
+  <Thickness x:Key="Pad.S">4</Thickness>
+  <Thickness x:Key="Pad.M">8</Thickness>
+  <Thickness x:Key="Pad.L">16</Thickness>
+  <Thickness x:Key="Border.Hairline">1</Thickness>
+  <Thickness x:Key="Border.Bottom">0,0,0,1</Thickness>
+
+  <!-- Type -->
+  <FontFamily x:Key="Font.Family">$Default</FontFamily>
+  <x:Double x:Key="Font.S">11</x:Double>
+  <x:Double x:Key="Font.M">13</x:Double>
+  <x:Double x:Key="Font.L">16</x:Double>
+
+  <!-- Layout -->
+  <GridLength x:Key="Form.LabelColumn">220</GridLength>
+  <x:Double x:Key="Editor.MinWidth">180</x:Double>
+</ResourceDictionary>

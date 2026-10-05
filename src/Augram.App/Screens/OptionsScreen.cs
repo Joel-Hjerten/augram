@@ -1,0 +1,61 @@
+using Augram.App.Declarations;
+using Augram.App.ViewModels;
+using Augram.Core.Capture;
+using Augram.Core.Config;
+using Augram.Core.Recognition;
+
+namespace Augram.App.Screens;
+
+/// <summary>The Options tab (F6, F7, A10) as a section/field tree. Moving a field is moving a line here.</summary>
+public static class OptionsScreen
+{
+    public static ScreenDeclaration Declare(AppSettingsViewModel vm)
+    {
+        ArgumentNullException.ThrowIfNull(vm);
+        return new FormScreen("Options",
+        [
+            new Section("General",
+            [
+                new ButtonRadioField<MouseButton>("Stroke button", Choice.FromEnum<MouseButton>(),
+                    new DelegateBinding<MouseButton>(() => vm.StrokeButton, v => vm.StrokeButton = v, vm),
+                    "Hold this button and draw. Right is the fresh-install default; SP.net keeps Middle while it runs."),
+                new DropdownField<IgnoreKeys>("Ignore key", Choice.FromEnum<IgnoreKeys>(),
+                    new DelegateBinding<IgnoreKeys>(() => vm.IgnoreKey, v => vm.IgnoreKey = v, vm),
+                    "Hold this key to use the stroke button normally."),
+                new ToggleField("Start at login",
+                    new DelegateBinding<bool>(() => vm.StartAtLogin, v => vm.StartAtLogin = v, vm),
+                    "Also in the tray menu."),
+                new TextField("Config folder",
+                    new DelegateBinding<string>(() => vm.ConfigFolder, v => vm.ConfigFolder = v, vm),
+                    "Settings, gestures and logs live here."),
+            ]),
+            new Section("Capture",
+            [
+                new NumberField("Start distance (px)",
+                    new DelegateBinding<double>(() => vm.StartDistancePx, v => vm.StartDistancePx = v, vm), 1, 200,
+                    Help: "Movement before a press counts as a stroke rather than a click."),
+                new NumberField("Cancel delay (ms)",
+                    new DelegateBinding<double>(() => vm.CancelDelayMs, v => vm.CancelDelayMs = v, vm), 0, 5000, 50,
+                    "Holding still this long cancels the stroke and replays the click."),
+                new DropdownField<NoMatchBehaviour>("When nothing matches", Choice.FromEnum<NoMatchBehaviour>(),
+                    new DelegateBinding<NoMatchBehaviour>(() => vm.NoMatch, v => vm.NoMatch = v, vm)),
+            ]),
+            new Section("Trail",
+            [
+                new ColorField("Colour", new DelegateBinding<RgbColor>(() => vm.TrailColour, v => vm.TrailColour = v, vm)),
+                new NumberField("Width (px)", new DelegateBinding<double>(() => vm.TrailWidth, v => vm.TrailWidth = v, vm), 1, 20),
+                new NumberField("Opacity", new DelegateBinding<double>(() => vm.TrailOpacity, v => vm.TrailOpacity = v, vm), 0, 1, 0.05),
+            ], "Scales with the DPI of the monitor the stroke starts on."),
+            new Section("Recognition",
+            [
+                new NumberField("Threshold", new DelegateBinding<double>(() => vm.Threshold, v => vm.Threshold = v, vm), 0, 100,
+                    Help: "Minimum score (0–100) for a match to fire."),
+                new NumberField("Precision", new DelegateBinding<double>(() => vm.Precision, v => vm.Precision = v, vm), 10, 400, 10,
+                    "Resample count; templates stay raw so this can change any time."),
+                new DropdownField<ScoringMode>("Scoring mode", Choice.FromEnum<ScoringMode>(),
+                    new DelegateBinding<ScoringMode>(() => vm.ScoringMode, v => vm.ScoringMode = v, vm),
+                    "Legacy reproduces StrokesPlus exactly, quirks included."),
+            ]),
+        ]);
+    }
+}

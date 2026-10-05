@@ -1,0 +1,9 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    The real design (ADR-0002 §5b) lands here when D2 is decided. Until then it is the Wireframe look,
+    included rather than copied so the two cannot drift; replacing the include with this theme's own
+    ControlThemes and token overrides is the whole job of skinning.
+  -->
+  <StyleInclude Source="avares://Augram.App/Themes/Wireframe/Wireframe.axaml" />
+</Styles>

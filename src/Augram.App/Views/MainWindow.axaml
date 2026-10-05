@@ -1,11 +1,16 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Augram.App.ViewModels"
+        xmlns:shell="using:Augram.App.Components.Shell"
+        xmlns:inspector="using:Augram.App.Inspector"
         x:Class="Augram.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
         Title="Augram"
-        Width="480"
-        Height="320">
-  <TextBlock x:Name="Heading"
-             Text="Augram M0"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+        Width="960"
+        Height="680">
+  <!-- The window composes the shell and the F1 inspector overlay; it owns no visuals of its own (ADR-0002 §5). -->
+  <Grid>
+    <shell:Shell x:Name="Shell" Registry="{Binding Registry}" SelectedKey="{Binding InitialTabKey}" />
+    <inspector:InspectorOverlay x:Name="Inspector" />
+  </Grid>
 </Window>
