@@ -100,14 +100,11 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
             case GestureGridAction.New:
                 _training.Open(TrainingRequest.NewGesture);
                 break;
-            case GestureGridAction.AddSample when e.Tile is { } tile:
-                _training.Open(TrainingRequest.AddSample(tile.Id));
+            case GestureGridAction.Redraw when e.Tile is { } tile:
+                _training.Open(TrainingRequest.Redraw(tile.Id));
                 break;
             case GestureGridAction.Rename when e.Tile is { } tile && e.Name is { } name:
                 _library.Rename(tile.Id, name);
-                break;
-            case GestureGridAction.ToggleActive when e.Tile is { } tile:
-                _library.SetActive(tile.Id, !tile.IsActive);
                 break;
             case GestureGridAction.Delete when e.Tile is { } tile:
                 var removed = _library.Remove(tile.Id);

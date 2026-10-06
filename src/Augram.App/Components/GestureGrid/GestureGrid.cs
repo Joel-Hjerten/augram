@@ -12,7 +12,7 @@ namespace Augram.App.Components.GestureGrid;
 /// <c>PART_Tiles</c> (a <see cref="ListBox"/> the tiles live in), the toolbar buttons <c>PART_New</c>,
 /// <c>PART_Import</c>, <c>PART_Undo</c>, <c>PART_Redo</c>, and binds <see cref="Message"/> (rule
 /// feedback) and <see cref="Diagnostic"/> (the A7 "likely to be confused" line). Selection survives a
-/// rebuild by gesture id. Right-click selects before the context menu opens; double-click adds a sample.
+/// rebuild by gesture id. Right-click selects before the context menu opens; double-click redraws.
 /// </summary>
 public sealed class GestureGrid : TemplatedControl
 {
@@ -105,7 +105,7 @@ public sealed class GestureGrid : TemplatedControl
             KeyBindings.Clear();
             GestureGridMenu.BindKeys(this, Request, () => !IsEditing);
             _list.SelectionChanged += (_, _) => _selectedId = SelectedTile?.Id ?? _selectedId;
-            _list.DoubleTapped += (_, _) => Request(GestureGridAction.AddSample);
+            _list.DoubleTapped += (_, _) => Request(GestureGridAction.Redraw);
             if (_selectedId is { } selected)
             {
                 Select(selected);
@@ -169,7 +169,7 @@ public sealed class GestureGrid : TemplatedControl
             case GestureGridAction.Rename:
                 BeginRename();
                 return;
-            case GestureGridAction.AddSample or GestureGridAction.ToggleActive or GestureGridAction.Delete when tile is null:
+            case GestureGridAction.Redraw or GestureGridAction.Delete when tile is null:
                 return;
             default:
                 Raise(action, tile, null);

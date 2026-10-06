@@ -117,7 +117,7 @@ public sealed class TrainingSession : ITrainingSession
         return true;
     }
 
-    /// <summary>Stores the stroke through the library's rules and ends the session.</summary>
+    /// <summary>Stores the stroke through the library's rules and ends the session. A redraw replaces every earlier sample (F3: no averaging).</summary>
     /// <exception cref="GestureValidationException">No stroke yet, or the library rejects the name or sample; the message is for the user.</exception>
     public Gesture Accept()
     {
@@ -133,7 +133,7 @@ public sealed class TrainingSession : ITrainingSession
 
         var sample = new GestureSample(Stroke);
         var stored = Target is { } target
-            ? _library.Update(target with { Name = Name, Samples = [.. target.Samples, sample] })
+            ? _library.Update(target with { Name = Name, Samples = [sample] })
             : _library.Add(new Gesture(GestureId.New(), Name, IsActive: true, [sample]));
         End(TrainingOutcome.Accepted);
         return stored;

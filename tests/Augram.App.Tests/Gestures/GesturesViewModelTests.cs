@@ -63,18 +63,15 @@ public sealed class GesturesViewModelTests
     }
 
     [AvaloniaFact]
-    public void ToggleActiveGreysTheTileAndNewAndImportReachThePresenters()
+    public void NewRedrawAndImportReachThePresenters()
     {
         var (vm, library, training, import) = Create();
         var z = vm.Tiles.Single(t => t.Name == "Z");
 
-        vm.Handle(new GestureGridActionEventArgs(GestureGridAction.ToggleActive, z));
         vm.Handle(new GestureGridActionEventArgs(GestureGridAction.New, null));
-        vm.Handle(new GestureGridActionEventArgs(GestureGridAction.AddSample, z));
+        vm.Handle(new GestureGridActionEventArgs(GestureGridAction.Redraw, z));
         vm.Handle(new GestureGridActionEventArgs(GestureGridAction.Import, null));
 
-        Assert.False(library.Find(z.Id)!.IsActive);
-        Assert.False(vm.Tiles.Single(t => t.Name == "Z").IsActive);
         Assert.Equal([null, z.Id], training.Requests.Select(r => r.GestureId));
         Assert.Equal(1, import.Opened);
     }

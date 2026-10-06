@@ -14,7 +14,7 @@ public sealed class TrainingSessionTests
     private static readonly GesturePoint[] UpStroke = [new(40, 300), new(40, 200), new(40, 100), new(40, 0)];
 
     [Fact]
-    public void BeginPrefillsTheNextFreeNameAndAddSampleUsesTheTargetsName()
+    public void BeginPrefillsTheNextFreeNameAndRedrawUsesTheTargetsName()
     {
         var library = new GestureLibrary(StarterGestures.All());
         library.Add(new Gesture(GestureId.New(), "New gesture 1", IsActive: true, [new GestureSample(UpStroke)]));
@@ -24,13 +24,13 @@ public sealed class TrainingSessionTests
         Assert.Equal("New gesture 2", session.Name);
         Assert.True(session.IsOpen);
 
-        session.Begin(TrainingRequest.AddSample(StarterGestures.IdFor("Circle")));
+        session.Begin(TrainingRequest.Redraw(StarterGestures.IdFor("Circle")));
         Assert.Equal("Circle", session.Name);
         Assert.Equal("Circle", session.Target!.Name);
     }
 
     [Fact]
-    public void AcceptAddsANewGestureOrAppendsASampleAndRedrawReplaces()
+    public void AcceptAddsANewGestureAndARedrawReplacesItsSamples()
     {
         var library = new GestureLibrary(StarterGestures.All());
         var session = new TrainingSession(library, () => RecognitionOptions.Default);
@@ -47,12 +47,14 @@ public sealed class TrainingSessionTests
         Assert.Equal(UpStroke, Assert.Single(added.Samples));
         Assert.False(session.IsOpen);
 
-        session.Begin(TrainingRequest.AddSample(added.Id));
-        session.ReplaceStroke(UpStroke);
+        var twoSamples = library.Update(added with { Samples = [.. added.Samples, new GestureSample([new(0, 0), new(0, -50)])] });
+        Assert.Equal(2, twoSamples.Samples.Count);
+        session.Begin(TrainingRequest.Redraw(added.Id));
+        session.ReplaceStroke([new(0, 0), new(0, -200)]);
         var updated = session.Accept();
 
         Assert.Equal(added.Id, updated.Id);
-        Assert.Equal(2, updated.Samples.Count);
+        Assert.Equal([new(0, 0), new(0, -200)], Assert.Single(updated.Samples));
         Assert.Equal([TrainingOutcome.Accepted, TrainingOutcome.Accepted], outcomes);
     }
 

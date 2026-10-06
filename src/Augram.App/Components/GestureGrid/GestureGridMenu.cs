@@ -4,19 +4,16 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.GestureGrid;
 
-/// <summary>Builds the context menu and key bindings of a <see cref="GestureGrid"/> (F5a); every entry ends in one <see cref="GestureGridAction"/>.</summary>
+/// <summary>Builds the context menu and key bindings of a <see cref="GestureGrid"/> (F5a); every entry ends in one <see cref="GestureGridAction"/>. Import lives on the toolbar only; activation is per command, not per gesture (F3).</summary>
 internal static class GestureGridMenu
 {
     public static ContextMenu Build(Action<GestureGridAction> request)
     {
         var menu = new ContextMenu();
         menu.Items.Add(Item("New gesture…", GestureGridAction.New, request));
-        menu.Items.Add(Item("Add sample…", GestureGridAction.AddSample, request));
+        menu.Items.Add(Item("Redraw…", GestureGridAction.Redraw, request));
         menu.Items.Add(Item("Rename", GestureGridAction.Rename, request));
-        menu.Items.Add(Item("Toggle active", GestureGridAction.ToggleActive, request));
         menu.Items.Add(Item("Delete", GestureGridAction.Delete, request));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Import from StrokesPlus.net…", GestureGridAction.Import, request));
         return menu;
     }
 
