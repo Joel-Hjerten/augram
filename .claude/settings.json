@@ -1,4 +1,30 @@
 {
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/memory-sync.mjs\" start 2>/dev/null || true",
+            "timeout": 45,
+            "statusMessage": "Syncing memory + checking origin..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/memory-sync.mjs\" stop 2>/dev/null || true",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Read",
