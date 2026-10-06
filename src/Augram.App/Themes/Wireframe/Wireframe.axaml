@@ -179,6 +179,13 @@
         <Style Selector="^:inactive /template/ Path#PART_Stroke">
           <Setter Property="Stroke" Value="{StaticResource Brush.TextMuted}" />
         </Style>
+        <!-- A thumbnail inside a list row (Diagnostics › Recognition): smaller, lighter arrow, tight padding. -->
+        <Style Selector="^.row-glyph">
+          <Setter Property="Width" Value="40" />
+          <Setter Property="Height" Value="40" />
+          <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+          <Setter Property="ArrowLength" Value="5" />
+        </Style>
       </ControlTheme>
 
       <ControlTheme x:Key="{x:Type grid:GestureTile}" TargetType="grid:GestureTile">

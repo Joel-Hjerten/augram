@@ -1,4 +1,5 @@
 using Augram.Core.Diagnostics;
+using Augram.Core.Gestures;
 using Xunit;
 
 namespace Augram.Core.Tests.Diagnostics;
@@ -71,6 +72,22 @@ public sealed class RecognitionLogTests
         Assert.Equal("below threshold (72 < 75)", nothing.NothingFiredReason);
         Assert.Equal("Chrome", nothing.MatchedGroup);
         Assert.Equal(fired.TopMatches, nothing.TopMatches);
+    }
+
+    [Fact]
+    public void Entry_KeepsTheMatchedGestureAndTheStrokeForTheGlyphs()
+    {
+        var id = GestureId.New();
+        GesturePoint[] stroke = [new(0, 0), new(10, 0), new(20, 5)];
+
+        var matched = new RecognitionLogEntry(T0, 3, 120, [new("Right", 92, id)], MatchedGesture: id, Stroke: stroke);
+        var none = new RecognitionLogEntry(T0, 3, 120, [new("Right", 60, id)], NothingFiredReason: "below threshold", Stroke: stroke);
+
+        Assert.Equal(id, matched.MatchedGesture);
+        Assert.Equal(id, matched.TopMatches[0].Id);
+        Assert.Same(stroke, matched.Stroke);
+        Assert.Null(none.MatchedGesture);
+        Assert.Same(stroke, none.Stroke);
     }
 
     [Fact]

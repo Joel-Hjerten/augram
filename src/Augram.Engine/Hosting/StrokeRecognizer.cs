@@ -52,7 +52,7 @@ internal sealed class StrokeRecognizer
         var top = new RecognitionCandidate[Math.Min(ranked.Count, RecognitionLogEntry.MaxTopMatches)];
         for (var i = 0; i < top.Length; i++)
         {
-            top[i] = new RecognitionCandidate(ranked[i].Name, ranked[i].Score);
+            top[i] = new RecognitionCandidate(ranked[i].Name, ranked[i].Score, ranked[i].GestureId);
         }
 
         var best = ranked.Count > 0 && ranked[0].Score > options.Threshold && ranked[0].Score > 0 ? ranked[0] : null;
@@ -63,7 +63,7 @@ internal sealed class StrokeRecognizer
                 : string.Create(CultureInfo.InvariantCulture, $"best score {ranked[0].Score:F0} is not above threshold {options.Threshold:F0}");
         var durationMs = (int)(stroke.Points[^1].TimestampMs - stroke.Points[0].TimestampMs);
 
-        _recognitionLog.Add(new RecognitionLogEntry(_clock.UtcNow, points.Length, durationMs, top, NothingFiredReason: reason));
+        _recognitionLog.Add(new RecognitionLogEntry(_clock.UtcNow, points.Length, durationMs, top, NothingFiredReason: reason, MatchedGesture: best?.GestureId, Stroke: points));
         _log.Info(
             LogSources.Recognition,
             best is null ? "No match" : "Gesture recognized",

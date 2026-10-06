@@ -54,6 +54,31 @@ public sealed class ItemListTests
         Assert.Equal("Clear", ((Button)list.ToolbarItems[1]).Content);
     }
 
+    [AvaloniaFact]
+    public void RendersAComponentCellInsteadOfTextWhenTheColumnHasOne()
+    {
+        var spec = new ListSpec(
+            "List",
+            Columns:
+            [
+                new ListColumn("Text", row => ((FakeRow)row).Message, 60),
+                ListColumn.Glyph("Glyph", _ => [new(0, 0), new(10, 10)]),
+            ],
+            Source: new ListSource<FakeRow>(() => [new FakeRow(1, "info", "one")]));
+        var list = new ItemList { Spec = spec };
+        var window = new Window { Content = list };
+        window.Show();
+
+        var row = (Grid)list.RowTemplate!.Build(list.Rows[0])!;
+
+        Assert.IsType<TextBlock>(row.Children[0]);
+        var glyph = Assert.IsType<Augram.App.Components.GestureGlyph.GestureGlyph>(row.Children[1]);
+        Assert.Equal(2, glyph.Points!.Count);
+        Assert.Contains("row-glyph", glyph.Classes);
+        Assert.Contains("cell", glyph.Classes);
+        Assert.Equal(1, Grid.GetColumn(glyph));
+    }
+
     private static (ItemList List, List<FakeRow> Rows, DelegateBinding<string> Filter) Show()
     {
         var rows = new List<FakeRow>

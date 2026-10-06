@@ -1,0 +1,52 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(dotnet:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(echo:*)",
+      "Bash(src/Augram.App/bin/*)",
+      "Bash(./src/Augram.App/bin/*)",
+      "Bash(open src/Augram.App/bin/*)",
+      "Bash(pkill -f Augram.App*)",
+      "PowerShell(git:*)",
+      "PowerShell(gh:*)",
+      "PowerShell(dotnet:*)",
+      "PowerShell(node:*)",
+      "PowerShell(Get-Process*)",
+      "PowerShell(Get-ChildItem*)",
+      "PowerShell(Get-Content*)",
+      "PowerShell(Start-Process -FilePath src\\Augram.App\\bin\\*)",
+      "PowerShell(Start-Process -FilePath .\\src\\Augram.App\\bin\\*)",
+      "PowerShell(Stop-Process*)"
+    ],
+    "ask": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
+      "Bash(git branch -D:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -r:*)",
+      "PowerShell(git push --force:*)",
+      "PowerShell(git reset --hard:*)",
+      "PowerShell(Remove-Item -Recurse:*)"
+    ]
+  }
+}

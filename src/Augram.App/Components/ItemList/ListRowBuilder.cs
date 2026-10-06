@@ -58,7 +58,17 @@ internal static class ListRowBuilder
         var grid = NewGrid(spec);
         for (var i = 0; i < spec.Columns.Count; i++)
         {
-            var cell = new TextBlock { Text = spec.Columns[i].Cell(item), TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis };
+            var column = spec.Columns[i];
+            Control cell;
+            if (column.Component is not null)
+            {
+                cell = column.Component(item);
+            }
+            else
+            {
+                cell = new TextBlock { Text = column.Cell(item), TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis };
+            }
+
             cell.Classes.Add("cell");
             Grid.SetColumn(cell, i);
             grid.Children.Add(cell);
