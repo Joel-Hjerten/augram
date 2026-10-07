@@ -14,7 +14,7 @@ Cross-platform (Windows + macOS) mouse gesture utility: hold a chosen mouse butt
 - Keep this file lean — link out, don't inline. When a subsystem gains invariants, it gets a doc and a read-first row, not a paragraph here.
 - Platforms: Windows 11 PC (PowerShell), and since 2026-10-07 a Mac (zsh; .NET SDK in `~/.dotnet`, so `~/.dotnet/dotnet`). The macOS port is under way in `Augram.Platform.MacOS`; its README says what is built and how to run on the Mac.
 - **Never launch Augram.App, a spike, or anything that installs a global hook or a full-screen overlay on this machine from a subagent or without telling Joel first.** A bug there takes his mouse or keyboard away while he works (it happened: a click-opaque overlay ate every left click on 2026-10-06). Only the lead session runs the app, after saying so, and kills it afterwards. Tests use fakes, never real hooks.
-- **CI runs on every push** (`.github/workflows/ci.yml`: format on Windows; build and test on clean Windows and macOS runners). After pushing, check it: `node scripts/ci-status.mjs` prints recent runs and the failing test names (no token needed). A red main is yours to fix before moving on.
+- **CI runs on every push** (`.github/workflows/ci.yml`: format on Windows; build and test on clean Windows and macOS runners). After pushing, run `node scripts/ci-status.mjs --wait` in the background: it waits for HEAD's run (one API call a minute) and exits 0 green, 1 red with each runner's failing tests, 2 unknown. `node scripts/ci-status.mjs` lists recent runs. No token needed; the anonymous API allows 60 calls an hour, so never poll it in a tight loop. A red main is yours to fix before moving on.
 
 ## Architecture invariants (already established)
 
