@@ -26,6 +26,8 @@ public static class SettingsRules
         var recognition = settings.Recognition;
         Require(recognition.Precision >= MinPrecision, $"Precision must be at least {MinPrecision}.");
         Require(recognition.Threshold is >= 0 and <= 100, "Threshold must be between 0 and 100.");
+
+        SyncSettingsRules.EnsureValid(settings.Sync);
     }
 
     private static void Require(bool condition, string message)

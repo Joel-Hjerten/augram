@@ -1,13 +1,16 @@
 # Core/Config
 
-The on-disk configuration (requirements F8, checklist A3/A17) and the session that owns the three live stores behind the Options page, the gesture library and the Commands/Ignored tabs. Landed in M1 step 2; the mapping joined in M2 step 1.
+The on-disk configuration (requirements F8, checklist A3/A17) and the session that owns the three live stores behind the Options page, the gesture library and the Commands/Ignored tabs. Landed in M1 step 2; the mapping joined in M2 step 1; the sync settings and the sync file format (F8 sync) on 2026-10-07.
 
 ## Types
 
 | Type | Role |
 |---|---|
 | `ConfigDocument` | the whole file: `SchemaVersion` (const `CurrentSchemaVersion` = 1), `Settings`, `Gestures`, `Mapping` (`MappingDocument`, default `Empty`). `Default` = default settings + `StarterGestures` + an empty mapping |
-| `Settings` | one record per subsystem: `General` (`GeneralSettings`), `Capture` (`CaptureThresholds`, reused), `Trail` (`TrailSettings`), `Recognition` (`RecognitionOptions`, reused), `NoMatch` (`NoMatchBehaviour`) |
+| `Settings` | one record per subsystem: `General` (`GeneralSettings`), `Capture` (`CaptureThresholds`, reused), `Trail` (`TrailSettings`), `Recognition` (`RecognitionOptions`, reused), `NoMatch` (`NoMatchBehaviour`), `Sync` (`SyncSettings`). All of it stays on this machine: sync carries gestures and the mapping only |
+| `SyncSettings`, `SyncSettingsRules` | F8 sync, local: `RepositoryUrl` (null = off), `MachineId` (empty until `SettingsStore.EnsureMachineId` generates it once; that clears the settings undo history so no undo can bring the empty id back), `MachineName` (default `Environment.MachineName`), `AutoSync` (default true). Rules: the name is not blank; the URL is `https://…`, `git@host:path`, a full local path or `file://`, never with a user name or token (`UserInfoProblem` says why: git's credential helper signs in). `Host(url)` is all the log may show. `SettingsStore.SetSync` trims, turns a blank URL into null and keeps the machine id |
+| `SyncFile`, `SyncAcknowledgement`, `SyncFileSerializer` | one machine's file in the sync repo, see "Sync file" below. `TryRead` never throws: a broken file is an error line |
+| `SyncItemJson` (internal) | the canonical text of one sync item (`../Sync/README.md`), written and read back by the writers and readers above |
 | `GeneralSettings` | stroke button (`Capture.MouseButton`, default Right), `IgnoreKeys` flags, start at login, enabled |
 | `TrailSettings`, `RgbColor` | width px 5, opacity 0.5, colour `#00FF40` |
 | `ConfigSerializer` | `Write(document)` (indented, always the current schema version) and `Read(json)` / `Read(json, stepRegistry, notice)` (version check, migrate, deserialize, validate); every failure is a `ConfigFormatException` with a message fit for the log. The top-level envelope is written by hand so the `mapping` member can go through the two classes below |
@@ -30,7 +33,8 @@ The on-disk configuration (requirements F8, checklist A3/A17) and the session th
     "capture": { "startDistancePx": 30, "minSegmentPx": 6, "cancelDelayMs": 1000, "resetCancelDelayOnMovement": true },
     "trail": { "widthPx": 5, "opacity": 0.5, "colour": "#00FF40" },
     "recognition": { "precision": 100, "threshold": 75, "scoringMode": "Legacy", "sampleAggregation": "Average" },
-    "noMatch": "DoNothing"
+    "noMatch": "DoNothing",
+    "sync": { "repositoryUrl": null, "machineId": "00000000-0000-0000-0000-000000000000", "machineName": "PC-HOME", "autoSync": true }
   },
   "gestures": [
     { "id": "4f0c...-...", "name": "Up", "isActive": true, "samples": [ [[50,100],[50,90],[50,80]] ] }
@@ -63,6 +67,26 @@ camelCase names, enums as strings (flags comma-separated), comments and trailing
 
 Mapping specifics (`../Mapping/README.md` has the model): groups are written Global first then by name, commands by name. A trigger is `{ "gesture": "<id>" }`, `{ "wheel": "Up" | "Down" }` or `null` (not bound). A step's `params` is exactly what its type's `Write` returned and goes back through its `Read`; `overrides` holds a parameters object per platform (`windows`, `macOS`), always of the step's own type, and is omitted when empty; `note` is omitted when null. A group's `categories` (`{ "id", "name" }`, sorted by name) is omitted when empty and a command's `category` (the id of one of its group's categories) when the command is Uncategorized, so a file without categories looks as it did before they existed (schema version 1, additive). On read, a group or command needs `id` and `name`; everything else takes its default (`isActive` true, `suppressGlobals` false, `trigger` null, `steps` empty, `categories` empty, `category` null, `authoredOn` Windows, `matcher` null for a group and empty for an ignored app). A category without a Guid `id` or without a name is dropped with a notice; a `category` that is not a Guid string reads as Uncategorized with a notice; one that names no category of its group is cleared silently by `CategoryRules` when the store takes the document. A missing `mapping` member, or a missing `groups` array, is `MappingDocument.Empty` (just the Global group), which is why files written before M2 still load under schema version 1 without a migration.
 
+The `sync` section (schema version 1, additive): missing, null or partial takes the defaults above (`repositoryUrl` null, `machineId` empty, `machineName` the OS machine name, `autoSync` true).
+
+## Sync file (`SyncFileSerializer`)
+
+`machines/<machineId>.json` in the sync repo (F8 sync; the merge is `../Sync/README.md`): the config file's `gestures` and `mapping` members, written and read by exactly the same code, under a machine header. Settings never travel.
+
+```json
+{
+  "schemaVersion": 1,
+  "machine": { "id": "<machine id>", "name": "PC-HOME", "writtenAt": "2026-10-07T18:30:00+00:00", "revision": "<new Guid per publish>" },
+  "merged": [
+    { "machineId": "<other machine>", "revision": "<its revision merged here>", "except": ["command:<id>"], "pending": ["command:<id>"] }
+  ],
+  "gestures": [ … ],
+  "mapping": { "groups": [ … ], "ignored": [ … ] }
+}
+```
+
+`merged` has one entry per other machine this one has merged: the revision of its file, the item keys of that revision not taken (`except`: pending conflicts on either side) and the keys this machine has a conflict on with it, waiting for the user (`pending`; the other machine leaves those alone). The schema version is the config file's: newer is refused, older is migrated by `ConfigMigrations` (same members, same steps). Reading validates with `GestureRules` and `MappingRules`; a file that breaks a rule is an error like a malformed one. Steps of an unknown type are dropped with a notice, as on load; the sync then skips such a file rather than merge it lossily.
+
 ## Store contract (`FileConfigStore`)
 
 - **Save**: serialize first (a bad document never touches disk), copy the current file to `backup/augram-yyyyMMdd-HHmmss.json` (`-2`, `-3`... within one second), prune backups to the newest 20, write `augram.json.tmp`, then `File.Move(overwrite)` so readers see the old file or the new one, never a partial one.
@@ -80,4 +104,4 @@ Mapping specifics (`../Mapping/README.md` has the model): groups are written Glo
 
 Single-writer. The stores and `ConfigSession` are mutated from one thread (the UI thread in the app) and are not synchronised. The host's scheduler must run the save on that same thread (a `DispatcherTimer`). Other threads read `Current` / `All` as immutable snapshots after `DocumentChanged` (the engine resolves commands against `Mapping.Current` this way); they never call a mutator. Core has no timer of its own: the delay is the host's job.
 
-**May reference:** `Gestures`, `Mapping`, `Steps`, `Capture`, `Recognition`, `State`. **Referenced by:** the composition root, view models, the engine (read-only snapshots), the importer (`ConfigDocument` for export).
+**May reference:** `Gestures`, `Mapping`, `Steps`, `Capture`, `Recognition`, `State`. **Referenced by:** the composition root, view models, the engine (read-only snapshots), the importer (`ConfigDocument` for export), `Sync` (settings, the sync file, the item JSON).

@@ -41,7 +41,7 @@ internal static class MappingJsonWriter
     /// <summary>The member name an override is stored under: the platform's name in camelCase.</summary>
     public static string PlatformKey(HostPlatform platform) => JsonNamingPolicy.CamelCase.ConvertName(platform.ToString());
 
-    private static void WriteGroup(Utf8JsonWriter writer, AppGroup group)
+    public static void WriteGroup(Utf8JsonWriter writer, AppGroup group)
     {
         writer.WriteStartObject();
         writer.WriteString("id", group.Id.Value);
@@ -60,7 +60,7 @@ internal static class MappingJsonWriter
         writer.WriteEndObject();
     }
 
-    private static void WriteCommand(Utf8JsonWriter writer, Command command)
+    public static void WriteCommand(Utf8JsonWriter writer, Command command)
     {
         writer.WriteStartObject();
         writer.WriteString("id", command.Id.Value);
@@ -186,7 +186,7 @@ internal static class MappingJsonWriter
         writer.WriteEndArray();
     }
 
-    private static void WriteIgnored(Utf8JsonWriter writer, IgnoredApp app)
+    public static void WriteIgnored(Utf8JsonWriter writer, IgnoredApp app)
     {
         writer.WriteStartObject();
         writer.WriteString("id", app.Id.Value);

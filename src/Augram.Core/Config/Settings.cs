@@ -16,13 +16,15 @@ public sealed record Settings
         CaptureThresholds? capture = null,
         TrailSettings? trail = null,
         RecognitionOptions? recognition = null,
-        NoMatchBehaviour noMatch = NoMatchBehaviour.DoNothing)
+        NoMatchBehaviour noMatch = NoMatchBehaviour.DoNothing,
+        SyncSettings? sync = null)
     {
         General = general ?? GeneralSettings.Default;
         Capture = capture ?? CaptureThresholds.Default;
         Trail = trail ?? TrailSettings.Default;
         Recognition = recognition ?? RecognitionOptions.Default;
         NoMatch = noMatch;
+        Sync = sync ?? SyncSettings.Default;
     }
 
     public GeneralSettings General { get; init; }
@@ -34,6 +36,9 @@ public sealed record Settings
     public RecognitionOptions Recognition { get; init; }
 
     public NoMatchBehaviour NoMatch { get; init; }
+
+    /// <summary>Machine-to-machine sync (F8): local to this machine and never synced itself, like every section here.</summary>
+    public SyncSettings Sync { get; init; }
 
     public static Settings Default { get; } = new();
 }

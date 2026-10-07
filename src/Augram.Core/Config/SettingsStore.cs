@@ -53,6 +53,31 @@ public sealed class SettingsStore
 
     public Settings SetNoMatch(NoMatchBehaviour noMatch) => Apply(settings => settings with { NoMatch = noMatch });
 
+    /// <summary>Sets the sync section, trimmed (a blank URL is sync off); the machine id is kept when <paramref name="sync"/> has none.</summary>
+    public Settings SetSync(SyncSettings sync)
+    {
+        ArgumentNullException.ThrowIfNull(sync);
+        return Apply(settings => settings with { Sync = SyncSettingsRules.Normalised(sync, settings.Sync.MachineId) });
+    }
+
+    /// <summary>
+    /// This machine's sync id (F8): generated the first time it is asked for, then kept. Generating it is a
+    /// change (saved like any other) that clears the undo history, so no undo can bring back an empty id
+    /// and orphan this machine's file in the repo.
+    /// </summary>
+    public Guid EnsureMachineId()
+    {
+        if (Current.Sync.MachineId != Guid.Empty)
+        {
+            return Current.Sync.MachineId;
+        }
+
+        Current = Current with { Sync = Current.Sync with { MachineId = Guid.NewGuid() } };
+        _history.Clear();
+        Bump();
+        return Current.Sync.MachineId;
+    }
+
     public bool Undo()
     {
         if (!CanUndo)
