@@ -42,8 +42,19 @@
   <Thickness x:Key="Border.Hairline">1</Thickness>
   <Thickness x:Key="Border.Strong">2</Thickness>
   <Thickness x:Key="Border.Bottom">0,0,0,1</Thickness>
-  <!-- A command row sits this far inside its group header (Commands tab). -->
-  <Thickness x:Key="Pad.Indent">24,0,0,0</Thickness>
+  <!--
+    List rows: one set of metrics for every row of every list (section headers, command rows, step rows,
+    item-list rows), so all lists share one line height (Joel, 2026-10-07: the Apps headers were taller
+    than Global's because a check box kept the toolkit's 32 px minimum). Rows use the Border.row and
+    Grid.row-line classes and never set their own padding; RowMetricsTests enforces it.
+  -->
+  <Thickness x:Key="Row.Padding">4</Thickness>
+  <!-- Row.Padding plus the indent of a command under its section header. -->
+  <Thickness x:Key="Row.IndentedPadding">28,4,4,4</Thickness>
+  <!-- Height of every control inside a row (expander, active check box) and the row's minimum line height. -->
+  <x:Double x:Key="Row.ControlSize">24</x:Double>
+  <!-- A gesture glyph or trigger badge inside a row. -->
+  <x:Double x:Key="Row.GlyphSize">40</x:Double>
   <!-- A small bordered tag inside a row (a command's category on the Apps tab). -->
   <Thickness x:Key="Pad.Tag">4,0</Thickness>
   <x:Double x:Key="Opacity.Dragging">0.5</x:Double>

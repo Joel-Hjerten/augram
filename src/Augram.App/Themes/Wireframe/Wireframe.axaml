@@ -186,10 +186,10 @@
         <Style Selector="^:inactive /template/ Path#PART_Stroke">
           <Setter Property="Stroke" Value="{StaticResource Brush.TextMuted}" />
         </Style>
-        <!-- A thumbnail inside a list row (Diagnostics › Recognition): smaller, lighter arrow, tight padding. -->
+        <!-- A thumbnail inside a list row (Diagnostics › Recognition, the command tree): smaller, lighter arrow, tight padding. -->
         <Style Selector="^.row-glyph">
-          <Setter Property="Width" Value="40" />
-          <Setter Property="Height" Value="40" />
+          <Setter Property="Width" Value="{StaticResource Row.GlyphSize}" />
+          <Setter Property="Height" Value="{StaticResource Row.GlyphSize}" />
           <Setter Property="Padding" Value="{StaticResource Pad.S}" />
           <Setter Property="ArrowLength" Value="5" />
         </Style>
@@ -407,12 +407,8 @@
       <ControlTheme x:Key="{x:Type tree:SectionRow}" TargetType="tree:SectionRow">
         <Setter Property="Template">
           <ControlTemplate>
-            <Border Name="PART_Frame"
-                    Background="{StaticResource Brush.HitTest}"
-                    BorderBrush="{StaticResource Brush.Border}"
-                    BorderThickness="{StaticResource Border.Bottom}"
-                    Padding="{StaticResource Pad.S}">
-              <Grid ColumnDefinitions="Auto,*,Auto">
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto">
                 <Button Grid.Column="0" Name="PART_Expander" Classes="expander" Content="−" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space.M}" VerticalAlignment="Center">
                   <TextBlock Name="PART_Name"
@@ -446,12 +442,8 @@
       <ControlTheme x:Key="{x:Type tree:CommandRow}" TargetType="tree:CommandRow">
         <Setter Property="Template">
           <ControlTemplate>
-            <Border Name="PART_Frame"
-                    Background="{StaticResource Brush.HitTest}"
-                    BorderBrush="{StaticResource Brush.Border}"
-                    BorderThickness="{StaticResource Border.Bottom}"
-                    Padding="{StaticResource Pad.Indent}">
-              <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="{StaticResource Pad.S}">
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line indented" ColumnDefinitions="Auto,*,Auto,Auto">
                 <Panel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center">
                   <glyph:GestureGlyph Classes="row-glyph"
                                       Points="{TemplateBinding Points}"
@@ -566,12 +558,9 @@
       <ControlTheme x:Key="{x:Type steps:StepRow}" TargetType="steps:StepRow">
         <Setter Property="Template">
           <ControlTemplate>
-            <Border Name="PART_Frame"
-                    Background="{StaticResource Brush.HitTest}"
-                    BorderBrush="{StaticResource Brush.Border}"
-                    BorderThickness="{StaticResource Border.Bottom}">
+            <Border Name="PART_Frame" Classes="row">
               <StackPanel>
-                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="{StaticResource Pad.S}">
+                <Grid Classes="row-line" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
                   <TextBlock Grid.Column="0" Classes="drag-handle" Text="≡" />
                   <TextBlock Grid.Column="1" Classes="row-index" Text="{TemplateBinding IndexText}" />
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
@@ -696,7 +685,10 @@
   </Style>
   <Style Selector="TextBlock.cell">
     <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+    <Setter Property="Padding" Value="{StaticResource Row.Padding}" />
+  </Style>
+  <Style Selector="Grid.list-row">
+    <Setter Property="MinHeight" Value="{StaticResource Row.ControlSize}" />
   </Style>
   <Style Selector="ComboBox.field-editor, TextBox.field-editor, NumericUpDown.field-editor">
     <Setter Property="MinWidth" Value="{StaticResource Editor.MinWidth}" />
@@ -802,8 +794,8 @@
   </Style>
   <Style Selector="Button.expander">
     <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Width" Value="24" />
-    <Setter Property="Height" Value="24" />
+    <Setter Property="Width" Value="{StaticResource Row.ControlSize}" />
+    <Setter Property="Height" Value="{StaticResource Row.ControlSize}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Margin" Value="0,0,8,0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -812,14 +804,29 @@
     <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
     <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
   </Style>
+  <!-- List rows: the one place their frame, spacing and control sizes are set (tokens Row.*). -->
+  <Style Selector="Border.row">
+    <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Bottom}" />
+  </Style>
+  <Style Selector="Grid.row-line">
+    <Setter Property="Margin" Value="{StaticResource Row.Padding}" />
+    <Setter Property="MinHeight" Value="{StaticResource Row.ControlSize}" />
+  </Style>
+  <Style Selector="Grid.row-line.indented">
+    <Setter Property="Margin" Value="{StaticResource Row.IndentedPadding}" />
+  </Style>
   <Style Selector="CheckBox.row-active">
     <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Height" Value="{StaticResource Row.ControlSize}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Margin" Value="8,0,0,0" />
   </Style>
   <Style Selector="Border.trigger-badge">
-    <Setter Property="Width" Value="40" />
-    <Setter Property="Height" Value="40" />
+    <Setter Property="Width" Value="{StaticResource Row.GlyphSize}" />
+    <Setter Property="Height" Value="{StaticResource Row.GlyphSize}" />
     <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
     <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
     <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
