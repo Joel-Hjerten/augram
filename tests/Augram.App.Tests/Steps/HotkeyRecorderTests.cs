@@ -16,7 +16,7 @@ public sealed class HotkeyRecorderTests
         Assert.Null(recorder.LiveText);
 
         recorder.Down(KeyCode.LeftControl, KeyModifiers.None);
-        recorder.Down(KeyCode.RightShift, KeyModifiers.Control);
+        recorder.Down(KeyCode.LeftShift, KeyModifiers.Control);
         Assert.Equal("Ctrl+Shift+…", recorder.LiveText);
         Assert.False(recorder.HasCombination);
 
@@ -24,9 +24,75 @@ public sealed class HotkeyRecorderTests
         recorder.Up(KeyCode.T);
         recorder.Up(KeyCode.LeftControl);
 
-        Assert.Equal((KeyModifiers.Control | KeyModifiers.Shift, KeyCode.T), (recorder.Modifiers, recorder.Key));
+        Assert.Equal((KeyModifiers.Control | KeyModifiers.Shift, KeyCode.T, KeyModifiers.None), (recorder.Modifiers, recorder.Key, recorder.RightHand));
         Assert.Equal("Ctrl+Shift+T", recorder.LiveText);
         Assert.Equal(KeyModifiers.Shift, recorder.Held);
+    }
+
+    [Fact]
+    public void ModifiersHeldOnTheRightOnlyAreRecordedAsRightHand()
+    {
+        var recorder = new HotkeyRecorder();
+        recorder.Down(KeyCode.RightControl, KeyModifiers.None);
+        recorder.Down(KeyCode.RightShift, KeyModifiers.Control);
+        Assert.Equal("RCtrl+RShift+…", recorder.LiveText);
+        Assert.Equal(KeyModifiers.Control | KeyModifiers.Shift, recorder.HeldRightHand);
+
+        recorder.Down(KeyCode.P, KeyModifiers.Control | KeyModifiers.Shift);
+
+        Assert.Equal((KeyModifiers.Control | KeyModifiers.Shift, KeyCode.P, KeyModifiers.Control | KeyModifiers.Shift), (recorder.Modifiers, recorder.Key, recorder.RightHand));
+        Assert.Equal("RCtrl+RShift+P", recorder.LiveText);
+
+        recorder.Reset();
+        recorder.Down(KeyCode.RightAlt, KeyModifiers.None);
+        recorder.Down(KeyCode.F9, KeyModifiers.Alt);
+
+        Assert.Equal((KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), (recorder.Modifiers, recorder.Key, recorder.RightHand));
+        Assert.Equal("RAlt+F9", recorder.LiveText);
+    }
+
+    [Fact]
+    public void AModifierHeldOnBothSidesIsPlain_ReleasingTheLeftLeavesTheRight()
+    {
+        var recorder = new HotkeyRecorder();
+        recorder.Down(KeyCode.LeftAlt, KeyModifiers.None);
+        recorder.Down(KeyCode.RightAlt, KeyModifiers.Alt);
+        recorder.Down(KeyCode.F9, KeyModifiers.Alt);
+
+        Assert.Equal((KeyModifiers.Alt, KeyCode.F9, KeyModifiers.None), (recorder.Modifiers, recorder.Key, recorder.RightHand));
+        Assert.Equal("Alt+F9", recorder.LiveText);
+
+        recorder.Up(KeyCode.LeftAlt);
+        Assert.Equal((KeyModifiers.Alt, KeyModifiers.Alt), (recorder.Held, recorder.HeldRightHand));
+        recorder.Down(KeyCode.F10, KeyModifiers.Alt);
+        Assert.Equal("RAlt+F10", recorder.LiveText);
+
+        recorder.Up(KeyCode.RightAlt);
+        Assert.Equal((KeyModifiers.None, KeyModifiers.None), (recorder.Held, recorder.HeldRightHand));
+    }
+
+    [Fact]
+    public void AltGrArrivesAsLeftControlPlusRightAltAndIsRecordedThatWay()
+    {
+        // On a layout with AltGr (Swedish), Windows synthesises a LeftControl press before the RightAlt one;
+        // replaying Ctrl+RAlt sends what Windows saw.
+        var recorder = new HotkeyRecorder();
+        recorder.Down(KeyCode.LeftControl, KeyModifiers.None);
+        recorder.Down(KeyCode.RightAlt, KeyModifiers.Control);
+        recorder.Down(KeyCode.F9, KeyModifiers.Control | KeyModifiers.Alt);
+
+        Assert.Equal((KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), (recorder.Modifiers, recorder.Key, recorder.RightHand));
+        Assert.Equal("Ctrl+RAlt+F9", recorder.LiveText);
+    }
+
+    [Fact]
+    public void AModifierKnownOnlyFromTheReportedMaskIsPlain()
+    {
+        var recorder = new HotkeyRecorder();
+        recorder.Down(KeyCode.F9, KeyModifiers.Alt);
+
+        Assert.Equal((KeyModifiers.Alt, KeyModifiers.None), (recorder.Modifiers, recorder.RightHand));
+        Assert.Equal("Alt+F9", recorder.LiveText);
     }
 
     [Fact]
@@ -42,9 +108,12 @@ public sealed class HotkeyRecorderTests
         recorder.Down(KeyCode.None, KeyModifiers.Alt);
         Assert.Equal("Esc", recorder.LiveText);
 
+        recorder.Down(KeyCode.RightMeta, KeyModifiers.None);
+        recorder.Down(KeyCode.L, KeyModifiers.Meta);
+        Assert.Equal("RWin+L", recorder.LiveText);
         recorder.Reset();
         Assert.Null(recorder.LiveText);
-        Assert.Equal(KeyModifiers.None, recorder.Held);
+        Assert.Equal((KeyModifiers.None, KeyModifiers.None, KeyModifiers.None), (recorder.Held, recorder.HeldRightHand, recorder.RightHand));
     }
 
     [Fact]

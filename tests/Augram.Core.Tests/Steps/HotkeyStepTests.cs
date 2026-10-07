@@ -63,9 +63,64 @@ public sealed class HotkeyStepTests
     }
 
     [Theory]
+    [InlineData(KeyModifiers.Alt, KeyModifiers.Alt, KeyCode.F9, "RAlt+F9", """{"modifiers":"Alt","rightHand":"Alt","key":"F9"}""")]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Shift, KeyModifiers.Control | KeyModifiers.Shift, KeyCode.P, "RCtrl+RShift+P", """{"modifiers":"Control, Shift","rightHand":"Control, Shift","key":"P"}""")]
+    [InlineData(KeyModifiers.Control, KeyModifiers.Control, KeyCode.Digit0, "RCtrl+0", """{"modifiers":"Control","rightHand":"Control","key":"Digit0"}""")]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Alt, KeyModifiers.Alt, KeyCode.F10, "Ctrl+RAlt+F10", """{"modifiers":"Control, Alt","rightHand":"Alt","key":"F10"}""")]
+    [InlineData(KeyModifiers.Shift | KeyModifiers.Meta, KeyModifiers.Meta, KeyCode.S, "Shift+RWin+S", """{"modifiers":"Shift, Meta","rightHand":"Meta","key":"S"}""")]
+    public void RightHandModifiersRoundTripByteStable(KeyModifiers modifiers, KeyModifiers rightHand, KeyCode key, string expectedSummary, string expectedJson)
+    {
+        var step = new HotkeyStep(modifiers, key, rightHand);
+
+        Assert.Equal(expectedSummary, step.Summary);
+        var written = Type.Write(step);
+        Assert.Equal(expectedJson, written.ToJsonString());
+        var reread = Type.Read(written);
+        Assert.Equal(step, reread);
+        Assert.Equal(written.ToJsonString(), Type.Write(reread).ToJsonString());
+    }
+
+    [Fact]
+    public void AFileWithoutRightHandReadsAsPlainModifiers()
+    {
+        var step = Assert.IsType<HotkeyStep>(Type.Read(StepJson.Object("""{ "modifiers": "Alt", "key": "F9" }""")));
+
+        Assert.Equal(KeyModifiers.None, step.RightHand);
+        Assert.Equal("Alt+F9", step.Summary);
+        Assert.False(Type.Write(step).ContainsKey(HotkeyStepType.RightHandMember));
+    }
+
+    [Fact]
+    public void RightHandIsCutDownToTheModifiersOnReadAndWrite()
+    {
+        Assert.Equal(
+            new HotkeyStep(KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt),
+            Type.Read(StepJson.Object("""{ "modifiers": "Alt", "rightHand": "control, ALT", "key": "F9" }""")));
+        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F9), Type.Read(StepJson.Object("""{ "modifiers": "Alt", "rightHand": "Shift", "key": "F9" }""")));
+        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F9), Type.Read(StepJson.Object("""{ "modifiers": "Alt", "rightHand": "None", "key": "F9" }""")));
+
+        var stray = new HotkeyStep(KeyModifiers.Control, KeyCode.T, KeyModifiers.Alt | KeyModifiers.Control);
+        Assert.Equal("""{"modifiers":"Control","rightHand":"Control","key":"T"}""", Type.Write(stray).ToJsonString());
+        Assert.Equal("RCtrl+T", stray.Summary);
+        Assert.Equal(new HotkeyStep(KeyModifiers.Control, KeyCode.T, KeyModifiers.Control), stray.Normalized());
+    }
+
+    [Fact]
+    public void NormalizedReturnsTheSameInstanceWhenThereIsNothingToCut()
+    {
+        var step = new HotkeyStep(KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt);
+
+        Assert.Same(step, step.Normalized());
+        Assert.Same(HotkeyStep.Unset, HotkeyStep.Unset.Normalized());
+        Assert.Equal(new HotkeyStep(KeyModifiers.None, KeyCode.F9), new HotkeyStep(KeyModifiers.None, KeyCode.F9, KeyModifiers.Alt).Normalized());
+    }
+
+    [Theory]
     [InlineData("""{ "modifiers": "Ctrl", "key": "T" }""", "'modifiers' must list Control, Alt, Shift, Meta separated by commas, or None; got 'Ctrl'.")]
     [InlineData("""{ "modifiers": "Control, 2", "key": "T" }""", "'modifiers' must list Control, Alt, Shift, Meta separated by commas, or None; got 'Control, 2'.")]
     [InlineData("""{ "modifiers": 3, "key": "T" }""", "'modifiers' must be a string.")]
+    [InlineData("""{ "modifiers": "Alt", "rightHand": "RAlt", "key": "F9" }""", "'rightHand' must list Control, Alt, Shift, Meta separated by commas, or None; got 'RAlt'.")]
+    [InlineData("""{ "modifiers": "Alt", "rightHand": true, "key": "F9" }""", "'rightHand' must be a string.")]
     [InlineData("""{ "modifiers": "Control", "key": 20 }""", "'key' must be a string.")]
     [InlineData("""{ "modifiers": "Control", "key": "20" }""", null)]
     [InlineData("""{ "modifiers": "Control", "key": "Hyper" }""", null)]
@@ -104,6 +159,20 @@ public sealed class HotkeyStepTests
         Assert.Equal((EventLevel.Debug, "steps", "Hotkey"), (line.Level, line.Source, line.Message));
         Assert.Contains(new LogProperty("keys", "Ctrl+Shift+T"), line.Properties!);
         Assert.Contains(new LogProperty("outcome", StepOutcome.Done), line.Properties!);
+    }
+
+    [Fact]
+    public void ExecutePassesTheRightHandSetThrough_CutDownToTheModifiers()
+    {
+        var input = new FakeInputSimulator();
+        var log = new CountingEventLog();
+
+        var result = Type.Execute(new HotkeyStep(KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), StepContexts.Create(input: input, log: log));
+        Type.Execute(new HotkeyStep(KeyModifiers.Control, KeyCode.T, KeyModifiers.Alt), StepContexts.Create(input: input));
+
+        Assert.Equal(StepResult.Done, result);
+        Assert.Equal(["hotkey Control, Alt+F9 right Alt", "hotkey Control+T"], input.Calls);
+        Assert.Contains(new LogProperty("keys", "Ctrl+RAlt+F9"), Assert.Single(log.Events).Properties!);
     }
 
     [Fact]

@@ -35,6 +35,35 @@ public sealed class HotkeyCaptureBoxTests
         Assert.Equal("Ctrl+Shift+T", box.DisplayText);
         Assert.False(Part<Button>(box, "PART_Accept").IsVisible);
         Assert.True(Part<Button>(box, "PART_Capture").IsVisible);
+
+        box.RightHand = KeyModifiers.Shift;
+        Assert.Equal("Ctrl+RShift+T", box.DisplayText);
+    }
+
+    [AvaloniaFact]
+    public void ARightHandCombinationCommitsWithItsSide_ClearDropsIt()
+    {
+        var capture = new FakeKeyCapture();
+        var (box, _, _) = Show(capture);
+        var committed = new List<HotkeyCommittedEventArgs>();
+        box.Committed += (_, e) => committed.Add(e);
+        box.BeginCapture();
+
+        capture.Press(KeyCode.RightAlt);
+        Assert.Equal("RAlt+…", box.DisplayText);
+        capture.Press(KeyCode.F9, KeyModifiers.Alt);
+        Assert.Equal("RAlt+F9", box.DisplayText);
+        box.Accept();
+
+        var kept = Assert.Single(committed);
+        Assert.Equal((KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), (kept.Modifiers, kept.Key, kept.RightHand));
+        Assert.Equal((KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), (box.Modifiers, box.Key, box.RightHand));
+        Assert.Equal("RAlt+F9", box.DisplayText);
+
+        box.Clear();
+
+        Assert.Equal((KeyModifiers.None, KeyCode.None, KeyModifiers.None), (committed[^1].Modifiers, committed[^1].Key, committed[^1].RightHand));
+        Assert.Equal(KeyModifiers.None, box.RightHand);
     }
 
     [AvaloniaFact]

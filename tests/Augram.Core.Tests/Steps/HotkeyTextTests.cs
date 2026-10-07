@@ -18,6 +18,23 @@ public sealed class HotkeyTextTests
     }
 
     [Theory]
+    [InlineData(KeyModifiers.Control, KeyCode.Digit0, KeyModifiers.Control, "RCtrl+0")]
+    [InlineData(KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt, "RAlt+F9")]
+    [InlineData(KeyModifiers.Shift, KeyCode.A, KeyModifiers.Shift, "RShift+A")]
+    [InlineData(KeyModifiers.Meta, KeyCode.D, KeyModifiers.Meta, "RWin+D")]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Shift, KeyCode.P, KeyModifiers.Control | KeyModifiers.Shift, "RCtrl+RShift+P")]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt, "Ctrl+RAlt+F9")]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta, KeyCode.Z, KeyModifiers.Alt | KeyModifiers.Meta, "Ctrl+RAlt+Shift+RWin+Z")]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta, KeyCode.Z, KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta, "RCtrl+RAlt+RShift+RWin+Z")]
+    [InlineData(KeyModifiers.Alt | KeyModifiers.Shift, KeyCode.None, KeyModifiers.Shift, "Alt+RShift")]
+    [InlineData(KeyModifiers.Control, KeyCode.T, KeyModifiers.Alt, "Ctrl+T")]
+    [InlineData(KeyModifiers.None, KeyCode.Tab, KeyModifiers.Control, "Tab")]
+    public void RightHandModifiersReadAsRNamesInTheSameOrder_BitsOutsideTheModifiersPrintNothing(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand, string expected)
+    {
+        Assert.Equal(expected, HotkeyText.Format(modifiers, key, rightHand));
+    }
+
+    [Theory]
     [InlineData(KeyCode.A, "A")]
     [InlineData(KeyCode.Digit0, "0")]
     [InlineData(KeyCode.Digit9, "9")]
@@ -63,5 +80,14 @@ public sealed class HotkeyTextTests
         Assert.True(HotkeyKeys.IsModifier(KeyCode.LeftMeta));
         Assert.False(HotkeyKeys.IsModifier(KeyCode.CapsLock));
         Assert.Equal(8, Enum.GetValues<KeyCode>().Count(HotkeyKeys.IsModifier));
+    }
+
+    [Fact]
+    public void TheFourRightModifierKeysAreTheRightHandOnes()
+    {
+        Assert.Equal(
+            [KeyCode.RightShift, KeyCode.RightControl, KeyCode.RightAlt, KeyCode.RightMeta],
+            Enum.GetValues<KeyCode>().Where(HotkeyKeys.IsRightHand));
+        Assert.All(Enum.GetValues<KeyCode>().Where(HotkeyKeys.IsRightHand), key => Assert.True(HotkeyKeys.IsModifier(key)));
     }
 }

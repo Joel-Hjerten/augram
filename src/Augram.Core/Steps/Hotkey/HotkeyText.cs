@@ -5,32 +5,36 @@ namespace Augram.Core.Steps.Hotkey;
 
 /// <summary>
 /// How a hotkey reads to a person: "Ctrl+Shift+T". Windows names (Ctrl, Alt, Shift, Win) in that
-/// order, then the key's short name (letters and digits as themselves, "F5", "Esc", "PgUp", "Left",
-/// "Num 4", "Volume Up"). The step summary, the App's capture field and dropdown, and the importer's
-/// messages all use this, so a hotkey reads the same everywhere. macOS names (⌘, ⌥) arrive with the
-/// F8 conversion slice.
+/// order, a right-hand modifier as "RCtrl", "RAlt", "RShift", "RWin" in the same place ("Ctrl+RAlt+F9"),
+/// then the key's short name (letters and digits as themselves, "F5", "Esc", "PgUp", "Left", "Num 4",
+/// "Volume Up"). The step summary, the App's capture field and dropdown, and the importer's messages all
+/// use this, so a hotkey reads the same everywhere. macOS names (⌘, ⌥) arrive with the F8 conversion slice.
 /// </summary>
 public static class HotkeyText
 {
     public const string Separator = "+";
 
-    private static readonly (KeyModifiers Flag, string Name)[] ModifierOrder =
+    private static readonly (KeyModifiers Flag, string Name, string RightName)[] ModifierOrder =
     [
-        (KeyModifiers.Control, "Ctrl"),
-        (KeyModifiers.Alt, "Alt"),
-        (KeyModifiers.Shift, "Shift"),
-        (KeyModifiers.Meta, "Win"),
+        (KeyModifiers.Control, "Ctrl", "RCtrl"),
+        (KeyModifiers.Alt, "Alt", "RAlt"),
+        (KeyModifiers.Shift, "Shift", "RShift"),
+        (KeyModifiers.Meta, "Win", "RWin"),
     ];
 
-    /// <summary>"Ctrl+Shift+T"; the modifiers alone ("Ctrl+Shift") when <paramref name="key"/> is <see cref="KeyCode.None"/>; empty when both are empty.</summary>
-    public static string Format(KeyModifiers modifiers, KeyCode key)
+    /// <summary>
+    /// "Ctrl+Shift+T", "RCtrl+RShift+P"; the modifiers alone ("Ctrl+Shift") when <paramref name="key"/> is
+    /// <see cref="KeyCode.None"/>; empty when both are empty. A <paramref name="rightHand"/> bit outside
+    /// <paramref name="modifiers"/> prints nothing.
+    /// </summary>
+    public static string Format(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None)
     {
         var parts = new List<string>(5);
-        foreach (var (flag, name) in ModifierOrder)
+        foreach (var (flag, name, rightName) in ModifierOrder)
         {
             if ((modifiers & flag) != 0)
             {
-                parts.Add(name);
+                parts.Add((rightHand & flag) != 0 ? rightName : name);
             }
         }
 

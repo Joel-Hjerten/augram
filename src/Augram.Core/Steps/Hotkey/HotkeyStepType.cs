@@ -5,14 +5,17 @@ namespace Augram.Core.Steps.Hotkey;
 
 /// <summary>
 /// The "Hotkey" step type: key <c>hotkey</c>, category Keyboard, platform-bound (F8: a hotkey's
-/// modifiers differ per platform). Parameters: <c>{ "modifiers": "Control, Shift", "key": "T" }</c>,
+/// modifiers differ per platform). Parameters: <c>{ "modifiers": "Control, Shift", "rightHand": "Shift", "key": "T" }</c>,
 /// the modifiers as <see cref="KeyModifiers"/> flag names separated by commas ("None" when there are
-/// none) and the key as a <see cref="KeyCode"/> name; both default when absent. The default instance
-/// is <see cref="HotkeyStep.Unset"/>, which runs as Skipped "no key set".
+/// none), <c>rightHand</c> the same way for those pressed with the right-hand key (written only when
+/// there are any; read cut down to <c>modifiers</c>), and the key as a <see cref="KeyCode"/> name; all
+/// default when absent. The default instance is <see cref="HotkeyStep.Unset"/>, which runs as Skipped "no key set".
 /// </summary>
 public sealed class HotkeyStepType : IStepType
 {
     public const string ModifiersMember = "modifiers";
+
+    public const string RightHandMember = "rightHand";
 
     public const string KeyMember = "key";
 
@@ -38,19 +41,23 @@ public sealed class HotkeyStepType : IStepType
     public IStep Read(JsonObject parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        var modifiers = ReadModifiers(parameters);
+        var modifiers = ReadModifiers(parameters, ModifiersMember);
+        var rightHand = ReadModifiers(parameters, RightHandMember);
         var key = StepParameters.ReadEnum<KeyCode>(parameters, KeyMember) ?? KeyCode.None;
-        return new HotkeyStep(modifiers, key);
+        return new HotkeyStep(modifiers, key, rightHand).Normalized();
     }
 
     public JsonObject Write(IStep step)
     {
-        var hotkey = StepParameters.Expect<HotkeyStep>(step, this);
-        return new JsonObject
+        var hotkey = StepParameters.Expect<HotkeyStep>(step, this).Normalized();
+        var parameters = new JsonObject { [ModifiersMember] = hotkey.Modifiers.ToString() };
+        if (hotkey.RightHand != KeyModifiers.None)
         {
-            [ModifiersMember] = hotkey.Modifiers.ToString(),
-            [KeyMember] = hotkey.Key.ToString(),
-        };
+            parameters[RightHandMember] = hotkey.RightHand.ToString();
+        }
+
+        parameters[KeyMember] = hotkey.Key.ToString();
+        return parameters;
     }
 
     public StepResult Execute(IStep step, StepExecutionContext context)
@@ -60,9 +67,9 @@ public sealed class HotkeyStepType : IStepType
     }
 
     /// <summary>Flag names, case-insensitive, comma-separated; "None" and an empty string mean none; anything else names the member.</summary>
-    private static KeyModifiers ReadModifiers(JsonObject parameters)
+    private static KeyModifiers ReadModifiers(JsonObject parameters, string member)
     {
-        var text = StepParameters.ReadString(parameters, ModifiersMember);
+        var text = StepParameters.ReadString(parameters, member);
         if (text is null)
         {
             return KeyModifiers.None;
@@ -77,7 +84,7 @@ public sealed class HotkeyStepType : IStepType
             }
 
             var name = ModifierNames.FirstOrDefault(candidate => string.Equals(candidate, part, StringComparison.OrdinalIgnoreCase))
-                ?? throw new StepFormatException($"'{ModifiersMember}' must list {string.Join(", ", ModifierNames)} separated by commas, or None; got '{text}'.");
+                ?? throw new StepFormatException($"'{member}' must list {string.Join(", ", ModifierNames)} separated by commas, or None; got '{text}'.");
             modifiers |= Enum.Parse<KeyModifiers>(name);
         }
 

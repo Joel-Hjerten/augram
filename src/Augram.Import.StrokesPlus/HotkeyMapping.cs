@@ -12,8 +12,9 @@ namespace Augram.Import.StrokesPlus;
 /// the step reader and a later upgrade of saved placeholders share it. <c>SendHotKey</c> carries one
 /// parameter <c>hotkey</c> whose value is an object, kept by <see cref="MethodParameterReader"/> as JSON
 /// text: <c>{"LControl":true,"RControl":false,"LAlt":false,"RAlt":false,"LShift":true,"RShift":false,
-/// "LWin":false,"RWin":false,"Key":84}</c>, where <c>Key</c> is a Windows virtual-key code. Left and right
-/// fold into one flag (the model has no sides). <c>SendVKey</c> carries <c>virtualKey</c>, a bare code;
+/// "LWin":false,"RWin":false,"Key":84}</c>, where <c>Key</c> is a Windows virtual-key code. A modifier set
+/// on the right only is kept as <see cref="HotkeyStep.RightHand"/> (Joel uses RAlt and RControl on purpose,
+/// F5); set on both sides it is the plain modifier. <c>SendVKey</c> carries <c>virtualKey</c>, a bare code;
 /// the media keys stay <c>MediaKeyStep</c>s (the reader maps them first) and every other mapped code is a
 /// hotkey with no modifiers. Anything unreadable or unmapped gives null and stays a placeholder.
 /// </summary>
@@ -30,17 +31,17 @@ public static class HotkeyMapping
     private const int KeysControl = 0x20000;
     private const int KeysAlt = 0x40000;
 
-    private static readonly FrozenDictionary<string, KeyModifiers> ModifierMembers =
-        new Dictionary<string, KeyModifiers>(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, (KeyModifiers Flag, bool Right)> ModifierMembers =
+        new Dictionary<string, (KeyModifiers Flag, bool Right)>(StringComparer.OrdinalIgnoreCase)
         {
-            ["LControl"] = KeyModifiers.Control,
-            ["RControl"] = KeyModifiers.Control,
-            ["LAlt"] = KeyModifiers.Alt,
-            ["RAlt"] = KeyModifiers.Alt,
-            ["LShift"] = KeyModifiers.Shift,
-            ["RShift"] = KeyModifiers.Shift,
-            ["LWin"] = KeyModifiers.Meta,
-            ["RWin"] = KeyModifiers.Meta,
+            ["LControl"] = (KeyModifiers.Control, false),
+            ["RControl"] = (KeyModifiers.Control, true),
+            ["LAlt"] = (KeyModifiers.Alt, false),
+            ["RAlt"] = (KeyModifiers.Alt, true),
+            ["LShift"] = (KeyModifiers.Shift, false),
+            ["RShift"] = (KeyModifiers.Shift, true),
+            ["LWin"] = (KeyModifiers.Meta, false),
+            ["RWin"] = (KeyModifiers.Meta, true),
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     // Windows virtual-key codes (WinUser.h). The generic VK_SHIFT, VK_CONTROL and VK_MENU take the left key. OEM keys go by
@@ -121,13 +122,26 @@ public static class HotkeyMapping
 
     private static HotkeyStep? FromHotkeyObject(JsonElement hotkey)
     {
-        var modifiers = KeyModifiers.None;
+        var left = KeyModifiers.None;
+        var right = KeyModifiers.None;
         int? code = null;
         foreach (var member in hotkey.EnumerateObject())
         {
-            if (ModifierMembers.TryGetValue(member.Name, out var flag))
+            if (ModifierMembers.TryGetValue(member.Name, out var modifier))
             {
-                modifiers |= IsTrue(member.Value) ? flag : KeyModifiers.None;
+                if (!IsTrue(member.Value))
+                {
+                    continue;
+                }
+
+                if (modifier.Right)
+                {
+                    right |= modifier.Flag;
+                }
+                else
+                {
+                    left |= modifier.Flag;
+                }
             }
             else if (string.Equals(member.Name, KeyMember, StringComparison.OrdinalIgnoreCase))
             {
@@ -140,11 +154,12 @@ public static class HotkeyMapping
             return null;
         }
 
-        modifiers |= ((raw & KeysShift) != 0 ? KeyModifiers.Shift : KeyModifiers.None)
+        // The WinForms bits name no side; like the generic VK_CONTROL they count as the left key.
+        left |= ((raw & KeysShift) != 0 ? KeyModifiers.Shift : KeyModifiers.None)
             | ((raw & KeysControl) != 0 ? KeyModifiers.Control : KeyModifiers.None)
             | ((raw & KeysAlt) != 0 ? KeyModifiers.Alt : KeyModifiers.None);
         var key = FromVirtualKey(raw & KeysCodeMask);
-        return key == KeyCode.None ? null : new HotkeyStep(modifiers, key);
+        return key == KeyCode.None ? null : new HotkeyStep(left | right, key, right & ~left);
     }
 
     private static bool IsTrue(JsonElement value) => value.ValueKind switch
