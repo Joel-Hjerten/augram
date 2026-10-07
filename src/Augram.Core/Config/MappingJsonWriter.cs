@@ -18,6 +18,9 @@ namespace Augram.Core.Config;
 /// </summary>
 internal static class MappingJsonWriter
 {
+    public const string UseOnWindows = "windows";
+    public const string UseOnMacOS = "macos";
+
     public static void Write(Utf8JsonWriter writer, MappingDocument mapping)
     {
         writer.WriteStartObject();
@@ -48,6 +51,7 @@ internal static class MappingJsonWriter
         writer.WriteString("name", group.Name);
         writer.WriteBoolean("isActive", group.IsActive);
         writer.WriteBoolean("suppressGlobals", group.SuppressGlobals);
+        WriteUseOn(writer, group.UseOn);
         WriteMatcher(writer, group.Matcher);
         WriteCategories(writer, group.Categories);
         writer.WriteStartArray("commands");
@@ -165,7 +169,12 @@ internal static class MappingJsonWriter
         }
 
         writer.WriteStartObject("matcher");
-        WriteStrings(writer, "processNames", matcher.ProcessNames);
+        WriteStrings(writer, "processNames", matcher.WindowsProcessNames);
+        if (matcher.MacProcessNames.Count > 0)
+        {
+            WriteStrings(writer, "macProcessNames", matcher.MacProcessNames);
+        }
+
         writer.WriteString("processPath", matcher.ProcessPath);
         writer.WriteBoolean("processPathIsRegex", matcher.ProcessPathIsRegex);
         writer.WriteString("title", matcher.Title);
@@ -173,6 +182,31 @@ internal static class MappingJsonWriter
         WriteStrings(writer, "classChain", matcher.ClassChain);
         writer.WriteBoolean("ignoreWhenFullScreen", matcher.IgnoreWhenFullScreen);
         writer.WriteEndObject();
+    }
+
+    /// <summary>
+    /// F8 "Use on": written only when the group is not on every platform, so a file (and a sync item) without the member is
+    /// unchanged by it; a list of target names, so specific machines can join it later without a new format.
+    /// </summary>
+    private static void WriteUseOn(Utf8JsonWriter writer, PlatformSet useOn)
+    {
+        if (useOn == PlatformSet.All)
+        {
+            return;
+        }
+
+        writer.WriteStartArray("useOn");
+        if (useOn.HasFlag(PlatformSet.Windows))
+        {
+            writer.WriteStringValue(UseOnWindows);
+        }
+
+        if (useOn.HasFlag(PlatformSet.MacOS))
+        {
+            writer.WriteStringValue(UseOnMacOS);
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WriteStrings(Utf8JsonWriter writer, string name, IReadOnlyList<string> values)

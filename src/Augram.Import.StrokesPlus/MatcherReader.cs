@@ -36,7 +36,7 @@ internal static class MatcherReader
         ReportControlId(application, item, warnings);
         var matcher = new AppMatcher
         {
-            ProcessNames = ReadProcessNames(application, item, warnings),
+            WindowsProcessNames = ReadProcessNames(application, item, warnings),
             ProcessPath = path?.Value,
             ProcessPathIsRegex = path?.IsRegex ?? false,
             Title = title?.Value,

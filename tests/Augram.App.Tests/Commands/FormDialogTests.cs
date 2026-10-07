@@ -36,7 +36,7 @@ public sealed class FormDialogTests
     [AvaloniaFact]
     public void TheGroupFormRendersItsDeclaredFieldsAndWritesBackToTheEditState()
     {
-        var edit = new GroupEditViewModel { Name = "Chrome", ProcessNames = "chrome.exe" };
+        var edit = new GroupEditViewModel { Name = "Chrome", WindowsNames = "chrome.exe" };
         var dialog = new FormDialog { Screen = edit.Declare(), ConfirmLabel = "Save" };
         var window = new Window { Content = dialog };
         window.Show();
@@ -45,9 +45,9 @@ public sealed class FormDialogTests
 
         Assert.True(dialog.HasScreen);
         Assert.False(dialog.HasMessage);
-        Assert.Equal(["Name", "Active", "Suppress global commands", "Executable names", "Window title", "Title is a regular expression", "Pick a window"], rows.Select(row => row.Label));
+        Assert.Equal(["Name", "Active", "Use on Windows", "Use on macOS", "Suppress global commands", "Windows executables", "macOS executables", "Guess for an empty list", "Pick a window", "Window title", "Title is a regular expression"], rows.Select(row => row.Label));
         ((TextBox)rows[0].Editor!).Text = "Chromium";
-        ((CheckBox)rows[2].Editor!).IsChecked = true;
+        ((CheckBox)rows[4].Editor!).IsChecked = true;
         Assert.Equal("Chromium", edit.Name);
         Assert.True(edit.SuppressGlobals);
     }

@@ -50,14 +50,14 @@ public static class MappingRules
 
     /// <summary>
     /// Trims the name, normalises and sorts the commands and the categories (a command in a category the
-    /// group lacks becomes Uncategorized); the Global group never has a matcher or suppresses itself.
+    /// group lacks becomes Uncategorized); the Global group never has a matcher, suppresses itself or stays off a platform.
     /// </summary>
     public static AppGroup Normalised(AppGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
         var commands = group.Commands.Select(Normalised).OrderBy(command => command.Name, NameComparer).ToArray();
         return CategoryRules.Normalised(group.IsGlobal
-            ? group with { Name = Trimmed(group.Name), Matcher = null, SuppressGlobals = false, Commands = commands }
+            ? group with { Name = Trimmed(group.Name), Matcher = null, SuppressGlobals = false, UseOn = PlatformSet.All, Commands = commands }
             : group with { Name = Trimmed(group.Name), Commands = commands });
     }
 
@@ -97,6 +97,11 @@ public static class MappingRules
             {
                 throw new MappingValidationException($"An app group named '{other.Name}' already exists.");
             }
+        }
+
+        if (group.UseOn == PlatformSet.None)
+        {
+            throw new MappingValidationException($"Use '{group.Name}' on at least one platform.");
         }
 
         if (group.Matcher is not null)

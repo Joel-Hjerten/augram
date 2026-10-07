@@ -19,7 +19,7 @@ public sealed class CommandsViewModelTests
         var (vm, _, _, _) = Create();
 
         Assert.Equal(CommandsScope.Apps, vm.Scope);
-        Assert.Equal(("App groups", "New group…"), (vm.Heading, vm.NewSectionLabel));
+        Assert.Equal(("App groups", "New group"), (vm.Heading, vm.NewSectionLabel));
         Assert.Equal(["Apple", "Chrome", "Photoshop"], Names(vm));
         Assert.All(vm.Sections, section =>
         {
@@ -79,7 +79,7 @@ public sealed class CommandsViewModelTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand));
 
-        Assert.Equal("Select an app group first, or make one with New group…", vm.Message);
+        Assert.Equal("Select an app group first, or make one with New group", vm.Message);
         Assert.Equal(3, Group(store, "Chrome").Commands.Count);
         Assert.Single(renames);
     }
@@ -143,7 +143,7 @@ public sealed class CommandsViewModelTests
         dialogs.Answer = request =>
         {
             Field("Name", request).Set("Zed");
-            Field("Executable names", request).Set("zed.exe, zed-preview.exe");
+            Field("Windows executables", request).Set("zed.exe, zed-preview.exe");
             return true;
         };
 
@@ -151,7 +151,7 @@ public sealed class CommandsViewModelTests
 
         Assert.Equal("New app group", dialogs.Last.Title);
         var zed = Group(store, "Zed");
-        Assert.Equal(["zed.exe", "zed-preview.exe"], zed.Matcher!.ProcessNames);
+        Assert.Equal(["zed.exe", "zed-preview.exe"], zed.Matcher!.WindowsProcessNames);
         Assert.Equal(SectionId.ForGroup(zed.Id), vm.SelectedSectionId);
         Assert.Equal(["Apple", "Chrome", "Photoshop", "Zed"], Names(vm));
 
@@ -165,7 +165,7 @@ public sealed class CommandsViewModelTests
         Assert.Same(form, vm.GroupForm);
         var edited = store.FindGroup(chrome.Id.GroupId)!;
         Assert.Equal("Chromium", edited.Name);
-        Assert.Equal(["chrome.exe"], edited.Matcher!.ProcessNames);
+        Assert.Equal(["chrome.exe"], edited.Matcher!.WindowsProcessNames);
         Assert.True(edited.Matcher.TitleIsRegex);
         Assert.Equal(2, edited.Commands.Count);
 
@@ -201,7 +201,7 @@ public sealed class CommandsViewModelTests
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
         Assert.Equal("Chrome", Field("Name", vm.GroupForm!).Get());
-        Assert.Equal("chrome.exe", Field("Executable names", vm.GroupForm!).Get());
+        Assert.Equal("chrome.exe", Field("Windows executables", vm.GroupForm!).Get());
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome"), Item(vm, "Close tab")));
         Assert.Null(vm.GroupForm);
@@ -217,14 +217,15 @@ public sealed class CommandsViewModelTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
         var form = vm.GroupForm!;
 
-        Field("Executable names", form).Set("Google Chrome, chrome.exe");
-        Assert.Equal(["Google Chrome", "chrome.exe"], Group(store, "Chrome").Matcher!.ProcessNames);
+        Field("macOS executables", form).Set("Google Chrome, Chromium");
+        Assert.Equal(["Google Chrome", "Chromium"], Group(store, "Chrome").Matcher!.MacProcessNames);
+        Assert.Equal(["chrome.exe"], Group(store, "Chrome").Matcher!.WindowsProcessNames);
         Assert.True(vm.CanUndo);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
-        Assert.Equal(["chrome.exe"], Group(store, "Chrome").Matcher!.ProcessNames);
+        Assert.Empty(Group(store, "Chrome").Matcher!.MacProcessNames);
         Assert.Same(form, vm.GroupForm);
-        Assert.Equal("chrome.exe", Field("Executable names", form).Get());
+        Assert.Equal(string.Empty, Field("macOS executables", form).Get());
     }
 
     [AvaloniaFact]

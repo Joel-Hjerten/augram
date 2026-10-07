@@ -11,7 +11,7 @@ internal static class Mappings
         => new(CommandId.New(), name, trigger, IsActive: true, steps.Select(step => new CommandStep(step, HostPlatform.Windows)).ToArray());
 
     public static AppGroup Group(string name, string processName, bool suppressGlobals = false, params Command[] commands)
-        => new(GroupId.New(), name, IsActive: true, suppressGlobals, new AppMatcher { ProcessNames = [processName] }, commands);
+        => new(GroupId.New(), name, IsActive: true, suppressGlobals, new AppMatcher { WindowsProcessNames = [processName] }, commands);
 
     /// <summary>Global with <paramref name="global"/>, plus <paramref name="groups"/>; validated and sorted as the store would.</summary>
     public static MappingDocument Document(IReadOnlyList<Command> global, params AppGroup[] groups)

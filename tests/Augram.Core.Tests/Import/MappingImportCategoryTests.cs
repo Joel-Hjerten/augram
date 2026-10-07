@@ -82,7 +82,7 @@ public sealed class MappingImportCategoryTests
     {
         var blend = Cat("Blend");
         var general = Cat("General");
-        var photo = new AppGroup(GroupId.New(), "Photo", IsActive: true, SuppressGlobals: false, new AppMatcher { ProcessNames = ["photo.exe"] }, [Cmd("Lighten", blend)], [blend, general]);
+        var photo = new AppGroup(GroupId.New(), "Photo", IsActive: true, SuppressGlobals: false, new AppMatcher { WindowsProcessNames = ["photo.exe"] }, [Cmd("Lighten", blend)], [blend, general]);
 
         var result = MappingImport.Merge(MappingDocument.Empty, new([AppGroup.EmptyGlobal, photo], []));
 

@@ -24,6 +24,9 @@ public enum CommandTreeAction
     /// <summary>A "New command N" in the selected section, selected and ready to rename.</summary>
     NewCommand,
 
+    /// <summary>Show or hide the groups used only on the other platform (F8; the toolbar toggle, Apps tab).</summary>
+    ToggleOtherPlatforms,
+
     /// <summary>Rename the section or command to the name typed in place.</summary>
     Rename,
 

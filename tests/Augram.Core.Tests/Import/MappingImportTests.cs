@@ -16,11 +16,11 @@ public sealed class MappingImportTests
     private static Command Cmd(string name, Trigger trigger, bool isActive = true) => new(CommandId.New(), name, trigger, isActive, []);
 
     private static AppGroup GroupOf(string name, bool suppressGlobals, params Command[] commands)
-        => new(GroupId.New(), name, IsActive: true, suppressGlobals, new AppMatcher { ProcessNames = [name.ToLowerInvariant() + ".exe"] }, commands);
+        => new(GroupId.New(), name, IsActive: true, suppressGlobals, new AppMatcher { WindowsProcessNames = [name.ToLowerInvariant() + ".exe"] }, commands);
 
     private static AppGroup GlobalOf(params Command[] commands) => AppGroup.EmptyGlobal with { Commands = commands };
 
-    private static IgnoredApp Ign(string name) => new(GroupId.New(), name, IsActive: true, new AppMatcher { ProcessNames = ["x.exe"] }, DisableEntirely: false);
+    private static IgnoredApp Ign(string name) => new(GroupId.New(), name, IsActive: true, new AppMatcher { WindowsProcessNames = ["x.exe"] }, DisableEntirely: false);
 
     private static MappingDocument Doc(IReadOnlyList<AppGroup> groups, params IgnoredApp[] ignored) => new(groups, ignored);
 
@@ -64,7 +64,7 @@ public sealed class MappingImportTests
     {
         var mine = GroupOf("Chrome", suppressGlobals: true, Cmd("Close", Trigger.ForGesture(G1)));
         var existing = MappingRules.ValidDocument(Doc([AppGroup.EmptyGlobal, mine]));
-        var theirs = new AppGroup(GroupId.New(), "chrome", IsActive: false, SuppressGlobals: false, new AppMatcher { ProcessNames = ["other.exe"] }, [Cmd("Back", Trigger.ForGesture(G2))]);
+        var theirs = new AppGroup(GroupId.New(), "chrome", IsActive: false, SuppressGlobals: false, new AppMatcher { WindowsProcessNames = ["other.exe"] }, [Cmd("Back", Trigger.ForGesture(G2))]);
 
         var result = MappingImport.Merge(existing, Doc([AppGroup.EmptyGlobal, theirs]));
 
@@ -73,7 +73,7 @@ public sealed class MappingImportTests
         Assert.Equal("Chrome", group.Name);
         Assert.True(group.SuppressGlobals);
         Assert.True(group.IsActive);
-        Assert.Equal(["chrome.exe"], group.Matcher!.ProcessNames);
+        Assert.Equal(["chrome.exe"], group.Matcher!.WindowsProcessNames);
         Assert.Equal(["Back", "Close"], group.Commands.Select(command => command.Name));
         Assert.Equal(0, result.GroupsAdded);
         Assert.Equal(1, result.CommandsAdded);

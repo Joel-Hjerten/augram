@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
 using Xunit;
@@ -30,7 +31,7 @@ public sealed class CommandResolverTests
     [Fact]
     public void AGlobalCommandFiresWhereNoAppGroupMatches()
     {
-        var resolution = CommandResolver.Resolve(Mapping, Window("notepad.exe"), UpGesture);
+        var resolution = CommandResolver.Resolve(Mapping, Window("notepad.exe"), UpGesture, HostPlatform.Windows);
 
         Assert.Equal(ResolutionOutcome.Matched, resolution.Outcome);
         Assert.True(resolution.Group!.IsGlobal);
@@ -42,7 +43,7 @@ public sealed class CommandResolverTests
     [Fact]
     public void NoWindowResolvesAgainstGlobalAlone()
     {
-        var resolution = CommandResolver.Resolve(Mapping, target: null, WheelUp);
+        var resolution = CommandResolver.Resolve(Mapping, target: null, WheelUp, HostPlatform.Windows);
 
         Assert.Equal("Volume up", resolution.Command!.Name);
         Assert.Equal("global", resolution.Reason);
@@ -51,7 +52,7 @@ public sealed class CommandResolverTests
     [Fact]
     public void AnAppOverrideShadowsTheGlobalCommand()
     {
-        var resolution = CommandResolver.Resolve(Mapping, Window("chrome.exe"), UpGesture);
+        var resolution = CommandResolver.Resolve(Mapping, Window("chrome.exe"), UpGesture, HostPlatform.Windows);
 
         Assert.Equal("Chrome", resolution.Group!.Name);
         Assert.Equal("Close tab", resolution.Command!.Name);
@@ -61,7 +62,7 @@ public sealed class CommandResolverTests
     [Fact]
     public void AnOverrideToNothingMatchesButDoesNotFire()
     {
-        var resolution = CommandResolver.Resolve(Mapping, Window("steam.exe"), UpGesture);
+        var resolution = CommandResolver.Resolve(Mapping, Window("steam.exe"), UpGesture, HostPlatform.Windows);
 
         Assert.Equal(ResolutionOutcome.Matched, resolution.Outcome);
         Assert.True(resolution.Command!.IsOverrideToNothing);
@@ -72,7 +73,7 @@ public sealed class CommandResolverTests
     [Fact]
     public void ATriggerTheAppDoesNotBindFallsThroughToGlobal()
     {
-        var resolution = CommandResolver.Resolve(Mapping, Window("chrome.exe"), WheelUp);
+        var resolution = CommandResolver.Resolve(Mapping, Window("chrome.exe"), WheelUp, HostPlatform.Windows);
 
         Assert.Equal("Volume up", resolution.Command!.Name);
         Assert.Equal("global", resolution.Reason);
@@ -81,7 +82,7 @@ public sealed class CommandResolverTests
     [Fact]
     public void SuppressGlobalsBlocksTheFallThrough()
     {
-        var resolution = CommandResolver.Resolve(Mapping, Window("ff7.exe"), UpGesture);
+        var resolution = CommandResolver.Resolve(Mapping, Window("ff7.exe"), UpGesture, HostPlatform.Windows);
 
         Assert.Equal(ResolutionOutcome.None, resolution.Outcome);
         Assert.Null(resolution.Command);
@@ -91,26 +92,26 @@ public sealed class CommandResolverTests
     [Fact]
     public void AnIgnoredAppWinsOverAMatchingGroupAndAnInactiveOneIsInvisible()
     {
-        var ignored = CommandResolver.Resolve(Mapping, Window("game.exe"), UpGesture);
+        var ignored = CommandResolver.Resolve(Mapping, Window("game.exe"), UpGesture, HostPlatform.Windows);
 
         Assert.Equal(ResolutionOutcome.Ignored, ignored.Outcome);
         Assert.Equal("ignored app 'Game'", ignored.Reason);
         Assert.True(ignored.IgnoredBy!.DisableEntirely);
         Assert.Null(ignored.Group);
         Assert.False(ignored.Fires);
-        Assert.NotNull(CommandResolver.FindIgnored(Mapping, Window("game.exe")));
+        Assert.NotNull(CommandResolver.FindIgnored(Mapping, Window("game.exe"), HostPlatform.Windows));
 
-        Assert.Equal("global", CommandResolver.Resolve(Mapping, Window("notepad.exe"), UpGesture).Reason);
-        Assert.Null(CommandResolver.FindIgnored(Mapping, null));
+        Assert.Equal("global", CommandResolver.Resolve(Mapping, Window("notepad.exe"), UpGesture, HostPlatform.Windows).Reason);
+        Assert.Null(CommandResolver.FindIgnored(Mapping, null, HostPlatform.Windows));
     }
 
     [Fact]
     public void InactiveGroupsAndCommandsAreInvisible()
     {
-        Assert.Equal("global", CommandResolver.Resolve(Mapping, Window("dormant.exe"), UpGesture).Reason);
-        Assert.Null(CommandResolver.FindGroup(Mapping, Window("dormant.exe")));
+        Assert.Equal("global", CommandResolver.Resolve(Mapping, Window("dormant.exe"), UpGesture, HostPlatform.Windows).Reason);
+        Assert.Null(CommandResolver.FindGroup(Mapping, Window("dormant.exe"), HostPlatform.Windows));
 
-        var resolution = CommandResolver.Resolve(Mapping, Window("chrome.exe"), DownGesture);
+        var resolution = CommandResolver.Resolve(Mapping, Window("chrome.exe"), DownGesture, HostPlatform.Windows);
         Assert.Equal(ResolutionOutcome.None, resolution.Outcome);
         Assert.Equal("no command for this gesture", resolution.Reason);
     }
@@ -118,8 +119,8 @@ public sealed class CommandResolverTests
     [Fact]
     public void NoTriggerAndUnboundWheelTicksResolveToNoneWithAReason()
     {
-        Assert.Equal("no trigger", CommandResolver.Resolve(Mapping, Window(), Trigger.None).Reason);
-        Assert.Equal("no command for wheel down", CommandResolver.Resolve(Mapping, Window(), WheelDown).Reason);
+        Assert.Equal("no trigger", CommandResolver.Resolve(Mapping, Window(), Trigger.None, HostPlatform.Windows).Reason);
+        Assert.Equal("no command for wheel down", CommandResolver.Resolve(Mapping, Window(), WheelDown, HostPlatform.Windows).Reason);
     }
 
     [Fact]
@@ -127,7 +128,7 @@ public sealed class CommandResolverTests
     {
         var mapping = MappingRules.ValidDocument(Document(NewGlobal(NewCommand("Close", Up, NewStep("x"))) with { IsActive = false }));
 
-        var resolution = CommandResolver.Resolve(mapping, Window(), UpGesture);
+        var resolution = CommandResolver.Resolve(mapping, Window(), UpGesture, HostPlatform.Windows);
 
         Assert.Equal(ResolutionOutcome.None, resolution.Outcome);
         Assert.Equal("the Global group is inactive", resolution.Reason);
@@ -141,9 +142,9 @@ public sealed class CommandResolverTests
             NewGroup("Chrome", commands: [NewCommand("Specific", Up, NewStep("s"))]),
             NewGroup("Browsers", ByProcess("chrome.exe", "msedge.exe"), NewCommand("Shared", Up, NewStep("b")))));
 
-        var resolution = CommandResolver.Resolve(mapping, Window("chrome.exe"), UpGesture);
+        var resolution = CommandResolver.Resolve(mapping, Window("chrome.exe"), UpGesture, HostPlatform.Windows);
 
         Assert.Equal("Browsers", resolution.Group!.Name);
-        Assert.Equal("Browsers", CommandResolver.FindGroup(mapping, Window("chrome.exe"))!.Name);
+        Assert.Equal("Browsers", CommandResolver.FindGroup(mapping, Window("chrome.exe"), HostPlatform.Windows)!.Name);
     }
 }

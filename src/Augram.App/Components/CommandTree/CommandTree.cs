@@ -36,12 +36,19 @@ public sealed class CommandTree : TemplatedControl
     public static readonly StyledProperty<string> HeadingProperty =
         AvaloniaProperty.Register<CommandTree, string>(nameof(Heading), "Commands");
 
+    public static readonly StyledProperty<string?> PlatformFilterLabelProperty =
+        AvaloniaProperty.Register<CommandTree, string?>(nameof(PlatformFilterLabel));
+
+    public static readonly StyledProperty<bool> ShowsOtherPlatformsProperty =
+        AvaloniaProperty.Register<CommandTree, bool>(nameof(ShowsOtherPlatforms));
+
     public static readonly StyledProperty<string> NewSectionLabelProperty =
-        AvaloniaProperty.Register<CommandTree, string>(nameof(NewSectionLabel), "New group…");
+        AvaloniaProperty.Register<CommandTree, string>(nameof(NewSectionLabel), "New group");
 
     public static readonly StyledProperty<string> HelpTextProperty =
         AvaloniaProperty.Register<CommandTree, string>(nameof(HelpText), string.Empty);
 
+    private ToggleButton? _otherPlatforms;
     private ListBox? _list;
     private bool _applying;
 
@@ -80,7 +87,7 @@ public sealed class CommandTree : TemplatedControl
         set => SetValue(HeadingProperty, value);
     }
 
-    /// <summary>The words on the new-section button and menu entry ("New group…", "New category…").</summary>
+    /// <summary>The words on the new-section button and menu entry ("New group", "New category").</summary>
     public string NewSectionLabel
     {
         get => GetValue(NewSectionLabelProperty);
@@ -115,9 +122,35 @@ public sealed class CommandTree : TemplatedControl
     /// <summary>Selects the section and starts renaming it (a freshly created "New category N").</summary>
     public void BeginRename(SectionId id) => BeginRename(CommandTreeRows.Section(Rows, id));
 
+    /// <summary>The toolbar toggle's label ("Show other platforms"); null hides it (the Global tab has no platform filter).</summary>
+    public string? PlatformFilterLabel
+    {
+        get => GetValue(PlatformFilterLabelProperty);
+        set => SetValue(PlatformFilterLabelProperty, value);
+    }
+
+    /// <summary>The host shows the groups used only on the other platform; the toggle mirrors it and asks the host to flip it.</summary>
+    public bool ShowsOtherPlatforms
+    {
+        get => GetValue(ShowsOtherPlatformsProperty);
+        set => SetValue(ShowsOtherPlatformsProperty, value);
+    }
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+        _otherPlatforms = e.NameScope.Find<ToggleButton>("PART_OtherPlatforms");
+        if (_otherPlatforms is not null)
+        {
+            _otherPlatforms.IsChecked = ShowsOtherPlatforms;
+            _otherPlatforms.Click += (_, _) =>
+            {
+                // The host owns the state: put the box back and ask; the answer arrives as ShowsOtherPlatforms.
+                _otherPlatforms.IsChecked = ShowsOtherPlatforms;
+                Raise(CommandTreeAction.ToggleOtherPlatforms, SelectedSection);
+            };
+        }
+
         _list = e.NameScope.Find<ListBox>("PART_Rows");
         if (_list is not null)
         {
@@ -149,6 +182,10 @@ public sealed class CommandTree : TemplatedControl
         else if (change.Property == SelectedCommandIdProperty || change.Property == SelectedSectionIdProperty)
         {
             ApplySelection();
+        }
+        else if (change.Property == ShowsOtherPlatformsProperty && _otherPlatforms is not null)
+        {
+            _otherPlatforms.IsChecked = ShowsOtherPlatforms;
         }
     }
 

@@ -126,7 +126,7 @@ public sealed class MappingSerializationTests
         var chrome = back.Mapping.Groups[1];
         Assert.True(chrome.IsActive);
         Assert.False(chrome.SuppressGlobals);
-        Assert.Equal(["chrome.exe"], chrome.Matcher!.ProcessNames);
+        Assert.Equal(["chrome.exe"], chrome.Matcher!.WindowsProcessNames);
         Assert.Null(chrome.Matcher.Title);
         Assert.Empty(chrome.Matcher.ClassChain);
         Assert.Equal(Trigger.ForWheel(WheelDirection.Down), chrome.Commands[0].Trigger);
@@ -191,7 +191,7 @@ public sealed class MappingSerializationTests
                 NewCommand("Minimize", Up, minimize, NewStep("second")),
                 NewCommand("Volume up", Trigger.ForWheel(WheelDirection.Up), NewStep("vol")),
                 NewCommand("Later") with { Note = "Imported from StrokesPlus.net: script-only action\nsp.Foo();" }),
-            NewGroup("Chrome", new AppMatcher { ProcessNames = ["chrome.exe", "msedge.exe"], Title = "^.*Google.*$", TitleIsRegex = true },
+            NewGroup("Chrome", new AppMatcher { WindowsProcessNames = ["chrome.exe", "msedge.exe"], Title = "^.*Google.*$", TitleIsRegex = true },
                 NewCommand("Type", Trigger.ForWheel(WheelDirection.Down), typed)),
             NewGroup("Steam", new AppMatcher { ProcessPath = @"^C:\\Steam\\.+$", ProcessPathIsRegex = true, IgnoreWhenFullScreen = true },
                 NewCommand("Close", Up)),
@@ -251,7 +251,7 @@ public sealed class MappingSerializationTests
                 return x is null && y is null;
             }
 
-            return x.ProcessNames.SequenceEqual(y.ProcessNames, StringComparer.Ordinal)
+            return x.WindowsProcessNames.SequenceEqual(y.WindowsProcessNames, StringComparer.Ordinal)
                 && x.ProcessPath == y.ProcessPath
                 && x.ProcessPathIsRegex == y.ProcessPathIsRegex
                 && x.Title == y.Title

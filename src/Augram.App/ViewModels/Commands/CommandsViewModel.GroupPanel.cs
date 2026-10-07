@@ -53,7 +53,8 @@ public sealed partial class CommandsViewModel
 
     private void OnGroupEdited(object? sender, PropertyChangedEventArgs e)
     {
-        if (_syncingGroupEdit || _groupEdit is not { } edit || _groupEditId is not { } id)
+        // GuessText is computed from the fields; its notice follows a real edit that is applied already.
+        if (_syncingGroupEdit || e.PropertyName == nameof(GroupEditViewModel.GuessText) || _groupEdit is not { } edit || _groupEditId is not { } id)
         {
             return;
         }

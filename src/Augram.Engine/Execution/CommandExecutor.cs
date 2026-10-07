@@ -28,6 +28,7 @@ internal sealed class CommandExecutor : IDisposable
     private readonly CancellationTokenSource _stopping = new();
     private readonly Func<MappingDocument> _mapping;
     private readonly IWindowSystem _windows;
+    private readonly HostPlatform _platform;
     private readonly RecognitionLog _recognitionLog;
     private readonly IEventLog _log;
     private readonly CommandRunner _runner;
@@ -41,6 +42,7 @@ internal sealed class CommandExecutor : IDisposable
         ArgumentNullException.ThrowIfNull(options);
         _mapping = ports.Mapping ?? throw new ArgumentException("The executor needs the Mapping port.", nameof(ports));
         _windows = ports.Windows;
+        _platform = ports.WindowOperations.Platform;
         _recognitionLog = ports.RecognitionLog;
         _log = ports.Log;
         _runner = new CommandRunner(ports, options.SettleDelayMs, _stopping.Token);
@@ -128,7 +130,7 @@ internal sealed class CommandExecutor : IDisposable
     private void Execute(ExecutionRequest request)
     {
         var target = _windows.WindowAt(request.Start.X, request.Start.Y);
-        var resolution = CommandResolver.Resolve(_mapping(), target, request.Trigger);
+        var resolution = CommandResolver.Resolve(_mapping(), target, request.Trigger, _platform);
         if (request.Draft is { } draft)
         {
             _recognitionLog.Add(draft with

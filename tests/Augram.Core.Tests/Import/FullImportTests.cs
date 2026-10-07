@@ -232,7 +232,7 @@ public sealed class FullImportTests
 
         Assert.True(group.IsActive);
         Assert.False(group.SuppressGlobals);
-        Assert.Equal(["synthetic-browser.exe"], group.Matcher!.ProcessNames);
+        Assert.Equal(["synthetic-browser.exe"], group.Matcher!.WindowsProcessNames);
         Assert.True(group.Matcher.IgnoreWhenFullScreen);
         Assert.Null(group.Matcher.ProcessPath);
         Assert.Null(group.Matcher.Title);
@@ -245,7 +245,7 @@ public sealed class FullImportTests
         var group = Group("Synthetic Players");
 
         Assert.True(group.SuppressGlobals);
-        Assert.Equal(["alpha.exe", "beta.exe"], group.Matcher!.ProcessNames);
+        Assert.Equal(["alpha.exe", "beta.exe"], group.Matcher!.WindowsProcessNames);
         Assert.Equal(["Progman|WorkerW", "SHELLDLL_DefView"], group.Matcher.ClassChain);
         Assert.Equal("^Synthetic.*", group.Matcher.Title);
         Assert.True(group.Matcher.TitleIsRegex);
@@ -259,7 +259,7 @@ public sealed class FullImportTests
 
         Assert.Equal("^C:\\\\Games\\\\.+$", group.Matcher!.ProcessPath);
         Assert.True(group.Matcher.ProcessPathIsRegex);
-        Assert.Empty(group.Matcher.ProcessNames);
+        Assert.Empty(group.Matcher.WindowsProcessNames);
         Assert.True(group.IsActive);
         Assert.Empty(group.Commands);
         Assert.True(HasWarning("Synthetic Steam Games", "FileName pattern 'Game.*\\.exe' is not a plain list of names"));
@@ -285,7 +285,7 @@ public sealed class FullImportTests
 
         Assert.True(vm.DisableEntirely);
         Assert.True(vm.IsActive);
-        Assert.Equal(["vmplayer.exe"], vm.Matcher.ProcessNames);
+        Assert.Equal(["vmplayer.exe"], vm.Matcher.WindowsProcessNames);
         Assert.False(game.DisableEntirely);
         Assert.False(game.IsActive);
     }

@@ -2,6 +2,7 @@ using Augram.App.Components.CommandTree;
 using Augram.App.ViewModels.Commands;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -52,17 +53,19 @@ public sealed class CommandTreeTests
         var (tree, actions, _) = Show();
         var buttons = tree.GetVisualDescendants().OfType<Button>().Where(button => button.Classes.Contains("toolbar")).ToDictionary(button => (string)button.Content!);
 
-        Click(buttons["New group…"]);
+        Click(buttons["New group"]);
         Click(buttons["New command"]);
+        Click(buttons["Show other platforms"]);
         Click(tree.Rows.OfType<SectionRow>().Last().GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("expander")));
 
-        Assert.Equal([CommandTreeAction.NewSection, CommandTreeAction.NewCommand, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
-        Assert.Equal(["New group…", "New command"], buttons.Keys);
+        Assert.Equal([CommandTreeAction.NewSection, CommandTreeAction.NewCommand, CommandTreeAction.ToggleOtherPlatforms, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
+        Assert.Equal(["New group", "New command", "Show other platforms"], buttons.Keys);
         Assert.Equal("Photoshop", actions[^1].Section!.Name);
 
         var (global, _, _) = Show(CommandsScope.Global);
-        Assert.Contains(global.GetVisualDescendants().OfType<Button>(), button => Equals(button.Content, "New category…"));
+        Assert.Contains(global.GetVisualDescendants().OfType<Button>(), button => Equals(button.Content, "New category"));
         Assert.Contains(global.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Global commands");
+        Assert.False(global.GetVisualDescendants().OfType<ToggleButton>().Single(button => button.Name == "PART_OtherPlatforms").IsVisible);
     }
 
     [AvaloniaFact]
@@ -314,7 +317,7 @@ public sealed class CommandTreeTests
         }
 
         var actions = new List<CommandTreeActionEventArgs>();
-        var tree = new CommandTree { Sections = vm.Sections, Heading = vm.Heading, NewSectionLabel = vm.NewSectionLabel, HelpText = vm.Help };
+        var tree = new CommandTree { Sections = vm.Sections, Heading = vm.Heading, NewSectionLabel = vm.NewSectionLabel, PlatformFilterLabel = vm.PlatformFilterLabel, HelpText = vm.Help };
         tree.ActionRequested += (_, e) => actions.Add(e);
         var window = new Window { Content = tree, Width = 800, Height = 600 };
         window.Show();

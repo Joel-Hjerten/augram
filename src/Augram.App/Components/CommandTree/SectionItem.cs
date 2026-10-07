@@ -15,14 +15,22 @@ public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool 
 
     public bool CanDelete { get; init; }
 
-    /// <summary>"Edit app definition…" on the menu: app groups only.</summary>
+    /// <summary>The app group form in the side panel: app groups only.</summary>
     public bool CanEditDefinition { get; init; }
 
     /// <summary>The header's active check box: app groups only (a category has no active flag).</summary>
     public bool CanToggleActive { get; init; }
 
-    /// <summary>"3 commands", "1 command", "no commands".</summary>
-    public string CountText => Commands.Count switch
+    /// <summary>F8: a group used only on the other platform ("Windows only"), shown greyed when the list shows other platforms.</summary>
+    public bool IsElsewhere { get; init; }
+
+    /// <summary>A short F8 note after the count: "Windows only", "no macOS name"; null for none.</summary>
+    public string? Note { get; init; }
+
+    /// <summary>"3 commands", "1 command", "no commands", then the <see cref="Note"/> when there is one: "19 commands · Windows only".</summary>
+    public string CountText => Note is null ? Count : $"{Count} · {Note}";
+
+    private string Count => Commands.Count switch
     {
         0 => "no commands",
         1 => "1 command",

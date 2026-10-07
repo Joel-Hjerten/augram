@@ -32,7 +32,7 @@ public sealed partial class CommandsViewModel
 
     private void Project()
     {
-        Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform);
+        Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform, ShowOtherPlatforms);
         CanUndo = _store.CanUndo;
         CanRedo = _store.CanRedo;
         ProjectSelection();

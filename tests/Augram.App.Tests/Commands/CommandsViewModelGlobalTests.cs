@@ -16,7 +16,7 @@ public sealed class CommandsViewModelGlobalTests
     {
         var (vm, store, _, _) = Create(CommandsScope.Global);
 
-        Assert.Equal(("Global commands", "New category…"), (vm.Heading, vm.NewSectionLabel));
+        Assert.Equal(("Global commands", "New category"), (vm.Heading, vm.NewSectionLabel));
         Assert.Equal(["Uncategorized", "Media", "Window"], Names(vm));
         var uncategorized = vm.Sections[0];
         Assert.Equal(SectionId.Uncategorized, uncategorized.Id);

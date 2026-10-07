@@ -165,13 +165,13 @@ public sealed class SyncConflictsViewModel
 
     private static string GroupText(AppGroup group)
     {
-        var matches = group.Matcher is { ProcessNames.Count: > 0 } matcher ? "matches " + string.Join(", ", matcher.ProcessNames) : "matches no app yet";
+        var matches = group.Matcher is { WindowsProcessNames.Count: > 0 } matcher ? "matches " + string.Join(", ", matcher.WindowsProcessNames) : "matches no app yet";
         return $"{group.Name}: {matches}{(group.SuppressGlobals ? ", suppresses global commands" : string.Empty)}{(group.IsActive ? string.Empty : " (inactive)")}";
     }
 
     private static string IgnoredText(IgnoredApp app)
     {
-        var matches = app.Matcher.ProcessNames.Count > 0 ? string.Join(", ", app.Matcher.ProcessNames) : "no app yet";
+        var matches = app.Matcher.WindowsProcessNames.Count > 0 ? string.Join(", ", app.Matcher.WindowsProcessNames) : "no app yet";
         return $"{app.Name}: {matches}{(app.DisableEntirely ? ", turns Augram off" : string.Empty)}{(app.IsActive ? string.Empty : " (inactive)")}";
     }
 }

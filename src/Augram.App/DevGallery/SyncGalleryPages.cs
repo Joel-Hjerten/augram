@@ -60,7 +60,7 @@ public static class SyncGalleryPages
 
     private static MappingDocument Mapping()
     {
-        var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false, AppMatcher.Empty with { ProcessNames = ["chrome.exe"] }, []);
+        var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false, AppMatcher.Empty with { WindowsProcessNames = ["chrome.exe"] }, []);
         return new MappingDocument([AppGroup.EmptyGlobal, chrome], []);
     }
 
@@ -73,7 +73,7 @@ public static class SyncGalleryPages
         var close = new Command(CommandId.New(), "Close tab", Trigger.ForGesture(Starter[1].Id), IsActive: true, [new CommandStep(new DelayStep(30), HostPlatform.Windows)]);
         var closeThere = close with { Steps = [new CommandStep(new DelayStep(120), HostPlatform.MacOS)] };
         var media = new CommandCategory(CategoryId.New(), "Media");
-        var game = new IgnoredApp(GroupId.New(), "Game", IsActive: true, AppMatcher.Empty with { ProcessNames = ["game.exe"] }, DisableEntirely: true);
+        var game = new IgnoredApp(GroupId.New(), "Game", IsActive: true, AppMatcher.Empty with { WindowsProcessNames = ["game.exe"] }, DisableEntirely: true);
         return
         [
             Conflict(new SyncItem.GestureItem(mine), new SyncItem.GestureItem(theirs)),

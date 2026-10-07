@@ -10,10 +10,10 @@ namespace Augram.App.Components.CommandTree;
 /// Lookless header row of a section in the <see cref="CommandTree"/> (F5a): expander
 /// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count and, when the item
 /// allows it, the active toggle (<see cref="CanToggleActive"/>). Marked <c>:collapsed</c> while its
-/// commands are hidden and <c>:pinned</c> for a section that can be neither renamed nor deleted
-/// (Uncategorized). What the header offers comes from the <see cref="SectionItem"/>, never from the tab.
+/// commands are hidden, <c>:pinned</c> for a section that can be neither renamed nor deleted
+/// (Uncategorized) and <c>:elsewhere</c> for a group used only on the other platform (F8). What the header offers comes from the <see cref="SectionItem"/>, never from the tab.
 /// </summary>
-[PseudoClasses(":collapsed", ":pinned")]
+[PseudoClasses(":collapsed", ":pinned", ":elsewhere")]
 public sealed class SectionRow : ItemRow
 {
     public static readonly StyledProperty<SectionItem?> ItemProperty =
@@ -97,6 +97,7 @@ public sealed class SectionRow : ItemRow
             CanToggleActive = item?.CanToggleActive ?? false;
             CountText = item?.CountText ?? string.Empty;
             PseudoClasses.Set(":pinned", item is { CanRename: false, CanDelete: false });
+            PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });
         }
         else if (change.Property == IsExpandedProperty)
         {

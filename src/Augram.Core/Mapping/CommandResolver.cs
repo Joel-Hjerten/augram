@@ -4,9 +4,10 @@ namespace Augram.Core.Mapping;
 
 /// <summary>
 /// Which command a trigger fires over a window (F5: global, then app override, then override to
-/// nothing; plan 0001 M2 step 1). Pure: a document snapshot in, a resolution out; the engine calls it
-/// on its worker with the snapshot it was last handed. Inactive groups, commands and ignored apps are
-/// invisible here. The rule, in order:
+/// nothing; plan 0001 M2 step 1). Pure: a document snapshot and the platform it runs on in, a resolution out; the
+/// engine calls it on its worker with the snapshot it was last handed. Inactive groups, commands and ignored apps,
+/// and app groups not used on this platform (F8 "Use on"), are invisible here; matchers match on this platform's
+/// executable names or their known-app guess. The rule, in order:
 /// <list type="number">
 /// <item>the window belongs to an active ignored app → <see cref="ResolutionOutcome.Ignored"/>;</item>
 /// <item>the first active app group (in document order) whose matcher matches the window is the app group;</item>
@@ -19,7 +20,7 @@ namespace Augram.Core.Mapping;
 /// </summary>
 public static class CommandResolver
 {
-    public static CommandResolution Resolve(MappingDocument mapping, WindowIdentity? target, Trigger trigger)
+    public static CommandResolution Resolve(MappingDocument mapping, WindowIdentity? target, Trigger trigger, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(trigger);
@@ -29,13 +30,13 @@ public static class CommandResolver
             return CommandResolution.None("no trigger");
         }
 
-        var ignored = FindIgnored(mapping, target);
+        var ignored = FindIgnored(mapping, target, platform);
         if (ignored is not null)
         {
             return CommandResolution.Ignored(ignored);
         }
 
-        var group = FindGroup(mapping, target);
+        var group = FindGroup(mapping, target, platform);
         if (group is not null)
         {
             var command = ActiveCommandFor(group, trigger);
@@ -65,7 +66,7 @@ public static class CommandResolver
     }
 
     /// <summary>The first active ignored app whose matcher claims the window, or null. The engine also asks this at button-down, before any stroke.</summary>
-    public static IgnoredApp? FindIgnored(MappingDocument mapping, WindowIdentity? target)
+    public static IgnoredApp? FindIgnored(MappingDocument mapping, WindowIdentity? target, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         if (target is null)
@@ -75,7 +76,7 @@ public static class CommandResolver
 
         foreach (var app in mapping.Ignored)
         {
-            if (app.IsActive && app.Matcher.Matches(target))
+            if (app.IsActive && app.Matcher.Matches(target, platform))
             {
                 return app;
             }
@@ -84,8 +85,8 @@ public static class CommandResolver
         return null;
     }
 
-    /// <summary>The first active app group (never Global) whose matcher claims the window, or null.</summary>
-    public static AppGroup? FindGroup(MappingDocument mapping, WindowIdentity? target)
+    /// <summary>The first active app group (never Global) used on <paramref name="platform"/> whose matcher claims the window, or null.</summary>
+    public static AppGroup? FindGroup(MappingDocument mapping, WindowIdentity? target, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         if (target is null)
@@ -95,7 +96,7 @@ public static class CommandResolver
 
         foreach (var group in mapping.Groups)
         {
-            if (group.IsActive && !group.IsGlobal && group.Matcher is not null && group.Matcher.Matches(target))
+            if (group.IsActive && !group.IsGlobal && group.IsUsedOn(platform) && group.Matcher is not null && group.Matcher.Matches(target, platform))
             {
                 return group;
             }

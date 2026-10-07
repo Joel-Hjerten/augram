@@ -18,6 +18,12 @@ public sealed record AppGroup(
 {
     public IReadOnlyList<CommandCategory> Categories { get; init; } = Categories ?? [];
 
+    /// <summary>Where the group takes part (F8 "Use on", Joel 2026-10-07); both by default. Not consulted for the Global group, which is everywhere.</summary>
+    public PlatformSet UseOn { get; init; } = PlatformSet.All;
+
+    /// <summary>True for the Global group, and for an app group used on <paramref name="platform"/>.</summary>
+    public bool IsUsedOn(Abstractions.HostPlatform platform) => IsGlobal || UseOn.Includes(platform);
+
     public const string GlobalName = "Global";
 
     /// <summary>The Global group of a fresh document: active, no commands.</summary>

@@ -101,7 +101,8 @@ const args = process.argv.slice(2);
 let code;
 try {
   code = args[0] === "--wait"
-    ? await wait(args[1] ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim())
+    // The API matches head_sha on the full id only, so a short id or a ref is expanded first.
+    ? await wait(execFileSync("git", ["rev-parse", args[1] ?? "HEAD"], { encoding: "utf8" }).trim())
     : await list(Number(args[0] ?? 5));
 } catch (error) {
   if (!(error instanceof RateLimited)) throw error;

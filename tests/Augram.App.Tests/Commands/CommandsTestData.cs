@@ -43,16 +43,16 @@ internal static class CommandsTestData
                 Command("Three steps", Trigger.None, new DelayStep(10), new DelayStep(20), new DelayStep(30)),
             ],
         };
-        var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false, new AppMatcher { ProcessNames = ["chrome.exe"] },
+        var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false, new AppMatcher { WindowsProcessNames = ["chrome.exe"] },
         [
             Command("Nothing on Up", Trigger.ForGesture(Up)),
             new Command(CommandId.New(), "Close tab", Trigger.ForGesture(Down), IsActive: true,
                 [new CommandStep(new DelayStep(5), HostPlatform.Windows, MacOsOverride: new DelayStep(50))]),
         ]);
-        var apple = new AppGroup(GroupId.New(), "Apple", IsActive: true, SuppressGlobals: true, new AppMatcher { ProcessNames = ["apple.exe"] }, []);
+        var apple = new AppGroup(GroupId.New(), "Apple", IsActive: true, SuppressGlobals: true, new AppMatcher { WindowsProcessNames = ["apple.exe"] }, []);
         var general = new CommandCategory(CategoryId.New(), "General");
         var blend = new CommandCategory(CategoryId.New(), "Blend Mode Normal");
-        var photoshop = new AppGroup(GroupId.New(), "Photoshop", IsActive: true, SuppressGlobals: false, new AppMatcher { ProcessNames = ["photoshop.exe"] },
+        var photoshop = new AppGroup(GroupId.New(), "Photoshop", IsActive: true, SuppressGlobals: false, new AppMatcher { WindowsProcessNames = ["photoshop.exe"] },
             [
                 Command("Brush", Trigger.ForGesture(Left), new DelayStep(1)) with { CategoryId = general.Id },
                 Command("Plain", Trigger.None, new DelayStep(2)),
@@ -64,12 +64,13 @@ internal static class CommandsTestData
     /// <summary>One tab's view model over a fresh <see cref="Store"/>; the Apps tab unless told otherwise.</summary>
     public static (CommandsViewModel Vm, MappingStore Store, FakeGesturePickerPresenter Picker, FakeFormDialogPresenter Dialogs) Create(
         CommandsScope scope = CommandsScope.Apps,
-        FakeConfirmPresenter? confirm = null)
+        FakeConfirmPresenter? confirm = null,
+        HostPlatform platform = HostPlatform.Windows)
     {
         var store = Store();
         var picker = new FakeGesturePickerPresenter();
         var dialogs = new FakeFormDialogPresenter();
-        var vm = New(scope, store, picker, dialogs, confirm ?? new FakeConfirmPresenter(), new CommandClipboard());
+        var vm = New(scope, store, picker, dialogs, confirm ?? new FakeConfirmPresenter(), new CommandClipboard(), platform);
         return (vm, store, picker, dialogs);
     }
 
@@ -97,8 +98,8 @@ internal static class CommandsTestData
 
     public static IReadOnlyList<string> Names(CommandsViewModel vm) => [.. vm.Sections.Select(section => section.Name)];
 
-    private static CommandsViewModel New(CommandsScope scope, MappingStore store, FakeGesturePickerPresenter picker, FakeFormDialogPresenter dialogs, FakeConfirmPresenter confirm, CommandClipboard clipboard)
-        => new(scope, store, new GestureLibrary(StarterGestures.All()), picker, dialogs, confirm, clipboard, HostPlatform.Windows);
+    private static CommandsViewModel New(CommandsScope scope, MappingStore store, FakeGesturePickerPresenter picker, FakeFormDialogPresenter dialogs, FakeConfirmPresenter confirm, CommandClipboard clipboard, HostPlatform platform = HostPlatform.Windows)
+        => new(scope, store, new GestureLibrary(StarterGestures.All()), picker, dialogs, confirm, clipboard, platform);
 
     private static Command Command(string name, Trigger trigger, params IStep[] steps)
         => new(CommandId.New(), name, trigger, IsActive: true, [.. steps.Select(step => new CommandStep(step, HostPlatform.Windows))]);

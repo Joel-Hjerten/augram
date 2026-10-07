@@ -25,13 +25,13 @@ public sealed class MatcherMappingTests
     [InlineData(" a\\\\.exe | b\\\\.exe ")]
     public void PlainAlternationSplitsIntoProcessNames(string pattern)
     {
-        Assert.Equal(["a.exe", "b.exe"], Matcher("\"Description\": \"Synthetic App\", " + Field("FileName", pattern, true)).ProcessNames);
+        Assert.Equal(["a.exe", "b.exe"], Matcher("\"Description\": \"Synthetic App\", " + Field("FileName", pattern, true)).WindowsProcessNames);
     }
 
     [Fact]
     public void SingleLiteralRegexBecomesOneName()
     {
-        Assert.Equal(["chrome.exe"], Matcher("\"Description\": \"Synthetic App\", " + Field("FileName", "chrome\\\\.exe", true)).ProcessNames);
+        Assert.Equal(["chrome.exe"], Matcher("\"Description\": \"Synthetic App\", " + Field("FileName", "chrome\\\\.exe", true)).WindowsProcessNames);
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed class MatcherMappingTests
     {
         var result = Read("\"Description\": \"Synthetic App\", " + Field("FileName", pattern, true) + ", " + Field("FilePath", "C:\\\\\\\\Apps", false));
 
-        Assert.Empty(App(result).Matcher!.ProcessNames);
+        Assert.Empty(App(result).Matcher!.WindowsProcessNames);
         Assert.Contains(result.Warnings, warning => warning.Item == "Synthetic App" && warning.Message.Contains("not a plain list of names", StringComparison.Ordinal));
         Assert.True(App(result).IsActive);
     }
@@ -92,7 +92,7 @@ public sealed class MatcherMappingTests
         var result = Read("\"Description\": \"Synthetic App\", " + Field("FileName", "x.exe", false) + ", " + Field("FilePath", "(", true));
 
         Assert.Null(App(result).Matcher!.ProcessPath);
-        Assert.Equal(["x.exe"], App(result).Matcher!.ProcessNames);
+        Assert.Equal(["x.exe"], App(result).Matcher!.WindowsProcessNames);
         Assert.True(App(result).IsActive);
         Assert.Contains(result.Warnings, warning => warning.Item == "Synthetic App" && warning.Message.Contains("not a valid regular expression", StringComparison.Ordinal));
     }

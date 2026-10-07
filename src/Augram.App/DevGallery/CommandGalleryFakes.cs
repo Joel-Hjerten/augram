@@ -38,7 +38,7 @@ public static class CommandGalleryFakes
             ],
         };
         var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false,
-            new AppMatcher { ProcessNames = ["chrome.exe", "msedge.exe"] },
+            new AppMatcher { WindowsProcessNames = ["chrome.exe", "msedge.exe"] },
             [
                 Cmd("Close tab", Trigger.ForGesture(StarterGestures.IdFor("Up")), new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w" })),
                 new(CommandId.New(), "Zoom reset", Trigger.ForGesture(StarterGestures.IdFor("Circle")), IsActive: true,
@@ -53,7 +53,7 @@ public static class CommandGalleryFakes
         var general = new CommandCategory(CategoryId.New(), "General");
         var blend = new CommandCategory(CategoryId.New(), "Blend Mode Normal");
         var photoshop = new AppGroup(GroupId.New(), "Photoshop", IsActive: true, SuppressGlobals: false,
-            new AppMatcher { ProcessNames = ["photoshop.exe"] },
+            new AppMatcher { WindowsProcessNames = ["photoshop.exe"] },
             [
                 Cmd("Undo", Trigger.ForGesture(StarterGestures.IdFor("Left")), new DelayStep(10)) with { CategoryId = general.Id },
                 Cmd("Multiply", Trigger.ForGesture(StarterGestures.IdFor("Right")), new DelayStep(10)) with { CategoryId = blend.Id },

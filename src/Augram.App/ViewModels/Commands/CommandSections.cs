@@ -18,12 +18,16 @@ internal static class CommandSections
     /// <summary>The Global tab holds the Global group; the Apps tab every other group.</summary>
     public static bool Includes(CommandsScope scope, AppGroup group) => group.IsGlobal == (scope == CommandsScope.Global);
 
-    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here)
+    /// <summary>
+    /// The sections of a tab as they read on <paramref name="here"/>. On the Apps tab an app group not used here (F8 "Use on")
+    /// is left out unless <paramref name="showOtherPlatforms"/>, and is then marked "Windows only" and greyed.
+    /// </summary>
+    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         return scope == CommandsScope.Global
             ? GlobalSections(document.Global, expanded, findGesture, here)
-            : [.. document.Groups.Where(group => !group.IsGlobal).Select(group => GroupSection(group, expanded, findGesture, here))];
+            : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).Select(group => GroupSection(group, expanded, findGesture, here))];
     }
 
     public static SectionId SectionOf(CommandsScope scope, AppGroup group, Command command)
@@ -55,7 +59,21 @@ internal static class CommandSections
             CanDelete = true,
             CanEditDefinition = true,
             CanToggleActive = true,
+            IsElsewhere = !group.IsUsedOn(here),
+            Note = PlatformNote(group, here),
         };
+    }
+
+    /// <summary>"Windows only" for a group not used here; "no macOS name" for one used here that has names, but neither its own nor a guess for this platform; else none.</summary>
+    private static string? PlatformNote(AppGroup group, HostPlatform here)
+    {
+        var name = here == HostPlatform.MacOS ? "macOS" : "Windows";
+        if (!group.IsUsedOn(here))
+        {
+            return group.UseOn == PlatformSet.None ? "used nowhere" : $"{(here == HostPlatform.MacOS ? "Windows" : "macOS")} only";
+        }
+
+        return group.Matcher is { HasProcessNames: true } matcher && matcher.EffectiveProcessNames(here).Count == 0 ? $"no {name} name" : null;
     }
 
     private static List<SectionItem> GlobalSections(AppGroup global, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here)

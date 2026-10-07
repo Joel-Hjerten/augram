@@ -63,7 +63,13 @@ public sealed class CommandsWorkbench : TemplatedControl
         AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(TreeHeading), "Commands");
 
     public static readonly StyledProperty<string> NewSectionLabelProperty =
-        AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(NewSectionLabel), "New group…");
+        AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(NewSectionLabel), "New group");
+
+    public static readonly StyledProperty<string?> PlatformFilterLabelProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, string?>(nameof(PlatformFilterLabel));
+
+    public static readonly StyledProperty<bool> ShowsOtherPlatformsProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(ShowsOtherPlatforms));
 
     public static readonly StyledProperty<string> TreeHelpProperty =
         AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(TreeHelp), string.Empty);
@@ -159,6 +165,20 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         get => GetValue(NewSectionLabelProperty);
         set => SetValue(NewSectionLabelProperty, value);
+    }
+
+    /// <summary>The tree's platform filter label (<see cref="CommandTree.CommandTree.PlatformFilterLabel"/>); null on the Global tab.</summary>
+    public string? PlatformFilterLabel
+    {
+        get => GetValue(PlatformFilterLabelProperty);
+        set => SetValue(PlatformFilterLabelProperty, value);
+    }
+
+    /// <summary>Groups used only on the other platform are listed (<see cref="CommandTree.CommandTree.ShowsOtherPlatforms"/>).</summary>
+    public bool ShowsOtherPlatforms
+    {
+        get => GetValue(ShowsOtherPlatformsProperty);
+        set => SetValue(ShowsOtherPlatformsProperty, value);
     }
 
     /// <summary>The tree's help line (<see cref="CommandTree.CommandTree.HelpText"/>).</summary>

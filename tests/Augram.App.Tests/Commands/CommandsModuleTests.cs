@@ -64,7 +64,7 @@ public sealed class CommandsModuleTests
 
         var apps = Show(entry.SubEntries![1]);
         Assert.Equal(["Apple", "Chrome", "Photoshop"], apps.TreePart!.Rows.OfType<SectionRow>().Select(row => row.NameText));
-        Assert.Equal(("App groups", "New group…"), (apps.TreePart.Heading, apps.TreePart.NewSectionLabel));
+        Assert.Equal(("App groups", "New group"), (apps.TreePart.Heading, apps.TreePart.NewSectionLabel));
         Assert.False(apps.HasCommand);
 
         provider.GetRequiredKeyedService<CommandsViewModel>(CommandsScope.Apps).ShowCommand(Find(store, "Close tab").Id);
@@ -75,7 +75,7 @@ public sealed class CommandsModuleTests
 
         var global = Show(entry.SubEntries[0]);
         Assert.Equal(["Uncategorized", "Media", "Window"], global.TreePart!.Rows.OfType<SectionRow>().Select(row => row.NameText));
-        Assert.Equal(("Global commands", "New category…"), (global.TreePart.Heading, global.TreePart.NewSectionLabel));
+        Assert.Equal(("Global commands", "New category"), (global.TreePart.Heading, global.TreePart.NewSectionLabel));
         Assert.False(global.HasCommand);
     }
 

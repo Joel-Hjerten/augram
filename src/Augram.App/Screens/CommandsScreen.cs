@@ -29,6 +29,7 @@ public static class CommandsScreen
             StepTypes = vm.StepTypes,
             TreeHeading = vm.Heading,
             NewSectionLabel = vm.NewSectionLabel,
+            PlatformFilterLabel = vm.PlatformFilterLabel,
             TreeHelp = vm.Help,
         };
         bench.Bind(CommandsWorkbench.SectionsProperty, new Binding(nameof(CommandsViewModel.Sections)));
@@ -37,6 +38,7 @@ public static class CommandsScreen
         bench.Bind(CommandsWorkbench.SelectedCommandProperty, new Binding(nameof(CommandsViewModel.SelectedCommand)));
         bench.Bind(CommandsWorkbench.StepsProperty, new Binding(nameof(CommandsViewModel.Steps)));
         bench.Bind(CommandsWorkbench.GroupFormProperty, new Binding(nameof(CommandsViewModel.GroupForm)));
+        bench.Bind(CommandsWorkbench.ShowsOtherPlatformsProperty, new Binding(nameof(CommandsViewModel.ShowOtherPlatforms)));
         bench.Bind(CommandsWorkbench.SelectedStepIndexProperty, new Binding(nameof(CommandsViewModel.SelectedStepIndex)));
         bench.Bind(CommandsWorkbench.MessageProperty, new Binding(nameof(CommandsViewModel.Message)));
         bench.TreeActionRequested += (_, e) => vm.Handle(e);

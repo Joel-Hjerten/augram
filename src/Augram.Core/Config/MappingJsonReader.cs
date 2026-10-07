@@ -62,7 +62,34 @@ internal sealed class MappingJsonReader
             JsonMembers.OptionalBool(group, "suppressGlobals", fallback: false, where),
             matcher,
             commands,
-            categories);
+            categories)
+        {
+            UseOn = ReadUseOn(group, where),
+        };
+    }
+
+    /// <summary>F8 "Use on": absent is every platform; target names this version does not know (a later machine target) are passed over.</summary>
+    private static PlatformSet ReadUseOn(JsonObject group, string where)
+    {
+        if (group["useOn"] is null)
+        {
+            return PlatformSet.All;
+        }
+
+        var set = PlatformSet.None;
+        foreach (var target in JsonMembers.OptionalStrings(group, "useOn", where))
+        {
+            if (string.Equals(target, MappingJsonWriter.UseOnWindows, StringComparison.OrdinalIgnoreCase))
+            {
+                set |= PlatformSet.Windows;
+            }
+            else if (string.Equals(target, MappingJsonWriter.UseOnMacOS, StringComparison.OrdinalIgnoreCase))
+            {
+                set |= PlatformSet.MacOS;
+            }
+        }
+
+        return set;
     }
 
     private List<CommandCategory> ReadCategories(JsonArray array, string where)
@@ -153,7 +180,8 @@ internal sealed class MappingJsonReader
         var matcher = JsonMembers.RequireObject(node, what);
         return new AppMatcher
         {
-            ProcessNames = JsonMembers.OptionalStrings(matcher, "processNames", what),
+            WindowsProcessNames = JsonMembers.OptionalStrings(matcher, "processNames", what),
+            MacProcessNames = JsonMembers.OptionalStrings(matcher, "macProcessNames", what),
             ProcessPath = JsonMembers.OptionalString(matcher, "processPath", what),
             ProcessPathIsRegex = JsonMembers.OptionalBool(matcher, "processPathIsRegex", fallback: false, what),
             Title = JsonMembers.OptionalString(matcher, "title", what),

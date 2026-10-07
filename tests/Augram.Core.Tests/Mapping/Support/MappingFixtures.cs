@@ -19,7 +19,7 @@ internal static class MappingFixtures
         bool fullScreen = false)
         => new(Handle: 1, RootHandle: 1, processName, path, title, classChain ?? [], ProcessId: 42, fullScreen, IsDesktop: false);
 
-    public static AppMatcher ByProcess(params string[] names) => new() { ProcessNames = names };
+    public static AppMatcher ByProcess(params string[] names) => new() { WindowsProcessNames = names };
 
     /// <summary>An active group matching <c>&lt;name lower-cased&gt;.exe</c> unless a matcher is given.</summary>
     public static AppGroup NewGroup(string name, AppMatcher? matcher = null, params Command[] commands)
