@@ -12,7 +12,6 @@ internal static class CommandTreeMenu
         var menu = new ContextMenu();
         menu.Items.Add(Item(string.Empty, CommandTreeAction.NewSection, request));
         menu.Items.Add(Item("New command", CommandTreeAction.NewCommand, request));
-        menu.Items.Add(Item("Edit app definition…", CommandTreeAction.EditGroup, request));
         menu.Items.Add(Item("Rename", CommandTreeAction.Rename, request));
         menu.Items.Add(Item("Delete", CommandTreeAction.Delete, request));
         menu.Items.Add(Item("Copy", CommandTreeAction.Copy, request));
@@ -22,7 +21,7 @@ internal static class CommandTreeMenu
 
     /// <summary>
     /// Labels the new-section entry as the host does and shows or disables the entries that depend on the
-    /// selection, as the section allows: app definition, rename and delete per <see cref="SectionItem"/>;
+    /// selection, as the section allows: rename and delete per <see cref="SectionItem"/>;
     /// a command can always be renamed, deleted and copied.
     /// </summary>
     public static void Refresh(ContextMenu menu, SectionItem? section, CommandItem? command, string newSectionLabel)
@@ -34,9 +33,6 @@ internal static class CommandTreeMenu
             {
                 case CommandTreeAction.NewSection:
                     item.Header = newSectionLabel;
-                    break;
-                case CommandTreeAction.EditGroup:
-                    item.IsVisible = command is null && Allows(CommandTreeAction.EditGroup, section, command);
                     break;
                 case CommandTreeAction.Rename:
                     item.IsEnabled = command is not null || section is { CanRename: true };
@@ -54,7 +50,6 @@ internal static class CommandTreeMenu
         CommandTreeAction.Delete => command is not null || section is { CanDelete: true },
         CommandTreeAction.ToggleActive => command is not null || section is { CanToggleActive: true },
         CommandTreeAction.Copy => command is not null,
-        CommandTreeAction.EditGroup => section is { CanEditDefinition: true },
         _ => true,
     };
 

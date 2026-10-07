@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
+using Augram.App.Declarations;
 using Augram.App.Inspector;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
@@ -13,7 +14,8 @@ namespace Augram.App.Components.CommandsWorkbench;
 /// Lookless layout of a Commands sub-tab (F5a, F7; Global and Apps since 2026-10-07): the
 /// <see cref="CommandTree.CommandTree"/> (<c>PART_Tree</c>) beside the selected command's
 /// <see cref="CommandHeader"/> (<c>PART_Header</c>) and <see cref="StepList.StepList"/> (<c>PART_Steps</c>),
-/// with the message line. Both sub-tabs use it; what differs (the sections, the tree's heading, the
+/// or, while an app group row is selected, that group's <see cref="GroupForm"/> (<c>PART_GroupForm</c>), with
+/// the message line. Both sub-tabs use it; what differs (the sections, the tree's heading, the
 /// new-section label, the help line) comes in as properties. Where the step panel sits is the template's
 /// choice (ADR-0002 §5b). It passes properties down and raises its parts' intents up unchanged:
 /// <see cref="TreeActionRequested"/> for the tree and the header, <see cref="StepActionRequested"/> for
@@ -53,6 +55,15 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public static readonly StyledProperty<bool> HasCommandProperty =
         AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(HasCommand));
+
+    public static readonly StyledProperty<FormScreen?> GroupFormProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, FormScreen?>(nameof(GroupForm));
+
+    public static readonly StyledProperty<bool> HasGroupFormProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(HasGroupForm));
+
+    public static readonly StyledProperty<bool> ShowsCommandPanelProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(ShowsCommandPanel), true);
 
     public static readonly StyledProperty<string> TreeHeadingProperty =
         AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(TreeHeading), "Commands");
@@ -134,6 +145,26 @@ public sealed class CommandsWorkbench : TemplatedControl
         private set => SetValue(HasCommandProperty, value);
     }
 
+    /// <summary>The selected app group's form; while set it takes the side panel's place of the command header and steps.</summary>
+    public FormScreen? GroupForm
+    {
+        get => GetValue(GroupFormProperty);
+        set => SetValue(GroupFormProperty, value);
+    }
+
+    public bool HasGroupForm
+    {
+        get => GetValue(HasGroupFormProperty);
+        private set => SetValue(HasGroupFormProperty, value);
+    }
+
+    /// <summary>The command header and steps show unless an app group's form does.</summary>
+    public bool ShowsCommandPanel
+    {
+        get => GetValue(ShowsCommandPanelProperty);
+        private set => SetValue(ShowsCommandPanelProperty, value);
+    }
+
     /// <summary>The tree's title (<see cref="CommandTree.CommandTree.Heading"/>).</summary>
     public string TreeHeading
     {
@@ -161,6 +192,8 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public StepList.StepList? StepsPart { get; private set; }
 
+    public SectionForm.SectionForm? GroupFormPart { get; private set; }
+
     /// <summary>Selects the command in the tree and starts renaming it in place (a fresh "New command N").</summary>
     public void BeginRename(CommandId id) => TreePart?.BeginRename(id);
 
@@ -173,6 +206,12 @@ public sealed class CommandsWorkbench : TemplatedControl
         TreePart = e.NameScope.Find<CommandTree.CommandTree>("PART_Tree");
         HeaderPart = e.NameScope.Find<CommandHeader>("PART_Header");
         StepsPart = e.NameScope.Find<StepList.StepList>("PART_Steps");
+        GroupFormPart = e.NameScope.Find<SectionForm.SectionForm>("PART_GroupForm");
+        if (GroupFormPart is not null)
+        {
+            Region.Mark(GroupFormPart, "App group form");
+        }
+
         if (TreePart is not null)
         {
             Region.Mark(TreePart, "Command tree");
@@ -198,6 +237,11 @@ public sealed class CommandsWorkbench : TemplatedControl
         if (change.Property == SelectedCommandProperty)
         {
             HasCommand = SelectedCommand is not null;
+        }
+        else if (change.Property == GroupFormProperty)
+        {
+            HasGroupForm = GroupForm is not null;
+            ShowsCommandPanel = GroupForm is null;
         }
     }
 }

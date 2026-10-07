@@ -10,7 +10,8 @@ namespace Augram.App.Screens;
 /// filling the tab, bound to that tab's <see cref="CommandsViewModel"/>. Both sub-tabs are this screen;
 /// the view model's <see cref="CommandsViewModel.Scope"/> decides the sections and the words. The
 /// workbench's parts raise intents; the view model turns them into mapping store calls. The gesture
-/// picker, the group form and the confirmations are opened by the view model's presenters.
+/// picker, the new-group form and the confirmations are opened by the view model's presenters; the selected
+/// group's form shows in the side panel.
 /// </summary>
 public static class CommandsScreen
 {
@@ -35,6 +36,7 @@ public static class CommandsScreen
         bench.Bind(CommandsWorkbench.SelectedCommandIdProperty, new Binding(nameof(CommandsViewModel.SelectedCommandId)));
         bench.Bind(CommandsWorkbench.SelectedCommandProperty, new Binding(nameof(CommandsViewModel.SelectedCommand)));
         bench.Bind(CommandsWorkbench.StepsProperty, new Binding(nameof(CommandsViewModel.Steps)));
+        bench.Bind(CommandsWorkbench.GroupFormProperty, new Binding(nameof(CommandsViewModel.GroupForm)));
         bench.Bind(CommandsWorkbench.SelectedStepIndexProperty, new Binding(nameof(CommandsViewModel.SelectedStepIndex)));
         bench.Bind(CommandsWorkbench.CanUndoProperty, new Binding(nameof(CommandsViewModel.CanUndo)));
         bench.Bind(CommandsWorkbench.CanRedoProperty, new Binding(nameof(CommandsViewModel.CanRedo)));

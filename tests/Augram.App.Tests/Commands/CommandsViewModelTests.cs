@@ -137,7 +137,7 @@ public sealed class CommandsViewModelTests
     }
 
     [AvaloniaFact]
-    public void NewGroupAndEditGroupGoThroughTheDeclaredFormAndKeepTheCommands()
+    public void NewGroupGoesThroughTheDeclaredFormAndEditingIsTheSidePanel()
     {
         var (vm, store, _, dialogs) = Create();
         dialogs.Answer = request =>
@@ -155,17 +155,14 @@ public sealed class CommandsViewModelTests
         Assert.Equal(SectionId.ForGroup(zed.Id), vm.SelectedSectionId);
         Assert.Equal(["Apple", "Chrome", "Photoshop", "Zed"], Names(vm));
 
-        dialogs.Answer = request =>
-        {
-            Field("Name", request).Set("Chromium");
-            Field("Window title", request).Set("^.*Chromium$");
-            Toggle("Title is a regular expression", request).Set(true);
-            return true;
-        };
         var chrome = Section(vm, "Chrome");
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditGroup, chrome));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, chrome));
+        var form = vm.GroupForm!;
+        Field("Name", form).Set("Chromium");
+        Field("Window title", form).Set("^.*Chromium$");
+        Toggle("Title is a regular expression", form).Set(true);
 
-        Assert.Equal("Edit app group 'Chrome'", dialogs.Last.Title);
+        Assert.Same(form, vm.GroupForm);
         var edited = store.FindGroup(chrome.Id.GroupId)!;
         Assert.Equal("Chromium", edited.Name);
         Assert.Equal(["chrome.exe"], edited.Matcher!.ProcessNames);
@@ -196,9 +193,78 @@ public sealed class CommandsViewModelTests
         Assert.False(Section(vm, "Apple").IsActive);
     }
 
-    private static IValueBinding<string> Field(string label, FormDialogRequest request)
-        => (IValueBinding<string>)request.Screen!.Sections.SelectMany(section => section.Fields).Single(field => field.Label == label).Binding!;
+    [AvaloniaFact]
+    public void TheSidePanelShowsTheSelectedGroupsFormOnlyWhileAGroupRowIsSelected()
+    {
+        var (vm, _, _, _) = Create();
+        Assert.Null(vm.GroupForm);
 
-    private static IValueBinding<bool> Toggle(string label, FormDialogRequest request)
-        => (IValueBinding<bool>)request.Screen!.Sections.SelectMany(section => section.Fields).Single(field => field.Label == label).Binding!;
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
+        Assert.Equal("Chrome", Field("Name", vm.GroupForm!).Get());
+        Assert.Equal("chrome.exe", Field("Executable names", vm.GroupForm!).Get());
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome"), Item(vm, "Close tab")));
+        Assert.Null(vm.GroupForm);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Photoshop")));
+        Assert.Equal("Photoshop", Field("Name", vm.GroupForm!).Get());
+    }
+
+    [AvaloniaFact]
+    public void APanelEditIsOneUndoStepAndUndoShowsInTheSameForm()
+    {
+        var (vm, store, _, _) = Create();
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
+        var form = vm.GroupForm!;
+
+        Field("Executable names", form).Set("Google Chrome, chrome.exe");
+        Assert.Equal(["Google Chrome", "chrome.exe"], Group(store, "Chrome").Matcher!.ProcessNames);
+        Assert.True(vm.CanUndo);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Equal(["chrome.exe"], Group(store, "Chrome").Matcher!.ProcessNames);
+        Assert.Same(form, vm.GroupForm);
+        Assert.Equal("chrome.exe", Field("Executable names", form).Get());
+    }
+
+    [AvaloniaFact]
+    public void ARefusedNameShowsTheRuleAndTheFieldKeepsWhatWasTyped()
+    {
+        var (vm, store, _, _) = Create();
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
+        var name = Field("Name", vm.GroupForm!);
+
+        name.Set("Apple");
+
+        Assert.Equal("An app group named 'Apple' already exists.", vm.Message);
+        Assert.Equal("Apple", name.Get());
+        Assert.Equal(["Apple", "Chrome", "Photoshop"], Names(vm));
+        Assert.False(vm.CanUndo);
+
+        name.Set("Chromium");
+        Assert.Null(vm.Message);
+        Assert.Equal("Chromium", store.FindGroup(Section(vm, "Chromium").Id.GroupId)!.Name);
+    }
+
+    [AvaloniaFact]
+    public void ARenameInTheTreeShowsInTheOpenForm()
+    {
+        var (vm, _, _, _) = Create();
+        var chrome = Section(vm, "Chrome");
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, chrome));
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, chrome, name: "Browser"));
+
+        Assert.Equal("Browser", Field("Name", vm.GroupForm!).Get());
+    }
+
+    private static IValueBinding<string> Field(string label, FormDialogRequest request) => Field(label, request.Screen!);
+
+    private static IValueBinding<bool> Toggle(string label, FormDialogRequest request) => Toggle(label, request.Screen!);
+
+    private static IValueBinding<string> Field(string label, FormScreen screen)
+        => (IValueBinding<string>)screen.Sections.SelectMany(section => section.Fields).Single(field => field.Label == label).Binding!;
+
+    private static IValueBinding<bool> Toggle(string label, FormScreen screen)
+        => (IValueBinding<bool>)screen.Sections.SelectMany(section => section.Fields).Single(field => field.Label == label).Binding!;
 }

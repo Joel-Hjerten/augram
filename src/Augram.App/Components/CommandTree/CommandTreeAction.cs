@@ -21,9 +21,6 @@ public enum CommandTreeAction
     /// </summary>
     NewSection,
 
-    /// <summary>Reopen the app group form for the section's group ("Edit app definition…"; <see cref="SectionItem.CanEditDefinition"/>).</summary>
-    EditGroup,
-
     /// <summary>A "New command N" in the selected section, selected and ready to rename.</summary>
     NewCommand,
 

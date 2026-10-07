@@ -2,6 +2,7 @@ using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Components.StepList;
+using Augram.App.Declarations;
 using Augram.App.UsedBy;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
@@ -22,7 +23,8 @@ namespace Augram.App.ViewModels.Commands;
 /// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
 /// process-lifetime singleton, so what the user opened stays open for the running session (tab
 /// switches, closing and reopening the window) and starts collapsed again on the next launch. This file
-/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, and <c>.Commands</c>,
+/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c> keeps the selected app
+/// group's form in step with it, and <c>.Commands</c>,
 /// <c>.Sections</c>, <c>.Groups</c>, <c>.Categories</c> and <c>.Steps</c> hold the intents of each level.
 /// </summary>
 public sealed partial class CommandsViewModel : ObservableObject, IDisposable
@@ -102,6 +104,10 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial IReadOnlyList<StepItem> Steps { get; private set; } = [];
 
+    /// <summary>The selected app group's form for the side panel; null unless an app group row (not a command) is selected.</summary>
+    [ObservableProperty]
+    public partial FormScreen? GroupForm { get; private set; }
+
     /// <summary>The expanded step of the selected command; -1 for none.</summary>
     [ObservableProperty]
     public partial int SelectedStepIndex { get; private set; } = -1;
@@ -160,9 +166,6 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 break;
             case CommandTreeAction.NewSection:
                 NewSection();
-                break;
-            case CommandTreeAction.EditGroup when e.Section is { CanEditDefinition: true } section:
-                _ = EditGroupAsync(section.Id.GroupId);
                 break;
             case CommandTreeAction.NewCommand:
                 NewCommand(TargetOf(e.Section));

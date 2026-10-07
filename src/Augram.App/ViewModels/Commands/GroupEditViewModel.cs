@@ -8,13 +8,15 @@ namespace Augram.App.ViewModels.Commands;
 /// The app group form's edit state (F5 app identification, F5a "edit app definition"): name, the
 /// executable names as comma-separated text, window title with its regex toggle, suppress globals,
 /// active. <see cref="Declare"/> is the form as a <see cref="FormScreen"/> (ADR-0002 §5c), shown in a
-/// <c>FormDialog</c>; <see cref="ToGroup"/> and <see cref="Apply"/> turn the text back into an
-/// <see cref="AppMatcher"/>, keeping the matcher fields this form does not edit (path, class chain,
-/// full-screen rule). Nothing is validated here: the store's rules answer when the dialog confirms.
+/// <c>FormDialog</c> for a new group and in the Apps tab's side panel for the selected one;
+/// <see cref="ToGroup"/> and <see cref="Apply"/> turn the text back into an <see cref="AppMatcher"/>, keeping
+/// the matcher fields this form does not edit (path, class chain, full-screen rule); <see cref="SyncFrom"/>
+/// re-reads a stored group after an undo or a rename in the tree. Nothing is validated here: the store's
+/// rules answer when the dialog confirms or the panel applies.
 /// </summary>
 public sealed partial class GroupEditViewModel : ObservableObject
 {
-    private readonly AppMatcher _matcher;
+    private AppMatcher _matcher;
 
     public GroupEditViewModel()
         : this(AppMatcher.Empty)
@@ -58,6 +60,23 @@ public sealed partial class GroupEditViewModel : ObservableObject
             SuppressGlobals = group.SuppressGlobals,
             IsActive = group.IsActive,
         };
+    }
+
+    /// <summary>Takes the stored group's values; a property that already holds the value raises nothing.</summary>
+    public void SyncFrom(AppGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        _matcher = group.Matcher ?? AppMatcher.Empty;
+        Name = group.Name;
+        if (!_matcher.ProcessNames.SequenceEqual(ProcessNames.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), StringComparer.Ordinal))
+        {
+            ProcessNames = string.Join(", ", _matcher.ProcessNames);
+        }
+
+        WindowTitle = _matcher.Title ?? string.Empty;
+        TitleIsRegex = _matcher.TitleIsRegex;
+        SuppressGlobals = group.SuppressGlobals;
+        IsActive = group.IsActive;
     }
 
     /// <summary>A new group with these settings and no commands.</summary>

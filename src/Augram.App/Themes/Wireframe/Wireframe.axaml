@@ -344,14 +344,19 @@
                                   NewSectionLabel="{TemplateBinding NewSectionLabel}"
                                   HelpText="{TemplateBinding TreeHelp}" />
                 <GridSplitter Grid.Column="1" Width="4" Background="{StaticResource Brush.Border}" ResizeDirection="Columns" />
-                <DockPanel Grid.Column="2">
-                  <tree:CommandHeader Name="PART_Header" DockPanel.Dock="Top" Item="{TemplateBinding SelectedCommand}" />
-                  <steps:StepList Name="PART_Steps"
-                                  Steps="{TemplateBinding Steps}"
-                                  SelectedIndex="{TemplateBinding SelectedStepIndex}"
-                                  StepTypes="{TemplateBinding StepTypes}"
-                                  HasCommand="{TemplateBinding HasCommand}" />
-                </DockPanel>
+                <Panel Grid.Column="2">
+                  <DockPanel IsVisible="{TemplateBinding ShowsCommandPanel}">
+                    <tree:CommandHeader Name="PART_Header" DockPanel.Dock="Top" Item="{TemplateBinding SelectedCommand}" />
+                    <steps:StepList Name="PART_Steps"
+                                    Steps="{TemplateBinding Steps}"
+                                    SelectedIndex="{TemplateBinding SelectedStepIndex}"
+                                    StepTypes="{TemplateBinding StepTypes}"
+                                    HasCommand="{TemplateBinding HasCommand}" />
+                  </DockPanel>
+                  <form:SectionForm Name="PART_GroupForm"
+                                    Screen="{TemplateBinding GroupForm}"
+                                    IsVisible="{TemplateBinding HasGroupForm}" />
+                </Panel>
               </Grid>
             </DockPanel>
           </ControlTemplate>

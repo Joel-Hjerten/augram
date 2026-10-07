@@ -4,7 +4,7 @@ using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
 
-/// <summary>The app group half of <see cref="CommandsViewModel"/> (F5, F5a; the Apps tab's sections): the app group form for new and edit, rename, and delete with confirmation. The Global group is never renamed or deleted.</summary>
+/// <summary>The app group half of <see cref="CommandsViewModel"/> (F5, F5a; the Apps tab's sections): the app group form for a new group, rename, and delete with confirmation; the selected group's form lives in <c>.GroupPanel</c>. The Global group is never renamed or deleted.</summary>
 public sealed partial class CommandsViewModel
 {
     private async Task NewGroupAsync()
@@ -21,18 +21,6 @@ public sealed partial class CommandsViewModel
             Select(SectionId.ForGroup(stored.Id), null);
             ProjectSelection();
         });
-    }
-
-    private async Task EditGroupAsync(GroupId id)
-    {
-        var group = RequireGroup(id);
-        var edit = GroupEditViewModel.From(group);
-        if (!await _dialogs.ShowAsync(new FormDialogRequest($"Edit app group '{group.Name}'", "Save", Screen: edit.Declare())).ConfigureAwait(true))
-        {
-            return;
-        }
-
-        Guard(() => _store.UpdateGroup(edit.Apply(RequireGroup(id))));
     }
 
     private void RenameGroup(GroupId id, string name)

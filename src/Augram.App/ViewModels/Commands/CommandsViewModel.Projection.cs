@@ -71,5 +71,7 @@ public sealed partial class CommandsViewModel
         {
             SelectedStepIndex = steps.Count - 1;
         }
+
+        ProjectGroupPanel();
     }
 }
