@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Threading;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -10,7 +11,7 @@ namespace Augram.App.Components.CommandTree;
 /// What every row of the Commands tab shares (F5a): an active toggle (the template's <c>PART_Active</c>
 /// check box, raising <see cref="ActiveToggled"/> only for a user click) and, when <see cref="CanRename"/>,
 /// in-place rename through <c>PART_NameEditor</c>: <see cref="BeginEdit"/> shows it with the current
-/// name, Enter raises <see cref="RenameCommitted"/>, Escape and losing focus revert. Rows never touch a
+/// name, Enter or leaving the editor raises <see cref="RenameCommitted"/>, Escape reverts. Rows never touch a
 /// store; their list forwards the events to its host. Greyed via <c>:inactive</c>.
 /// </summary>
 [PseudoClasses(":editing", ":inactive")]
@@ -82,7 +83,7 @@ public abstract class ItemRow : TemplatedControl
         if (_editor is not null)
         {
             _editor.KeyDown += OnEditorKeyDown;
-            _editor.LostFocus += (_, _) => CancelEdit();
+            _editor.LostFocus += (_, _) => CommitOnLeave();
 
             // A row created by the store change that made it (a fresh "New command N") is asked to edit
             // before it has a template; the editor starts here instead.
@@ -132,6 +133,27 @@ public abstract class ItemRow : TemplatedControl
         if (_active is not null && _active.IsChecked != IsActive)
         {
             ActiveToggled?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Leaving the editor (a click elsewhere, Tab) accepts the name, as Enter does (Joel, 2026-10-07); Escape has already
+    /// ended the edit by then. The rename is raised after the input event that moved focus has finished, so a click on
+    /// another row selects it first and the store change that follows does not rebuild the rows under that click. An
+    /// unchanged name raises nothing.
+    /// </summary>
+    private void CommitOnLeave()
+    {
+        if (!IsEditing)
+        {
+            return;
+        }
+
+        var name = _editor?.Text?.Trim() ?? string.Empty;
+        IsEditing = false;
+        if (!string.Equals(name, NameText, StringComparison.Ordinal))
+        {
+            Dispatcher.UIThread.Post(() => RenameCommitted?.Invoke(this, name));
         }
     }
 

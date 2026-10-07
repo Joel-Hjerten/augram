@@ -29,6 +29,7 @@ public sealed class App : Application
     {
         AvaloniaXamlLoader.Load(this);
         Styles.Add(ThemeSelector.Load(ThemeSelector.Active));
+        ClickAwayFocus.Register();
     }
 
     public override void OnFrameworkInitializationCompleted()

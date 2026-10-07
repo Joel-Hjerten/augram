@@ -125,6 +125,36 @@ public sealed class CommandTreeTests
     }
 
     [AvaloniaFact]
+    public void ClickingAwayFromTheRenameEditorKeepsTheNameAndEscapeStillReverts()
+    {
+        var (tree, actions, vm) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        tree.SelectedCommandId = Item(vm, "Close tab").Id;
+        tree.BeginRename(Item(vm, "Close tab").Id);
+        var editor = tree.Rows.OfType<CommandRow>().Single(row => row.NameText == "Close tab").GetVisualDescendants().OfType<TextBox>().Single();
+        editor.Text = "Close it";
+
+        Views.ClickAwayFocus.Register();
+        var heading = tree.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == vm.Heading);
+        ClickAt(window, heading);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.False(tree.IsEditing);
+        var rename = Assert.Single(actions, action => action.Action == CommandTreeAction.Rename);
+        Assert.Equal("Close it", rename.Name);
+
+        actions.Clear();
+        tree.BeginRename(Item(vm, "Close tab").Id);
+        editor.Text = "Not this";
+        editor.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+        ClickAt(window, heading);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.DoesNotContain(actions, action => action.Action == CommandTreeAction.Rename);
+    }
+
+    [AvaloniaFact]
     public void ARowRenamedBeforeItHasATemplateStartsTheEditorWhenItGetsOne()
     {
         var (tree, _, vm) = Show(CommandsScope.Global);

@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Threading;
 
 namespace Augram.App.Components.GestureGrid;
 
@@ -12,7 +13,7 @@ namespace Augram.App.Components.GestureGrid;
 /// outlined via <c>:duplicate</c> when the item has duplicates (A7), and marked <c>:partner</c> with the
 /// score while the selected tile is a duplicate of it.
 /// Rename edits in place (F5a): <see cref="BeginEdit"/> shows the template's <c>PART_NameEditor</c>
-/// with the current name; Enter raises <see cref="RenameCommitted"/>, Escape reverts. The tile
+/// with the current name; Enter or leaving the editor raises <see cref="RenameCommitted"/>, Escape reverts. The tile
 /// never touches a store; the grid forwards the commit to its host.
 /// </summary>
 [PseudoClasses(":inactive", ":editing", ":duplicate", ":partner")]
@@ -116,7 +117,7 @@ public sealed class GestureTile : TemplatedControl
         if (_editor is not null)
         {
             _editor.KeyDown += OnEditorKeyDown;
-            _editor.LostFocus += (_, _) => CancelEdit();
+            _editor.LostFocus += (_, _) => CommitOnLeave();
         }
     }
 
@@ -146,6 +147,27 @@ public sealed class GestureTile : TemplatedControl
         else if (change.Property == IsEditingProperty)
         {
             PseudoClasses.Set(":editing", IsEditing);
+        }
+    }
+
+    /// <summary>
+    /// Leaving the editor (a click elsewhere, Tab) accepts the name, as Enter does (Joel, 2026-10-07); Escape has already
+    /// ended the edit by then. The rename is raised after the input event that moved focus has finished, so a click on
+    /// another row selects it first and the store change that follows does not rebuild the rows under that click. An
+    /// unchanged name raises nothing.
+    /// </summary>
+    private void CommitOnLeave()
+    {
+        if (!IsEditing)
+        {
+            return;
+        }
+
+        var name = _editor?.Text?.Trim() ?? string.Empty;
+        IsEditing = false;
+        if (!string.Equals(name, NameText, StringComparison.Ordinal))
+        {
+            Dispatcher.UIThread.Post(() => RenameCommitted?.Invoke(this, name));
         }
     }
 
