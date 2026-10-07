@@ -8,11 +8,13 @@ using Augram.Engine.Hosting;
 namespace Augram.Engine.Execution;
 
 /// <summary>
-/// Runs one resolved command on the executor thread: activates the target (the adapter applies A20 and
-/// says whether focus moved), builds the one <see cref="StepExecutionContext"/>, and plays the active
-/// steps in order with the platform override resolved per step (F8). The settle delay (A8) is waited
-/// once, before the first Keyboard or Text step, only when activation moved focus; a window operation
-/// or media key never waits. <c>Failed</c> stops the command, <c>Skipped</c> continues it, and the
+/// Runs one resolved command on the executor thread: plays the active steps in order with the platform
+/// override resolved per step (F8), sharing one <see cref="StepExecutionContext"/>. The target is
+/// activated lazily, right before the first Keyboard or Text step, because only injected keys need
+/// focus (the adapter applies A20 and says whether focus moved): a window operation acts on the handle
+/// and a media key is global, so a minimize never pays for an activation (2026-10-07: an Alt-tap
+/// activation cost 310 ms before a minimize over Chrome). The settle delay (A8) follows that activation
+/// only when it moved focus. <c>Failed</c> stops the command, <c>Skipped</c> continues it, and the
 /// executor's cancellation stops it after the step that observed it. One Debug line per step, one Info
 /// line per command; the last activation outcome is kept for the health summary (B1).
 /// </summary>
@@ -47,11 +49,10 @@ internal sealed class CommandRunner
             return;
         }
 
-        var focusMoved = Activate(target);
-        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation) { FocusMoved = focusMoved };
+        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation);
+        var activated = false;
         var run = 0;
         var skipped = 0;
-        var settled = !focusMoved;
         for (var index = 0; index < command.Steps.Count; index++)
         {
             var commandStep = command.Steps[index];
@@ -61,10 +62,12 @@ internal sealed class CommandRunner
             }
 
             var step = commandStep.ResolveFor(_operations.Platform);
-            if (!settled && step.Type.Category is StepCategory.Keyboard or StepCategory.Text)
+            if (!activated && NeedsFocus(step))
             {
-                settled = true;
-                if (!Settle())
+                activated = true;
+                var focusMoved = Activate(target);
+                context = context with { FocusMoved = focusMoved };
+                if (focusMoved && !Settle())
                 {
                     LogCancelled(group, command, index);
                     return;
@@ -110,7 +113,7 @@ internal sealed class CommandRunner
             "Command fired",
             ("group", group.Name),
             ("command", command.Name),
-            ("trigger", request.Trigger.Describe()),
+            ("trigger", request.Describe()),
             ("stepsRun", run),
             ("stepsSkipped", skipped),
             ("elapsedMs", Math.Round(Stopwatch.GetElapsedTime(request.EnqueuedAt).TotalMilliseconds, 1)),
@@ -143,6 +146,9 @@ internal sealed class CommandRunner
 
         return focusMoved;
     }
+
+    /// <summary>Injected keys land in whatever has focus, so only Keyboard and Text steps need the target in front.</summary>
+    private static bool NeedsFocus(IStep step) => step.Type.Category is StepCategory.Keyboard or StepCategory.Text;
 
     /// <summary>A8: the one wait, cancellation-aware; false when the executor is stopping.</summary>
     private bool Settle()

@@ -15,4 +15,10 @@ namespace Augram.Engine.Execution;
 internal sealed record ExecutionRequest(Trigger Trigger, CapturePoint Start, RecognitionLogEntry? Draft)
 {
     public long EnqueuedAt { get; init; }
+
+    /// <summary>For the log: the recognised gesture's name ("gesture '/Down'") when there is one, else the trigger's own phrase ("wheel up").</summary>
+    public string Describe()
+        => Trigger is Trigger.GestureTrigger && Draft is { TopMatches.Count: > 0 } draft
+            ? $"gesture '{draft.TopMatches[0].Name}'"
+            : Trigger.Describe();
 }

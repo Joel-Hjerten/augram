@@ -11,8 +11,9 @@ using Xunit;
 namespace Augram.Engine.Tests.Execution;
 
 /// <summary>
-/// A8: the settle delay is waited once, between an activation that moved focus and the first Keyboard
-/// or Text step; never before a System step, never when focus did not move. Measured as the gap
+/// A8 and lazy activation: the target is activated right before the first Keyboard or Text step (never
+/// for a command of System steps only), and the settle delay is waited once after that activation when
+/// it moved focus. Measured as the gap
 /// between the fake window system's activation timestamp and the fake step's run timestamp, with a
 /// generous tolerance for the CI runner.
 /// </summary>
@@ -33,10 +34,12 @@ public sealed class SettleDelayTests
         var waited = GapMs(Assert.Single(harness.Windows.Activations).Timestamp, keyboard.Runs[0]);
         Assert.True(waited >= 40, $"waited {waited:F1} ms, expected at least 50");
         harness.WaitForLog(LogSources.Execution, "Command fired");
+        Assert.True(harness.Log.Has(LogSources.Execution, "Window activated"));
+        Assert.Equal("set-foreground (2 ms)", harness.Health.Current().LastActivationOutcome);
     }
 
     [Fact]
-    public void SystemStepFirst_AfterFocusMoved_DoesNotWait()
+    public void SystemStepsOnly_NeverActivateOrWait()
     {
         var system = new FakeStepType(StepCategory.System);
         using var harness = Harness([system], settleDelayMs: 1500, activation: Moved);
@@ -44,9 +47,8 @@ public sealed class SettleDelayTests
         harness.Stroke(200, 0);
 
         EngineHarness.WaitFor(() => system.Runs.Count == 1, "the system step");
-        var waited = GapMs(Assert.Single(harness.Windows.Activations).Timestamp, system.Runs[0]);
-        Assert.True(waited < 1000, $"waited {waited:F1} ms, expected no settle delay");
         harness.WaitForLog(LogSources.Execution, "Command fired");
+        Assert.Empty(harness.Windows.Activations);
     }
 
     [Fact]
@@ -64,7 +66,7 @@ public sealed class SettleDelayTests
     }
 
     [Fact]
-    public void TheDelayIsWaitedOnce_BeforeTheFirstKeyboardStepOnly()
+    public void ActivationAndTheDelayHappenOnce_BeforeTheFirstKeyboardStepOnly()
     {
         var system = new FakeStepType(StepCategory.System);
         var first = new FakeStepType(StepCategory.Keyboard);
@@ -75,7 +77,7 @@ public sealed class SettleDelayTests
 
         EngineHarness.WaitFor(() => second.Runs.Count == 1, "the last step");
         var activated = Assert.Single(harness.Windows.Activations).Timestamp;
-        Assert.True(GapMs(activated, system.Runs[0]) < 250, "the system step must not wait");
+        Assert.True(system.Runs[0] <= activated, "the system step runs before the activation, without waiting for it");
         Assert.True(GapMs(activated, first.Runs[0]) >= 250, "the first keyboard step waits");
         Assert.True(GapMs(first.Runs[0], second.Runs[0]) < 250, "the second keyboard-class step does not wait again");
         harness.WaitForLog(LogSources.Execution, "Command fired");

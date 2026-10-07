@@ -40,17 +40,18 @@ public sealed class CommandExecutionTests
 
         Assert.True(harness.Host.HasExecutor);
         Assert.Equal((100, 100), Assert.Single(harness.Windows.Lookups));
-        Assert.Equal(0x20, Assert.Single(harness.Windows.Activations).Target.RootHandle);
+        Assert.Empty(harness.Windows.Activations); // a window operation acts on the handle; no activation, no Alt tap
         var entry = Assert.Single(harness.RecognitionLog.Snapshot());
         Assert.Equal("Global", entry.MatchedGroup);
         Assert.Equal("Minimize", entry.FiredCommand);
         Assert.Null(entry.NothingFiredReason);
         Assert.Equal(Right.Id, entry.MatchedGesture);
-        Assert.Equal("attach-thread-input (7 ms)", harness.Health.Current().LastActivationOutcome);
+        Assert.Null(harness.Health.Current().LastActivationOutcome);
         var fired = harness.Log.Single(LogSources.Execution, "Command fired");
         Assert.Contains(fired.Properties!, p => p.Key == "stepsRun" && (int)p.Value! == 1);
         Assert.Contains(fired.Properties!, p => p.Key == "process" && (string)p.Value! == "notepad.exe");
-        Assert.True(harness.Log.Has(LogSources.Execution, "Window activated"));
+        Assert.Contains(fired.Properties!, p => p.Key == "trigger" && (string)p.Value! == "gesture 'right'");
+        Assert.False(harness.Log.Has(LogSources.Execution, "Window activated"));
     }
 
     [Fact]

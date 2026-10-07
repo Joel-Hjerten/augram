@@ -142,7 +142,7 @@ internal sealed class CommandExecutor : IDisposable
         _log.Info(
             LogSources.Execution,
             "Trigger resolved",
-            ("trigger", request.Trigger.Describe()),
+            ("trigger", request.Describe()),
             ("outcome", resolution.Outcome),
             ("reason", resolution.Reason),
             ("group", resolution.Group?.Name),
