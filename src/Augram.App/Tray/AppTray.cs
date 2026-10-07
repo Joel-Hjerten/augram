@@ -64,6 +64,7 @@ public sealed class AppTray : IDisposable
         }
 
         _icon = new TrayIcon { Menu = menu, IsVisible = true };
+        MacOSProperties.SetIsTemplateIcon(_icon, _icons.IsTemplate);
         _icon.Clicked += OnClicked;
         _timer = new DispatcherTimer { Interval = _clicks.Window };
         _timer.Tick += OnTick;

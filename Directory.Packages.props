@@ -9,6 +9,10 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Win32.SystemEvents" Version="10.0.3" />
   </ItemGroup>
+  <ItemGroup Label="Tools">
+    <!-- tools/IconTool: the same SkiaSharp Avalonia 11.3 brings in, so nothing new is downloaded. -->
+    <PackageVersion Include="SkiaSharp" Version="2.88.9" />
+  </ItemGroup>
   <ItemGroup Label="Tests">
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="11.3.22" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
