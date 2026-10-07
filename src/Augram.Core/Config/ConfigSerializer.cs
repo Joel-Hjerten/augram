@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Augram.Core.Gestures;
 using Augram.Core.Steps;
 
 namespace Augram.Core.Config;
@@ -17,6 +18,8 @@ namespace Augram.Core.Config;
 /// </summary>
 public static class ConfigSerializer
 {
+    private const string Configuration = "The configuration";
+
     private static readonly JsonDocumentOptions ParseOptions = new()
     {
         AllowTrailingCommas = true,
@@ -77,7 +80,9 @@ public static class ConfigSerializer
         }
     }
 
-    private static JsonObject ParseObject(string json)
+    /// <param name="json">The text.</param>
+    /// <param name="what">The subject of the messages; the sync file reader passes its own.</param>
+    internal static JsonObject ParseObject(string json, string what = Configuration)
     {
         JsonNode? node;
         try
@@ -86,17 +91,18 @@ public static class ConfigSerializer
         }
         catch (JsonException ex)
         {
-            throw new ConfigFormatException($"The configuration is not valid JSON: {ex.Message}", ex);
+            throw new ConfigFormatException($"{what} is not valid JSON: {ex.Message}", ex);
         }
 
         return node as JsonObject
-            ?? throw new ConfigFormatException("The configuration must be a JSON object at the top level.");
+            ?? throw new ConfigFormatException($"{what} must be a JSON object at the top level.");
     }
 
-    private static int ReadSchemaVersion(JsonObject root)
+    /// <summary>The version, after refusing a missing, malformed or newer one; the caller migrates an older one.</summary>
+    internal static int ReadSchemaVersion(JsonObject root, string what = Configuration)
     {
         var node = root["schemaVersion"]
-            ?? throw new ConfigFormatException("The configuration has no 'schemaVersion' field.");
+            ?? throw new ConfigFormatException($"{what} has no 'schemaVersion' field.");
 
         if (node is not JsonValue value || !value.TryGetValue(out int version))
         {
@@ -111,23 +117,28 @@ public static class ConfigSerializer
         if (version > ConfigDocument.CurrentSchemaVersion)
         {
             throw new ConfigFormatException(
-                $"The configuration was written by a newer Augram (schema version {version}); this build reads up to version {ConfigDocument.CurrentSchemaVersion}.");
+                $"{what} was written by a newer Augram (schema version {version}); this build reads up to version {ConfigDocument.CurrentSchemaVersion}.");
         }
 
         return version;
     }
 
-    /// <summary>Missing or null settings sections took defaults in the constructors; gestures are strict.</summary>
-    private static ConfigDocument Validated(ConfigDocument document)
+    /// <summary>A gesture read from JSON must have a name and samples; the serializer itself does not insist.</summary>
+    internal static void EnsureComplete(IReadOnlyList<Gesture> gestures)
     {
-        foreach (var gesture in document.Gestures)
+        foreach (var gesture in gestures)
         {
             if (gesture is null || gesture.Name is null || gesture.Samples is null || gesture.Samples.Any(sample => sample is null))
             {
                 throw new ConfigFormatException("Every gesture needs 'id', 'name' and a 'samples' array without nulls.");
             }
         }
+    }
 
+    /// <summary>Missing or null settings sections took defaults in the constructors; gestures are strict.</summary>
+    private static ConfigDocument Validated(ConfigDocument document)
+    {
+        EnsureComplete(document.Gestures);
         return document;
     }
 }

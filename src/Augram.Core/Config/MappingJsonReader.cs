@@ -44,7 +44,7 @@ internal sealed class MappingJsonReader
         return new MappingDocument(groups, ignored);
     }
 
-    private AppGroup ReadGroup(JsonNode? node)
+    public AppGroup ReadGroup(JsonNode? node)
     {
         var group = JsonMembers.RequireObject(node, "An app group");
         var name = JsonMembers.RequireString(group, "name", "an app group");
@@ -92,7 +92,7 @@ internal sealed class MappingJsonReader
         return categories;
     }
 
-    private Command ReadCommand(JsonNode? node, string groupName)
+    public Command ReadCommand(JsonNode? node, string groupName)
     {
         var command = JsonMembers.RequireObject(node, $"A command in '{groupName}'");
         var name = JsonMembers.RequireString(command, "name", $"a command in '{groupName}'");
@@ -163,7 +163,7 @@ internal sealed class MappingJsonReader
         };
     }
 
-    private static IgnoredApp ReadIgnored(JsonNode? node)
+    public static IgnoredApp ReadIgnored(JsonNode? node)
     {
         var app = JsonMembers.RequireObject(node, "An ignored app");
         var name = JsonMembers.RequireString(app, "name", "an ignored app");
