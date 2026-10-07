@@ -45,9 +45,14 @@ public sealed class FormDialogTests
 
         Assert.True(dialog.HasScreen);
         Assert.False(dialog.HasMessage);
-        Assert.Equal(["Name", "Active", "Use on Windows", "Use on macOS", "Suppress global commands", "Windows executables", "macOS executables", "Guess for an empty list", "Pick a window", "Window title", "Title is a regular expression"], rows.Select(row => row.Label));
+        Assert.Equal(["Name", "Active", "Use on", "Suppress global commands", "Windows executables", "macOS executables", "Guess for an empty list", "Pick a window", "Window title", "Title is a regular expression"], rows.Select(row => row.Label));
         ((TextBox)rows[0].Editor!).Text = "Chromium";
-        ((CheckBox)rows[4].Editor!).IsChecked = true;
+        ((CheckBox)rows[3].Editor!).IsChecked = true;
+        var useOn = ((StackPanel)rows[2].Editor!).Children.OfType<CheckBox>().ToList();
+        Assert.Equal(["Windows", "macOS"], useOn.Select(box => (string)box.Content!));
+        useOn[1].IsChecked = false;
+        Assert.False(edit.UseOnMac);
+        Assert.True(edit.UseOnWindows);
         Assert.Equal("Chromium", edit.Name);
         Assert.True(edit.SuppressGlobals);
     }

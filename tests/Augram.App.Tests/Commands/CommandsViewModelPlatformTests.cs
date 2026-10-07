@@ -68,13 +68,13 @@ public sealed class CommandsViewModelPlatformTests
         var (vm, store, _, _) = Create(platform: HostPlatform.MacOS);
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
 
-        Toggle("Use on macOS", vm.GroupForm!).Set(false);
+        UseOn("macOS", vm.GroupForm!).Set(false);
 
         Assert.Equal(PlatformSet.Windows, Group(store, "Chrome").UseOn);
         Assert.DoesNotContain("Chrome", Names(vm));
         Assert.Null(vm.GroupForm);
     }
 
-    private static IValueBinding<bool> Toggle(string label, FormScreen screen)
-        => (IValueBinding<bool>)screen.Sections.SelectMany(section => section.Fields).Single(field => field.Label == label).Binding!;
+    private static IValueBinding<bool> UseOn(string platform, FormScreen screen)
+        => screen.Sections.SelectMany(section => section.Fields).OfType<TogglesField>().Single(field => field.Label == "Use on").Options.Single(option => option.Caption == platform).Value;
 }

@@ -145,8 +145,13 @@ public sealed partial class GroupEditViewModel : ObservableObject
         [
             new TextField("Name", new DelegateBinding<string>(() => Name, value => Name = value, this), "Shown in the command tree; unique among groups."),
             new ToggleField("Active", new DelegateBinding<bool>(() => IsActive, value => IsActive = value, this), "An inactive group and its commands never fire."),
-            new ToggleField("Use on Windows", new DelegateBinding<bool>(() => UseOnWindows, value => UseOnWindows = value, this), "Off: the group never fires on Windows, and its list there hides it unless Show other platforms is on."),
-            new ToggleField("Use on macOS", new DelegateBinding<bool>(() => UseOnMac, value => UseOnMac = value, this), "Off: the group never fires on macOS, and its list there hides it unless Show other platforms is on."),
+            new TogglesField(
+                "Use on",
+                [
+                    new ToggleOption("Windows", new DelegateBinding<bool>(() => UseOnWindows, value => UseOnWindows = value, this)),
+                    new ToggleOption("macOS", new DelegateBinding<bool>(() => UseOnMac, value => UseOnMac = value, this)),
+                ],
+                "A platform left unticked never fires the group and hides it from its list unless Show other platforms is on."),
             new ToggleField("Suppress global commands", new DelegateBinding<bool>(() => SuppressGlobals, value => SuppressGlobals = value, this), "SP.net's \"No Global Actions\": over this app only its own commands fire."),
         ]),
         new Section("App identification",

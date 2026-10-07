@@ -48,6 +48,7 @@ public static class GalleryNavigation
             new Section("All kinds, bound to one fake view model",
             [
                 new ToggleField("Toggle", new DelegateBinding<bool>(() => fake.Flag, v => fake.Flag = v, fake), "A bool."),
+                new TogglesField("Toggles", [new ToggleOption("First", new DelegateBinding<bool>(() => fake.Flag, v => fake.Flag = v, fake)), new ToggleOption("Second", new DelegateBinding<bool>(() => !fake.Flag, v => fake.Flag = !v, fake))], "Several bools on one row."),
                 new DropdownField<string>("Dropdown", Choice.FromStrings("Alpha", "Beta", "Gamma"), new DelegateBinding<string>(() => fake.Choice, v => fake.Choice = v, fake)),
                 new ButtonRadioField<string>("ButtonRadio", Choice.FromStrings("Left", "Middle", "Right"), new DelegateBinding<string>(() => fake.Button, v => fake.Button = v, fake)),
                 new TextField("Text", new DelegateBinding<string>(() => fake.Name, v => fake.Name = v, fake)),
