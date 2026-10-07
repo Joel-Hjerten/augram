@@ -63,7 +63,7 @@ Give each agent disjoint folder ownership, the exact docs to read, the verificat
 ## 8. Tooling set up on 2026-10-07
 
 - `.claude/settings.json` (committed): permission allows for the .NET workflow and the app launch on both OSes, an `ask` list for destructive git, and the memory-sync hooks. `.claude/settings.local.json` (committed) pins `autoMemoryDirectory` to `~/.claude/projects/c---myProjects-augram/memory` so PC and Mac share one store.
-- The memory folder is a private git repo, `Joel-Hjerten/augram-claude-memory`, synced by `scripts/memory-sync.mjs`: SessionStart pulls memory and reports if this checkout is behind or ahead of origin; Stop commits and pushes memory when it changed. Never hand-commit or force-push memory. An already-open idle chat never re-runs SessionStart; if Joel says he switched machines, pull memory and fetch by hand.
+- The memory folder is a private git repo, `Joel-Hjerten/augram-claude-memory`, synced by `scripts/memory-sync.mjs`: SessionStart pulls memory and reports if this checkout is behind or ahead of origin; Stop commits and pushes memory when it changed. Never hand-commit or force-push memory. An open chat resyncs through the UserPromptSubmit hook (`memory-sync.mjs prompt`): after a break of more than 10 minutes between Joel's messages it pulls memory and fetches the checkout, and when something changed it adds a note to his message (changed memories and MEMORY.md lines, commits pushed from the other machine); act on that note first (re-read memory, pull, rebuild, restart the app). It never pulls code itself.
 - Mac, one time: pull Augram, clone the memory repo into that folder (moving aside anything a Mac session wrote), start a new chat.
 
 ## 8a. macOS port (started 2026-10-07, on Joel's Mac)
