@@ -14,6 +14,7 @@ namespace Augram.Engine.Hosting;
 /// <param name="TickInterval">How often the worker feeds a <c>Tick</c> to the state machine while a button is held; bounds the hold-still cancel's latency.</param>
 /// <param name="QueueCapacity">Hook-to-worker channel size. Moves and ticks are dropped when full; a dropped button event is logged and resets the capture.</param>
 /// <param name="HealthPollInterval">The hook watchdog's poll interval; null for the monitor's default (1 s).</param>
+/// <param name="SettleDelayMs">A8: the wait between activating a target window that did not have focus and the first injected keystroke; never applied before a window operation, never applied when focus did not move.</param>
 public sealed record EngineHostOptions(
     MouseButton StrokeButton = MouseButton.Right,
     CaptureThresholds? Thresholds = null,
@@ -21,8 +22,10 @@ public sealed record EngineHostOptions(
     bool Enabled = true,
     TimeSpan? TickInterval = null,
     int QueueCapacity = EngineHostOptions.DefaultQueueCapacity,
-    TimeSpan? HealthPollInterval = null)
+    TimeSpan? HealthPollInterval = null,
+    int SettleDelayMs = EngineHostOptions.DefaultSettleDelayMs)
 {
+    public const int DefaultSettleDelayMs = 30;
     public const int DefaultQueueCapacity = 4096;
     public static readonly TimeSpan DefaultTickInterval = TimeSpan.FromMilliseconds(25);
 
