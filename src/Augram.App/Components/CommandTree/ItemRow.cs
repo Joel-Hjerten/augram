@@ -55,7 +55,7 @@ public abstract class ItemRow : TemplatedControl
         private set => SetValue(IsEditingProperty, value);
     }
 
-    /// <summary>False for the Global group (F5a: never renamed) and for steps.</summary>
+    /// <summary>False for a section that cannot be renamed (Uncategorized) and for steps.</summary>
     public bool CanRename
     {
         get => GetValue(CanRenameProperty);
@@ -70,12 +70,7 @@ public abstract class ItemRow : TemplatedControl
         }
 
         IsEditing = true;
-        if (_editor is not null)
-        {
-            _editor.Text = NameText;
-            _editor.Focus();
-            _editor.SelectAll();
-        }
+        StartEditor();
     }
 
     public void CancelEdit() => IsEditing = false;
@@ -88,6 +83,13 @@ public abstract class ItemRow : TemplatedControl
         {
             _editor.KeyDown += OnEditorKeyDown;
             _editor.LostFocus += (_, _) => CancelEdit();
+
+            // A row created by the store change that made it (a fresh "New command N") is asked to edit
+            // before it has a template; the editor starts here instead.
+            if (IsEditing)
+            {
+                StartEditor();
+            }
         }
 
         _active = e.NameScope.Find<CheckBox>("PART_Active");
@@ -112,6 +114,16 @@ public abstract class ItemRow : TemplatedControl
             {
                 _active.IsChecked = IsActive;
             }
+        }
+    }
+
+    private void StartEditor()
+    {
+        if (_editor is not null)
+        {
+            _editor.Text = NameText;
+            _editor.Focus();
+            _editor.SelectAll();
         }
     }
 

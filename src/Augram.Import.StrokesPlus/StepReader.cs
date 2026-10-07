@@ -12,7 +12,8 @@ namespace Augram.Import.StrokesPlus;
 /// <summary>
 /// Reads one SP.net <c>Steps[]</c> entry into a <see cref="CommandStep"/> authored on Windows (plan
 /// 0001 §C1): the window methods to <see cref="WindowOpStep"/>, <c>Delay</c> to <see cref="DelayStep"/>,
-/// <c>SendVKey</c> with a media key to <see cref="MediaKeyStep"/>, and everything else to an
+/// <c>SendVKey</c> with a media key to <see cref="MediaKeyStep"/>, <c>SendHotKey</c> and any other
+/// <c>SendVKey</c> to a <c>HotkeyStep</c> through <see cref="HotkeyMapping"/>, and everything else to an
 /// <see cref="ImportedStep"/> placeholder that keeps the method and its parameters until the real type
 /// lands. Placeholders are counted per method and reported once per file by <see cref="ReportPlaceholders"/>.
 /// </summary>
@@ -101,6 +102,7 @@ internal sealed class StepReader
         StrokesPlusJson.Method.InvokeObjectMethodByName => InvokedMethod(description, parameters),
         StrokesPlusJson.Method.Delay => Delay(description, parameters, commandName),
         StrokesPlusJson.Method.SendVKey => VirtualKey(description, parameters),
+        StrokesPlusJson.Method.SendHotKey => (IStep?)HotkeyMapping.FromSendHotKey(parameters) ?? Placeholder(StrokesPlusJson.Method.SendHotKey, description, parameters),
         _ => Placeholder(method, description, parameters),
     };
 
@@ -148,9 +150,12 @@ internal sealed class StepReader
 
     private IStep VirtualKey(string description, IReadOnlyDictionary<string, string> parameters)
     {
-        return MethodParameterReader.TryInt32(parameters, StrokesPlusJson.Method.VirtualKeyParameter, out var key) && MediaKeys.TryGetValue(key, out var kind)
-            ? new MediaKeyStep(kind)
-            : Placeholder(StrokesPlusJson.Method.SendVKey, description, parameters);
+        if (MethodParameterReader.TryInt32(parameters, StrokesPlusJson.Method.VirtualKeyParameter, out var key) && MediaKeys.TryGetValue(key, out var kind))
+        {
+            return new MediaKeyStep(kind);
+        }
+
+        return (IStep?)HotkeyMapping.FromSendVKey(parameters) ?? Placeholder(StrokesPlusJson.Method.SendVKey, description, parameters);
     }
 
     private ImportedStep Placeholder(string method, string description, IReadOnlyDictionary<string, string> parameters)
@@ -162,11 +167,11 @@ internal sealed class StepReader
 
     private static string PlaceholderReason(string method) => method switch
     {
-        StrokesPlusJson.Method.SendHotKey => "hotkeys arrive in a later version.",
+        StrokesPlusJson.Method.SendHotKey => "their key could not be mapped to an Augram key.",
         StrokesPlusJson.Method.SendKeys or StrokesPlusJson.Method.SendString => "typed text arrives in a later version.",
         StrokesPlusJson.Method.Run => "the Run step arrives in a later version.",
         StrokesPlusJson.Method.MouseClick => "mouse clicks arrive in a later version.",
-        StrokesPlusJson.Method.SendVKey => "bare virtual keys arrive with the Hotkey step.",
+        StrokesPlusJson.Method.SendVKey => "their virtual key has no Augram key.",
         StrokesPlusJson.Method.SendAltDown or StrokesPlusJson.Method.SendAltUp
             or StrokesPlusJson.Method.SendWinDown or StrokesPlusJson.Method.SendWinUp
             or StrokesPlusJson.Method.ConsumePhysicalInput => "candidates for a hold-modifier step later.",

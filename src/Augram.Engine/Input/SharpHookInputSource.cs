@@ -12,9 +12,10 @@ namespace Augram.Engine.Input;
 /// handler translates the event to a <see cref="RawInput"/>, calls the <see cref="InputHandler"/>, copies
 /// its answer to <c>SuppressEvent</c>, returns; nothing else. Simulated events are dropped before the
 /// handler: <c>IsEventSimulated</c> is true for input injected by any process, so other utilities'
-/// synthetic input is ignored too (learnings 0001, B4). <see cref="SuppressAllKeys"/> swallows every
-/// key event, for the hotkey-capture flow later; off by default. Thin and untested on purpose: it
-/// needs a desktop, and everything above it is driven through a fake source in tests.
+/// synthetic input is ignored too (learnings 0001, B4). Key events take the same path; the handler
+/// suppresses them only while a hotkey capture is armed (<c>EngineHost.CaptureKeys</c>, decided in
+/// <c>InputGate</c>). Thin and untested on purpose: it needs a desktop, and everything above it is
+/// driven through a fake source in tests.
 /// </summary>
 public sealed class SharpHookInputSource : IInputSource
 {
@@ -25,7 +26,6 @@ public sealed class SharpHookInputSource : IInputSource
     private Generation? _current;
     private InputHandler? _handler;
     private int _generation;
-    private bool _suppressAllKeys;
 
     public SharpHookInputSource(IClock clock)
     {
@@ -39,12 +39,6 @@ public sealed class SharpHookInputSource : IInputSource
 
     /// <summary>Installs since construction; the thread name carries it.</summary>
     public int GenerationCount => Volatile.Read(ref _generation);
-
-    public bool SuppressAllKeys
-    {
-        get => Volatile.Read(ref _suppressAllKeys);
-        set => Volatile.Write(ref _suppressAllKeys, value);
-    }
 
     public void Start(InputHandler handler)
     {
@@ -209,7 +203,7 @@ public sealed class SharpHookInputSource : IInputSource
         var raw = e.RawEvent.Type == EventType.KeyPressed
             ? RawInput.KeyDown(key, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask))
             : RawInput.KeyUp(key, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask));
-        e.SuppressEvent = _handler!(in raw) | SuppressAllKeys;
+        e.SuppressEvent = _handler!(in raw);
     }
 
     private sealed class Generation(SimpleGlobalHook hook, int number)

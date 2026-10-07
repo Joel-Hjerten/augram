@@ -7,21 +7,23 @@ using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
-/// The Commands tab's projection over <see cref="MappingStore"/> (F5a, F5, F3, F8): the groups with
-/// their commands (Global first, then by name, as the store sorts them), the selection, the selected
-/// command's steps, undo/redo availability and the message line. Turns the tree's and the step list's
-/// intents into store calls; the rules live in <see cref="MappingRules"/> and only their messages
-/// show here. UI-only state (selection, expanded groups, the clipboard) is all it owns; deleting it
-/// loses nothing. Groups start collapsed (Joel, 2026-10-07: a long list otherwise); the view model is
-/// a process-lifetime singleton, so what the user opened stays open for the running session (tab
-/// switches, closing and reopening the window) and starts collapsed again on the next launch. This file holds the state and the dispatch; the partials <c>.Commands</c>,
-/// <c>.Groups</c> and <c>.Steps</c> hold the intents of each level.
+/// One Commands sub-tab's projection over <see cref="MappingStore"/> (F5a, F5, F3, F8; Global/Apps split,
+/// Joel 2026-10-07): the sections of its <see cref="Scope"/> (<see cref="CommandSections"/>: the Global
+/// group's categories, or the app groups), the selection, the selected command's steps, undo/redo
+/// availability and the message line. Turns the tree's and the step list's intents into store calls;
+/// the rules live in <see cref="MappingRules"/> and only their messages show here. UI-only state
+/// (selection, expanded sections) is all it owns, and the in-memory clipboard is shared by both tabs, so a
+/// Global command copied on one pastes into an app group on the other; deleting it loses nothing.
+/// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
+/// process-lifetime singleton, so what the user opened stays open for the running session (tab
+/// switches, closing and reopening the window) and starts collapsed again on the next launch. This file
+/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, and <c>.Commands</c>,
+/// <c>.Sections</c>, <c>.Groups</c>, <c>.Categories</c> and <c>.Steps</c> hold the intents of each level.
 /// </summary>
 public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 {
@@ -30,18 +32,20 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     private readonly IGesturePickerPresenter _picker;
     private readonly IFormDialogPresenter _dialogs;
     private readonly IConfirmPresenter _confirm;
+    private readonly CommandClipboard _clipboard;
     private readonly HostPlatform _platform;
-    private readonly CommandClipboard _clipboard = new();
-    private readonly HashSet<GroupId> _expanded = [];
+    private readonly HashSet<SectionId> _expanded = [];
     private CommandId? _stepsOf;
 
-    /// <summary><paramref name="platform"/> is what a new step is authored on (F8).</summary>
+    /// <summary><paramref name="clipboard"/> is shared by both tabs; <paramref name="platform"/> is what a new step is authored on (F8).</summary>
     public CommandsViewModel(
+        CommandsScope scope,
         MappingStore store,
         GestureLibrary gestures,
         IGesturePickerPresenter picker,
         IFormDialogPresenter dialogs,
         IConfirmPresenter confirm,
+        CommandClipboard clipboard,
         HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(store);
@@ -49,11 +53,14 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(picker);
         ArgumentNullException.ThrowIfNull(dialogs);
         ArgumentNullException.ThrowIfNull(confirm);
+        ArgumentNullException.ThrowIfNull(clipboard);
+        Scope = scope;
         _store = store;
         _gestures = gestures;
         _picker = picker;
         _dialogs = dialogs;
         _confirm = confirm;
+        _clipboard = clipboard;
         _platform = platform;
         _store.Changed += OnStoreChanged;
         _gestures.Changed += OnStoreChanged;
@@ -63,12 +70,28 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     /// <summary>The tree should start renaming this command in place (a fresh "New command N").</summary>
     public event EventHandler<CommandId>? RenameRequested;
 
-    [ObservableProperty]
-    public partial IReadOnlyList<GroupItem> Groups { get; private set; } = [];
+    /// <summary>The tree should start renaming this section in place (a fresh "New category N").</summary>
+    public event EventHandler<SectionId>? SectionRenameRequested;
 
-    /// <summary>The selected group row, or the group of the selected command: where "New command" and a pasted command go.</summary>
+    public CommandsScope Scope { get; }
+
+    /// <summary>The tree's title.</summary>
+    public string Heading => Scope == CommandsScope.Global ? "Global commands" : "App groups";
+
+    /// <summary>The new-section button: a category on the Global tab, an app group on the Apps tab.</summary>
+    public string NewSectionLabel => Scope == CommandsScope.Global ? "New category…" : "New group…";
+
+    /// <summary>The help line under the tree.</summary>
+    public string Help => Scope == CommandsScope.Global
+        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories; Uncategorized holds the rest. Right-click a row for the menu; rename with the rename key. Deleting asks first; Undo brings it back."
+        : "One section per app group; its commands win over Global in that app. Right-click a row for the menu; rename with the rename key. Deleting a group or a command asks first; Undo brings it back.";
+
     [ObservableProperty]
-    public partial GroupId? SelectedGroupId { get; private set; }
+    public partial IReadOnlyList<SectionItem> Sections { get; private set; } = [];
+
+    /// <summary>The selected section row, or the section of the selected command: where "New command" and a pasted command go.</summary>
+    [ObservableProperty]
+    public partial SectionId? SelectedSectionId { get; private set; }
 
     [ObservableProperty]
     public partial CommandId? SelectedCommandId { get; private set; }
@@ -103,16 +126,17 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         Guard(() => Dispatch(e));
     }
 
-    /// <summary>Expands the command's group and selects it (the "Used by…" jump); false when it no longer exists.</summary>
+    /// <summary>Expands the command's section and selects it (the "Used by…" jump); false when it no longer exists or belongs to the other tab.</summary>
     public bool ShowCommand(CommandId id)
     {
-        if (_store.FindCommand(id) is not { } found)
+        if (_store.FindCommand(id) is not { } found || !CommandSections.Includes(Scope, found.Group))
         {
             return false;
         }
 
-        _expanded.Add(found.Group.Id);
-        Select(found.Group.Id, id);
+        var section = CommandSections.SectionOf(Scope, found.Group, found.Command);
+        _expanded.Add(section);
+        Select(section, id);
         Project();
         return true;
     }
@@ -128,52 +152,50 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         switch (e.Action)
         {
             case CommandTreeAction.Select:
-                Select(e.Group?.Id, e.Command?.Id);
+                Select(e.Section?.Id, e.Command?.Id);
                 ProjectSelection();
                 break;
-            case CommandTreeAction.ToggleExpanded when e.Group is { } group:
-                if (!_expanded.Remove(group.Id))
-                {
-                    _expanded.Add(group.Id);
-                }
-
-                Project();
+            case CommandTreeAction.ToggleExpanded when e.Section is { } section:
+                ToggleExpanded(section);
                 break;
-            case CommandTreeAction.NewGroup:
-                _ = NewGroupAsync();
+            case CommandTreeAction.NewSection:
+                NewSection();
                 break;
-            case CommandTreeAction.EditGroup when e.Group is { IsGlobal: false } group:
-                _ = EditGroupAsync(group.Id);
+            case CommandTreeAction.EditGroup when e.Section is { CanEditDefinition: true } section:
+                _ = EditGroupAsync(section.Id.GroupId);
                 break;
             case CommandTreeAction.NewCommand:
-                NewCommand(e.Group?.Id ?? SelectedGroupId ?? GroupId.Global);
+                NewCommand(TargetOf(e.Section));
                 break;
             case CommandTreeAction.Rename when e.Command is { } command && e.Name is { } name:
                 UpdateCommand(command.Id, stored => stored with { Name = name });
                 break;
-            case CommandTreeAction.Rename when e.Group is { } group && e.Name is { } name:
-                RenameGroup(group, name);
+            case CommandTreeAction.Rename when e.Section is { } section && e.Name is { } name:
+                RenameSection(section, name);
                 break;
             case CommandTreeAction.Delete when e.Command is { } command:
                 _ = DeleteCommandAsync(command);
                 break;
-            case CommandTreeAction.Delete when e.Group is { } group:
-                _ = DeleteGroupAsync(group);
+            case CommandTreeAction.Delete when e.Section is { } section:
+                _ = DeleteSectionAsync(section);
                 break;
             case CommandTreeAction.ToggleActive when e.Command is { } command:
                 UpdateCommand(command.Id, stored => stored with { IsActive = !stored.IsActive });
                 break;
-            case CommandTreeAction.ToggleActive when e.Group is { } group:
-                _store.UpdateGroup(RequireGroup(group.Id) with { IsActive = !group.IsActive });
+            case CommandTreeAction.ToggleActive when e.Section is { } section:
+                ToggleSectionActive(section);
                 break;
             case CommandTreeAction.Copy when e.Command is { } command:
                 CopyCommand(command);
                 break;
             case CommandTreeAction.Paste:
-                PasteCommand(e.Group?.Id ?? SelectedGroupId ?? GroupId.Global);
+                PasteCommand(TargetOf(e.Section));
                 break;
             case CommandTreeAction.SetTriggerKind when e.Command is { } command && e.Kind is { } kind:
                 SetTriggerKind(command, kind);
+                break;
+            case CommandTreeAction.SetCategory when e.Command is { } command && e.Category is { } category:
+                SetCategory(command, category.Id);
                 break;
             case CommandTreeAction.PickGesture when e.Command is { } command:
                 _ = PickGestureAsync(command);
@@ -200,60 +222,6 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         catch (KeyNotFoundException exception)
         {
             Message = exception.Message;
-        }
-    }
-
-    private void Select(GroupId? group, CommandId? command)
-    {
-        SelectedGroupId = group;
-        SelectedCommandId = command;
-    }
-
-    private void OnStoreChanged(object? sender, EventArgs e)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            Project();
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(Project);
-        }
-    }
-
-    private void Project()
-    {
-        Groups = _store.Current.Groups.Select(group => GroupItem.From(group, _expanded.Contains(group.Id), _gestures.Find)).ToList();
-        CanUndo = _store.CanUndo;
-        CanRedo = _store.CanRedo;
-        ProjectSelection();
-    }
-
-    /// <summary>Re-reads the selected command and its steps from the current projection; drops a selection that vanished.</summary>
-    private void ProjectSelection()
-    {
-        if (SelectedGroupId is { } groupId && Groups.All(group => group.Id != groupId))
-        {
-            SelectedGroupId = null;
-        }
-
-        var selected = SelectedCommandId is { } id ? Groups.SelectMany(group => group.Commands).FirstOrDefault(command => command.Id == id) : null;
-        if (selected is null)
-        {
-            SelectedCommandId = null;
-        }
-
-        SelectedCommand = selected;
-        var steps = selected is null ? [] : _store.FindCommand(selected.Id)!.Value.Command.Steps.Select(StepItem.From).ToList();
-        Steps = steps;
-        if (_stepsOf != SelectedCommandId)
-        {
-            _stepsOf = SelectedCommandId;
-            SelectedStepIndex = -1;
-        }
-        else if (SelectedStepIndex >= steps.Count)
-        {
-            SelectedStepIndex = steps.Count - 1;
         }
     }
 }

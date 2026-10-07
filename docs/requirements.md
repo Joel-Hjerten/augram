@@ -114,7 +114,7 @@ App
 - Settings window is where gestures/actions/training/options live. Closed = app keeps running in tray.
 - **The UI is a real workbench, not an afterthought (Joel, 2026-07-24):** it is used heavily while setting up, testing, and configuring gestures. Required capabilities:
   - Gesture list showing each user-defined gesture as its auto-generated icon (F4)
-  - **Commands view (Joel, 2026-10-05):** one list area of app groups → commands (glyph + name) → a step panel for the selected command (F5a). Global is the first group, not a separate section.
+  - **Commands view (Joel, 2026-10-05):** one list area of app groups → commands (glyph + name) → a step panel for the selected command (F5a). ~~Global is the first group, not a separate section.~~ **Superseded (Joel, 2026-10-07):** Commands has two sub-tabs, **Global** (sections are its categories, Uncategorized first) and **Apps** (sections are the app groups); see F5a.
   - **Navigation is tabs with sub-tab pages (DECIDED — Joel, 2026-10-05):** top-level tabs for Gestures · Commands · Ignored · Options; each tab may hold sub-tabs (e.g. Options › General / Trail / Shortcuts / Diagnostics). Tabs and sub-tabs are declared in the navigation registry (ADR-0002 §5c), so adding a page is adding an entry.
   - Standard desktop controls done properly: tabs, sectioned lists, checkboxes, radio groups, etc.
   - **Single UI implementation for both Windows and macOS** — the framework choice must not force writing the UI twice (constraint feeds ADR-0001)

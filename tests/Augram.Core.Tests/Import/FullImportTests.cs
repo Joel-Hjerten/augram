@@ -3,6 +3,7 @@ using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.WindowOp;
@@ -114,13 +115,12 @@ public sealed class FullImportTests
     }
 
     [Fact]
-    public void NonMediaVirtualKeyBecomesPlaceholder()
+    public void NonMediaVirtualKeyBecomesAHotkeyWithoutModifiers()
     {
-        var step = Assert.IsType<ImportedStep>(Assert.Single(Command("Global", "Synthetic Browser Back").Steps).Step);
+        var step = Assert.IsType<HotkeyStep>(Assert.Single(Command("Global", "Synthetic Browser Back").Steps).Step);
 
-        Assert.Equal("SendVKey", step.SourceMethod);
-        Assert.Equal("166", step.Parameters["virtualKey"]);
-        Assert.Equal("Send the Browser Back app command", step.Description);
+        Assert.Equal(KeyModifiers.None, step.Modifiers);
+        Assert.Equal(KeyCode.BrowserBack, step.Key);
     }
 
     [Fact]
@@ -132,9 +132,7 @@ public sealed class FullImportTests
         Assert.Equal("SendAltDown", Assert.IsType<ImportedStep>(steps[0].Step).SourceMethod);
         Assert.Equal(60, Assert.IsType<DelayStep>(steps[1].Step).Milliseconds);
         Assert.False(steps[1].IsActive);
-        var hotkey = Assert.IsType<ImportedStep>(steps[2].Step);
-        Assert.Equal("SendHotKey", hotkey.SourceMethod);
-        Assert.Contains("\"Key\":9", hotkey.Parameters["hotkey"], StringComparison.Ordinal);
+        Assert.Equal(KeyCode.Tab, Assert.IsType<HotkeyStep>(steps[2].Step).Key);
         Assert.Equal(60000, Assert.IsType<DelayStep>(steps[3].Step).Milliseconds);
         Assert.Equal("SendAltUp", Assert.IsType<ImportedStep>(steps[4].Step).SourceMethod);
         Assert.True(HasWarning("Synthetic Alt Tab", "clamped to 60000 ms"));
@@ -204,8 +202,6 @@ public sealed class FullImportTests
     }
 
     [Theory]
-    [InlineData("SendHotKey", 2, "hotkeys arrive in a later version")]
-    [InlineData("SendVKey", 1, "bare virtual keys")]
     [InlineData("Script", 1, "no scripting")]
     [InlineData("Run", 1, "Run step")]
     [InlineData("MouseClick", 1, "mouse clicks")]
@@ -213,6 +209,15 @@ public sealed class FullImportTests
     [InlineData("ConsumePhysicalInput", 1, "hold-modifier")]
     [InlineData("SetWindowSize", 1, "no Augram equivalent yet")]
     public void PlaceholdersAreReportedOncePerMethod(string method, int count, string fragment)
+        => AssertPlaceholderReport(method, count, fragment);
+
+    [Theory]
+    [InlineData("SendHotKey")]
+    [InlineData("SendVKey")]
+    public void HotkeysAndVirtualKeysAreRealStepsNotPlaceholders(string method)
+        => Assert.DoesNotContain(Result.Warnings, warning => warning.Severity == ImportSeverity.Info && warning.Item == method);
+
+    private static void AssertPlaceholderReport(string method, int count, string fragment)
     {
         var info = Assert.Single(Result.Warnings, warning => warning.Severity == ImportSeverity.Info && warning.Item == method);
 
@@ -291,7 +296,7 @@ public sealed class FullImportTests
         Assert.Equal(new SourceStats(11, 11, 27, 4, 28, 2), Result.Stats);
         Assert.Equal(4, Result.AppGroupCount);
         Assert.Equal(27, Result.CommandCount);
-        Assert.Equal(11, Result.PlaceholderStepCount);
+        Assert.Equal(8, Result.PlaceholderStepCount); // the two SendHotKey steps and the Browser Back SendVKey are real Hotkey steps now
         Assert.Equal(2, Result.IgnoredAppCount);
     }
 

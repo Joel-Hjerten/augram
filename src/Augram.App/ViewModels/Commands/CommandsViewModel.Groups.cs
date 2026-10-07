@@ -4,7 +4,7 @@ using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
 
-/// <summary>The app group half of <see cref="CommandsViewModel"/> (F5, F5a): the app group form for new and edit, rename, and delete with confirmation. The Global group is never renamed or deleted.</summary>
+/// <summary>The app group half of <see cref="CommandsViewModel"/> (F5, F5a; the Apps tab's sections): the app group form for new and edit, rename, and delete with confirmation. The Global group is never renamed or deleted.</summary>
 public sealed partial class CommandsViewModel
 {
     private async Task NewGroupAsync()
@@ -18,7 +18,7 @@ public sealed partial class CommandsViewModel
         Guard(() =>
         {
             var stored = _store.AddGroup(edit.ToGroup(GroupId.New()));
-            Select(stored.Id, null);
+            Select(SectionId.ForGroup(stored.Id), null);
             ProjectSelection();
         });
     }
@@ -35,27 +35,27 @@ public sealed partial class CommandsViewModel
         Guard(() => _store.UpdateGroup(edit.Apply(RequireGroup(id))));
     }
 
-    private void RenameGroup(GroupItem group, string name)
+    private void RenameGroup(GroupId id, string name)
     {
-        if (group.IsGlobal)
+        if (id == GroupId.Global)
         {
             Message = "The Global group cannot be renamed.";
             return;
         }
 
-        _store.UpdateGroup(RequireGroup(group.Id) with { Name = name });
+        _store.UpdateGroup(RequireGroup(id) with { Name = name });
     }
 
-    private async Task DeleteGroupAsync(GroupItem group)
+    private async Task DeleteGroupAsync(SectionItem section)
     {
-        if (group.IsGlobal)
+        if (section.Id.GroupId == GroupId.Global)
         {
             Message = "The Global group cannot be deleted.";
             return;
         }
 
-        var count = group.Commands.Count;
-        var question = count == 1 ? $"Delete group '{group.Name}' and its command?" : $"Delete group '{group.Name}' and its {count} commands?";
+        var count = section.Commands.Count;
+        var question = count == 1 ? $"Delete group '{section.Name}' and its command?" : $"Delete group '{section.Name}' and its {count} commands?";
         if (!await _confirm.ConfirmAsync("Delete app group", question, "Delete").ConfigureAwait(true))
         {
             return;
@@ -63,7 +63,7 @@ public sealed partial class CommandsViewModel
 
         Guard(() =>
         {
-            var removed = _store.RemoveGroup(group.Id);
+            var removed = _store.RemoveGroup(section.Id.GroupId);
             Message = $"Deleted '{removed.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
         });
     }

@@ -9,6 +9,10 @@ namespace Augram.App.Navigation;
 /// </summary>
 public interface ICommandLocator
 {
-    /// <summary>Selects the Commands tab, expands the command's group and selects the command; a false return means it no longer exists.</summary>
+    /// <summary>
+    /// Selects the Commands tab's Global sub-tab for a Global command (its category, or Uncategorized,
+    /// expanded) or its Apps sub-tab for an app command (its group expanded), and selects the command; a
+    /// false return means it no longer exists.
+    /// </summary>
     bool ShowCommand(CommandId id);
 }

@@ -6,10 +6,8 @@ using Augram.App.Components.StepList;
 using Augram.App.Components.Steps;
 using Augram.App.Components.StepTypePicker;
 using Augram.App.Declarations;
-using Augram.App.UsedBy;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
-using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
@@ -20,17 +18,23 @@ using Augram.Core.Steps.WindowOp;
 
 namespace Augram.App.DevGallery;
 
-/// <summary>Gallery pages for the Commands tab's components (M2), all over a fake mapping and the starter gestures.</summary>
+/// <summary>Gallery pages for the Commands tab's components (M2), all over <see cref="CommandGalleryFakes"/> and the starter gestures.</summary>
 public static class CommandGalleryPages
 {
     private static readonly IReadOnlyList<Gesture> Starter = StarterGestures.All();
 
-    /// <summary>The whole tab over a throwaway store: tree, header, step list, with dialogs that answer at once.</summary>
-    public static ScreenDeclaration WorkbenchPage()
+    /// <summary>The Global sub-tab over a throwaway store: Uncategorized, then the categories Media and Window; New category… names one in place.</summary>
+    public static ScreenDeclaration GlobalWorkbenchPage() => WorkbenchPage(CommandsScope.Global);
+
+    /// <summary>The Apps sub-tab over the same fake mapping: Chrome, Photoshop (category tags, the header's Category dropdown), Steam games.</summary>
+    public static ScreenDeclaration AppsWorkbenchPage() => WorkbenchPage(CommandsScope.Apps);
+
+    /// <summary>A whole sub-tab over a throwaway store: tree, header, step list, with dialogs that answer at once.</summary>
+    private static ScreenDeclaration WorkbenchPage(CommandsScope scope)
     {
         var library = new GestureLibrary(Starter);
-        var store = new MappingStore(FakeMapping());
-        var vm = new CommandsViewModel(store, library, new GalleryGesturePicker(library), new GalleryFormDialogs(), new GalleryConfirm(), HostPlatform.Windows);
+        var store = new MappingStore(CommandGalleryFakes.Mapping());
+        var vm = new CommandsViewModel(scope, store, library, new CommandGalleryFakes.GesturePicker(library), new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), new CommandClipboard(), HostPlatform.Windows);
         return Screens.CommandsScreen.Declare(vm);
     }
 
@@ -96,7 +100,7 @@ public static class CommandGalleryPages
             ]),
             new Section("With a message line above the form",
             [
-                new CustomField("Edit app group", () => new FormDialog { Message = "Chrome has 2 commands; they stay as they are.", Screen = GroupEditViewModel.From(FakeMapping().Groups[1]).Declare(), ConfirmLabel = "Save", Width = 560 }),
+                new CustomField("Edit app group", () => new FormDialog { Message = "Chrome has 2 commands; they stay as they are.", Screen = GroupEditViewModel.From(CommandGalleryFakes.Mapping().Groups[1]).Declare(), ConfirmLabel = "Save", Width = 560 }),
             ]),
         ]);
 
@@ -149,63 +153,5 @@ public static class CommandGalleryPages
         new(new MediaKeyStep(MediaKeyKind.PlayPause), HostPlatform.Windows, IsActive: false),
         new(new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w" }), HostPlatform.Windows),
     ];
-
-    private static MappingDocument FakeMapping()
-    {
-        var global = AppGroup.EmptyGlobal with
-        {
-            Commands =
-            [
-                Cmd("Close window", Trigger.ForGesture(StarterGestures.IdFor("Up")), new WindowOpStep(WindowOperation.Close)),
-                Cmd("Volume up", Trigger.ForWheel(WheelDirection.Up), new MediaKeyStep(MediaKeyKind.VolumeUp)),
-                Cmd("Volume down", Trigger.ForWheel(WheelDirection.Down), new MediaKeyStep(MediaKeyKind.VolumeDown)),
-                Cmd("Minimize", Trigger.ForGesture(StarterGestures.IdFor("Down")), new WindowOpStep(WindowOperation.Minimize)) with { IsActive = false },
-                Cmd("Unbound", Trigger.None, new DelayStep(30)),
-            ],
-        };
-        var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false,
-            new AppMatcher { ProcessNames = ["chrome.exe", "msedge.exe"] },
-            [
-                Cmd("Close tab", Trigger.ForGesture(StarterGestures.IdFor("Up")), new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w" })),
-                new(CommandId.New(), "Zoom reset", Trigger.ForGesture(StarterGestures.IdFor("Circle")), IsActive: true,
-                [
-                    new CommandStep(new DelayStep(50), HostPlatform.Windows, MacOsOverride: new DelayStep(120)),
-                    new CommandStep(new WindowOpStep(WindowOperation.Center), HostPlatform.Windows),
-                ]),
-            ]);
-        var steam = new AppGroup(GroupId.New(), "Steam games", IsActive: true, SuppressGlobals: true,
-            new AppMatcher { Title = "^.*\\(Steam\\)$", TitleIsRegex = true },
-            [Cmd("Nothing on Up", Trigger.ForGesture(StarterGestures.IdFor("Up")))]);
-        return new MappingDocument([global, chrome, steam], []);
-    }
-
-    private static Command Cmd(string name, Trigger trigger, params IStep[] steps)
-        => new(CommandId.New(), name, trigger, IsActive: true, [.. steps.Select(step => new CommandStep(step, HostPlatform.Windows))]);
-
-    /// <summary>No window in the gallery: answers with the last starter gesture at once.</summary>
-    private sealed class GalleryGesturePicker : IGesturePickerPresenter
-    {
-        private readonly GestureLibrary _library;
-
-        public GalleryGesturePicker(GestureLibrary library)
-        {
-            _library = library;
-        }
-
-        public Task<GesturePickerResult> PickAsync(GestureId? current)
-            => Task.FromResult(GesturePickerResult.Selected(_library.All[^1].Id));
-    }
-
-    /// <summary>No window in the gallery: every form is confirmed at once (a new group without a name shows the rule message).</summary>
-    private sealed class GalleryFormDialogs : IFormDialogPresenter
-    {
-        public Task<bool> ShowAsync(FormDialogRequest request) => Task.FromResult(true);
-    }
-
-    /// <summary>No window in the gallery: every delete is confirmed at once; Undo brings it back.</summary>
-    private sealed class GalleryConfirm : IConfirmPresenter
-    {
-        public Task<bool> ConfirmAsync(string title, string message, string confirmLabel) => Task.FromResult(true);
-    }
 }
 #endif

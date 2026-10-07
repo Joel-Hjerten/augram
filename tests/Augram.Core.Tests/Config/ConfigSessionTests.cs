@@ -193,7 +193,8 @@ public sealed class ConfigSessionTests
         var twin = MappingFixtures.NewCategory("media");
         var global = MappingFixtures.NewGlobal(
             MappingFixtures.NewCommand("Play").In(media),
-            MappingFixtures.NewCommand("Pause").In(twin)) with { Categories = [media, twin] };
+            MappingFixtures.NewCommand("Pause").In(twin)) with
+        { Categories = [media, twin] };
 
         using var session = Open(new InMemoryConfigStore(new ConfigDocument { Mapping = new MappingDocument([global], []) }));
 

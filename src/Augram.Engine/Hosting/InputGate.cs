@@ -11,17 +11,20 @@ namespace Augram.Engine.Hosting;
 /// Everything that runs on the hook thread, in one class so it can be audited against CLAUDE.md
 /// invariant 1: <see cref="Handle"/> reads three volatiles (state, stroke button, enabled), asks the
 /// <see cref="SuppressionShadow"/>, allocates one <see cref="CaptureEvent"/>, <c>TryWrite</c>s one
-/// message, measures itself, returns the decision. Moves are forwarded only while a press is owed or
-/// the machine is not Idle. A full queue drops moves and ticks; a press that cannot be enqueued is
-/// passed through and the shadow restored; a release is still consumed (A19) and the worker resets
-/// the machine when it sees the drop count. The worker publishes state and the applied stroke button
-/// here; the App writes <see cref="Enabled"/> and <see cref="IgnoreKey"/>.
+/// message, measures itself, returns the decision. A key event reads one volatile (the hotkey-capture
+/// flag), asks the <see cref="KeySuppressionShadow"/>, and posts one message only while capturing.
+/// Moves are forwarded only while a press is owed or the machine is not Idle. A full queue drops moves
+/// and ticks; a press that cannot be enqueued is passed through and the shadow restored; a release is
+/// still consumed (A19) and the worker resets the machine when it sees the drop count. The worker
+/// publishes state and the applied stroke button here; the App writes <see cref="Enabled"/> and
+/// <see cref="IgnoreKey"/>; <see cref="KeyCaptureController"/> writes the capture flag.
 /// </summary>
 internal sealed class InputGate
 {
     private readonly ChannelWriter<WorkerMessage> _writer;
     private readonly IEventLog _log;
     private readonly SuppressionShadow _shadow = new();
+    private readonly KeySuppressionShadow _keys = new();
     private int _state;
     private int _strokeButton;
     private int _ignoreKey;
@@ -30,6 +33,7 @@ internal sealed class InputGate
     private long _droppedMoves;
     private long _droppedButtons;
     private int _observeNextPress;
+    private int _captureKeys;
 
     public InputGate(ChannelWriter<WorkerMessage> writer, IEventLog log, MouseButton strokeButton, KeyModifiers ignoreKey, bool enabled)
     {
@@ -58,11 +62,21 @@ internal sealed class InputGate
 
     public long DroppedMoveCount => Volatile.Read(ref _droppedMoves);
 
+    /// <summary>True while a hotkey capture is armed: key presses are suppressed system-wide and reported to the worker.</summary>
+    public bool KeysCaptured => Volatile.Read(ref _captureKeys) != 0;
+
     public void PublishState(CaptureState state) => Volatile.Write(ref _state, (int)state);
 
     public void PublishStrokeButton(MouseButton button) => Volatile.Write(ref _strokeButton, (int)button);
 
-    public void ResetShadow() => _shadow.Reset();
+    public void ResetShadow()
+    {
+        _shadow.Reset();
+        _keys.Reset();
+    }
+
+    /// <summary>The hotkey-capture flag (F5). Clearing it stops new presses being swallowed at once; owed releases still are.</summary>
+    public void CaptureKeys(bool armed) => Volatile.Write(ref _captureKeys, armed ? 1 : 0);
 
     /// <summary>Arms (or disarms) a one-shot report of the next physical press, posted to the worker as <c>ButtonObserved</c>; the press itself is handled as usual.</summary>
     public void ObserveNextPress(bool armed) => Volatile.Write(ref _observeNextPress, armed ? 1 : 0);
@@ -125,6 +139,16 @@ internal sealed class InputGate
                 if (!Post(WorkerMessage.Input(new CaptureEvent.Wheel(input.Wheel, input.X, input.Y, input.TimestampMs), suppress), critical: true))
                 {
                     suppress = false;
+                }
+
+                break;
+            case RawInputKind.KeyDown:
+            case RawInputKind.KeyUp:
+                var capturing = Volatile.Read(ref _captureKeys) != 0;
+                suppress = _keys.Decide(in input, capturing);
+                if (capturing)
+                {
+                    Post(WorkerMessage.KeyCaptured(KeyCaptureEvent.From(in input)), critical: false);
                 }
 
                 break;

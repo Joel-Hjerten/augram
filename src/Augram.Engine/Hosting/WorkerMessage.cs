@@ -17,6 +17,8 @@ internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, Ca
         SetThresholds,
         Reset,
         ButtonObserved,
+        KeyCaptured,
+        Notify,
     }
 
     public static WorkerMessage Input(CaptureEvent e, bool hookSuppressed) => new(MessageKind.Input, e, hookSuppressed);
@@ -29,4 +31,10 @@ internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, Ca
 
     /// <summary>A physical press seen while <c>EngineHost.CaptureNextButtonPress</c> was pending (F1 detect-to-assign).</summary>
     public static WorkerMessage ButtonObserved(MouseButton button) => new(MessageKind.ButtonObserved, Payload: button);
+
+    /// <summary>A key event seen while a hotkey capture was armed (F5), for the capture's callback.</summary>
+    public static WorkerMessage KeyCaptured(KeyCaptureEvent captured) => new(MessageKind.KeyCaptured, Payload: captured);
+
+    /// <summary>Runs <paramref name="action"/> on the worker, in order with the messages around it (a capture's release notice after its key events).</summary>
+    public static WorkerMessage Notify(Action action) => new(MessageKind.Notify, Payload: action);
 }

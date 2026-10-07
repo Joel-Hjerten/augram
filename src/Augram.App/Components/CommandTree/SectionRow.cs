@@ -1,4 +1,3 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
@@ -7,29 +6,30 @@ using Avalonia.Controls.Primitives;
 namespace Augram.App.Components.CommandTree;
 
 /// <summary>
-/// Lookless header row of an app group in the <see cref="CommandTree"/> (F5a): expander
-/// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count, active toggle.
-/// Marked <c>:global</c> for the pinned Global group (which cannot be renamed) and <c>:collapsed</c>
-/// while its commands are hidden.
+/// Lookless header row of a section in the <see cref="CommandTree"/> (F5a): expander
+/// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count and, when the item
+/// allows it, the active toggle (<see cref="CanToggleActive"/>). Marked <c>:collapsed</c> while its
+/// commands are hidden and <c>:pinned</c> for a section that can be neither renamed nor deleted
+/// (Uncategorized). What the header offers comes from the <see cref="SectionItem"/>, never from the tab.
 /// </summary>
-[PseudoClasses(":global", ":collapsed")]
-public sealed class GroupRow : ItemRow
+[PseudoClasses(":collapsed", ":pinned")]
+public sealed class SectionRow : ItemRow
 {
-    public static readonly StyledProperty<GroupItem?> ItemProperty =
-        AvaloniaProperty.Register<GroupRow, GroupItem?>(nameof(Item));
+    public static readonly StyledProperty<SectionItem?> ItemProperty =
+        AvaloniaProperty.Register<SectionRow, SectionItem?>(nameof(Item));
 
     public static readonly StyledProperty<string> CountTextProperty =
-        AvaloniaProperty.Register<GroupRow, string>(nameof(CountText), string.Empty);
+        AvaloniaProperty.Register<SectionRow, string>(nameof(CountText), string.Empty);
 
     public static readonly StyledProperty<bool> IsExpandedProperty =
-        AvaloniaProperty.Register<GroupRow, bool>(nameof(IsExpanded), true);
+        AvaloniaProperty.Register<SectionRow, bool>(nameof(IsExpanded), true);
 
-    public static readonly StyledProperty<bool> IsGlobalProperty =
-        AvaloniaProperty.Register<GroupRow, bool>(nameof(IsGlobal));
+    public static readonly StyledProperty<bool> CanToggleActiveProperty =
+        AvaloniaProperty.Register<SectionRow, bool>(nameof(CanToggleActive));
 
     public event EventHandler? ExpandToggled;
 
-    public GroupItem? Item
+    public SectionItem? Item
     {
         get => GetValue(ItemProperty);
         set => SetValue(ItemProperty, value);
@@ -48,10 +48,11 @@ public sealed class GroupRow : ItemRow
         private set => SetValue(IsExpandedProperty, value);
     }
 
-    public bool IsGlobal
+    /// <summary>Shows the active check box; an app group has one, a category does not.</summary>
+    public bool CanToggleActive
     {
-        get => GetValue(IsGlobalProperty);
-        private set => SetValue(IsGlobalProperty, value);
+        get => GetValue(CanToggleActiveProperty);
+        private set => SetValue(CanToggleActiveProperty, value);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -72,22 +73,14 @@ public sealed class GroupRow : ItemRow
             NameText = item?.Name ?? string.Empty;
             IsActive = item?.IsActive ?? true;
             IsExpanded = item?.IsExpanded ?? true;
-            IsGlobal = item?.IsGlobal ?? false;
-            CanRename = item is { IsGlobal: false };
-            CountText = item is null ? string.Empty : item.Commands.Count switch
-            {
-                0 => "no commands",
-                1 => "1 command",
-                var n => n.ToString(CultureInfo.InvariantCulture) + " commands",
-            };
+            CanRename = item?.CanRename ?? false;
+            CanToggleActive = item?.CanToggleActive ?? false;
+            CountText = item?.CountText ?? string.Empty;
+            PseudoClasses.Set(":pinned", item is { CanRename: false, CanDelete: false });
         }
         else if (change.Property == IsExpandedProperty)
         {
             PseudoClasses.Set(":collapsed", !IsExpanded);
-        }
-        else if (change.Property == IsGlobalProperty)
-        {
-            PseudoClasses.Set(":global", IsGlobal);
         }
     }
 }

@@ -13,7 +13,8 @@ namespace Augram.Engine.Hosting;
 /// outcomes: trail, click replay (the only place that injects input, A19), recognition, events, log.
 /// A recognised gesture or a wheel tick is then offered to the App's intercept (the training popup),
 /// else enqueued to the <see cref="CommandExecutor"/>; the worker itself never runs a step. Also
-/// cross-checks every button and wheel decision the hook made against the machine's own.
+/// cross-checks every button and wheel decision the hook made against the machine's own. Hotkey-capture
+/// key events and release notices pass straight through to the <see cref="KeyCaptureController"/>'s caller.
 /// </summary>
 internal sealed class EngineWorker
 {
@@ -95,6 +96,12 @@ internal sealed class EngineWorker
             case WorkerMessage.MessageKind.ButtonObserved:
                 _host.OnButtonObserved((MouseButton)message.Payload!);
                 break;
+            case WorkerMessage.MessageKind.KeyCaptured:
+                _host.OnKeyCaptured((KeyCaptureEvent)message.Payload!);
+                return;
+            case WorkerMessage.MessageKind.Notify:
+                ((Action)message.Payload!)();
+                return;
         }
 
         AfterMachineChange();

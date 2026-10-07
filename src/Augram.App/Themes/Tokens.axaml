@@ -44,6 +44,8 @@
   <Thickness x:Key="Border.Bottom">0,0,0,1</Thickness>
   <!-- A command row sits this far inside its group header (Commands tab). -->
   <Thickness x:Key="Pad.Indent">24,0,0,0</Thickness>
+  <!-- A small bordered tag inside a row (a command's category on the Apps tab). -->
+  <Thickness x:Key="Pad.Tag">4,0</Thickness>
   <x:Double x:Key="Opacity.Dragging">0.5</x:Double>
 
   <!-- Type -->
@@ -57,4 +59,6 @@
   <x:Double x:Key="Editor.MinWidth">180</x:Double>
   <!-- The command tree's column on the Commands tab; the splitter beside it lets the user change it. -->
   <GridLength x:Key="Workbench.TreeWidth">380</GridLength>
+  <!-- The labels of the command header (Trigger, Category), so their dropdowns line up. -->
+  <x:Double x:Key="Header.LabelWidth">72</x:Double>
 </ResourceDictionary>

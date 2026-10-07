@@ -6,7 +6,8 @@ namespace Augram.App.Components.CommandTree;
 /// <summary>
 /// Lookless command row of the <see cref="CommandTree"/> (F5a): the gesture's glyph, or a trigger
 /// badge ("Wheel up", "No trigger") when there is no glyph to draw, the name (editable in place), the
-/// step summary, the F8 platform marker when the command has one, and the active toggle.
+/// category tag when the item has one (an app group with categories), the step summary, the F8
+/// platform marker when the command has one, and the active toggle.
 /// </summary>
 public sealed class CommandRow : ItemRow
 {
@@ -22,6 +23,9 @@ public sealed class CommandRow : ItemRow
     public static readonly StyledProperty<string?> MarkerTextProperty =
         AvaloniaProperty.Register<CommandRow, string?>(nameof(MarkerText));
 
+    public static readonly StyledProperty<string?> CategoryTextProperty =
+        AvaloniaProperty.Register<CommandRow, string?>(nameof(CategoryText));
+
     public static readonly StyledProperty<IReadOnlyList<GesturePoint>?> PointsProperty =
         AvaloniaProperty.Register<CommandRow, IReadOnlyList<GesturePoint>?>(nameof(Points));
 
@@ -30,6 +34,9 @@ public sealed class CommandRow : ItemRow
 
     public static readonly StyledProperty<bool> HasMarkerProperty =
         AvaloniaProperty.Register<CommandRow, bool>(nameof(HasMarker));
+
+    public static readonly StyledProperty<bool> HasCategoryProperty =
+        AvaloniaProperty.Register<CommandRow, bool>(nameof(HasCategory));
 
     public CommandItem? Item
     {
@@ -55,6 +62,13 @@ public sealed class CommandRow : ItemRow
         private set => SetValue(MarkerTextProperty, value);
     }
 
+    /// <summary>The category tag ("General"); null when the item has none.</summary>
+    public string? CategoryText
+    {
+        get => GetValue(CategoryTextProperty);
+        private set => SetValue(CategoryTextProperty, value);
+    }
+
     public IReadOnlyList<GesturePoint>? Points
     {
         get => GetValue(PointsProperty);
@@ -73,6 +87,12 @@ public sealed class CommandRow : ItemRow
         private set => SetValue(HasMarkerProperty, value);
     }
 
+    public bool HasCategory
+    {
+        get => GetValue(HasCategoryProperty);
+        private set => SetValue(HasCategoryProperty, value);
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -84,9 +104,11 @@ public sealed class CommandRow : ItemRow
             TriggerText = item?.TriggerText ?? string.Empty;
             SummaryText = item?.StepSummary ?? string.Empty;
             MarkerText = item?.PlatformMarker;
+            CategoryText = item?.CategoryLabel;
             Points = item?.GlyphPoints;
             HasGlyph = item?.HasGlyph ?? false;
             HasMarker = item?.HasMarker ?? false;
+            HasCategory = item?.HasCategoryLabel ?? false;
         }
     }
 }

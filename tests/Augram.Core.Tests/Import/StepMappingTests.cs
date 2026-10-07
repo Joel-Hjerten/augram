@@ -1,6 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.WindowOp;
@@ -36,10 +37,19 @@ public sealed class StepMappingTests
     public void BoolAndObjectParameterValuesBecomeText()
     {
         var consume = Assert.IsType<ImportedStep>(OnlyStep("{ \"Method\": \"ConsumePhysicalInput\", \"MethodParameters\": [ { \"Name\": \"active\", \"Value\": true } ] }").Step);
-        var hotkey = Assert.IsType<ImportedStep>(OnlyStep("{ \"Method\": \"SendHotKey\", \"MethodParameters\": [ { \"Name\": \"hotkey\", \"Value\": { \"LControl\": true, \"Key\": 9 } } ] }").Step);
+        var click = Assert.IsType<ImportedStep>(OnlyStep("{ \"Method\": \"MouseClick\", \"MethodParameters\": [ { \"Name\": \"point\", \"Value\": { \"X\": 3, \"Y\": 4 } } ] }").Step);
 
         Assert.Equal("true", consume.Parameters["active"]);
-        Assert.Equal("{\"LControl\":true,\"Key\":9}", hotkey.Parameters["hotkey"]);
+        Assert.Equal("{\"X\":3,\"Y\":4}", click.Parameters["point"]);
+    }
+
+    [Fact]
+    public void SendHotKeyBecomesAHotkeyStep()
+    {
+        var hotkey = Assert.IsType<HotkeyStep>(OnlyStep("{ \"Method\": \"SendHotKey\", \"MethodParameters\": [ { \"Name\": \"hotkey\", \"Value\": { \"LControl\": true, \"Key\": 9 } } ] }").Step);
+
+        Assert.Equal(KeyModifiers.Control, hotkey.Modifiers);
+        Assert.Equal(KeyCode.Tab, hotkey.Key);
     }
 
     [Fact]
@@ -101,12 +111,21 @@ public sealed class StepMappingTests
     }
 
     [Theory]
-    [InlineData(172)]
-    [InlineData(180)]
-    [InlineData(9)]
-    public void OtherVirtualKeysArePlaceholders(int virtualKey)
+    [InlineData(172, KeyCode.BrowserHome)]
+    [InlineData(9, KeyCode.Tab)]
+    public void OtherVirtualKeysBecomeHotkeysWithoutModifiers(int virtualKey, KeyCode expected)
     {
         var step = OnlyStep("{ \"Method\": \"SendVKey\", \"MethodParameters\": [ { \"Name\": \"virtualKey\", \"Value\": " + virtualKey + " } ] }");
+
+        var hotkey = Assert.IsType<HotkeyStep>(step.Step);
+        Assert.Equal(KeyModifiers.None, hotkey.Modifiers);
+        Assert.Equal(expected, hotkey.Key);
+    }
+
+    [Fact]
+    public void AVirtualKeyWithNoAugramKeyStaysAPlaceholder()
+    {
+        var step = OnlyStep("{ \"Method\": \"SendVKey\", \"MethodParameters\": [ { \"Name\": \"virtualKey\", \"Value\": 7 } ] }");
 
         Assert.Equal("SendVKey", Assert.IsType<ImportedStep>(step.Step).SourceMethod);
     }

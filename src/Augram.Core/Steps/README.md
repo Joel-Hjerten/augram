@@ -23,10 +23,11 @@ Picker order within a category is `BuiltIn` order.
 |---|---|---|---|---|---|
 | `windowOp` | `WindowOp/` | Window | System | yes | "Close window", "Maximize or restore", "Set size 1280×720", "Snap to left half" |
 | `mediaKey` | `MediaKey/` | Media key | System | yes | "Volume up", "Mute", "Play/pause", "Next track" |
+| `hotkey` | `Hotkey/` | Hotkey | Keyboard | no (F8; conversion later) | "Ctrl+Shift+T", "Alt+F4", "Esc", "Hotkey (no key set)" |
 | `delay` | `Delay/` | Delay | Timing | yes | "Wait 30 ms" |
 | `imported` | `Imported/` | Imported (not supported yet) | Other | yes (nothing to convert) | "SendAltDown (not supported yet)" |
 
-Still to land in M2 (plan 0001 step 2): `Hotkey` (Keyboard, platform-bound: Ctrl ↔ Cmd conversion), `TypeText` (Text), `Run` (Run, platform-bound: paths), later `MouseClick`.
+Still to land in M2 (plan 0001 step 2): the Hotkey's Ctrl ↔ Cmd conversion for macOS, `TypeText` (Text), `Run` (Run, platform-bound: paths), later `MouseClick`.
 
 ## Adding a type (the recipe)
 

@@ -10,14 +10,15 @@ Wires Core to SharpHook: the hook adapter (`IInputSource`), input simulation (`I
 
 | Thread | Name | Does | Must not |
 |---|---|---|---|
-| hook | `augram-hook-gN` (one per install, N = generation) | SharpHook `Run()`; per event: translate to `RawInput`, `InputGate.Handle`: read three volatiles, ask `SuppressionShadow`, `TryWrite` one message, measure itself, return the suppress decision. Logs at Trace only. | run the state machine, allocate beyond one `CaptureEvent`, log above Trace, touch the simulator, wait on anything |
-| engine worker | `augram-engine-worker` | drain the channel; the **only** caller of `CaptureStateMachine.Handle`; publish state for the hook thread; trail calls; click replay (the only click injector, A19); recognition; `EngineHost.EventRaised`; ask `EnginePorts.Intercept`; enqueue an `ExecutionRequest` (or, with no executor, complete the recognition log entry itself); all Info/Debug/Warning logging for capture and recognition | touch a UI type; block on the App (`IStrokeTrail`, event handlers and the intercept must return at once); run a step |
+| hook | `augram-hook-gN` (one per install, N = generation) | SharpHook `Run()`; per event: translate to `RawInput`, `InputGate.Handle`: read three volatiles, ask `SuppressionShadow`, `TryWrite` one message, measure itself, return the suppress decision. A key event reads the capture flag, asks `KeySuppressionShadow`, and posts one message only while a hotkey capture is armed. Logs at Trace only. | run the state machine, allocate beyond one `CaptureEvent`, log above Trace, touch the simulator, wait on anything |
+| engine worker | `augram-engine-worker` | drain the channel; the **only** caller of `CaptureStateMachine.Handle`; publish state for the hook thread; trail calls; click replay (the only click injector, A19); recognition; `EngineHost.EventRaised`; ask `EnginePorts.Intercept`; enqueue an `ExecutionRequest` (or, with no executor, complete the recognition log entry itself); hand captured key events and release notices to the hotkey capture's callback (restarting its watchdog); all Info/Debug/Warning logging for capture and recognition | touch a UI type; block on the App (`IStrokeTrail`, event handlers and the intercept must return at once); run a step |
 | command executor | `augram-command-executor` (only when `EnginePorts.Mapping` is wired) | drain its own bounded queue (8, drop-oldest); per request: `IWindowSystem.WindowAt`, `CommandResolver.Resolve`, complete and add the recognition log entry, every `IStepType.Execute` in order with `IWindowSystem.Activate` and the settle delay (A8) before the first Keyboard or Text step (the only caller of `IWindowOperations` and of the simulator's key and text members); all `exec` logging; the activation outcome for health | touch the state machine, the hook, the hook-to-worker channel, or a UI type; let a step's exception escape (one Error line, the next request runs) |
 | tick timer | `System.Threading.Timer` | every 25 ms **while a button is held** (armed by the worker on Held/Drawing, disarmed otherwise): enqueue `CaptureEvent.Tick(clock.MonotonicMs)` | anything else |
 | health poll | `System.Threading.Timer`, 1 s | `HookHealthMonitor.Poll`: first-event report, events-per-minute ring, reinstall when the source reported Lost or the cursor watchdog fires, log every transition, raise `ResetRequested` | run inside a source callback (a loss reported from the hook thread is only flagged there and acted on at the next poll) |
 | log drain | thread-pool task | hand events to sinks, flush on idle, report drops (`Diagnostics/`) | touch the hook, the worker, or a UI type |
 | file flush timer | `System.Threading.Timer`, 500 ms | `RollingFileSink.Flush` | throw |
-| UI / settings | the App's | `EngineHost.Enabled`, `IgnoreKey` (volatile writes read by the hook thread); `StrokeButton`, `SetThresholds` (messages on the same channel, applied by the worker in order with the input around them); `CaptureNextButtonPress` (arms a one-shot flag the hook thread turns into a `ButtonObserved` message) | call `Handle` or anything on the machine |
+| key capture watchdog | `System.Threading.Timer`, one-shot per armed capture | after the caller's idle timeout with no key event: clear the capture flag, log, post the release notice | touch the hook or the machine |
+| UI / settings | the App's | `EngineHost.Enabled`, `IgnoreKey` (volatile writes read by the hook thread); `StrokeButton`, `SetThresholds` (messages on the same channel, applied by the worker in order with the input around them); `CaptureNextButtonPress` (arms a one-shot flag the hook thread turns into a `ButtonObserved` message); `CaptureKeys` (arms the hotkey-capture flag; disposing clears it at once) | call `Handle` or anything on the machine |
 
 No other thread hops. `docs/reference/threading.md` is this table; it lives here because the Engine is the only place with threads.
 
@@ -30,7 +31,8 @@ The machine is owned by the worker and lags the hook by the queue depth, so the 
 - "the stroke button" is the owed button while one is owed, else the configured one, which is the machine's `_activeButton`: a button change mid-capture keeps consuming the old button until its release;
 - other buttons: never suppressed;
 - wheel: suppress iff the machine's published state is Held, Drawing or WheelFiring. This one reads the worker's snapshot; a wheel tick arriving in the tick interval after a hold-still deadline can be suppressed although the machine then cancels first. The worker logs that at Debug (`Suppression decision mismatch`); anything else at that message is a Warning and a bug;
-- moves and keys: never suppressed.
+- moves: never suppressed;
+- keys: suppressed only while a hotkey capture is armed, and then per press (see Key capture below; `Input/KeySuppressionShadow`).
 
 `tests/Augram.Engine.Tests/Input/SuppressionShadowTests` drives shadow and machine over 2,000 random sequences (button changes, ignore key, disabled presses, hold-still cancels) and asserts equality for every state and event kind. The worker cross-checks every live decision too.
 
@@ -38,10 +40,11 @@ The machine is owned by the worker and lags the hook by the queue depth, so the 
 
 | Type | Role |
 |---|---|
-| `SharpHookInputSource` | the `IInputSource`: `SimpleGlobalHook(All)` per `Start`, own thread; drops `IsEventSimulated` events (true for input injected by *any* process, so other utilities' synthetic input is ignored too, learnings 0001); maps buttons, wheel (SharpHook rotation > 0 is up; horizontal ignored), keys, modifier mask; `SuppressAllKeys` for the later hotkey-capture flow, default off. Thin and untested: needs a desktop |
+| `SharpHookInputSource` | the `IInputSource`: `SimpleGlobalHook(All)` per `Start`, own thread; drops `IsEventSimulated` events (true for input injected by *any* process, so other utilities' synthetic input is ignored too, learnings 0001); maps buttons, wheel (SharpHook rotation > 0 is up; horizontal ignored), keys, modifier mask; key events go through the handler like the rest, so the gate alone decides key suppression. Thin and untested: needs a desktop |
 | `SharpHookInputSimulator` | the `IInputSimulator`: click at point, key press/release, hotkey, Unicode text entry, per-key text via `AsciiKeyLayout` (US layout). Untested for the same reason |
 | `MouseButtonMap`, `KeyCodeMap`, `AsciiKeyLayout` | the only places that know SharpHook's numbering; `KeyCodeMap` maps by name and a test proves every `Core.KeyCode` has a counterpart |
 | `SuppressionShadow` | above |
+| `KeySuppressionShadow` | per key: up, passed (the OS saw the press) or owed (the press was suppressed); a press is suppressed iff a hotkey capture is armed when it starts, its repeats and release follow it; a record older than 2 s means the release was missed and the next press starts fresh |
 | `HookHealthMonitor` | owns the source lifecycle: install, reinstall on `Lost` or on the watchdog (no event for 15 s while `ICursorProbe` saw the cursor move in 4 polls), exponential retry when a reinstall throws, system events logged and the silence clock restarted, `ResetRequested` after reinstall / resume / unlock, health contributor (`HookAliveSince`, `HookReinstallCount`, `EventsLastMinute`) |
 
 ## Hosting
@@ -49,12 +52,25 @@ The machine is owned by the worker and lags the hook by the queue depth, so the 
 | Type | Role |
 |---|---|
 | `InputGate` (internal) | everything that runs on the hook thread: the three volatiles the hook reads, the `SuppressionShadow`, the one `TryWrite`, the worst-handler stopwatch and the drop counters |
-| `EngineHost` | composition point for the engine (the App's composition root creates one): ports in `EnginePorts`, tunables in `EngineHostOptions`, gestures and `RecognitionOptions` as delegates. `Start`/`Stop`/`Dispose`, `Enabled`, `StrokeButton`, `IgnoreKey`, `SetThresholds`, `State`, `Health`, `EventRaised`, `CaptureNextButtonPress` (F1 detect-to-assign: the next physical press is reported once, on the worker, without changing how it is handled) |
+| `EngineHost` | composition point for the engine (the App's composition root creates one): ports in `EnginePorts`, tunables in `EngineHostOptions`, gestures and `RecognitionOptions` as delegates. `Start`/`Stop`/`Dispose`, `Enabled`, `StrokeButton`, `IgnoreKey`, `SetThresholds`, `State`, `Health`, `IsRunning`, `EventRaised`, `CaptureNextButtonPress` (F1 detect-to-assign: the next physical press is reported once, on the worker, without changing how it is handled), `CaptureKeys` and `IsCapturingKeys` (F5 hotkey capture, below) |
+| `KeyCaptureController` (internal), `KeyCaptureEvent`, `KeyCaptureEventKind` | hotkey capture (F5), below |
 | `EngineWorker` (internal) | the worker loop above; queue depth warning at half capacity; dropped moves/ticks reported as a Warning, a dropped button/wheel event as an Error plus a capture reset |
 | `StrokeRecognizer` (internal) | button-up only: `GestureMatcher.Rank`, top 3, threshold, one Info line; a no-match entry goes into the `RecognitionLog` at once, a recognised gesture's entry comes back as a draft in `RecognitionResult` for the executor (or the worker) to complete with group, command or reason |
 | `EngineEvent` | `GestureRecognized`, `NoMatch`, `WheelTriggered`; raised on the worker thread with the raw points so training can keep them |
 | `WorkerMessage` (internal) | the channel item: input with the hook's decision, or a setting change, or a reset |
 | `LogSources` | `hook`, `capture`, `recognition`, `engine`, `exec` |
+
+## Key capture (F5 hotkey field)
+
+`EngineHost.CaptureKeys(callback, idleTimeout)` is what the App's hotkey field arms while it records a combination. Joel's requirement: every key goes to the field, so Win+L, Alt+Tab, Esc and PrintScreen are recorded instead of acted on; commit is mouse-only; the keyboard can never stay dead.
+
+- **Hook thread:** one volatile flag in `InputGate`. While it is set, a key press is suppressed system-wide and its event (key, reported modifier mask, down or up) is posted to the worker; the mouse path does not read the flag at all.
+- **Per-press pairing (A19 for keys):** `KeySuppressionShadow` decides per press, not per event. A key pressed during the capture stays swallowed, repeats and release included, even after the capture ends (the user still holding Ctrl when clicking Accept): Windows sees whole presses or nothing, never a press without its release, which is a stuck key. A key held from before the capture reaches the OS to its release, because the OS already saw it go down.
+- **Worker:** delivers each event to the callback and restarts the watchdog. The caller marshals to its own thread.
+- **Release (the safety invariant):** disposing the handle (not reported back), the watchdog after `idleTimeout` with no key event (`DefaultKeyCaptureIdleTimeout` 10 s), another `CaptureKeys` call (one capture at a time), a hook reset (reinstall after loss, resume, unlock; the key record is forgotten too) and `Stop`. Each clears the flag first, then logs `Key capture released` with the reason, then posts a `Released` notice to the worker so it reaches the callback after the key events queued before it. A lost hook suppresses nothing, so a loss needs no separate path: the reinstall releases.
+- **Independent of `Enabled`:** the tray toggle is about gestures; recording a hotkey works with gestures off.
+
+`tests/Augram.Engine.Tests/Hosting/KeyCaptureTests` and `Input/KeySuppressionShadowTests` cover each rule through `FakeInputSource`; no test installs a real hook.
 
 ## Execution (`Execution/`, M2 step 3)
 
@@ -90,7 +106,8 @@ Queue: bounded, 4,096, `Wait` mode so `TryWrite` reports full instead of silentl
 | `capture` | Debug | `Stroke began`, `Click replayed`, `Gesture cancelled`, wheel-race `Suppression decision mismatch` | `button`, `x`, `y`, `result`, `lagMs`, `reason` |
 | `capture` | Warning / Error | `Input queue deep`, `Input queue full: …`, button `Suppression decision mismatch` | `depth`, `capacity`, `dropped`, `event`, `hook`, `machine` |
 | `recognition` | Info | `Gesture recognized` / `No match`, one per stroke | `gesture`, `score`, `points`, `durationMs`, `matchMs`, `worstHandlerUs`, `top` (`name=score;…`), `reason` |
-| `engine` | Info | `Engine starting`, `Engine stopped`, `Engine enabled` / `Engine disabled`, `Stroke button changed`, `Capture thresholds changed` | `strokeButton`, `enabled`, `tickMs`, `button`, threshold fields |
+| `engine` | Info | `Engine starting`, `Engine stopped`, `Engine enabled` / `Engine disabled`, `Stroke button changed`, `Capture thresholds changed`, `Key capture armed`, `Key capture released` | `strokeButton`, `enabled`, `tickMs`, `button`, threshold fields, `idleTimeoutMs`, `reason` |
+| `engine` | Error | `Key capture callback threw` (the capture holds) | `kind`, `key` |
 | `capture` | Debug | `Stroke consumed` (the intercept took it) | `trigger` |
 | `exec` | Info | `Trigger resolved`, `Window activated`, `Command fired`, `Command has no active steps`, `Command cancelled` | `trigger`, `outcome`, `reason`, `group`, `command`, `process`, `technique`, `elapsedMs`, `focusMoved`, `stepsRun`, `stepsSkipped`, `step` |
 | `exec` | Debug | `Step ran`, one per step; `Execution request dropped: executor stopped` | `index`, `type`, `summary`, `outcome`, `reason`, `ms`, `trigger` |

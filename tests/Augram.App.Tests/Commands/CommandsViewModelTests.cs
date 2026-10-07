@@ -1,38 +1,49 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;
-using Augram.App.Components.GesturePicker;
 using Augram.App.Declarations;
 using Augram.App.Tests.Support;
-using Augram.Core.Capture;
+using Augram.App.ViewModels.Commands;
 using Augram.Core.Mapping;
 using Avalonia.Headless.XUnit;
 using Xunit;
+using static Augram.App.Tests.Commands.CommandsTestData;
 
 namespace Augram.App.Tests.Commands;
 
+/// <summary>The Apps tab's view model: one section per app group, Global left out, a category tag on the rows of a group that has categories.</summary>
 public sealed class CommandsViewModelTests
 {
     [AvaloniaFact]
-    public void ProjectsGlobalFirstThenGroupsAndCommandsByNameWithSummariesAndMarkers()
+    public void AppsTabShowsTheAppGroupsByNameWithoutGlobalWithSummariesMarkersAndCategoryTags()
     {
-        var (vm, _, _, _) = CommandsTestData.Create();
+        var (vm, _, _, _) = Create();
 
-        Assert.Equal(["Global", "Apple", "Chrome"], vm.Groups.Select(group => group.Name));
-        Assert.True(vm.Groups[0].IsGlobal);
-        Assert.All(vm.Groups, group => Assert.False(group.IsExpanded));
+        Assert.Equal(CommandsScope.Apps, vm.Scope);
+        Assert.Equal(("App groups", "New group…"), (vm.Heading, vm.NewSectionLabel));
+        Assert.Equal(["Apple", "Chrome", "Photoshop"], Names(vm));
+        Assert.All(vm.Sections, section =>
+        {
+            Assert.False(section.IsExpanded);
+            Assert.True(section is { CanRename: true, CanDelete: true, CanEditDefinition: true, CanToggleActive: true });
+        });
+        Assert.Equal("no commands", Section(vm, "Apple").CountText);
 
-        var global = vm.Groups[0].Commands;
-        Assert.Equal(["Close window", "Three steps", "Volume up"], global.Select(command => command.Name));
-        Assert.Equal(["Close window", "3 steps", "Volume up"], global.Select(command => command.StepSummary));
-        Assert.Equal([TriggerKind.Gesture, TriggerKind.None, TriggerKind.WheelUp], global.Select(command => command.TriggerKind));
-        Assert.Equal(["Up", "No trigger", "Wheel up"], global.Select(command => command.TriggerText));
-        Assert.True(global[0].HasGlyph);
-        Assert.False(global[2].HasGlyph);
-        Assert.All(global, command => Assert.Null(command.PlatformMarker));
+        var chrome = Section(vm, "Chrome").Commands;
+        Assert.Equal(["Close tab", "Nothing on Up"], chrome.Select(command => command.Name));
+        Assert.Equal(["Wait 5 ms", "Does nothing here"], chrome.Select(command => command.StepSummary));
+        Assert.Equal("has macOS override", chrome[0].PlatformMarker);
+        Assert.All(chrome, command =>
+        {
+            Assert.Null(command.CategoryLabel);
+            Assert.Empty(command.Categories);
+            Assert.Equal(Section(vm, "Chrome").Id, command.Section);
+        });
 
-        var chrome = vm.Groups[2].Commands;
-        Assert.Equal("Does nothing here", chrome.Single(command => command.Name == "Nothing on Up").StepSummary);
-        Assert.Equal("has macOS override", chrome.Single(command => command.Name == "Close tab").PlatformMarker);
+        var photoshop = Section(vm, "Photoshop").Commands;
+        Assert.Equal(["Brush", "Plain"], photoshop.Select(command => command.Name));
+        Assert.Equal(["General", null], photoshop.Select(command => command.CategoryLabel));
+        Assert.Equal(["Uncategorized", "Blend Mode Normal", "General"], photoshop[0].Categories.Select(choice => choice.Name));
+        Assert.Null(photoshop[0].Categories[0].Id);
         Assert.False(vm.CanUndo);
         Assert.Null(vm.SelectedCommand);
     }
@@ -40,68 +51,68 @@ public sealed class CommandsViewModelTests
     [AvaloniaFact]
     public void SelectShowsTheCommandsStepsAndNewCommandLandsInTheSelectedGroupReadyToRename()
     {
-        var (vm, store, _, _) = CommandsTestData.Create();
+        var (vm, store, _, _) = Create();
         var renames = new List<CommandId>();
         vm.RenameRequested += (_, id) => renames.Add(id);
-        var chrome = vm.Groups.Single(group => group.Name == "Chrome");
-        var closeTab = chrome.Commands.Single(command => command.Name == "Close tab");
+        var chrome = Section(vm, "Chrome");
+        var closeTab = Item(vm, "Close tab");
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, chrome, closeTab));
 
         Assert.Equal(closeTab.Id, vm.SelectedCommandId);
-        Assert.Equal(chrome.Id, vm.SelectedGroupId);
+        Assert.Equal(chrome.Id, vm.SelectedSectionId);
         Assert.Equal("Wait 5 ms", Assert.Single(vm.Steps).Summary);
         Assert.Equal("has macOS override", vm.Steps[0].PlatformMarker);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand));
 
-        var created = CommandsTestData.Find(store, "New command 1");
-        Assert.Contains(created, CommandsTestData.Group(store, "Chrome").Commands);
+        var created = Find(store, "New command 1");
+        Assert.Contains(created, Group(store, "Chrome").Commands);
         Assert.Equal(Trigger.None, created.Trigger);
         Assert.Empty(created.Steps);
         Assert.Equal(created.Id, vm.SelectedCommandId);
+        Assert.True(Section(vm, "Chrome").IsExpanded);
         Assert.Equal([created.Id], renames);
         Assert.Empty(vm.Steps);
 
+        // The Apps tab has no group to fall back to.
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand));
 
-        Assert.Contains(CommandsTestData.Group(store, "Global").Commands, command => command.Name == "New command 1");
+        Assert.Equal("Select an app group first, or make one with New group…", vm.Message);
+        Assert.Equal(3, Group(store, "Chrome").Commands.Count);
+        Assert.Single(renames);
     }
 
     [AvaloniaFact]
     public void RenameGoesThroughTheStoreAndRejectsADuplicateWithTheRuleMessage()
     {
-        var (vm, store, _, _) = CommandsTestData.Create();
-        var global = vm.Groups[0];
-        var close = global.Commands.Single(command => command.Name == "Close window");
+        var (vm, store, _, _) = Create();
+        var chrome = Section(vm, "Chrome");
+        var closeTab = Item(vm, "Close tab");
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, global, close, "volume up"));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, chrome, closeTab, "nothing on up"));
 
-        // The rule names whichever copy it met first; both are "volume up" when compared.
-        Assert.Matches("^A command named '[Vv]olume up' already exists in 'Global'\\.$", vm.Message);
-        Assert.Equal("Close window", store.FindCommand(close.Id)!.Value.Command.Name);
+        // The rule names whichever copy it met first; both are "nothing on up" when compared.
+        Assert.Matches("^A command named '[Nn]othing on [Uu]p' already exists in 'Chrome'\\.$", vm.Message);
+        Assert.Equal("Close tab", store.FindCommand(closeTab.Id)!.Value.Command.Name);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, global, close, "Close"));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, chrome, closeTab, "Close"));
         Assert.Null(vm.Message);
-        Assert.Equal("Close", store.FindCommand(close.Id)!.Value.Command.Name);
+        Assert.Equal("Close", store.FindCommand(closeTab.Id)!.Value.Command.Name);
 
-        var chrome = vm.Groups.Single(group => group.Name == "Chrome");
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, chrome, null, "Chromium"));
-        Assert.Equal("Chromium", store.FindGroup(chrome.Id)!.Name);
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, vm.Groups[0], null, "Everywhere"));
-        Assert.Equal("The Global group cannot be renamed.", vm.Message);
-        Assert.Equal("Global", store.Global.Name);
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, Section(vm, "Chrome"), null, "Chromium"));
+        Assert.Equal("Chromium", store.FindGroup(chrome.Id.GroupId)!.Name);
+        Assert.Equal(["Apple", "Chromium", "Photoshop"], Names(vm));
     }
 
     [AvaloniaFact]
     public void DeleteAsksFirstForCommandsAndGroupsAndUndoBringsThemBack()
     {
         var confirm = new FakeConfirmPresenter { Answer = false };
-        var (vm, store, _, dialogs) = CommandsTestData.Create(confirm);
-        var chrome = vm.Groups.Single(group => group.Name == "Chrome");
-        var closeTab = chrome.Commands.Single(command => command.Name == "Close tab");
+        var (vm, store, _, dialogs) = Create(confirm: confirm);
+        var chrome = Section(vm, "Chrome");
+        var closeTab = Item(vm, "Close tab");
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, chrome, closeTab));
         Assert.Equal(("Delete command", "Delete command 'Close tab'?", "Delete"), confirm.Requests[^1]);
@@ -112,26 +123,23 @@ public sealed class CommandsViewModelTests
         Assert.Null(store.FindCommand(closeTab.Id));
         Assert.Equal($"Deleted 'Close tab'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, vm.Groups.Single(group => group.Name == "Chrome")));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Chrome")));
         Assert.Equal(("Delete app group", "Delete group 'Chrome' and its command?", "Delete"), confirm.Requests[^1]);
         Assert.Empty(dialogs.Requests);
-        Assert.Null(store.FindGroup(chrome.Id));
-        Assert.Equal(["Global", "Apple"], vm.Groups.Select(group => group.Name));
+        Assert.Null(store.FindGroup(chrome.Id.GroupId));
+        Assert.Equal(["Apple", "Photoshop"], Names(vm));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         Assert.NotNull(store.FindCommand(closeTab.Id));
         Assert.True(vm.CanRedo);
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, vm.Groups[0]));
-        Assert.Equal("The Global group cannot be deleted.", vm.Message);
-        Assert.Equal(3, vm.Groups.Count);
+        Assert.Equal(["Apple", "Chrome", "Photoshop"], Names(vm));
     }
 
     [AvaloniaFact]
     public void NewGroupAndEditGroupGoThroughTheDeclaredFormAndKeepTheCommands()
     {
-        var (vm, store, _, dialogs) = CommandsTestData.Create();
+        var (vm, store, _, dialogs) = Create();
         dialogs.Answer = request =>
         {
             Field("Name", request).Set("Zed");
@@ -139,13 +147,13 @@ public sealed class CommandsViewModelTests
             return true;
         };
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewGroup));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewSection));
 
         Assert.Equal("New app group", dialogs.Last.Title);
-        var zed = CommandsTestData.Group(store, "Zed");
+        var zed = Group(store, "Zed");
         Assert.Equal(["zed.exe", "zed-preview.exe"], zed.Matcher!.ProcessNames);
-        Assert.Equal(zed.Id, vm.SelectedGroupId);
-        Assert.Equal(["Global", "Apple", "Chrome", "Zed"], vm.Groups.Select(group => group.Name));
+        Assert.Equal(SectionId.ForGroup(zed.Id), vm.SelectedSectionId);
+        Assert.Equal(["Apple", "Chrome", "Photoshop", "Zed"], Names(vm));
 
         dialogs.Answer = request =>
         {
@@ -154,11 +162,11 @@ public sealed class CommandsViewModelTests
             Toggle("Title is a regular expression", request).Set(true);
             return true;
         };
-        var chrome = vm.Groups.Single(group => group.Name == "Chrome");
+        var chrome = Section(vm, "Chrome");
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditGroup, chrome));
 
         Assert.Equal("Edit app group 'Chrome'", dialogs.Last.Title);
-        var edited = store.FindGroup(chrome.Id)!;
+        var edited = store.FindGroup(chrome.Id.GroupId)!;
         Assert.Equal("Chromium", edited.Name);
         Assert.Equal(["chrome.exe"], edited.Matcher!.ProcessNames);
         Assert.True(edited.Matcher.TitleIsRegex);
@@ -169,113 +177,23 @@ public sealed class CommandsViewModelTests
             Field("Name", request).Set("Apple");
             return true;
         };
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewGroup));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewSection));
         Assert.Equal("An app group named 'Apple' already exists.", vm.Message);
     }
 
     [AvaloniaFact]
     public void ToggleActiveFlipsACommandOrAGroup()
     {
-        var (vm, store, _, _) = CommandsTestData.Create();
-        var global = vm.Groups[0];
-        var close = global.Commands[0];
+        var (vm, store, _, _) = Create();
+        var closeTab = Item(vm, "Close tab");
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleActive, global, close));
-        Assert.False(store.FindCommand(close.Id)!.Value.Command.IsActive);
-        Assert.False(vm.Groups[0].Commands[0].IsActive);
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleActive, Section(vm, "Chrome"), closeTab));
+        Assert.False(store.FindCommand(closeTab.Id)!.Value.Command.IsActive);
+        Assert.False(Item(vm, "Close tab").IsActive);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleActive, vm.Groups.Single(group => group.Name == "Apple")));
-        Assert.False(CommandsTestData.Group(store, "Apple").IsActive);
-    }
-
-    [AvaloniaFact]
-    public void CopyPastesIntoAnotherGroupAndDropsATriggerThatGroupAlreadyUses()
-    {
-        var (vm, store, _, _) = CommandsTestData.Create();
-        var global = vm.Groups[0];
-        var close = global.Commands.Single(command => command.Name == "Close window");
-        var apple = vm.Groups.Single(group => group.Name == "Apple");
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, global, close));
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, apple));
-
-        var pasted = Assert.Single(CommandsTestData.Group(store, "Apple").Commands);
-        Assert.Equal("Close window", pasted.Name);
-        Assert.NotEqual(close.Id, pasted.Id);
-        Assert.Equal(Trigger.ForGesture(CommandsTestData.Up), pasted.Trigger);
-        Assert.Equal("Close window", Assert.Single(pasted.Steps).Step.Summary);
-        Assert.Equal(pasted.Id, vm.SelectedCommandId);
-
-        var chrome = vm.Groups.Single(group => group.Name == "Chrome");
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, chrome));
-
-        var unbound = CommandsTestData.Group(store, "Chrome").Commands.Single(command => command.Name == "Close window");
-        Assert.Equal(Trigger.None, unbound.Trigger);
-        Assert.StartsWith("Pasted 'Close window' into 'Chrome' without its trigger", vm.Message, StringComparison.Ordinal);
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, global));
-        Assert.Contains(CommandsTestData.Group(store, "Global").Commands, command => command.Name == "Close window copy");
-    }
-
-    [AvaloniaFact]
-    public void TriggerKindsSetWheelOrNoneAndGestureGoesThroughThePicker()
-    {
-        var (vm, store, picker, _) = CommandsTestData.Create();
-        var global = vm.Groups[0];
-        var close = global.Commands.Single(command => command.Name == "Close window");
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, global, close, kind: TriggerKind.WheelDown));
-        Assert.Equal(Trigger.ForWheel(WheelDirection.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, global, close, kind: TriggerKind.WheelUp));
-        Assert.Matches("^'(Volume up|Close window)' in 'Global' already uses wheel up\\.$", vm.Message);
-        Assert.Equal(Trigger.ForWheel(WheelDirection.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, global, close, kind: TriggerKind.None));
-        Assert.Equal(Trigger.None, store.FindCommand(close.Id)!.Value.Command.Trigger);
-
-        picker.Result = GesturePickerResult.Selected(CommandsTestData.Down);
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, global, close, kind: TriggerKind.Gesture));
-        Assert.Equal([null], picker.Requests);
-        Assert.Equal(Trigger.ForGesture(CommandsTestData.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
-        Assert.Equal("Down", vm.Groups[0].Commands.Single(command => command.Id == close.Id).TriggerText);
-
-        picker.Result = GesturePickerResult.Cancelled;
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.PickGesture, global, close));
-        Assert.Equal(CommandsTestData.Down, picker.Requests[^1]);
-        Assert.Equal(Trigger.ForGesture(CommandsTestData.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
-
-        picker.Result = GesturePickerResult.NoGesture;
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.PickGesture, global, close));
-        Assert.Equal(Trigger.None, store.FindCommand(close.Id)!.Value.Command.Trigger);
-    }
-
-    [AvaloniaFact]
-    public void GroupsStartCollapsedStayAsTheUserLeftThemAndShowCommandExpandsOne()
-    {
-        var (vm, store, _, _) = CommandsTestData.Create();
-        var chrome = vm.Groups.Single(group => group.Name == "Chrome");
-        Assert.False(chrome.IsExpanded);
-        Assert.Equal(2, chrome.Commands.Count);
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, chrome));
-        Assert.True(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
-
-        // A store change re-projects every group; what the user opened stays open.
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleActive, vm.Groups.Single(group => group.Name == "Apple")));
-        Assert.True(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
-        Assert.False(vm.Groups.Single(group => group.Name == "Apple").IsExpanded);
-
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, vm.Groups.Single(group => group.Name == "Chrome")));
-        Assert.False(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
-
-        var closeTab = CommandsTestData.Find(store, "Close tab");
-        Assert.True(vm.ShowCommand(closeTab.Id));
-
-        Assert.True(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
-        Assert.Equal(closeTab.Id, vm.SelectedCommandId);
-        Assert.Equal("Close tab", vm.SelectedCommand!.Name);
-        Assert.False(vm.ShowCommand(CommandId.New()));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleActive, Section(vm, "Apple")));
+        Assert.False(Group(store, "Apple").IsActive);
+        Assert.False(Section(vm, "Apple").IsActive);
     }
 
     private static IValueBinding<string> Field(string label, FormDialogRequest request)

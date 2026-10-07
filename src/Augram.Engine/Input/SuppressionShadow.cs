@@ -17,7 +17,7 @@ namespace Augram.Engine.Input;
 /// release: suppress iff the press was suppressed; the "stroke button" for both is the owed button
 /// while one is owed, so a button change mid-capture keeps consuming the old button (the machine's
 /// <c>_activeButton</c>); other buttons are never suppressed; a wheel tick is suppressed iff the
-/// machine is Held, Drawing or WheelFiring; moves and keys never are.
+/// machine is Held, Drawing or WheelFiring; moves never are. Keys are <see cref="KeySuppressionShadow"/>'s (hotkey capture).
 /// </para>
 /// </summary>
 public sealed class SuppressionShadow

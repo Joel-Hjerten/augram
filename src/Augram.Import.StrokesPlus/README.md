@@ -37,11 +37,12 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 | `SetWindowSize(width, height)` | `WindowOpStep(SetSize, WindowSize)`; unparsable or non-positive size → placeholder + warning |
 | `InvokeObjectMethodByName(methodName = Center)` | `WindowOpStep(Center)`; any other method → placeholder |
 | `Delay(milliseconds)` | `DelayStep`, clamped to 0..60000 with a warning when clamped; unparsable → placeholder + warning |
-| `SendVKey(virtualKey)` 173..179 | `MediaKeyStep` (173 VolumeMute, 174 VolumeDown, 175 VolumeUp, 176 NextTrack, 177 PreviousTrack, 178 Stop, 179 PlayPause); any other key → placeholder |
-| `SendHotKey`, `SendKeys`, `SendString`, `Run`, `MouseClick`, `SendAltDown/Up`, `SendWinDown/Up`, `ConsumePhysicalInput`, unknown, null | `ImportedStep(method, step description, parameters as name → value text)`: shows as "not supported yet", runs (skips) now, and gets a real type later |
+| `SendVKey(virtualKey)` 173..179 | `MediaKeyStep` (173 VolumeMute, 174 VolumeDown, 175 VolumeUp, 176 NextTrack, 177 PreviousTrack, 178 Stop, 179 PlayPause); any other key → `HotkeyStep` with no modifiers through `HotkeyMapping` (VK → `KeyCode` table), placeholder when the key has no `KeyCode` |
+| `SendHotKey(hotkey{LControl, RControl, LAlt, RAlt, LShift, RShift, LWin, RWin, Key})` | `HotkeyStep` through `HotkeyMapping.FromSendHotKey` (right-side modifiers fold into plain Ctrl/Alt/Shift/Win); placeholder when the key has no `KeyCode`. `HotkeyMapping.TryUpgrade(ImportedStep)` converts a placeholder saved before hotkeys existed |
+| `SendKeys`, `SendString`, `Run`, `MouseClick`, `SendAltDown/Up`, `SendWinDown/Up`, `ConsumePhysicalInput`, unknown, null | `ImportedStep(method, step description, parameters as name → value text)`: shows as "not supported yet", runs (skips) now, and gets a real type later |
 | a step with `Active == false` | `CommandStep.IsActive = false` |
 
-One **Info** line per distinct placeholder method per file ("12 SendHotKey step(s) imported as placeholders; hotkeys arrive in a later version."), never one per step.
+One **Info** line per distinct placeholder method per file ("3 Run step(s) imported as placeholders; the Run step arrives in a later version."), never one per step.
 
 ## Action mapping
 

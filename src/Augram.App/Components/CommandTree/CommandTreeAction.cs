@@ -2,30 +2,35 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// The intents a <see cref="CommandTree"/> (and the <see cref="CommandHeader"/>) raises for the host
-/// view model (F5a list editing). The event args say which group and command they apply to: an
-/// action with a command set acts on the command, one with only a group set acts on the group.
+/// view model (F5a list editing). The event args say which section and command they apply to: an
+/// action with a command set acts on the command, one with only a section set acts on the section.
+/// A section is an app group on the Apps tab and a category (or Uncategorized) on the Global tab; what
+/// a section's header offers is on its <see cref="SectionItem"/>.
 /// </summary>
 public enum CommandTreeAction
 {
-    /// <summary>The user selected a group row (command null) or a command row.</summary>
+    /// <summary>The user selected a section row (command null) or a command row.</summary>
     Select,
 
-    /// <summary>Show or hide the group's commands.</summary>
+    /// <summary>Show or hide the section's commands.</summary>
     ToggleExpanded,
 
-    /// <summary>Open the app group form for a new group.</summary>
-    NewGroup,
+    /// <summary>
+    /// A new section, labelled by the host (<see cref="CommandTree.NewSectionLabel"/>): the app group form
+    /// on the Apps tab, a "New category N" ready to rename on the Global tab.
+    /// </summary>
+    NewSection,
 
-    /// <summary>Reopen the app group form for the group ("Edit app definition…").</summary>
+    /// <summary>Reopen the app group form for the section's group ("Edit app definition…"; <see cref="SectionItem.CanEditDefinition"/>).</summary>
     EditGroup,
 
-    /// <summary>A "New command N" in the group (the selected one, Global when none), selected and ready to rename.</summary>
+    /// <summary>A "New command N" in the selected section, selected and ready to rename.</summary>
     NewCommand,
 
-    /// <summary>Rename the group or command to the name typed in place.</summary>
+    /// <summary>Rename the section or command to the name typed in place.</summary>
     Rename,
 
-    /// <summary>Delete the group (with its commands) or the command; the host asks first.</summary>
+    /// <summary>Delete the section (an app group with its commands, a category whose commands move to Uncategorized) or the command; the host asks first.</summary>
     Delete,
 
     ToggleActive,
@@ -33,11 +38,14 @@ public enum CommandTreeAction
     /// <summary>Copy the command to the in-memory clipboard.</summary>
     Copy,
 
-    /// <summary>Paste the copied command into the group.</summary>
+    /// <summary>Paste the copied command into the section.</summary>
     Paste,
 
     /// <summary>Change the command's trigger kind (the header dropdown); Gesture opens the picker.</summary>
     SetTriggerKind,
+
+    /// <summary>Move the command into another category of its group (the header's Category dropdown); Uncategorized clears it.</summary>
+    SetCategory,
 
     /// <summary>Open the Select Gesture picker for the command (the header's glyph button).</summary>
     PickGesture,

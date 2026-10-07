@@ -17,11 +17,15 @@ namespace Augram.Engine.Hosting;
 /// worker (<see cref="EngineWorker"/>) owns the machine and everything after it; the command executor
 /// (<see cref="CommandExecutor"/>, its own thread, present only when <see cref="EnginePorts.Mapping"/>
 /// is wired) resolves and runs what the worker hands it. Gestures and recognition options are
-/// delegates so the App wires its stores.
+/// delegates so the App wires its stores. <see cref="CaptureKeys"/> is the hotkey field's system-wide
+/// key capture (F5; <see cref="KeyCaptureController"/>).
 /// </summary>
 public sealed class EngineHost : IDisposable
 {
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>F5's watchdog default: a hotkey capture with no key event for this long releases the keyboard.</summary>
+    public static readonly TimeSpan DefaultKeyCaptureIdleTimeout = TimeSpan.FromSeconds(10);
 
     private readonly IEventLog _log;
     private readonly IClock _clock;
@@ -30,12 +34,14 @@ public sealed class EngineHost : IDisposable
     private readonly HookHealthMonitor _monitor;
     private readonly EngineWorker _worker;
     private readonly CommandExecutor? _executor;
+    private readonly KeyCaptureController _keyCapture;
     private readonly Thread _workerThread;
     private readonly Timer _tick;
     private readonly TimeSpan _tickInterval;
     private readonly IDisposable? _healthRegistration;
     private int _tickArmed;
     private int _started;
+    private int _running;
     private int _disposed;
     private long _lastStrokeLatencyMs = -1;
     private Action<MouseButton>? _buttonObserver;
@@ -60,6 +66,7 @@ public sealed class EngineHost : IDisposable
             AllowSynchronousContinuations = false,
         });
         _gate = new InputGate(_queue.Writer, _log, options.StrokeButton, options.IgnoreKey, options.Enabled);
+        _keyCapture = new KeyCaptureController(_gate, _log);
 
         var machine = new CaptureStateMachine(options.StrokeButton, options.Thresholds);
         var recognizer = new StrokeRecognizer(gestures, recognition, ports.RecognitionLog, _log, _clock);
@@ -114,6 +121,12 @@ public sealed class EngineHost : IDisposable
 
     public long DroppedMoveCount => _gate.DroppedMoveCount;
 
+    /// <summary>True between <see cref="Start"/> and <see cref="Stop"/>: the hook is (being) installed and the worker runs.</summary>
+    public bool IsRunning => Volatile.Read(ref _running) != 0;
+
+    /// <summary>True while a <see cref="CaptureKeys"/> capture is armed.</summary>
+    public bool IsCapturingKeys => _gate.KeysCaptured;
+
     /// <summary>True when a Mapping port was wired and recognised gestures and wheel ticks are executed; false is M1 behaviour (recognise and report only).</summary>
     internal bool HasExecutor => _executor is not null;
 
@@ -140,6 +153,23 @@ public sealed class EngineHost : IDisposable
         return new ButtonCapture(this, callback);
     }
 
+    /// <summary>
+    /// Hotkey capture (F5): until released, every key press is suppressed system-wide (Win+L, Alt+Tab,
+    /// Esc and PrintScreen included) and reported, with its release, to <paramref name="callback"/> on the
+    /// worker thread; the mouse is never affected. A key held since before the call reaches the OS to its
+    /// release; a key pressed during the capture stays swallowed to its release, even after the capture
+    /// ends (A19 for keys). Released by disposing the result (not reported back), and by the engine itself,
+    /// reported as <see cref="KeyCaptureEventKind.Released"/> with the reason: no key event for
+    /// <paramref name="idleTimeout"/> (the watchdog; <see cref="DefaultKeyCaptureIdleTimeout"/> is F5's
+    /// default), another call replacing this one, a hook reset, <see cref="Stop"/>. The caller marshals to its
+    /// own thread. Works whether or not gestures are enabled; does nothing useful before <see cref="Start"/>.
+    /// </summary>
+    public IDisposable CaptureKeys(Action<KeyCaptureEvent> callback, TimeSpan idleTimeout)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        return _keyCapture.Arm(callback, idleTimeout);
+    }
+
     public void Start()
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
@@ -151,6 +181,7 @@ public sealed class EngineHost : IDisposable
         _log.Info(LogSources.Engine, "Engine starting", ("strokeButton", StrokeButton), ("enabled", Enabled), ("tickMs", _tickInterval.TotalMilliseconds));
         _workerThread.Start();
         _executor?.Start();
+        Volatile.Write(ref _running, 1);
         _monitor.Start(_gate.Handle);
     }
 
@@ -163,6 +194,9 @@ public sealed class EngineHost : IDisposable
 
         _monitor.Stop();
         ArmTick(false);
+        Volatile.Write(ref _running, 0);
+        // Before the queue completes, so the release notice still reaches the caller through the worker.
+        _keyCapture.ReleaseCurrent(KeyCaptureEvent.EngineStoppedReason);
         _queue.Writer.TryComplete();
         if (_workerThread.IsAlive && _workerThread != Thread.CurrentThread)
         {
@@ -208,6 +242,8 @@ public sealed class EngineHost : IDisposable
         }
     }
 
+    internal void OnKeyCaptured(KeyCaptureEvent captured) => _keyCapture.Deliver(captured);
+
     internal void ArmTick(bool armed)
     {
         var next = armed ? 1 : 0;
@@ -233,6 +269,7 @@ public sealed class EngineHost : IDisposable
 
     private void OnResetRequested(object? sender, string reason)
     {
+        _keyCapture.ReleaseCurrent($"{KeyCaptureEvent.HookResetReason} ({reason})");
         _gate.ResetShadow();
         _gate.Post(WorkerMessage.Reset(reason), critical: true);
     }

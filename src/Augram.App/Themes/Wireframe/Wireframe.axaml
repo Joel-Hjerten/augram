@@ -24,6 +24,7 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+        <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/Hotkey.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <ControlTheme x:Key="{x:Type shell:Shell}" TargetType="shell:Shell">
@@ -334,11 +335,14 @@
                 </Grid.ColumnDefinitions>
                 <tree:CommandTree Name="PART_Tree"
                                   Grid.Column="0"
-                                  Groups="{TemplateBinding Groups}"
-                                  SelectedGroupId="{TemplateBinding SelectedGroupId}"
+                                  Sections="{TemplateBinding Sections}"
+                                  SelectedSectionId="{TemplateBinding SelectedSectionId}"
                                   SelectedCommandId="{TemplateBinding SelectedCommandId}"
                                   CanUndo="{TemplateBinding CanUndo}"
-                                  CanRedo="{TemplateBinding CanRedo}" />
+                                  CanRedo="{TemplateBinding CanRedo}"
+                                  Heading="{TemplateBinding TreeHeading}"
+                                  NewSectionLabel="{TemplateBinding NewSectionLabel}"
+                                  HelpText="{TemplateBinding TreeHelp}" />
                 <GridSplitter Grid.Column="1" Width="4" Background="{StaticResource Brush.Border}" ResizeDirection="Columns" />
                 <DockPanel Grid.Column="2">
                   <tree:CommandHeader Name="PART_Header" DockPanel.Dock="Top" Item="{TemplateBinding SelectedCommand}" />
@@ -367,9 +371,9 @@
                         BorderThickness="{StaticResource Border.Bottom}"
                         Padding="{StaticResource Pad.S}">
                   <StackPanel Spacing="{StaticResource Space.S}">
-                    <TextBlock Classes="section-title" Text="Commands" />
+                    <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
-                      <Button Name="PART_NewGroup" Classes="toolbar" Content="New group…" />
+                      <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
                       <Button Name="PART_NewCommand" Classes="toolbar" Content="New command" />
                       <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
                       <Button Name="PART_Redo" Classes="toolbar" Content="Redo" IsEnabled="{TemplateBinding CanRedo}" />
@@ -379,8 +383,9 @@
                 <Border DockPanel.Dock="Bottom"
                         BorderBrush="{StaticResource Brush.Border}"
                         BorderThickness="0,1,0,0"
-                        Padding="{StaticResource Pad.S}">
-                  <TextBlock Classes="help" Text="Global is always first. Right-click a row for the menu; rename with the rename key. Deleting a group or a command asks first; Undo brings it back." />
+                        Padding="{StaticResource Pad.S}"
+                        IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <TextBlock Classes="help" Text="{TemplateBinding HelpText}" />
                 </Border>
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
@@ -398,7 +403,8 @@
         </Setter>
       </ControlTheme>
 
-      <ControlTheme x:Key="{x:Type tree:GroupRow}" TargetType="tree:GroupRow">
+      <!-- A section header: an app group (Apps tab) or a category / Uncategorized (Global tab). The active box shows only when the item allows it. -->
+      <ControlTheme x:Key="{x:Type tree:SectionRow}" TargetType="tree:SectionRow">
         <Setter Property="Template">
           <ControlTemplate>
             <Border Name="PART_Frame"
@@ -417,7 +423,11 @@
                   <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
                   <TextBlock Classes="help" Text="{TemplateBinding CountText}" VerticalAlignment="Center" />
                 </StackPanel>
-                <CheckBox Grid.Column="2" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+                <CheckBox Grid.Column="2"
+                          Name="PART_Active"
+                          Classes="row-active"
+                          VerticalAlignment="Center"
+                          IsVisible="{TemplateBinding CanToggleActive}" />
               </Grid>
             </Border>
           </ControlTemplate>
@@ -427,6 +437,9 @@
         </Style>
         <Style Selector="^:inactive /template/ TextBlock#PART_Name">
           <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+        <Style Selector="^:pinned /template/ TextBlock#PART_Name">
+          <Setter Property="FontStyle" Value="Italic" />
         </Style>
       </ControlTheme>
 
@@ -449,10 +462,14 @@
                   </Border>
                 </Panel>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
-                  <TextBlock Name="PART_Name"
-                             Classes="row-name"
-                             Text="{TemplateBinding NameText}"
-                             IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                  <StackPanel Orientation="Horizontal"
+                              Spacing="{StaticResource Space.M}"
+                              IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}">
+                    <TextBlock Name="PART_Name" Classes="row-name" Text="{TemplateBinding NameText}" VerticalAlignment="Center" />
+                    <Border Classes="category-tag" IsVisible="{TemplateBinding HasCategory}">
+                      <TextBlock Classes="category-tag" Text="{TemplateBinding CategoryText}" />
+                    </Border>
+                  </StackPanel>
                   <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
                   <TextBlock Classes="help" Text="{TemplateBinding SummaryText}" />
                 </StackPanel>
@@ -486,7 +503,7 @@
                 <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasCommand}">
                   <TextBlock Classes="section-title" Text="{TemplateBinding NameText}" />
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
-                    <TextBlock Classes="field-label" Text="Trigger" VerticalAlignment="Center" />
+                    <TextBlock Classes="field-label header-label" Text="Trigger" VerticalAlignment="Center" />
                     <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
                     <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
@@ -495,6 +512,10 @@
                         <TextBlock Classes="help" Text="Change…" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
+                    <TextBlock Classes="field-label header-label" Text="Category" VerticalAlignment="Center" />
+                    <ComboBox Name="PART_Category" Classes="field-editor" />
                   </StackPanel>
                 </StackPanel>
               </Panel>
@@ -760,6 +781,19 @@
   </Style>
   <Style Selector="TextBlock.row-name">
     <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.header-label">
+    <Setter Property="MinWidth" Value="{StaticResource Header.LabelWidth}" />
+  </Style>
+  <Style Selector="Border.category-tag">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.Tag}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.category-tag">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
   </Style>
   <Style Selector="TextBlock.platform-marker">
     <Setter Property="FontSize" Value="{StaticResource Font.S}" />

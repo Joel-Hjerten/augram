@@ -1,4 +1,5 @@
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.WindowOp;
@@ -34,6 +35,7 @@ public sealed class StepRegistry
     [
         WindowOpStepType.Instance,
         MediaKeyStepType.Instance,
+        HotkeyStepType.Instance,
         DelayStepType.Instance,
         ImportedStepType.Instance,
     ]);

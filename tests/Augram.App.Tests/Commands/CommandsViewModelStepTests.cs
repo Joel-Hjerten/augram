@@ -107,26 +107,27 @@ public sealed class CommandsViewModelStepTests
     [AvaloniaFact]
     public void StepActionsNeedASelectedCommandAndSelectionResetsWhenTheCommandChanges()
     {
-        var (vm, _, _, _) = CommandsTestData.Create();
+        var (vm, _, _, _) = CommandsTestData.Create(ViewModels.Commands.CommandsScope.Global);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Add, type: MediaKeyStepType.Instance));
         Assert.Equal("Select a command first.", vm.Message);
 
-        var global = vm.Groups[0];
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, global, global.Commands.Single(command => command.Name == "Three steps")));
+        var three = CommandsTestData.Item(vm, "Three steps");
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, CommandsTestData.Section(vm, "Uncategorized"), three));
         vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[2]));
         Assert.Equal(2, vm.SelectedStepIndex);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, global, global.Commands.Single(command => command.Name == "Volume up")));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, CommandsTestData.Section(vm, "Media"), CommandsTestData.Item(vm, "Volume up")));
         Assert.Equal(-1, vm.SelectedStepIndex);
         Assert.Equal("Volume up", Assert.Single(vm.Steps).Summary);
     }
 
+    /// <summary>The Global tab with a Global command selected (its steps are what the step list shows).</summary>
     private static (ViewModels.Commands.CommandsViewModel Vm, Core.Mapping.MappingStore Store, FakeGesturePickerPresenter Picker, FakeFormDialogPresenter Dialogs) Select(string command, FakeConfirmPresenter? confirm = null)
     {
-        var created = CommandsTestData.Create(confirm ?? new FakeConfirmPresenter());
-        var global = created.Vm.Groups[0];
-        created.Vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, global, global.Commands.Single(item => item.Name == command)));
+        var created = CommandsTestData.Create(ViewModels.Commands.CommandsScope.Global, confirm);
+        var item = CommandsTestData.Item(created.Vm, command);
+        created.Vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, created.Vm.Sections.Single(section => section.Id == item.Section), item));
         return created;
     }
 }

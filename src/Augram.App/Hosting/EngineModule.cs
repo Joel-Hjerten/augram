@@ -1,4 +1,5 @@
 using System.Runtime.Versioning;
+using Augram.App.Components.HotkeyCapture;
 using Augram.App.Overlay;
 using Augram.App.Training;
 using Augram.Core.Abstractions;
@@ -12,6 +13,7 @@ using Augram.Platform.Windows.Input;
 using Augram.Platform.Windows.Overlay;
 using Augram.Platform.Windows.Startup;
 using Augram.Platform.Windows.WindowSystem;
+using Avalonia;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -56,6 +58,7 @@ public static class EngineModule
         services.AddSingleton(CreateHost);
         services.AddSingleton<EngineSettingsLink>();
         services.AddSingleton(sp => new StrokeButtonDetection(sp.GetRequiredService<EngineHost>(), sp.GetRequiredService<SettingsStore>(), marshal));
+        services.AddSingleton<IKeyCapture>(sp => new EngineKeyCapture(sp.GetRequiredService<EngineHost>(), marshal));
         return services;
     }
 
@@ -80,6 +83,20 @@ public static class EngineModule
         services.GetRequiredService<EngineSettingsLink>();
         services.GetRequiredService<AppState>().SyncStartupRegistration();
         host.Start();
+        PublishKeyCapture(services);
+    }
+
+    /// <summary>
+    /// Makes the engine's key capture reachable from every hotkey field (F5): step forms are built by
+    /// <c>StepFormRegistry</c> without services, so the field looks the capture up as an application resource.
+    /// Only a started engine publishes it; under <c>--no-engine</c> the field falls back to its window's keys.
+    /// </summary>
+    internal static void PublishKeyCapture(IServiceProvider services)
+    {
+        if (Application.Current is { } app)
+        {
+            app.Resources[HotkeyCaptureBox.KeyCaptureResourceKey] = services.GetRequiredService<IKeyCapture>();
+        }
     }
 
     /// <summary>

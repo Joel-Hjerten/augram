@@ -7,10 +7,13 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// Lookless header of the selected command (F5a, F3 "gesture picker from the command editor"): the
-/// name, a trigger-kind dropdown (<c>PART_TriggerKind</c>: No trigger / Gesture / Wheel up / Wheel down)
-/// and, for a gesture, a glyph button (<c>PART_PickGesture</c>) that asks the host to open the Select
-/// Gesture picker. Choosing Gesture in the dropdown asks for the picker too; the dropdown is put back
-/// to the command's real kind after every request, so a cancelled picker leaves it honest.
+/// name, a trigger-kind dropdown (<c>PART_TriggerKind</c>: No trigger / Gesture / Wheel up / Wheel down),
+/// for a gesture a glyph button (<c>PART_PickGesture</c>) that asks the host to open the Select Gesture
+/// picker, and a Category dropdown (<c>PART_Category</c>) when the item offers categories
+/// (<see cref="CommandItem.Categories"/>: always on the Global tab, only for a group that has some on the
+/// Apps tab). Choosing Gesture in the kind dropdown asks for the picker too. Both dropdowns only ask
+/// (<see cref="AskingDropdown"/>): they are put back to the command's real value after every request, so
+/// a cancelled picker or a refused change leaves them honest.
 /// </summary>
 public sealed class CommandHeader : TemplatedControl
 {
@@ -32,12 +35,15 @@ public sealed class CommandHeader : TemplatedControl
     public static readonly StyledProperty<bool> IsGestureKindProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(IsGestureKind));
 
-    private ComboBox? _kind;
-    private bool _applying;
+    public static readonly StyledProperty<bool> HasCategoriesProperty =
+        AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasCategories));
+
+    private AskingDropdown? _kind;
+    private AskingDropdown? _category;
 
     public event EventHandler<CommandTreeActionEventArgs>? ActionRequested;
 
-    /// <summary>The labels of the dropdown, in <see cref="TriggerKindExtensions.All"/> order.</summary>
+    /// <summary>The labels of the kind dropdown, in <see cref="TriggerKindExtensions.All"/> order.</summary>
     public static IReadOnlyList<string> KindLabels { get; } = [.. TriggerKindExtensions.All.Select(kind => kind.Label())];
 
     public CommandItem? Item
@@ -76,10 +82,20 @@ public sealed class CommandHeader : TemplatedControl
         private set => SetValue(IsGestureKindProperty, value);
     }
 
+    /// <summary>Shows the Category dropdown: the item offers at least one choice.</summary>
+    public bool HasCategories
+    {
+        get => GetValue(HasCategoriesProperty);
+        private set => SetValue(HasCategoriesProperty, value);
+    }
+
     /// <summary>The kind the dropdown shows; -1 without a command.</summary>
     public int KindIndex => _kind?.SelectedIndex ?? -1;
 
-    /// <summary>What the dropdown does: asks the host for the kind (Gesture opens the picker).</summary>
+    /// <summary>The category the dropdown shows, as an index into <see cref="CommandItem.Categories"/>; -1 without a command.</summary>
+    public int CategoryIndex => _category?.SelectedIndex ?? -1;
+
+    /// <summary>What the kind dropdown does: asks the host for the kind (Gesture opens the picker).</summary>
     public void ChooseKind(TriggerKind kind)
     {
         if (Item is { } item && kind != item.TriggerKind)
@@ -87,26 +103,41 @@ public sealed class CommandHeader : TemplatedControl
             ActionRequested?.Invoke(this, new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, command: item, kind: kind));
         }
 
-        ApplyKind();
+        Apply();
+    }
+
+    /// <summary>What the Category dropdown does: asks the host to move the command into the category.</summary>
+    public void ChooseCategory(CategoryChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(choice);
+        if (Item is { } item && choice.Id != item.CategoryId)
+        {
+            ActionRequested?.Invoke(this, new CommandTreeActionEventArgs(CommandTreeAction.SetCategory, command: item, category: choice));
+        }
+
+        Apply();
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
-        _kind = e.NameScope.Find<ComboBox>("PART_TriggerKind");
-        if (_kind is not null)
+        if (e.NameScope.Find<ComboBox>("PART_TriggerKind") is { } kind)
         {
-            _kind.ItemsSource = KindLabels;
-            ApplyKind();
-            _kind.SelectionChanged += (_, _) =>
-            {
-                if (!_applying && _kind.SelectedIndex >= 0)
-                {
-                    ChooseKind(TriggerKindExtensions.All[_kind.SelectedIndex]);
-                }
-            };
+            _kind = new AskingDropdown(kind, index => ChooseKind(TriggerKindExtensions.All[index]));
         }
 
+        if (e.NameScope.Find<ComboBox>("PART_Category") is { } category)
+        {
+            _category = new AskingDropdown(category, index =>
+            {
+                if (Item is { } item && index < item.Categories.Count)
+                {
+                    ChooseCategory(item.Categories[index]);
+                }
+            });
+        }
+
+        Apply();
         if (e.NameScope.Find<Button>("PART_PickGesture") is { } pick)
         {
             pick.Click += (_, _) =>
@@ -130,25 +161,25 @@ public sealed class CommandHeader : TemplatedControl
             TriggerText = item?.TriggerText ?? string.Empty;
             Points = item?.GlyphPoints;
             IsGestureKind = item?.TriggerKind == TriggerKind.Gesture;
-            ApplyKind();
+            HasCategories = item is { Categories.Count: > 0 };
+            Apply();
         }
     }
 
-    private void ApplyKind()
+    /// <summary>Puts both dropdowns on the command's real values.</summary>
+    private void Apply()
     {
-        if (_kind is null)
-        {
-            return;
-        }
+        var item = Item;
+        _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
+        var choices = item?.Categories ?? [];
+        _category?.Show([.. choices.Select(choice => choice.Name)], item is null ? -1 : IndexOfCategory(item));
+    }
 
-        _applying = true;
-        try
-        {
-            _kind.SelectedIndex = Item is { } item ? TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind) : -1;
-        }
-        finally
-        {
-            _applying = false;
-        }
+    /// <summary>The command's category, or Uncategorized when it names none the group still has.</summary>
+    private static int IndexOfCategory(CommandItem item)
+    {
+        var choices = item.Categories.ToList();
+        var index = choices.FindIndex(choice => choice.Id == item.CategoryId);
+        return index >= 0 ? index : choices.FindIndex(choice => choice.Id is null);
     }
 }

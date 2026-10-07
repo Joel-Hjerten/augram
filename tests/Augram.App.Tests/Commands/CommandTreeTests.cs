@@ -6,34 +6,47 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using Xunit;
+using static Augram.App.Tests.Commands.CommandsTestData;
 
 namespace Augram.App.Tests.Commands;
 
 public sealed class CommandTreeTests
 {
     [AvaloniaFact]
-    public void ShowsAHeaderPerGroupAndTheCommandsOfExpandedGroupsOnly()
+    public void ShowsAHeaderPerSectionTheCommandsOfExpandedSectionsAndWhatEachHeaderOffers()
     {
-        var (tree, _, _) = Show(collapse: "Chrome");
+        var (tree, _, _) = Show(CommandsScope.Global, collapse: "Window");
 
         var rows = tree.Rows;
-        Assert.Equal(["Global", "Apple", "Chrome"], rows.OfType<GroupRow>().Select(row => row.NameText));
-        Assert.Equal(["Close window", "Three steps", "Volume up"], rows.OfType<CommandRow>().Select(row => row.NameText));
-        Assert.Equal("3 commands", rows.OfType<GroupRow>().First().CountText);
-        Assert.Contains(":global", rows.OfType<GroupRow>().First().Classes);
-        Assert.Contains(":collapsed", rows.OfType<GroupRow>().Last().Classes);
-        Assert.False(rows.OfType<GroupRow>().First().CanRename);
+        Assert.Equal(["Uncategorized", "Media", "Window"], rows.OfType<SectionRow>().Select(row => row.NameText));
+        Assert.Equal(["Three steps", "Volume up"], rows.OfType<CommandRow>().Select(row => row.NameText));
+        Assert.Equal("2 commands", rows.OfType<SectionRow>().Last().CountText);
+        var uncategorized = rows.OfType<SectionRow>().First();
+        Assert.Contains(":pinned", uncategorized.Classes);
+        Assert.False(uncategorized.CanRename);
+        Assert.False(uncategorized.CanToggleActive);
+        Assert.False(uncategorized.GetVisualDescendants().OfType<CheckBox>().Single().IsVisible);
+        Assert.DoesNotContain(":pinned", rows.OfType<SectionRow>().Last().Classes);
+        Assert.Contains(":collapsed", rows.OfType<SectionRow>().Last().Classes);
 
-        var close = rows.OfType<CommandRow>().First();
-        Assert.True(close.HasGlyph);
-        Assert.Equal("Close window", close.SummaryText);
         var volume = rows.OfType<CommandRow>().Last();
         Assert.False(volume.HasGlyph);
         Assert.Equal("Wheel up", volume.TriggerText);
+        Assert.False(volume.HasCategory);
+
+        var (apps, _, _) = Show();
+        var chrome = apps.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
+        Assert.True(chrome.CanToggleActive);
+        Assert.True(chrome.GetVisualDescendants().OfType<CheckBox>().Single().IsVisible);
+        var brush = apps.Rows.OfType<CommandRow>().Single(row => row.NameText == "Brush");
+        Assert.True(brush.HasGlyph);
+        Assert.True(brush.HasCategory);
+        Assert.Equal("General", brush.CategoryText);
+        Assert.False(apps.Rows.OfType<CommandRow>().Single(row => row.NameText == "Plain").HasCategory);
     }
 
     [AvaloniaFact]
-    public void ToolbarButtonsAndTheExpanderRaiseTheirActions()
+    public void ToolbarButtonsCarryTheHostsWordsAndRaiseTheirActions()
     {
         var (tree, actions, _) = Show();
         var buttons = tree.GetVisualDescendants().OfType<Button>().Where(button => button.Classes.Contains("toolbar")).ToDictionary(button => (string)button.Content!);
@@ -42,10 +55,14 @@ public sealed class CommandTreeTests
         Click(buttons["New command"]);
         Click(buttons["Undo"]);
         Click(buttons["Redo"]);
-        Click(tree.Rows.OfType<GroupRow>().Last().GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("expander")));
+        Click(tree.Rows.OfType<SectionRow>().Last().GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("expander")));
 
-        Assert.Equal([CommandTreeAction.NewGroup, CommandTreeAction.NewCommand, CommandTreeAction.Undo, CommandTreeAction.Redo, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
-        Assert.Equal("Chrome", actions[^1].Group!.Name);
+        Assert.Equal([CommandTreeAction.NewSection, CommandTreeAction.NewCommand, CommandTreeAction.Undo, CommandTreeAction.Redo, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
+        Assert.Equal("Photoshop", actions[^1].Section!.Name);
+
+        var (global, _, _) = Show(CommandsScope.Global);
+        Assert.Contains(global.GetVisualDescendants().OfType<Button>(), button => Equals(button.Content, "New category…"));
+        Assert.Contains(global.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Global commands");
     }
 
     [AvaloniaFact]
@@ -59,21 +76,22 @@ public sealed class CommandTreeTests
 
         var select = Assert.Single(actions);
         Assert.Equal(CommandTreeAction.Select, select.Action);
-        Assert.Equal("Chrome", select.Group!.Name);
+        Assert.Equal("Chrome", select.Section!.Name);
         Assert.Equal("Close tab", select.Command!.Name);
 
-        list.SelectedItem = tree.Rows.OfType<GroupRow>().Single(row => row.NameText == "Apple");
-        Assert.Equal("Apple", actions[^1].Group!.Name);
+        list.SelectedItem = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Apple");
+        Assert.Equal("Apple", actions[^1].Section!.Name);
         Assert.Null(actions[^1].Command);
 
         actions.Clear();
-        tree.SelectedGroupId = vm.Groups[0].Id;
-        tree.SelectedCommandId = vm.Groups[0].Commands[1].Id;
-        Assert.Equal("Three steps", tree.SelectedCommand!.Name);
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        tree.SelectedCommandId = Item(vm, "Nothing on Up").Id;
+        Assert.Equal("Nothing on Up", tree.SelectedCommand!.Name);
+        Assert.Equal("Chrome", tree.SelectedSection!.Name);
         Assert.Empty(actions);
 
-        tree.Groups = vm.Groups.ToList();
-        Assert.Equal("Three steps", tree.SelectedCommand!.Name);
+        tree.Sections = vm.Sections.ToList();
+        Assert.Equal("Nothing on Up", tree.SelectedCommand!.Name);
         Assert.Empty(actions);
     }
 
@@ -82,8 +100,8 @@ public sealed class CommandTreeTests
     {
         var (tree, actions, vm) = Show();
         var window = (Window)TopLevel.GetTopLevel(tree)!;
-        tree.SelectedGroupId = vm.Groups[0].Id;
-        tree.SelectedCommandId = vm.Groups[0].Commands[0].Id;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        tree.SelectedCommandId = Item(vm, "Close tab").Id;
         FocusSelectedRow(tree);
 
         window.KeyPressQwerty(CommandsKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
@@ -92,7 +110,7 @@ public sealed class CommandTreeTests
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
         Assert.Empty(actions);
 
-        var row = tree.Rows.OfType<CommandRow>().First();
+        var row = tree.Rows.OfType<CommandRow>().Single(candidate => candidate.NameText == "Close tab");
         var editor = row.GetVisualDescendants().OfType<TextBox>().Single();
         editor.Text = " Close it ";
         editor.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
@@ -100,19 +118,36 @@ public sealed class CommandTreeTests
         var rename = Assert.Single(actions);
         Assert.Equal(CommandTreeAction.Rename, rename.Action);
         Assert.Equal("Close it", rename.Name);
-        Assert.Equal("Close window", rename.Command!.Name);
-        Assert.Equal("Global", rename.Group!.Name);
+        Assert.Equal("Close tab", rename.Command!.Name);
+        Assert.Equal("Chrome", rename.Section!.Name);
         Assert.False(tree.IsEditing);
     }
 
     [AvaloniaFact]
-    public void DeleteKeyCarriesTheCommandOrOnlyTheGroupAndTheCheckBoxTogglesActive()
+    public void ARowRenamedBeforeItHasATemplateStartsTheEditorWhenItGetsOne()
+    {
+        var (tree, _, vm) = Show(CommandsScope.Global);
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+
+        // A store change rebuilds every row; the view model asks for the rename right after (New category).
+        tree.Sections = vm.Sections.ToList();
+        tree.BeginRename(Section(vm, "Media").Id);
+        window.UpdateLayout();
+
+        var row = tree.Rows.OfType<SectionRow>().Single(candidate => candidate.NameText == "Media");
+        Assert.True(row.IsEditing);
+        Assert.Equal("Media", row.GetVisualDescendants().OfType<TextBox>().Single().Text);
+        Assert.Same(row, tree.GetVisualDescendants().OfType<ListBox>().Single().SelectedItem);
+    }
+
+    [AvaloniaFact]
+    public void DeleteKeyCarriesTheCommandOrOnlyTheSectionWhenItAllowsAndTheCheckBoxTogglesActive()
     {
         var (tree, actions, vm) = Show();
         var window = (Window)TopLevel.GetTopLevel(tree)!;
         var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
-        tree.SelectedGroupId = vm.Groups[0].Id;
-        tree.SelectedCommandId = vm.Groups[0].Commands[0].Id;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        tree.SelectedCommandId = Item(vm, "Close tab").Id;
         FocusSelectedRow(tree);
 
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
@@ -121,53 +156,35 @@ public sealed class CommandTreeTests
         window.KeyPressQwerty(PhysicalKey.N, modifier);
 
         Assert.Equal([CommandTreeAction.Delete, CommandTreeAction.Copy, CommandTreeAction.Paste, CommandTreeAction.NewCommand], actions.Select(action => action.Action));
-        Assert.All(actions, action => Assert.Equal("Close window", action.Command!.Name));
+        Assert.All(actions, action => Assert.Equal("Close tab", action.Command!.Name));
 
         actions.Clear();
         tree.SelectedCommandId = null;
-        tree.SelectedGroupId = vm.Groups[2].Id;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
         FocusSelectedRow(tree);
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
 
         var delete = Assert.Single(actions);
-        Assert.Equal("Chrome", delete.Group!.Name);
+        Assert.Equal("Chrome", delete.Section!.Name);
         Assert.Null(delete.Command);
 
         actions.Clear();
         tree.Rows.OfType<CommandRow>().First().GetVisualDescendants().OfType<CheckBox>().Single().IsChecked = false;
         var toggle = Assert.Single(actions);
         Assert.Equal(CommandTreeAction.ToggleActive, toggle.Action);
-        Assert.Equal("Close window", toggle.Command!.Name);
-    }
+        Assert.Equal("Close tab", toggle.Command!.Name);
 
-    [AvaloniaFact]
-    public void HeaderDropdownAsksForTheKindAndFallsBackToTheCommandsRealKind()
-    {
-        var (tree, _, vm) = Show();
-        var actions = new List<CommandTreeActionEventArgs>();
-        var header = new CommandHeader { Item = vm.Groups[0].Commands[0] };
-        header.ActionRequested += (_, e) => actions.Add(e);
-        var window = new Window { Content = header };
-        window.Show();
-        Assert.True(header.HasCommand);
-        Assert.True(header.IsGestureKind);
-        Assert.Equal((int)TriggerKind.Gesture, header.KindIndex);
+        var (global, globalActions, globalVm) = Show(CommandsScope.Global);
+        var globalWindow = (Window)TopLevel.GetTopLevel(global)!;
+        global.SelectedSectionId = SectionId.Uncategorized;
+        FocusSelectedRow(global);
+        globalWindow.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
+        Assert.Empty(globalActions);
 
-        header.GetVisualDescendants().OfType<ComboBox>().Single().SelectedIndex = (int)TriggerKind.WheelDown;
-
-        var kind = Assert.Single(actions);
-        Assert.Equal(CommandTreeAction.SetTriggerKind, kind.Action);
-        Assert.Equal(TriggerKind.WheelDown, kind.Kind);
-        Assert.Equal("Close window", kind.Command!.Name);
-        Assert.Equal((int)TriggerKind.Gesture, header.KindIndex);
-
-        Click(header.GetVisualDescendants().OfType<Button>().Single());
-        Assert.Equal(CommandTreeAction.PickGesture, actions[^1].Action);
-
-        header.Item = null;
-        Assert.False(header.HasCommand);
-        Assert.Equal(-1, header.KindIndex);
-        Assert.NotNull(tree);
+        global.SelectedSectionId = Section(globalVm, "Media").Id;
+        FocusSelectedRow(global);
+        globalWindow.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
+        Assert.Equal("Media", Assert.Single(globalActions).Section!.Name);
     }
 
     private static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -178,17 +195,17 @@ public sealed class CommandTreeTests
         Assert.True(list.ContainerFromItem(list.SelectedItem!)!.Focus());
     }
 
-    /// <summary>Groups start collapsed; the tree tests need commands on screen, so every group but <paramref name="collapse"/> is expanded first.</summary>
-    private static (CommandTree Tree, List<CommandTreeActionEventArgs> Actions, CommandsViewModel Vm) Show(string? collapse = null)
+    /// <summary>Sections start collapsed; the tree tests need commands on screen, so every section but <paramref name="collapse"/> is expanded first.</summary>
+    private static (CommandTree Tree, List<CommandTreeActionEventArgs> Actions, CommandsViewModel Vm) Show(CommandsScope scope = CommandsScope.Apps, string? collapse = null)
     {
-        var (vm, _, _, _) = CommandsTestData.Create();
-        foreach (var name in vm.Groups.Select(group => group.Name).Where(name => name != collapse).ToList())
+        var (vm, _, _, _) = Create(scope);
+        foreach (var name in Names(vm).Where(name => name != collapse).ToList())
         {
-            vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, vm.Groups.Single(group => group.Name == name)));
+            vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, Section(vm, name)));
         }
 
         var actions = new List<CommandTreeActionEventArgs>();
-        var tree = new CommandTree { Groups = vm.Groups };
+        var tree = new CommandTree { Sections = vm.Sections, Heading = vm.Heading, NewSectionLabel = vm.NewSectionLabel, HelpText = vm.Help };
         tree.ActionRequested += (_, e) => actions.Add(e);
         var window = new Window { Content = tree, Width = 800, Height = 600 };
         window.Show();

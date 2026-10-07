@@ -1,0 +1,48 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:hk="using:Augram.App.Components.HotkeyCapture">
+  <!--
+    Wireframe look of the hotkey capture field (F5). Included by Wireframe.axaml next to Tokens.axaml;
+    it merges the tokens itself so it also loads on its own (tests). Tokens only, no literal colours.
+    The field's frame keeps one thickness; capturing changes only its colour, so nothing shifts.
+  -->
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <ControlTheme x:Key="{x:Type hk:HotkeyCaptureBox}" TargetType="hk:HotkeyCaptureBox">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Spacing="{StaticResource Space.S}">
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+            <Border Name="PART_Field"
+                    MinWidth="{StaticResource Editor.MinWidth}"
+                    Background="{StaticResource Brush.Background}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Padding="{StaticResource Pad.S}"
+                    Cursor="Hand">
+              <TextBlock Name="PART_Text" Text="{TemplateBinding DisplayText}" VerticalAlignment="Center" />
+            </Border>
+            <Button Name="PART_Capture" Classes="toolbar" Content="Capture" />
+            <Button Name="PART_Accept" Classes="toolbar" Content="Accept" />
+            <Button Name="PART_Clear" Classes="toolbar" Content="Clear" />
+          </StackPanel>
+          <TextBlock Classes="help" Text="{TemplateBinding StatusText}" IsVisible="{TemplateBinding HasStatus}" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^ /template/ Button#PART_Accept">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^:capturing /template/ Button#PART_Accept">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="^:capturing /template/ Button#PART_Capture">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^:capturing /template/ Border#PART_Field">
+      <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+    </Style>
+  </ControlTheme>
+</ResourceDictionary>

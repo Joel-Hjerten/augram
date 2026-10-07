@@ -1,5 +1,6 @@
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.WindowOp;
@@ -12,11 +13,12 @@ public sealed class StepRegistryTests
     [Fact]
     public void BuiltInListsTheShippedTypesInPickerOrder()
     {
-        string[] expected = ["windowOp", "mediaKey", "delay", "imported"];
+        string[] expected = ["windowOp", "mediaKey", "hotkey", "delay", "imported"];
 
         Assert.Equal(expected, StepRegistry.BuiltIn.All.Select(type => type.Key).ToArray());
         Assert.Same(WindowOpStepType.Instance, StepRegistry.BuiltIn.Find("windowOp"));
         Assert.Same(MediaKeyStepType.Instance, StepRegistry.BuiltIn.Find("mediaKey"));
+        Assert.Same(HotkeyStepType.Instance, StepRegistry.BuiltIn.Find("hotkey"));
         Assert.Same(DelayStepType.Instance, StepRegistry.BuiltIn.Find("delay"));
         Assert.Same(ImportedStepType.Instance, StepRegistry.BuiltIn.Find("imported"));
     }
@@ -50,11 +52,11 @@ public sealed class StepRegistryTests
     [Fact]
     public void FindReturnsNullAndRequireThrowsForUnknownKeys()
     {
-        Assert.Null(StepRegistry.BuiltIn.Find("hotkey"));
+        Assert.Null(StepRegistry.BuiltIn.Find("noSuchStep"));
         Assert.Null(StepRegistry.BuiltIn.Find("WindowOp"));
 
-        var ex = Assert.Throws<StepFormatException>(() => StepRegistry.BuiltIn.Require("hotkey"));
-        Assert.Equal("Unknown step type 'hotkey'.", ex.Message);
+        var ex = Assert.Throws<StepFormatException>(() => StepRegistry.BuiltIn.Require("noSuchStep"));
+        Assert.Equal("Unknown step type 'noSuchStep'.", ex.Message);
         Assert.Same(DelayStepType.Instance, StepRegistry.BuiltIn.Require("delay"));
     }
 

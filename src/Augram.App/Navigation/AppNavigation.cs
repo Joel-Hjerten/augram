@@ -6,14 +6,16 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Augram.App.Navigation;
 
 /// <summary>
-/// The app's tabs (F7): Gestures · Commands · Ignored · Options · Diagnostics (Health / Log /
-/// Recognition), plus the dev Gallery in Debug builds. Adding a tab is adding an entry here and a
-/// screen under <c>Screens/</c>.
+/// The app's tabs (F7): Gestures · Commands (Global / Apps) · Ignored · Options · Diagnostics
+/// (Health / Log / Recognition), plus the dev Gallery in Debug builds. Adding a tab is adding an entry
+/// here and a screen under <c>Screens/</c>.
 /// </summary>
 public static class AppNavigation
 {
     public const string GesturesKey = "gestures";
     public const string CommandsKey = "commands";
+    public const string CommandsGlobalKey = "commands.global";
+    public const string CommandsAppsKey = "commands.apps";
     public const string IgnoredKey = "ignored";
     public const string OptionsKey = "options";
     public const string DiagnosticsKey = "diagnostics";
