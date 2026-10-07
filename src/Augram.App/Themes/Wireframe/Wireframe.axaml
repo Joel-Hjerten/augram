@@ -528,6 +528,13 @@
                     <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
                     <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
                   </StackPanel>
+                  <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Classes="help" Text="{TemplateBinding VersionText}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                      <Button Name="PART_UseConverted" Classes="toolbar" Content="Use the converted original" IsVisible="{TemplateBinding HasOwnVersionHere}" />
+                      <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
+                    </StackPanel>
+                  </StackPanel>
                 </StackPanel>
               </Panel>
             </Border>

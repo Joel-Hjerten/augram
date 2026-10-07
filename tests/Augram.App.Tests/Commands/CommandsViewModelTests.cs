@@ -62,7 +62,7 @@ public sealed class CommandsViewModelTests
         Assert.Equal(closeTab.Id, vm.SelectedCommandId);
         Assert.Equal(chrome.Id, vm.SelectedSectionId);
         Assert.Equal("Wait 5 ms", Assert.Single(vm.Steps).Summary);
-        Assert.Equal("has macOS version", vm.Steps[0].PlatformMarker);
+        Assert.Null(vm.Steps[0].PlatformMarker);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand));
 

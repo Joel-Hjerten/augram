@@ -10,8 +10,9 @@ namespace Augram.App.Components.StepList;
 /// its conversion ("Ctrl+W → Cmd+W", marker "from Windows · converted"); as itself with "from Windows · needs a macOS
 /// version" when there is no guess; or as itself with "from Windows" when it runs unchanged (a platform-neutral step
 /// shows no marker: nothing about it differs). The original always reads in the words of the platform it was authored
-/// on, so a Windows "Win+D" never shows as "Cmd+D". A per-step own version reads "own macOS version". A command row
-/// shows "from Windows", with "· converted" or "· N need a macOS version" when any of its steps do.
+/// on, so a Windows "Win+D" never shows as "Cmd+D". A command row shows its own version when it has one ("own macOS
+/// version", "· Windows original changed" when that moved on; "has macOS version" where the original runs), else "from
+/// Windows", with "· converted" or "· N need a macOS version" when any of its steps do.
 /// </summary>
 public static class StepPlatformMarker
 {
@@ -21,13 +22,7 @@ public static class StepPlatformMarker
         var original = step.Step.SummaryOn(step.AuthoredOn);
         if (step.AuthoredOn == here)
         {
-            var elsewhere = Other(here);
-            return new StepRowText(original, step.OverrideFor(elsewhere) is null ? null : $"has {Name(elsewhere)} version");
-        }
-
-        if (step.OverrideFor(here) is { } own)
-        {
-            return new StepRowText(own.SummaryOn(here), $"own {Name(here)} version");
+            return new StepRowText(original, null);
         }
 
         var from = $"from {Name(step.AuthoredOn)}";
@@ -40,13 +35,28 @@ public static class StepPlatformMarker
         };
     }
 
-    public static string? ForCommand(IReadOnlyList<CommandStep> steps, HostPlatform here)
+    public static string? ForCommand(Command command, HostPlatform here)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.OwnVersion is { } own)
+        {
+            var stale = command.IsOwnVersionStale;
+            return own.Platform == here
+                ? $"own {Name(here)} version" + (stale ? $" · {Name(Other(here))} original changed" : string.Empty)
+                : $"has {Name(own.Platform)} version" + (stale ? " · check it there" : string.Empty);
+        }
+
+        return ForSteps(command.Steps, here);
+    }
+
+    /// <summary>The marker of a step list run as it is: where it came from and what its conversion lacks.</summary>
+    public static string? ForSteps(IReadOnlyList<CommandStep> steps, HostPlatform here)
     {
         ArgumentNullException.ThrowIfNull(steps);
         var elsewhere = steps.Where(step => step.AuthoredOn != here).ToList();
         if (elsewhere.Count == 0)
         {
-            return steps.Any(step => step.OverrideFor(Other(here)) is not null) ? $"has {Name(Other(here))} version" : null;
+            return null;
         }
 
         var marker = $"from {Name(elsewhere[0].AuthoredOn)}";

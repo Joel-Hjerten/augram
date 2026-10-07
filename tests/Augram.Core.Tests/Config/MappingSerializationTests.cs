@@ -41,14 +41,15 @@ public sealed class MappingSerializationTests
         Assert.Contains("\"authoredOn\": \"Windows\"", json, StringComparison.Ordinal);
         Assert.Contains("\"authoredOn\": \"MacOS\"", json, StringComparison.Ordinal);
         Assert.Contains("\"params\": {\n                  \"text\": \"min\"\n                }", json, StringComparison.Ordinal);
-        Assert.Contains("\"overrides\": {\n                  \"macOS\": {", json, StringComparison.Ordinal);
-        Assert.Contains("\"windows\": {", json, StringComparison.Ordinal);
+        Assert.Contains("\"ownVersion\": {\n              \"platform\": \"MacOS\",", json, StringComparison.Ordinal);
+        Assert.Contains("\"changedAt\": \"2026-10-07T12:00:00.000Z\"", json, StringComparison.Ordinal);
         Assert.Contains("\"note\": \"Imported from StrokesPlus.net: script-only action\\nsp.Foo();\"", json, StringComparison.Ordinal);
         Assert.Contains("\"processNames\": [\n            \"chrome.exe\",\n            \"msedge.exe\"\n          ]", json, StringComparison.Ordinal);
         Assert.Contains("\"ignoreWhenFullScreen\": true", json, StringComparison.Ordinal);
         Assert.Contains("\"suppressGlobals\": true", json, StringComparison.Ordinal);
         Assert.Contains("\"disableEntirely\": true", json, StringComparison.Ordinal);
-        Assert.Equal(2, Occurrences(json, "\"overrides\""));
+        Assert.Equal(1, Occurrences(json, "\"ownVersion\""));
+        Assert.Equal(0, Occurrences(json, "\"overrides\""));
         Assert.Equal(1, Occurrences(json, "\"note\""));
     }
 
@@ -62,14 +63,15 @@ public sealed class MappingSerializationTests
         Assert.Equal(4, back.Mapping.Groups.Count);
         Assert.Equal(3, back.Mapping.Global.Commands.Count);
         Assert.All(back.Mapping.AllCommands(), pair => Assert.Empty(pair.Command.Steps));
-        Assert.Equal(4, _notices.Count);
+        Assert.Equal(5, _notices.Count);
+        Assert.Contains("Step 1 of the own version of command 'Minimize' in 'Global' dropped: unknown step type 'fake'.", _notices);
         Assert.Contains("Step 1 of command 'Minimize' in 'Global' dropped: unknown step type 'fake'.", _notices);
         Assert.Contains("Step 2 of command 'Minimize' in 'Global' dropped: unknown step type 'fake'.", _notices);
         Assert.Contains("Step 1 of command 'Type' in 'Chrome' dropped: unknown step type 'fake'.", _notices);
     }
 
     [Fact]
-    public void AStepItsTypeRefusesIsDroppedAndABrokenOverrideIsDroppedAlone()
+    public void AStepItsTypeRefusesIsDropped_AndAStepLevelOverridesMemberIsPassedOver()
     {
         const string json = """
             { "schemaVersion": 1, "mapping": { "groups": [ { "id": "00000000-0000-4000-8000-000000000001", "name": "Global", "commands": [
@@ -85,13 +87,11 @@ public sealed class MappingSerializationTests
         var command = Assert.Single(back.Mapping.Global.Commands);
         var step = Assert.Single(command.Steps);
         Assert.Equal("ok", ((FakeStep)step.Step).Text);
-        Assert.False(step.HasOverrides);
         Assert.Equal(HostPlatform.Windows, step.AuthoredOn);
         Assert.True(step.IsActive);
-        Assert.Equal(4, _notices.Count);
+        Assert.Null(command.OwnVersion);
+        Assert.Equal(2, _notices.Count);
         Assert.Contains("Step 1 of command 'Mixed' in 'Global' dropped: 'text' must be a string.", _notices);
-        Assert.Contains("The 'macOS' override of step 2 of command 'Mixed' in 'Global' dropped: 'text' must be a string.", _notices);
-        Assert.Contains(_notices, notice => notice.StartsWith("The 'linux' override of step 2", StringComparison.Ordinal) && notice.Contains("unknown platform", StringComparison.Ordinal));
         Assert.Contains("Step 3 of command 'Mixed' in 'Global' dropped: unknown step type 'bogus'.", _notices);
     }
 
@@ -173,22 +173,25 @@ public sealed class MappingSerializationTests
         Assert.Empty(_notices);
         var minimize = loaded.Mapping.Global.Commands.Single(command => command.Name == "Minimize");
         Assert.Equal("min", ((FakeStep)minimize.Steps[0].Step).Text);
-        Assert.Equal("mac-min", ((FakeStep)minimize.Steps[0].ResolveFor(HostPlatform.MacOS)).Text);
+        Assert.Equal("mac-min", ((FakeStep)minimize.StepsFor(HostPlatform.MacOS)[0].Step).Text);
+        Assert.False(minimize.IsOwnVersionStale);
 
         var builtIn = new FileConfigStore(folder.Path, _notices.Add).Load();
         Assert.Empty(builtIn.Mapping.Global.Commands.Single(command => command.Name == "Minimize").Steps);
-        Assert.Equal(4, _notices.Count);
+        Assert.Equal(5, _notices.Count);
     }
 
-    /// <summary>Every trigger kind, a note, overrides on both sides, an inactive step, every matcher field, both ignore modes.</summary>
+    /// <summary>Every trigger kind, a note, a command with its own macOS steps, an inactive step, every matcher field, both ignore modes.</summary>
     private static MappingDocument FullMapping()
     {
-        var minimize = new CommandStep(new FakeStep("min"), HostPlatform.Windows, MacOsOverride: new FakeStep("mac-min"));
-        var typed = new CommandStep(new FakeStep("hello"), HostPlatform.MacOS, WindowsOverride: new FakeStep("win-hello"), IsActive: false);
+        var minimize = new CommandStep(new FakeStep("min"), HostPlatform.Windows);
+        var typed = new CommandStep(new FakeStep("hello"), HostPlatform.MacOS, IsActive: false);
+        var minimizeCommand = NewCommand("Minimize", Up, minimize, NewStep("second"))
+            .WithStepsFor(HostPlatform.MacOS, [new CommandStep(new FakeStep("mac-min"), HostPlatform.MacOS)], new DateTimeOffset(2026, 10, 7, 12, 0, 0, TimeSpan.Zero));
         return MappingRules.ValidDocument(new MappingDocument(
         [
             NewGlobal(
-                NewCommand("Minimize", Up, minimize, NewStep("second")),
+                minimizeCommand,
                 NewCommand("Volume up", Trigger.ForWheel(WheelDirection.Up), NewStep("vol")),
                 NewCommand("Later") with { Note = "Imported from StrokesPlus.net: script-only action\nsp.Foo();" }),
             NewGroup("Chrome", new AppMatcher { WindowsProcessNames = ["chrome.exe", "msedge.exe"], Title = "^.*Google.*$", TitleIsRegex = true },

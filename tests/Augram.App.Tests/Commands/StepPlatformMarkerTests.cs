@@ -32,21 +32,29 @@ public sealed class StepPlatformMarkerTests
     }
 
     [Fact]
-    public void AnOwnVersionReadsAsItself()
+    public void ACommandWithOwnStepsSaysSo_AndSaysWhenTheOriginalChangedSince()
     {
-        var own = CtrlW with { MacOsOverride = new HotkeyStep(KeyModifiers.Meta | KeyModifiers.Shift, KeyCode.W) };
+        var command = new Command(CommandId.New(), "Close", Trigger.None, IsActive: true, [CtrlW]);
+        var withMac = command.WithStepsFor(HostPlatform.MacOS, [new CommandStep(new HotkeyStep(KeyModifiers.Meta | KeyModifiers.Shift, KeyCode.W), HostPlatform.MacOS)], DateTimeOffset.UnixEpoch);
 
-        Assert.Equal(new StepRowText("Shift+Cmd+W", "own macOS version"), StepPlatformMarker.For(own, HostPlatform.MacOS));
-        Assert.Equal(new StepRowText("Ctrl+W", "has macOS version"), StepPlatformMarker.For(own, HostPlatform.Windows));
+        Assert.Equal("own macOS version", StepPlatformMarker.ForCommand(withMac, HostPlatform.MacOS));
+        Assert.Equal("has macOS version", StepPlatformMarker.ForCommand(withMac, HostPlatform.Windows));
+        Assert.Equal(new StepRowText("Shift+Cmd+W", null), StepPlatformMarker.For(withMac.StepsFor(HostPlatform.MacOS)[0], HostPlatform.MacOS));
+
+        var changed = withMac.WithStepsFor(HostPlatform.Windows, [CtrlW, Wait], DateTimeOffset.UnixEpoch);
+
+        Assert.True(changed.IsOwnVersionStale);
+        Assert.Equal("own macOS version · Windows original changed", StepPlatformMarker.ForCommand(changed, HostPlatform.MacOS));
+        Assert.Equal("has macOS version · check it there", StepPlatformMarker.ForCommand(changed, HostPlatform.Windows));
     }
 
     [Fact]
     public void ACommandRowSaysWhereItCameFromAndWhatIsMissing()
     {
-        Assert.Null(StepPlatformMarker.ForCommand([CtrlW, WinD], HostPlatform.Windows));
-        Assert.Equal("from Windows · converted", StepPlatformMarker.ForCommand([CtrlW, Wait], HostPlatform.MacOS));
-        Assert.Equal("from Windows · 1 needs a macOS version", StepPlatformMarker.ForCommand([CtrlW, WinD], HostPlatform.MacOS));
-        Assert.Equal("from Windows · 2 need a macOS version", StepPlatformMarker.ForCommand([WinD, WinD], HostPlatform.MacOS));
-        Assert.Equal("from Windows", StepPlatformMarker.ForCommand([F5, Wait], HostPlatform.MacOS));
+        Assert.Null(StepPlatformMarker.ForSteps([CtrlW, WinD], HostPlatform.Windows));
+        Assert.Equal("from Windows · converted", StepPlatformMarker.ForSteps([CtrlW, Wait], HostPlatform.MacOS));
+        Assert.Equal("from Windows · 1 needs a macOS version", StepPlatformMarker.ForSteps([CtrlW, WinD], HostPlatform.MacOS));
+        Assert.Equal("from Windows · 2 need a macOS version", StepPlatformMarker.ForSteps([WinD, WinD], HostPlatform.MacOS));
+        Assert.Equal("from Windows", StepPlatformMarker.ForSteps([F5, Wait], HostPlatform.MacOS));
     }
 }

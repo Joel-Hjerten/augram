@@ -4,7 +4,12 @@ using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
 
-/// <summary>The step half of <see cref="CommandsViewModel"/> (F5a step editing): every intent of the step list becomes one <c>UpdateCommand</c> on the selected command, one undo step each.</summary>
+/// <summary>
+/// The step half of <see cref="CommandsViewModel"/> (F5a step editing): every intent of the step list becomes one
+/// <c>UpdateCommand</c> on the selected command, one undo step each. The list edited is this platform's (F8): the
+/// original where it was authored, the own version where it has one, and otherwise the converted original, so the first
+/// edit on the other platform makes its own steps from what was running there (<see cref="Command.WithStepsFor"/>).
+/// </summary>
 public sealed partial class CommandsViewModel
 {
     public void Handle(StepListActionEventArgs e)
@@ -33,7 +38,7 @@ public sealed partial class CommandsViewModel
         }
 
         var (group, command) = found;
-        var steps = command.Steps.ToList();
+        var steps = EditableSteps(command).ToList();
         var step = e.Step is { } item && item.Index >= 0 && item.Index < steps.Count ? item : null;
         switch (e.Action)
         {
@@ -87,7 +92,18 @@ public sealed partial class CommandsViewModel
     /// <summary>One store call per edit, then the step to leave expanded.</summary>
     private void Commit(AppGroup group, Command command, IReadOnlyList<CommandStep> steps, int select)
     {
-        _store.UpdateCommand(group.Id, command with { Steps = steps });
+        var forked = command.Origin is { } origin && origin != _platform && command.OwnVersion?.Platform != _platform;
+        _store.UpdateCommand(group.Id, command.WithStepsFor(_platform, steps, DateTimeOffset.UtcNow));
         SelectedStepIndex = select;
+        if (forked)
+        {
+            Message = $"'{command.Name}' now has its own steps here; the original keeps running where it was authored. {CommandsKeymap.Current.Undo} undoes it.";
+        }
     }
+
+    /// <summary>The step list this platform edits: its own version, the original where it was authored, else the converted original.</summary>
+    private IReadOnlyList<CommandStep> EditableSteps(Command command)
+        => command.Origin is { } origin && origin != _platform && command.OwnVersion?.Platform != _platform
+            ? command.ConvertedFor(_platform)
+            : command.StepsFor(_platform);
 }

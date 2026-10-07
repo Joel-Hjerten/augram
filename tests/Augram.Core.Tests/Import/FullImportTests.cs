@@ -59,7 +59,6 @@ public sealed class FullImportTests
         Assert.Equal(expected, op.Operation);
         Assert.Equal(HostPlatform.Windows, step.AuthoredOn);
         Assert.True(step.IsActive);
-        Assert.False(step.HasOverrides);
     }
 
     [Fact]

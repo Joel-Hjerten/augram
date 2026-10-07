@@ -98,6 +98,8 @@ The tab has two sub-tabs, **Global** (`commands.global`) and **Apps** (`commands
 
 The Global group's own active flag had its check box on the old Global row; the split has no Global row, so there is no UI for it now (an open question for Joel).
 
+**Own steps per platform (F8, 2026-10-07):** the step list shows this platform's steps; on the platform a command was not authored on, with no own version yet, each row reads as its conversion ("Ctrl+W → Cmd+W") while the step its form edits is the converted one, and the first edit (change, add, delete, reorder, toggle) makes the command's own steps from the converted original (`Command.WithStepsFor`, one undo step, a message says so). The command header says where this platform's steps come from (`CommandItem.VersionText`) and offers "Use the converted original" (drops the own version) and, when the original changed since, "Mark as checked"; rows say "own macOS version", "· Windows original changed", or "has macOS version" where the original runs.
+
 Not in this slice: the Test button (needs an engine API), Copy as Augram JSON on the system clipboard, the "pick a window" crosshair on the group form, copying a whole group, editing per-platform overrides.
 
 ## Import (F8, M1 step 10)

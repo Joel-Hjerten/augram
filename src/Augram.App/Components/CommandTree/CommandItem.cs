@@ -42,6 +42,15 @@ public sealed record CommandItem(
     /// <summary>F8: not used on the platform Augram runs on; listed greyed only while the list shows other platforms.</summary>
     public bool IsElsewhere { get; init; }
 
+    /// <summary>F8: the header's line about this platform's steps (original, converted, own version, changed since); null for none.</summary>
+    public string? VersionText { get; init; }
+
+    /// <summary>F8: this platform runs its own steps, which "Use the converted original" drops.</summary>
+    public bool HasOwnVersionHere { get; init; }
+
+    /// <summary>F8: the own version was made before the original last changed.</summary>
+    public bool IsOwnVersionStale { get; init; }
+
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
 
     public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
@@ -69,21 +78,52 @@ public sealed record CommandItem(
             triggerText,
             points,
             Summarise(group, command, here),
-            command.IsUsedOn(here) ? StepPlatformMarker.ForCommand(command.Steps, here) : $"{StepPlatformMarker.Name(Other(here))} only")
+            command.IsUsedOn(here) ? StepPlatformMarker.ForCommand(command, here) : $"{StepPlatformMarker.Name(Other(here))} only")
         {
             Section = SectionId.ForGroup(group.Id),
             CategoryId = command.CategoryId,
             UseOn = command.UseOn,
             IsElsewhere = !command.IsUsedOn(here),
+            VersionText = VersionLine(command, here),
+            HasOwnVersionHere = command.OwnVersion?.Platform == here,
+            IsOwnVersionStale = command.IsOwnVersionStale,
         };
     }
 
     private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 
-    private static string Summarise(AppGroup group, Command command, HostPlatform here) => command.Steps.Count switch
+    /// <summary>
+    /// The header's line about this platform's steps (F8): where they come from and what an edit here does; null for a
+    /// command authored here without an own version elsewhere, or with no steps yet.
+    /// </summary>
+    private static string? VersionLine(Command command, HostPlatform here)
+    {
+        var name = StepPlatformMarker.Name(here);
+        if (command.OwnVersion is { } own && own.Platform == here)
+        {
+            var origin = StepPlatformMarker.Name(Other(here));
+            return command.IsOwnVersionStale
+                ? $"Own {name} steps. The {origin} original changed since they were made: check them, then mark them as checked."
+                : $"Own {name} steps; the {origin} original runs on {origin}.";
+        }
+
+        if (command.OwnVersion is { } other)
+        {
+            var otherName = StepPlatformMarker.Name(other.Platform);
+            return command.IsOwnVersionStale
+                ? $"{name} original. {otherName} has its own steps, made before this original last changed."
+                : $"{name} original. {otherName} has its own steps.";
+        }
+
+        return command.Origin is { } authored && authored != here
+            ? $"{StepPlatformMarker.Name(authored)} original, converted for {name}. Editing a step here makes own {name} steps; {StepPlatformMarker.Name(authored)} keeps the original."
+            : null;
+    }
+
+    private static string Summarise(AppGroup group, Command command, HostPlatform here) => command.StepsFor(here).Count switch
     {
         0 => group.IsGlobal ? "No steps" : "Does nothing here",
-        1 => StepPlatformMarker.For(command.Steps[0], here).Summary,
+        1 => StepPlatformMarker.For(command.StepsFor(here)[0], here).Summary,
         var n => $"{n} steps",
     };
 }

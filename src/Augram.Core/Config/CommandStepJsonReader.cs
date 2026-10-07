@@ -64,40 +64,12 @@ internal sealed class CommandStepJsonReader
             return null;
         }
 
-        var result = new CommandStep(
+        // A step-level "overrides" member (the 2026-10-05 design, never written by a shipped version) is passed over: a
+        // platform that needs other steps has a command-level own version instead (F8, 2026-10-07).
+        return new CommandStep(
             step,
             JsonMembers.OptionalEnum(envelope, "authoredOn", HostPlatform.Windows, where),
             IsActive: JsonMembers.OptionalBool(envelope, "isActive", fallback: true, where));
-
-        if (envelope["overrides"] is JsonNode overrides)
-        {
-            foreach (var (platformName, parameters) in JsonMembers.RequireObject(overrides, $"'overrides' of {where}"))
-            {
-                result = WithOverride(result, type, platformName, parameters, where);
-            }
-        }
-
-        return result;
-    }
-
-    private CommandStep WithOverride(CommandStep step, IStepType type, string platformName, JsonNode? parameters, string where)
-    {
-        var what = $"the '{platformName}' override of {where}";
-        if (!Enum.TryParse<HostPlatform>(platformName, ignoreCase: true, out var platform) || !Enum.IsDefined(platform))
-        {
-            Drop(what, $"unknown platform; expected one of {string.Join(", ", Enum.GetNames<HostPlatform>())}.");
-            return step;
-        }
-
-        try
-        {
-            return step.WithOverride(platform, type.Read(Parameters(parameters, platformName, $"'overrides' of {where}")));
-        }
-        catch (StepFormatException ex)
-        {
-            Drop(what, ex.Message);
-            return step;
-        }
     }
 
     private static JsonObject Parameters(JsonNode? node, string name, string where)

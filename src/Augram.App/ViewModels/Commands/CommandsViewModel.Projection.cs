@@ -42,6 +42,17 @@ public sealed partial class CommandsViewModel
     /// Re-reads the selected command and its steps from the current projection: the section follows the
     /// command (a category change moves it), and a selection that vanished is dropped.
     /// </summary>
+    /// <summary>
+    /// This platform's steps (F8): each row reads as the stored step does here ("Ctrl+W → Cmd+W"), and the step its form edits
+    /// is the one an edit here starts from, the converted step where this platform has no own steps yet.
+    /// </summary>
+    private List<StepItem> StepItems(Command command)
+    {
+        var shown = command.StepsFor(_platform);
+        var editable = EditableSteps(command);
+        return [.. shown.Select((step, index) => StepItem.From(step, index, _platform) with { Step = editable[index] })];
+    }
+
     private void ProjectSelection()
     {
         var selected = SelectedCommandId is { } id ? Sections.SelectMany(section => section.Commands).FirstOrDefault(command => command.Id == id) : null;
@@ -60,7 +71,7 @@ public sealed partial class CommandsViewModel
         }
 
         SelectedCommand = selected;
-        var steps = selected is null ? [] : _store.FindCommand(selected.Id)!.Value.Command.Steps.Select((step, index) => StepItem.From(step, index, _platform)).ToList();
+        var steps = selected is null ? [] : StepItems(_store.FindCommand(selected.Id)!.Value.Command);
         Steps = steps;
         if (_stepsOf != SelectedCommandId)
         {

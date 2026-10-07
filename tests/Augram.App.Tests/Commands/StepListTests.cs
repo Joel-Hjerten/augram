@@ -27,7 +27,7 @@ public sealed class StepListTests
         Assert.Equal(["1.", "2.", "3."], list.Rows.Select(row => row.IndexText));
         Assert.Equal(["Center window", "Wait 50 ms", "Play/pause"], list.Rows.Select(row => row.SummaryText));
         Assert.Equal(["Window", "Delay", "Media key"], list.Rows.Select(row => row.TypeText));
-        Assert.Equal("has macOS version", list.Rows[1].MarkerText);
+        Assert.False(list.Rows[1].HasMarker);
         Assert.False(list.Rows[0].HasMarker);
         Assert.Contains(":inactive", list.Rows[2].Classes);
 
@@ -151,7 +151,7 @@ public sealed class StepListTests
         IReadOnlyList<CommandStep> steps =
         [
             new(new WindowOpStep(WindowOperation.Center), HostPlatform.Windows),
-            new(new DelayStep(50), HostPlatform.Windows, MacOsOverride: new DelayStep(120)),
+            new(new DelayStep(50), HostPlatform.Windows),
             new(new MediaKeyStep(MediaKeyKind.PlayPause), HostPlatform.Windows, IsActive: false),
         ];
         var actions = new List<StepListActionEventArgs>();

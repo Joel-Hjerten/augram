@@ -158,6 +158,23 @@ public sealed class CommandExecutionTests
     }
 
     [Fact]
+    public void OnThePlatformWithItsOwnSteps_ThoseRunInsteadOfTheConvertedOriginal()
+    {
+        var original = new FakeStepType(StepCategory.System);
+        var own = new FakeStepType(StepCategory.System);
+        var command = Mappings.Command("Delete word", Trigger.ForGesture(Right.Id), original.Step)
+            .WithStepsFor(HostPlatform.MacOS, [new CommandStep(own.Step, HostPlatform.MacOS)], DateTimeOffset.UnixEpoch);
+        using var harness = new EngineHarness(gestures: [Right], mapping: Mappings.Global(command));
+        harness.WindowOperations.Platform = HostPlatform.MacOS;
+
+        harness.Stroke(200, 0);
+        harness.WaitForLog(LogSources.Execution, "Command fired");
+
+        Assert.Empty(original.Runs);
+        Assert.Single(own.Runs);
+    }
+
+    [Fact]
     public void InactiveSteps_AreSkipped_AndACommandWithNoneLogsIt()
     {
         var inactive = new FakeStepType(StepCategory.System);

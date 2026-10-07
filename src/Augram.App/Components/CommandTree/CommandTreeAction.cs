@@ -30,6 +30,12 @@ public enum CommandTreeAction
     /// <summary>Set where the command takes part (F8 "Use on"; the header's two check boxes; <see cref="CommandTreeActionEventArgs.UseOn"/>).</summary>
     SetUseOn,
 
+    /// <summary>Drop this platform's own steps; it runs the converted original again (F8).</summary>
+    UseConvertedOriginal,
+
+    /// <summary>Mark this platform's own steps as checked against the current original, clearing the "original changed" flag (F8).</summary>
+    MarkOwnVersionChecked,
+
     /// <summary>Rename the section or command to the name typed in place.</summary>
     Rename,
 

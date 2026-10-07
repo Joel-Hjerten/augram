@@ -8,9 +8,10 @@ using Augram.Engine.Hosting;
 namespace Augram.Engine.Execution;
 
 /// <summary>
-/// Runs one resolved command on the executor thread: plays the active steps in order as each runs on this
-/// platform (F8: its override, the step itself where it was authored, else the best-guess conversion; a step with
-/// no guess is skipped with its reason), sharing one <see cref="StepExecutionContext"/>. The target is
+/// Runs one resolved command on the executor thread: plays the active steps in order as they run on this platform
+/// (F8: the command's own version for it when it has one, else the original with each step itself where it was
+/// authored or its best-guess conversion; a step with no guess is skipped with its reason), sharing one
+/// <see cref="StepExecutionContext"/>. The target is
 /// activated lazily, right before the first Keyboard or Text step, because only injected keys need
 /// focus (the adapter applies A20 and says whether focus moved): a window operation acts on the handle
 /// and a media key is global, so a minimize never pays for an activation (2026-10-07: an Alt-tap
@@ -44,7 +45,8 @@ internal sealed class CommandRunner
 
     public void Run(ExecutionRequest request, AppGroup group, Command command, WindowIdentity? target)
     {
-        if (!command.Steps.Any(step => step.IsActive))
+        var plan = command.PlanFor(_operations.Platform);
+        if (!plan.Any(step => step.Stored.IsActive))
         {
             _log.Info(LogSources.Execution, "Command has no active steps", ("group", group.Name), ("command", command.Name));
             return;
@@ -54,15 +56,14 @@ internal sealed class CommandRunner
         var activated = false;
         var run = 0;
         var skipped = 0;
-        for (var index = 0; index < command.Steps.Count; index++)
+        for (var index = 0; index < plan.Count; index++)
         {
-            var commandStep = command.Steps[index];
+            var (commandStep, planned) = plan[index];
             if (!commandStep.IsActive)
             {
                 continue;
             }
 
-            var planned = commandStep.ForPlatform(_operations.Platform);
             if (planned.Step is not { } step)
             {
                 // F8: authored on the other platform with no sensible guess here ("Win+D needs a macOS version").

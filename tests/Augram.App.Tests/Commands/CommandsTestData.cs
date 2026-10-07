@@ -46,8 +46,8 @@ internal static class CommandsTestData
         var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false, new AppMatcher { WindowsProcessNames = ["chrome.exe"] },
         [
             Command("Nothing on Up", Trigger.ForGesture(Up)),
-            new Command(CommandId.New(), "Close tab", Trigger.ForGesture(Down), IsActive: true,
-                [new CommandStep(new DelayStep(5), HostPlatform.Windows, MacOsOverride: new DelayStep(50))]),
+            new Command(CommandId.New(), "Close tab", Trigger.ForGesture(Down), IsActive: true, [new CommandStep(new DelayStep(5), HostPlatform.Windows)])
+                .WithStepsFor(HostPlatform.MacOS, [new CommandStep(new DelayStep(50), HostPlatform.MacOS)], DateTimeOffset.UnixEpoch),
         ]);
         var apple = new AppGroup(GroupId.New(), "Apple", IsActive: true, SuppressGlobals: true, new AppMatcher { WindowsProcessNames = ["apple.exe"] }, []);
         var general = new CommandCategory(CategoryId.New(), "General");

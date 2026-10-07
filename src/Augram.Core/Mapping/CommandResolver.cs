@@ -42,7 +42,7 @@ public static class CommandResolver
             var command = ActiveCommandFor(group, trigger, platform);
             if (command is not null)
             {
-                return CommandResolution.Matched(group, command, command.IsOverrideToNothing
+                return CommandResolution.Matched(group, command, command.IsOverrideToNothingOn(platform)
                     ? $"override to nothing in '{group.Name}'"
                     : $"app override in '{group.Name}'");
             }

@@ -211,6 +211,13 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
             case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
                 UpdateCommand(command.Id, stored => stored with { UseOn = useOn });
                 break;
+            case CommandTreeAction.UseConvertedOriginal when e.Command is { } command:
+                UpdateCommand(command.Id, stored => stored.WithoutOwnVersion());
+                Message = $"'{command.Name}' runs the converted original here again. {CommandsKeymap.Current.Undo} brings its own steps back.";
+                break;
+            case CommandTreeAction.MarkOwnVersionChecked when e.Command is { } command:
+                UpdateCommand(command.Id, stored => stored.WithOwnVersionChecked(DateTimeOffset.UtcNow));
+                break;
             case CommandTreeAction.SetCategory when e.Command is { } command && e.Category is { } category:
                 SetCategory(command, category.Id);
                 break;

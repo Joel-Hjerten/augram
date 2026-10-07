@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
@@ -82,14 +83,30 @@ internal static class MappingJsonWriter
             writer.WriteString("note", command.Note);
         }
 
+        WriteSteps(writer, command.Steps);
+        if (command.OwnVersion is { } own)
+        {
+            // F8: the steps of the platform the command was not authored on; absent while that platform runs the converted original.
+            writer.WriteStartObject("ownVersion");
+            writer.WriteString("platform", own.Platform.ToString());
+            writer.WriteString("basedOn", own.BasedOn);
+            writer.WriteString("changedAt", own.ChangedAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture));
+            WriteSteps(writer, own.Steps);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndObject();
+    }
+
+    private static void WriteSteps(Utf8JsonWriter writer, IReadOnlyList<CommandStep> steps)
+    {
         writer.WriteStartArray("steps");
-        foreach (var step in command.Steps)
+        foreach (var step in steps)
         {
             WriteStep(writer, step);
         }
 
         writer.WriteEndArray();
-        writer.WriteEndObject();
     }
 
     private static void WriteCategories(Utf8JsonWriter writer, IReadOnlyList<CommandCategory> categories)
@@ -139,26 +156,7 @@ internal static class MappingJsonWriter
         writer.WriteBoolean("isActive", step.IsActive);
         writer.WritePropertyName("params");
         step.Step.Type.Write(step.Step).WriteTo(writer);
-        if (step.HasOverrides)
-        {
-            writer.WriteStartObject("overrides");
-            WriteOverride(writer, HostPlatform.Windows, step.WindowsOverride);
-            WriteOverride(writer, HostPlatform.MacOS, step.MacOsOverride);
-            writer.WriteEndObject();
-        }
-
         writer.WriteEndObject();
-    }
-
-    private static void WriteOverride(Utf8JsonWriter writer, HostPlatform platform, IStep? step)
-    {
-        if (step is null)
-        {
-            return;
-        }
-
-        writer.WritePropertyName(PlatformKey(platform));
-        step.Type.Write(step).WriteTo(writer);
     }
 
     private static void WriteMatcher(Utf8JsonWriter writer, AppMatcher? matcher)

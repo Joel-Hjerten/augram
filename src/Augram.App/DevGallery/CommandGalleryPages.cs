@@ -149,7 +149,7 @@ public static class CommandGalleryPages
     private static IReadOnlyList<CommandStep> FakeSteps() =>
     [
         new(new WindowOpStep(WindowOperation.Center), HostPlatform.Windows),
-        new(new DelayStep(50), HostPlatform.Windows, MacOsOverride: new DelayStep(120)),
+        new(new DelayStep(50), HostPlatform.Windows),
         new(new MediaKeyStep(MediaKeyKind.PlayPause), HostPlatform.Windows, IsActive: false),
         new(new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w" }), HostPlatform.Windows),
     ];

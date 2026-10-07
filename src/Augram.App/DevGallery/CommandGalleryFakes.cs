@@ -41,11 +41,7 @@ public static class CommandGalleryFakes
             new AppMatcher { WindowsProcessNames = ["chrome.exe", "msedge.exe"] },
             [
                 Cmd("Close tab", Trigger.ForGesture(StarterGestures.IdFor("Up")), new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w" })),
-                new(CommandId.New(), "Zoom reset", Trigger.ForGesture(StarterGestures.IdFor("Circle")), IsActive: true,
-                [
-                    new CommandStep(new DelayStep(50), HostPlatform.Windows, MacOsOverride: new DelayStep(120)),
-                    new CommandStep(new WindowOpStep(WindowOperation.Center), HostPlatform.Windows),
-                ]),
+                ZoomReset(),
             ]);
         var steam = new AppGroup(GroupId.New(), "Steam games", IsActive: true, SuppressGlobals: true,
             new AppMatcher { Title = "^.*\\(Steam\\)$", TitleIsRegex = true },
@@ -61,6 +57,17 @@ public static class CommandGalleryFakes
             ],
             [general, blend]);
         return new MappingDocument([global, chrome, steam, photoshop], []);
+    }
+
+    /// <summary>A Windows command with its own macOS steps (F8), so the gallery shows the own-version marker.</summary>
+    private static Command ZoomReset()
+    {
+        var original = new Command(CommandId.New(), "Zoom reset", Trigger.ForGesture(StarterGestures.IdFor("Circle")), IsActive: true,
+        [
+            new CommandStep(new DelayStep(50), HostPlatform.Windows),
+            new CommandStep(new WindowOpStep(WindowOperation.Center), HostPlatform.Windows),
+        ]);
+        return original.WithStepsFor(HostPlatform.MacOS, [new CommandStep(new DelayStep(120), HostPlatform.MacOS)], DateTimeOffset.UnixEpoch);
     }
 
     private static Command Cmd(string name, Trigger trigger, params IStep[] steps)

@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
@@ -135,7 +137,26 @@ internal sealed class MappingJsonReader
             ReadCategoryReference(command, where))
         {
             UseOn = ReadUseOn(command, where),
+            OwnVersion = ReadOwnVersion(command, where),
         };
+    }
+
+    /// <summary>F8: the steps of the platform the command was not authored on; absent or null is none.</summary>
+    private CommandVersion? ReadOwnVersion(JsonObject command, string where)
+    {
+        if (command["ownVersion"] is null)
+        {
+            return null;
+        }
+
+        var what = $"the own version of {where}";
+        var own = JsonMembers.RequireObject(command["ownVersion"], what);
+        var changedAt = JsonMembers.OptionalString(own, "changedAt", what);
+        return new CommandVersion(
+            JsonMembers.OptionalEnum(own, "platform", HostPlatform.MacOS, what),
+            _steps.ReadAll(JsonMembers.OptionalArray(own, "steps", what), what),
+            JsonMembers.OptionalString(own, "basedOn", what) ?? string.Empty,
+            DateTimeOffset.TryParse(changedAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed) ? parsed : DateTimeOffset.UnixEpoch);
     }
 
     /// <summary>Missing or null: Uncategorized. Not a Guid string: Uncategorized, with a notice.</summary>

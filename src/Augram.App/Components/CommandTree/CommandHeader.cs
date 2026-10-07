@@ -37,6 +37,15 @@ public sealed class CommandHeader : TemplatedControl
     public static readonly StyledProperty<bool> IsGestureKindProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(IsGestureKind));
 
+    public static readonly StyledProperty<string?> VersionTextProperty =
+        AvaloniaProperty.Register<CommandHeader, string?>(nameof(VersionText));
+
+    public static readonly StyledProperty<bool> HasOwnVersionHereProperty =
+        AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasOwnVersionHere));
+
+    public static readonly StyledProperty<bool> CanMarkCheckedProperty =
+        AvaloniaProperty.Register<CommandHeader, bool>(nameof(CanMarkChecked));
+
     public static readonly StyledProperty<bool> HasCategoriesProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasCategories));
 
@@ -95,6 +104,27 @@ public sealed class CommandHeader : TemplatedControl
         private set => SetValue(HasCategoriesProperty, value);
     }
 
+    /// <summary>F8: where this platform's steps come from and what an edit here does (<see cref="CommandItem.VersionText"/>).</summary>
+    public string? VersionText
+    {
+        get => GetValue(VersionTextProperty);
+        private set => SetValue(VersionTextProperty, value);
+    }
+
+    /// <summary>F8: this platform runs its own steps; shows "Use the converted original".</summary>
+    public bool HasOwnVersionHere
+    {
+        get => GetValue(HasOwnVersionHereProperty);
+        private set => SetValue(HasOwnVersionHereProperty, value);
+    }
+
+    /// <summary>F8: the own steps here were made before the original last changed; shows "Mark as checked".</summary>
+    public bool CanMarkChecked
+    {
+        get => GetValue(CanMarkCheckedProperty);
+        private set => SetValue(CanMarkCheckedProperty, value);
+    }
+
     /// <summary>The kind the dropdown shows; -1 without a command.</summary>
     public int KindIndex => _kind?.SelectedIndex ?? -1;
 
@@ -148,6 +178,8 @@ public sealed class CommandHeader : TemplatedControl
         WireUseOn(_useOnWindows, HostPlatform.Windows);
         WireUseOn(_useOnMac, HostPlatform.MacOS);
         Apply();
+        WireAction(e, "PART_UseConverted", CommandTreeAction.UseConvertedOriginal);
+        WireAction(e, "PART_MarkChecked", CommandTreeAction.MarkOwnVersionChecked);
         if (e.NameScope.Find<Button>("PART_PickGesture") is { } pick)
         {
             pick.Click += (_, _) =>
@@ -172,6 +204,9 @@ public sealed class CommandHeader : TemplatedControl
             Points = item?.GlyphPoints;
             IsGestureKind = item?.TriggerKind == TriggerKind.Gesture;
             HasCategories = item is { Categories.Count: > 0 };
+            VersionText = item?.VersionText;
+            HasOwnVersionHere = item is { HasOwnVersionHere: true };
+            CanMarkChecked = item is { HasOwnVersionHere: true, IsOwnVersionStale: true };
             Apply();
         }
     }
@@ -185,6 +220,20 @@ public sealed class CommandHeader : TemplatedControl
         }
 
         Apply();
+    }
+
+    private void WireAction(TemplateAppliedEventArgs e, string part, CommandTreeAction action)
+    {
+        if (e.NameScope.Find<Button>(part) is { } button)
+        {
+            button.Click += (_, _) =>
+            {
+                if (Item is { } item)
+                {
+                    ActionRequested?.Invoke(this, new CommandTreeActionEventArgs(action, command: item));
+                }
+            };
+        }
     }
 
     private void WireUseOn(CheckBox? box, HostPlatform platform)

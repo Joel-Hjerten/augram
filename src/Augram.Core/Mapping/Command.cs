@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 
 namespace Augram.Core.Mapping;
@@ -26,10 +29,86 @@ public sealed record Command(
     /// </summary>
     public PlatformSet UseOn { get; init; } = PlatformSet.All;
 
-    public bool IsUsedOn(Abstractions.HostPlatform platform) => UseOn.Includes(platform);
+    public bool IsUsedOn(HostPlatform platform) => UseOn.Includes(platform);
+
+    /// <summary>
+    /// The own steps for the platform the command was not authored on (F8, Joel 2026-10-07); null while that platform runs
+    /// the converted original. <see cref="Steps"/> stays the original and keeps running where it was authored.
+    /// </summary>
+    public CommandVersion? OwnVersion { get; init; }
+
+    /// <summary>
+    /// The platform the original steps were authored on: the other one than the own version's, else the first step's;
+    /// null for a command with no steps and no own version (its first step makes this platform the origin).
+    /// </summary>
+    public HostPlatform? Origin => OwnVersion is { } own ? Other(own.Platform) : Steps.Count > 0 ? Steps[0].AuthoredOn : null;
+
+    /// <summary>True when the original changed after the own version was made or last checked: its fingerprint moved on.</summary>
+    public bool IsOwnVersionStale => OwnVersion is { } own && own.BasedOn != Fingerprint(Steps);
 
     /// <summary>No steps: in an app group this shadows the global command for the same trigger with nothing.</summary>
     public bool IsOverrideToNothing => Steps.Count == 0;
+
+    /// <summary><see cref="IsOverrideToNothing"/> as <paramref name="platform"/> sees it: its own version when it has one.</summary>
+    public bool IsOverrideToNothingOn(HostPlatform platform) => StepsFor(platform).Count == 0;
+
+    /// <summary>The step list <paramref name="platform"/> shows and edits: its own version's, else the original.</summary>
+    public IReadOnlyList<CommandStep> StepsFor(HostPlatform platform) => OwnVersion is { } own && own.Platform == platform ? own.Steps : Steps;
+
+    /// <summary>
+    /// What runs on <paramref name="platform"/>, step by step: its own version as stored, else the original with each step as it
+    /// runs there (itself, converted, or none with the reason).
+    /// </summary>
+    public IReadOnlyList<PlannedStep> PlanFor(HostPlatform platform)
+        => [.. StepsFor(platform).Select(step => new PlannedStep(step, step.ForPlatform(platform)))];
+
+    /// <summary>
+    /// The command with <paramref name="steps"/> as <paramref name="platform"/>'s step list. Where the original was authored (or
+    /// when there is no original yet) that is the original; elsewhere it is the own version, made on the first edit, and an
+    /// edit there counts as having checked it against the current original.
+    /// </summary>
+    public Command WithStepsFor(HostPlatform platform, IReadOnlyList<CommandStep> steps, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        return Origin is not { } origin || origin == platform
+            ? this with { Steps = steps }
+            : this with { OwnVersion = new CommandVersion(platform, steps, Fingerprint(Steps), now) };
+    }
+
+    /// <summary>
+    /// The original converted for <paramref name="platform"/>, as the start of an own version: each step as it runs there,
+    /// authored there; a step with no guess is kept as it is, so it still says what it needs.
+    /// </summary>
+    public IReadOnlyList<CommandStep> ConvertedFor(HostPlatform platform)
+        => [.. Steps.Select(step => step.ForPlatform(platform) is { Step: { } run } && step.AuthoredOn != platform
+            ? new CommandStep(run, platform, step.IsActive)
+            : step)];
+
+    /// <summary>Back to running the converted original on the own version's platform.</summary>
+    public Command WithoutOwnVersion() => this with { OwnVersion = null };
+
+    /// <summary>The own version marked as checked against the current original, so it is no longer flagged.</summary>
+    public Command WithOwnVersionChecked(DateTimeOffset now)
+        => OwnVersion is { } own ? this with { OwnVersion = own with { BasedOn = Fingerprint(Steps), ChangedAt = now } } : this;
+
+    /// <summary>
+    /// A short, stable fingerprint of a step list: what each step is (type, parameters, where it was authored, active), so
+    /// equal lists have equal fingerprints on every machine.
+    /// </summary>
+    public static string Fingerprint(IReadOnlyList<CommandStep> steps)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        var text = new StringBuilder();
+        foreach (var step in steps)
+        {
+            text.Append(step.Step.Type.Key).Append('|').Append(step.AuthoredOn).Append('|').Append(step.IsActive)
+                .Append('|').Append(step.Step.Type.Write(step.Step).ToJsonString()).Append('\n');
+        }
+
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())).AsSpan(0, 8));
+    }
+
+    private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 
     public bool UsesGesture(GestureId gestureId)
         => Trigger is Trigger.GestureTrigger gesture && gesture.GestureId == gestureId;

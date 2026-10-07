@@ -114,19 +114,13 @@ public sealed class HotkeyConversionTests
     }
 
     [Fact]
-    public void ACommandStepRunsItsOverride_ItselfWhereAuthored_ElseTheGuess()
+    public void ACommandStepRunsItselfWhereAuthored_ElseTheGuess()
     {
         var ctrlW = new HotkeyStep(Ctrl, KeyCode.W);
         var authored = new CommandStep(ctrlW, HostPlatform.Windows);
 
         Assert.Same(ctrlW, authored.ForPlatform(HostPlatform.Windows).Step);
         Assert.Equal(new HotkeyStep(Meta, KeyCode.W), authored.ForPlatform(HostPlatform.MacOS).Step);
-
-        var own = new HotkeyStep(Meta | Shift, KeyCode.W);
-        var withOverride = authored with { MacOsOverride = own };
-        var resolved = withOverride.ForPlatform(HostPlatform.MacOS);
-        Assert.Equal(StepConversionKind.Unchanged, resolved.Kind);
-        Assert.Same(own, resolved.Step);
     }
 
     private static StepConversion Convert(HotkeyStep step, HostPlatform from, HostPlatform to) => HotkeyStepType.Instance.Convert(step, from, to);

@@ -57,9 +57,9 @@ These belong to the Engine's command executor (M2 step 3); every step is written
 `Write()` returns the step's parameters only. The **Mapping** subsystem (`Core/Mapping`) owns the envelope it is stored in, per F8:
 
 ```json
-{ "type": "windowOp", "authoredOn": "Windows", "isActive": true, "params": { "operation": "Minimize" }, "overrides": { "macos": { … } } }
+{ "type": "windowOp", "authoredOn": "Windows", "isActive": true, "params": { "operation": "Minimize" } }
 ```
 
-`type` is the registry key, `authoredOn` a `HostPlatform`, `params` what `Write` produced, `overrides` per-platform parameter objects for platform-bound types (resolution order at run time: override for the current platform → conversion of the authored step). Mapping calls `StepRegistry.Require(type).Read(params)` on load; this folder never sees the envelope.
+`type` is the registry key, `authoredOn` a `HostPlatform`, `params` what `Write` produced. On the other platform the step runs as its type's `Convert` says; a platform that needs different steps gets the command's own version (`Mapping/CommandVersion`), not a per-step override. Mapping calls `StepRegistry.Require(type).Read(params)` on load; this folder never sees the envelope.
 
 **May reference:** `Abstractions`, `Capture` (the start point), `Diagnostics`. **Referenced by:** `Mapping`, the Engine executor, the importer, the App's step list and picker.
