@@ -19,7 +19,8 @@ public sealed class StrokeButtonDetectionTests
         Assert.Equal(StrokeButtonDetection.ListeningText, detection.Status);
 
         engine.Press(MouseButton.X2);
-        EngineFixture.WaitFor(() => !detection.IsListening, "the detection to finish");
+        // The worker clears IsListening before it writes Status, so wait for the status text itself.
+        EngineFixture.WaitFor(() => detection.Status != StrokeButtonDetection.ListeningText, "the detection to finish");
 
         Assert.Equal(MouseButton.X2, engine.Settings.Current.General.StrokeButton);
         Assert.Equal("Stroke button set to X2.", detection.Status);
@@ -52,7 +53,8 @@ public sealed class StrokeButtonDetectionTests
 
         detection.Start();
         engine.Press(MouseButton.Right);
-        EngineFixture.WaitFor(() => !detection.IsListening, "the detection to finish");
+        // The worker clears IsListening before it writes Status, so wait for the status text itself.
+        EngineFixture.WaitFor(() => detection.Status != StrokeButtonDetection.ListeningText, "the detection to finish");
         EngineFixture.WaitFor(() => engine.Simulator.Clicks.Count == 1, "the replayed click");
 
         Assert.Equal("Stroke button set to Right.", detection.Status);

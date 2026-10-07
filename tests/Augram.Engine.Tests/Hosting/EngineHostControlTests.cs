@@ -19,13 +19,13 @@ public sealed class EngineHostControlTests
         Assert.False(down);
         Assert.False(up);
         harness.WaitForState(CaptureState.Idle);
-        Assert.True(harness.Log.Has(LogSources.Engine, "Engine disabled"));
+        harness.WaitForLog(LogSources.Engine, "Engine disabled");
         Assert.Empty(harness.Events);
         Assert.Empty(harness.Simulator.Clicks);
         Assert.Empty(harness.Trail.Calls);
 
         harness.Host.Enabled = true;
-        Assert.True(harness.Log.Has(LogSources.Engine, "Engine enabled"));
+        harness.WaitForLog(LogSources.Engine, "Engine enabled");
         Assert.True(harness.Stroke(200, 0, startMs: 1000).Down);
         harness.WaitForEvents(1);
     }
@@ -74,7 +74,7 @@ public sealed class EngineHostControlTests
         Assert.True(harness.Up(MouseButton.Middle, 10, 10, 30));
         EngineHarness.WaitFor(() => harness.Simulator.Clicks.Count == 1, "the replayed click");
         Assert.Equal(MouseButton.Middle, harness.Simulator.Clicks[0].Button);
-        Assert.True(harness.Log.Has(LogSources.Engine, "Stroke button changed"));
+        harness.WaitForLog(LogSources.Engine, "Stroke button changed");
         Assert.DoesNotContain(harness.Log.Events, e => e.Message == "Suppression decision mismatch");
     }
 
@@ -104,7 +104,7 @@ public sealed class EngineHostControlTests
 
         harness.WaitForState(CaptureState.Idle);
         Assert.Equal(1, harness.Host.Health.ReinstallCount);
-        Assert.True(harness.Log.Has(LogSources.Capture, "Capture reset"));
+        harness.WaitForLog(LogSources.Capture, "Capture reset");
         Assert.False(harness.Up(EngineHarness.StrokeButton, 10, 10, 100), "the release after a reinstall must pass through (nothing is owed)");
         Assert.True(harness.Down(EngineHarness.StrokeButton, 10, 10, 200));
     }
@@ -113,11 +113,11 @@ public sealed class EngineHostControlTests
     public void StartStopDispose_AreLogged_AndIdempotent()
     {
         var harness = new EngineHarness();
-        Assert.True(harness.Log.Has(LogSources.Engine, "Engine starting"));
+        harness.WaitForLog(LogSources.Engine, "Engine starting");
         Assert.Throws<InvalidOperationException>(harness.Host.Start);
 
         harness.Host.Stop();
-        Assert.True(harness.Log.Has(LogSources.Engine, "Engine stopped"));
+        harness.WaitForLog(LogSources.Engine, "Engine stopped");
         Assert.False(harness.Source.IsRunning);
         harness.Dispose();
         harness.Dispose();

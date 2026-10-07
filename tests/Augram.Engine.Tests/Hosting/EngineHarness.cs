@@ -115,5 +115,8 @@ internal sealed class EngineHarness : IDisposable
 
     public void WaitForEvents(int count) => WaitFor(() => Events.Count >= count, $"{count} engine events (have {Events.Count})");
 
+    /// <summary>The worker logs after it acts (click injected, event raised), so a test that waited for the act must also wait for the line.</summary>
+    public void WaitForLog(string source, string message) => WaitFor(() => Log.Has(source, message), $"log line {source}/{message}");
+
     public void Dispose() => Host.Dispose();
 }

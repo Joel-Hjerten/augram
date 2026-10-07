@@ -56,7 +56,7 @@ public sealed class EngineHostTests
         var noMatch = Assert.IsType<EngineEvent.NoMatch>(harness.Events[0]);
         Assert.StartsWith("best score", noMatch.Reason, StringComparison.Ordinal);
         Assert.Equal(noMatch.Reason, Assert.Single(harness.RecognitionLog.Snapshot()).NothingFiredReason);
-        Assert.True(harness.Log.Has(LogSources.Recognition, "No match"));
+        harness.WaitForLog(LogSources.Recognition, "No match");
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class EngineHostTests
 
         EngineHarness.WaitFor(() => harness.Simulator.Clicks.Count == 1, "the replayed click");
         Assert.Equal((MouseButton.Right, 52, 61), harness.Simulator.Clicks[0]);
-        Assert.True(harness.Log.Has(LogSources.Capture, "Click replayed"));
+        harness.WaitForLog(LogSources.Capture, "Click replayed");
         Assert.Empty(harness.Events);
         Assert.Empty(harness.Trail.Calls);
         Assert.Empty(harness.RecognitionLog.Snapshot());
@@ -133,7 +133,7 @@ public sealed class EngineHostTests
 
         harness.WaitForState(CaptureState.Idle);
         EngineHarness.WaitFor(() => harness.Trail.EndCount == 1, "the trail to end");
-        Assert.True(harness.Log.Has(LogSources.Capture, "Gesture cancelled"));
+        harness.WaitForLog(LogSources.Capture, "Gesture cancelled");
         Assert.Empty(harness.Events);
         Assert.Empty(harness.Simulator.Clicks);
     }
