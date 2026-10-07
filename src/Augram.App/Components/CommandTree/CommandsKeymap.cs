@@ -2,7 +2,8 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// The one per-platform keymap of the Commands tab (F5a), shared by the tree and the step list: rename
-/// is F2 on Windows and Return on macOS (Finder convention); the Ctrl shortcuts become Cmd there.
+/// is F2 (or Enter) on Windows and Return on macOS (Finder convention), and a double click renames too; the Ctrl
+/// shortcuts become Cmd there.
 /// Avalonia key-gesture syntax. <see cref="Current"/> is this machine's; tests build the other one.
 /// </summary>
 public sealed class CommandsKeymap
@@ -34,10 +35,13 @@ public sealed class CommandsKeymap
 
     public string Rename => IsMacOS ? "Return" : "F2";
 
+    /// <summary>A second rename key in the tree: Enter on Windows, beside F2 (Joel, 2026-10-07); macOS already renames on Return.</summary>
+    public string? RenameAlso => IsMacOS ? null : "Enter";
+
     public string Undo => _modifier + "+Z";
 
     public string Redo => IsMacOS ? "Cmd+Shift+Z" : "Ctrl+Y";
 
     /// <summary>Every gesture, for the test that proves they all parse.</summary>
-    public IReadOnlyList<string> All => [New, Copy, Paste, Duplicate, Delete, Rename, Undo, Redo];
+    public IReadOnlyList<string> All => [New, Copy, Paste, Duplicate, Delete, Rename, .. RenameAlso is { } also ? new[] { also } : [], Undo, Redo];
 }

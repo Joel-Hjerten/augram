@@ -3,7 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -32,6 +34,11 @@ public abstract class ItemRow : TemplatedControl
     private TextBox? _editor;
     private CheckBox? _active;
 
+    protected ItemRow()
+    {
+        AddHandler(PointerPressedEvent, (_, e) => LastPressClickCount = e.ClickCount, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
     /// <summary>Raised with the trimmed new name when the user presses Enter in the editor.</summary>
     public event EventHandler<string>? RenameCommitted;
 
@@ -54,6 +61,23 @@ public abstract class ItemRow : TemplatedControl
     {
         get => GetValue(IsEditingProperty);
         private set => SetValue(IsEditingProperty, value);
+    }
+
+    /// <summary>The click count of the last press on this row: 2 for the second click of a double click.</summary>
+    internal int LastPressClickCount { get; private set; }
+
+    /// <summary>Whether a pointer event landed on one of the row's own controls (a button such as the expander or the active box, or the name editor) rather than on the row itself.</summary>
+    internal bool IsFromOwnControl(Visual? source)
+    {
+        for (var visual = source; visual is not null && visual != this; visual = visual.GetVisualParent())
+        {
+            if (visual is Button or TextBox)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>False for a section that cannot be renamed (Uncategorized) and for steps.</summary>

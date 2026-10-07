@@ -245,6 +245,35 @@ public sealed class CommandTreeTests
         Assert.Single(actions, action => action.Action == CommandTreeAction.ToggleExpanded);
     }
 
+    [AvaloniaFact]
+    public void DoubleClickingARowRenamesIt_AHeaderEndsExpandedOrCollapsedAsItWas()
+    {
+        var (tree, actions, _) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        var closeTab = tree.Rows.OfType<CommandRow>().Single(row => row.NameText == "Close tab");
+
+        DoubleClickAt(window, closeTab.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "Close tab"));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.True(closeTab.IsEditing);
+        closeTab.GetVisualDescendants().OfType<TextBox>().Single().RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+        actions.Clear();
+
+        var chrome = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
+        DoubleClickAt(window, chrome.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "Chrome"));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        // The first click toggles, the double click puts it back: two toggles, net nothing.
+        Assert.Equal(2, actions.Count(action => action is { Action: CommandTreeAction.ToggleExpanded, Section.Name: "Chrome" }));
+        Assert.True(chrome.IsEditing);
+    }
+
+    private static void DoubleClickAt(Window window, Visual target)
+    {
+        ClickAt(window, target);
+        ClickAt(window, target);
+    }
+
     private static void ClickAt(Window window, Visual target)
     {
         var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;

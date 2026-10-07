@@ -62,6 +62,11 @@ internal static class CommandTreeMenu
     {
         Bind(target, keymap.New, CommandTreeAction.NewCommand, request, canExecute);
         Bind(target, keymap.Rename, CommandTreeAction.Rename, request, canExecute);
+        if (keymap.RenameAlso is { } renameAlso)
+        {
+            Bind(target, renameAlso, CommandTreeAction.Rename, request, canExecute);
+        }
+
         Bind(target, keymap.Delete, CommandTreeAction.Delete, request, canExecute);
         Bind(target, keymap.Copy, CommandTreeAction.Copy, request, canExecute);
         Bind(target, keymap.Paste, CommandTreeAction.Paste, request, canExecute);

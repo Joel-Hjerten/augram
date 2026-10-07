@@ -7,11 +7,11 @@ namespace Augram.App.Tests.Commands;
 public sealed class CommandsKeymapTests
 {
     [Fact]
-    public void WindowsUsesCtrlF2AndCtrlY()
+    public void WindowsUsesCtrlF2OrEnterAndCtrlY()
     {
         var keymap = new CommandsKeymap(isMacOS: false);
 
-        Assert.Equal(["Ctrl+N", "Ctrl+C", "Ctrl+V", "Ctrl+D", "Delete", "F2", "Ctrl+Z", "Ctrl+Y"], keymap.All);
+        Assert.Equal(["Ctrl+N", "Ctrl+C", "Ctrl+V", "Ctrl+D", "Delete", "F2", "Enter", "Ctrl+Z", "Ctrl+Y"], keymap.All);
         Assert.All(keymap.All, gesture => Assert.NotNull(KeyGesture.Parse(gesture)));
     }
 

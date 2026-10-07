@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Threading;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -220,12 +221,42 @@ public sealed class CommandTree : TemplatedControl
         }
     }
 
-    /// <summary>Right-click selects before the context menu opens, so the menu acts on the row under the pointer.</summary>
+    /// <summary>
+    /// Right-click selects before the context menu opens, so the menu acts on the row under the pointer. A double click
+    /// on a row's name or body renames it (Joel, 2026-10-07). The count comes from the press, not from a double-tap
+    /// gesture: a header's first click toggles it, which rebuilds the rows, and the gesture needs both clicks on one element.
+    /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is Control row && _list is not null && e.GetCurrentPoint(row).Properties.IsRightButtonPressed)
+        if (sender is not Control row || _list is null)
+        {
+            return;
+        }
+
+        var properties = e.GetCurrentPoint(row).Properties;
+        if (properties.IsRightButtonPressed)
         {
             _list.SelectedItem = row;
+        }
+        else if (properties.IsLeftButtonPressed && e.ClickCount == 2 && row is ItemRow { CanRename: true, IsEditing: false } item && !item.IsFromOwnControl(e.Source as Visual))
+        {
+            Dispatcher.UIThread.Post(() => RenameByDoubleClick(item));
+        }
+    }
+
+    /// <summary>After the press has been handled, so the rows the first click rebuilt are settled.</summary>
+    private void RenameByDoubleClick(ItemRow row)
+    {
+        switch (row)
+        {
+            case CommandRow { Item: { } command }:
+                BeginRename(command.Id);
+                break;
+            case SectionRow { Item: { } section }:
+                // The double click's first click toggled the header; put it back, so a rename leaves it as it was.
+                Raise(CommandTreeAction.ToggleExpanded, section);
+                Dispatcher.UIThread.Post(() => BeginRename(section.Id));
+                break;
         }
     }
 
