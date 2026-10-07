@@ -9,13 +9,13 @@ namespace Augram.App.Components.GestureGrid;
 
 /// <summary>
 /// Lookless tile of the gesture grid: glyph above name, greyed via the <c>:inactive</c> pseudo-class,
-/// outlined via <c>:close</c> / <c>:duplicate</c> from the item's <see cref="DuplicateTier"/> (A7), and
-/// marked <c>:partner</c> with the score while the selected tile is likely to be confused with it.
+/// outlined via <c>:duplicate</c> when the item has duplicates (A7), and marked <c>:partner</c> with the
+/// score while the selected tile is a duplicate of it.
 /// Rename edits in place (F5a): <see cref="BeginEdit"/> shows the template's <c>PART_NameEditor</c>
 /// with the current name; Enter raises <see cref="RenameCommitted"/>, Escape reverts. The tile
 /// never touches a store; the grid forwards the commit to its host.
 /// </summary>
-[PseudoClasses(":inactive", ":editing", ":close", ":duplicate", ":partner")]
+[PseudoClasses(":inactive", ":editing", ":duplicate", ":partner")]
 public sealed class GestureTile : TemplatedControl
 {
     public static readonly StyledProperty<GestureTileItem?> ItemProperty =
@@ -33,8 +33,8 @@ public sealed class GestureTile : TemplatedControl
     public static readonly StyledProperty<bool> IsEditingProperty =
         AvaloniaProperty.Register<GestureTile, bool>(nameof(IsEditing));
 
-    public static readonly StyledProperty<DuplicateTier> TierProperty =
-        AvaloniaProperty.Register<GestureTile, DuplicateTier>(nameof(Tier));
+    public static readonly StyledProperty<bool> HasDuplicatesProperty =
+        AvaloniaProperty.Register<GestureTile, bool>(nameof(HasDuplicates));
 
     public static readonly StyledProperty<string?> PartnerScoreTextProperty =
         AvaloniaProperty.Register<GestureTile, string?>(nameof(PartnerScoreText));
@@ -74,10 +74,10 @@ public sealed class GestureTile : TemplatedControl
         private set => SetValue(IsEditingProperty, value);
     }
 
-    public DuplicateTier Tier
+    public bool HasDuplicates
     {
-        get => GetValue(TierProperty);
-        private set => SetValue(TierProperty, value);
+        get => GetValue(HasDuplicatesProperty);
+        private set => SetValue(HasDuplicatesProperty, value);
     }
 
     /// <summary>"97%" while the selected tile is likely to be confused with this one; null otherwise.</summary>
@@ -129,12 +129,11 @@ public sealed class GestureTile : TemplatedControl
             NameText = item?.Name ?? string.Empty;
             Points = item?.Points;
             IsActive = item?.IsActive ?? true;
-            Tier = item?.Tier ?? DuplicateTier.None;
+            HasDuplicates = item?.HasDuplicates ?? false;
         }
-        else if (change.Property == TierProperty)
+        else if (change.Property == HasDuplicatesProperty)
         {
-            PseudoClasses.Set(":duplicate", Tier == DuplicateTier.Exact);
-            PseudoClasses.Set(":close", Tier == DuplicateTier.Close);
+            PseudoClasses.Set(":duplicate", HasDuplicates);
         }
         else if (change.Property == PartnerScoreTextProperty)
         {

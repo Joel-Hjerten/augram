@@ -5,21 +5,18 @@ namespace Augram.App.Components.GestureGrid;
 
 /// <summary>
 /// What one tile of the <see cref="GestureGrid"/> shows: a projection of a <see cref="Gesture"/> (its
-/// first sample is the glyph) plus the gestures it is likely to be confused with, which decide its
-/// outline (<see cref="Tier"/>) and light up when the tile is selected.
+/// first sample is the glyph) plus its duplicates (A7: other gestures scoring at or above
+/// <see cref="ConfusionCheck.DuplicateCutOff"/> against it), which outline the tile and light up when it is selected.
 /// </summary>
 public sealed record GestureTileItem(GestureId Id, string Name, bool IsActive, IReadOnlyList<GesturePoint>? Points, int SampleCount, IReadOnlyList<GesturePartner>? Partners = null)
 {
     public IReadOnlyList<GesturePartner> Partners { get; init; } = Partners ?? [];
 
-    public DuplicateTier Tier =>
-        Partners.Count == 0 ? DuplicateTier.None
-        : Partners.Any(partner => partner.Score >= ConfusionCheck.ExactCutOff) ? DuplicateTier.Exact
-        : DuplicateTier.Close;
+    public bool HasDuplicates => Partners.Count > 0;
 
     public static GestureTileItem From(Gesture gesture) => From(gesture, []);
 
-    /// <summary>Projects the gesture and picks its partners out of <paramref name="pairs"/>, best first.</summary>
+    /// <summary>Projects the gesture and picks its partners out of <paramref name="pairs"/> (found at the duplicate cut-off), best first.</summary>
     public static GestureTileItem From(Gesture gesture, IReadOnlyList<ConfusionPair> pairs)
     {
         ArgumentNullException.ThrowIfNull(gesture);

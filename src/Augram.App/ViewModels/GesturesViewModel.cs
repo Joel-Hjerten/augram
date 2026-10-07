@@ -10,8 +10,8 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// The Gestures tab's projection over <see cref="GestureLibrary"/> (F3, F4, F5a, A7): tiles sorted by
-/// name with their A7 confusion partners (recomputed, debounced, after every library change; the
-/// tiles outline exact duplicates and light up partners on select), undo/redo availability and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
+/// name with their A7 duplicates (pairs at or above the duplicate cut-off, recomputed, debounced, after
+/// every library change; the tiles outline them and light them up on select), undo/redo availability and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
 /// a store call. Rules live in the library and <see cref="ConfusionCheck"/>; this only shows outcomes.
 /// </summary>
 public sealed partial class GesturesViewModel : ObservableObject, IDisposable
@@ -75,7 +75,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     public void RefreshDiagnostic()
     {
         _diagnosticTimer.Stop();
-        ConfusionPairs = ConfusionCheck.Find(_library.All, _options());
+        ConfusionPairs = ConfusionCheck.Find(_library.All, _options(), ConfusionCheck.DuplicateCutOff);
         Project();
     }
 
@@ -117,13 +117,13 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Deletes the tile's exact duplicates (A7) as one undo step; the user chose which copy to keep.</summary>
+    /// <summary>Deletes the tile's duplicates (A7) as one undo step; the user chose which copy to keep.</summary>
     private void KeepThis(GestureTileItem tile)
     {
-        var losers = tile.Partners.Where(partner => partner.Score >= ConfusionCheck.ExactCutOff).Select(partner => partner.Id).ToHashSet();
+        var losers = tile.Partners.Select(partner => partner.Id).ToHashSet();
         if (losers.Count == 0)
         {
-            Message = $"'{tile.Name}' has no exact duplicates.";
+            Message = $"'{tile.Name}' has no duplicates.";
             return;
         }
 

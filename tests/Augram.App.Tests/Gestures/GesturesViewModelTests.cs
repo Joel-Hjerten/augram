@@ -64,7 +64,7 @@ public sealed class GesturesViewModelTests
 
         Assert.Equal(count, library.All.Count);
         vm.Handle(new GestureGridActionEventArgs(GestureGridAction.KeepThis, vm.Tiles.Single(t => t.Name == "Z")));
-        Assert.Equal("'Z' has no exact duplicates.", vm.Message);
+        Assert.Equal("'Z' has no duplicates.", vm.Message);
     }
 
     [AvaloniaFact]
@@ -102,7 +102,7 @@ public sealed class GesturesViewModelTests
     }
 
     [AvaloniaFact]
-    public void ConfusionPairsOutlineExactDuplicatesOnTheirTiles()
+    public void DuplicatesAreFoundAtTheDuplicateCutOffAndMarkTheirTiles()
     {
         var (vm, library, _, _) = Create();
         var before = vm.ConfusionPairs.Count;
@@ -115,10 +115,11 @@ public sealed class GesturesViewModelTests
         var pair = vm.ConfusionPairs.Single(p => p.SecondName == "Up twin" || p.FirstName == "Up twin");
         Assert.Equal(new HashSet<string> { "Up", "Up twin" }, new HashSet<string> { pair.FirstName, pair.SecondName });
         var twin = vm.Tiles.Single(t => t.Name == "Up twin");
-        Assert.Equal(DuplicateTier.Exact, twin.Tier);
+        Assert.True(twin.HasDuplicates);
         Assert.Equal("Up", Assert.Single(twin.Partners).Name);
-        Assert.Equal(DuplicateTier.Exact, vm.Tiles.Single(t => t.Name == "Up").Tier);
-        Assert.Equal(DuplicateTier.None, vm.Tiles.Single(t => t.Name == "Z").Tier);
+        Assert.True(vm.Tiles.Single(t => t.Name == "Up").HasDuplicates);
+        Assert.False(vm.Tiles.Single(t => t.Name == "Z").HasDuplicates);
+        Assert.All(vm.ConfusionPairs, pair => Assert.True(pair.Score >= ConfusionCheck.DuplicateCutOff));
     }
 
     private static (GesturesViewModel Vm, GestureLibrary Library, FakeTrainingPresenter Training, FakeImportPresenter Import) Create()

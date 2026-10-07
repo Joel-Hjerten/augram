@@ -151,7 +151,7 @@ public sealed class GestureGrid : TemplatedControl
         MarkPartners();
     }
 
-    /// <summary>Lights up the tiles the selected gesture is likely to be confused with (A7), with the score.</summary>
+    /// <summary>Lights up the selected gesture's duplicates (A7) with the score.</summary>
     private void MarkPartners()
     {
         var partners = SelectedTile?.Partners ?? [];

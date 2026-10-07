@@ -18,7 +18,7 @@ internal static class GestureGridMenu
         return menu;
     }
 
-    /// <summary>Shows or hides the entries that only apply to some tiles: "Keep this" needs an exact duplicate.</summary>
+    /// <summary>Shows or hides the entries that only apply to some tiles: "Keep this" needs a duplicate.</summary>
     public static void Refresh(ContextMenu menu, GestureTileItem? selected)
     {
         ArgumentNullException.ThrowIfNull(menu);
@@ -26,7 +26,7 @@ internal static class GestureGridMenu
         {
             if (item.Tag is GestureGridAction.KeepThis)
             {
-                item.IsVisible = selected?.Tier == DuplicateTier.Exact;
+                item.IsVisible = selected?.HasDuplicates == true;
             }
         }
     }

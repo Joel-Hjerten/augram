@@ -222,7 +222,7 @@
         <Style Selector="^:inactive /template/ TextBlock#PART_Name">
           <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
         </Style>
-        <!-- A7: only exact duplicates are outlined (close pairs show up with their score when a tile is selected). The frame thickness never changes, only its colour, so marking a partner cannot shift the grid. -->
+        <!-- A7: duplicates are outlined and light up with their score when one of them is selected. The frame thickness never changes, only its colour, so marking a partner cannot shift the grid. -->
         <Style Selector="^:duplicate /template/ Border#PART_Frame">
           <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
         </Style>
