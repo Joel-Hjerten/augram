@@ -8,7 +8,13 @@
         xmlns:color="using:Augram.App.Components.Fields.Color"
         xmlns:glyph="using:Augram.App.Components.GestureGlyph"
         xmlns:grid="using:Augram.App.Components.GestureGrid"
-        xmlns:draw="using:Augram.App.Components.GestureDrawArea">
+        xmlns:draw="using:Augram.App.Components.GestureDrawArea"
+        xmlns:bench="using:Augram.App.Components.CommandsWorkbench"
+        xmlns:tree="using:Augram.App.Components.CommandTree"
+        xmlns:steps="using:Augram.App.Components.StepList"
+        xmlns:picker="using:Augram.App.Components.StepTypePicker"
+        xmlns:gpicker="using:Augram.App.Components.GesturePicker"
+        xmlns:dialog="using:Augram.App.Components.FormDialog">
   <!--
     Wireframe theme (ADR-0002 §5b): grey boxes, 1 px borders, system font, text where icons would go.
     Every lookless component's ControlTheme lives here; Tokens.axaml supplies the values. Replacing the
@@ -306,6 +312,339 @@
           <Setter Property="IsVisible" Value="True" />
         </Style>
       </ControlTheme>
+
+      <!-- Commands tab (M2): the workbench lays the tree beside the header and step list; moving the step panel is a change here only. -->
+      <ControlTheme x:Key="{x:Type bench:CommandsWorkbench}" TargetType="bench:CommandsWorkbench">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <DockPanel>
+              <Border DockPanel.Dock="Bottom"
+                      BorderBrush="{StaticResource Brush.Border}"
+                      BorderThickness="0,1,0,0"
+                      Padding="{StaticResource Pad.S}"
+                      Margin="{StaticResource Pad.S}"
+                      IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Classes="note" Text="{TemplateBinding Message}" TextWrapping="Wrap" />
+              </Border>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource Workbench.TreeWidth}" MinWidth="240" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" MinWidth="240" />
+                </Grid.ColumnDefinitions>
+                <tree:CommandTree Name="PART_Tree"
+                                  Grid.Column="0"
+                                  Groups="{TemplateBinding Groups}"
+                                  SelectedGroupId="{TemplateBinding SelectedGroupId}"
+                                  SelectedCommandId="{TemplateBinding SelectedCommandId}"
+                                  CanUndo="{TemplateBinding CanUndo}"
+                                  CanRedo="{TemplateBinding CanRedo}" />
+                <GridSplitter Grid.Column="1" Width="4" Background="{StaticResource Brush.Border}" ResizeDirection="Columns" />
+                <DockPanel Grid.Column="2">
+                  <tree:CommandHeader Name="PART_Header" DockPanel.Dock="Top" Item="{TemplateBinding SelectedCommand}" />
+                  <steps:StepList Name="PART_Steps"
+                                  Steps="{TemplateBinding Steps}"
+                                  SelectedIndex="{TemplateBinding SelectedStepIndex}"
+                                  StepTypes="{TemplateBinding StepTypes}"
+                                  HasCommand="{TemplateBinding HasCommand}" />
+                </DockPanel>
+              </Grid>
+            </DockPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type tree:CommandTree}" TargetType="tree:CommandTree">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Background="{StaticResource Brush.Surface}"
+                    Margin="{StaticResource Pad.S}">
+              <DockPanel>
+                <Border DockPanel.Dock="Top"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="{StaticResource Border.Bottom}"
+                        Padding="{StaticResource Pad.S}">
+                  <StackPanel Spacing="{StaticResource Space.S}">
+                    <TextBlock Classes="section-title" Text="Commands" />
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                      <Button Name="PART_NewGroup" Classes="toolbar" Content="New group…" />
+                      <Button Name="PART_NewCommand" Classes="toolbar" Content="New command" />
+                      <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
+                      <Button Name="PART_Redo" Classes="toolbar" Content="Redo" IsEnabled="{TemplateBinding CanRedo}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+                <Border DockPanel.Dock="Bottom"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="0,1,0,0"
+                        Padding="{StaticResource Pad.S}">
+                  <TextBlock Classes="help" Text="Global is always first. Right-click a row for the menu; rename with the rename key. Deleting a group or a command asks first; Undo brings it back." />
+                </Border>
+                <ListBox Name="PART_Rows"
+                         ItemsSource="{TemplateBinding Rows}"
+                         Background="{StaticResource Brush.Surface}"
+                         SelectionMode="Single">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type tree:GroupRow}" TargetType="tree:GroupRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame"
+                    Background="{StaticResource Brush.HitTest}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Bottom}"
+                    Padding="{StaticResource Pad.S}">
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <Button Grid.Column="0" Name="PART_Expander" Classes="expander" Content="−" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space.M}" VerticalAlignment="Center">
+                  <TextBlock Name="PART_Name"
+                             Classes="group-name"
+                             Text="{TemplateBinding NameText}"
+                             VerticalAlignment="Center"
+                             IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="help" Text="{TemplateBinding CountText}" VerticalAlignment="Center" />
+                </StackPanel>
+                <CheckBox Grid.Column="2" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:collapsed /template/ Button#PART_Expander">
+          <Setter Property="Content" Value="+" />
+        </Style>
+        <Style Selector="^:inactive /template/ TextBlock#PART_Name">
+          <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type tree:CommandRow}" TargetType="tree:CommandRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame"
+                    Background="{StaticResource Brush.HitTest}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Bottom}"
+                    Padding="{StaticResource Pad.Indent}">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="{StaticResource Pad.S}">
+                <Panel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center">
+                  <glyph:GestureGlyph Classes="row-glyph"
+                                      Points="{TemplateBinding Points}"
+                                      IsActive="{TemplateBinding IsActive}"
+                                      IsVisible="{TemplateBinding HasGlyph}" />
+                  <Border Classes="trigger-badge" IsVisible="{TemplateBinding HasGlyph, Converter={x:Static BoolConverters.Not}}">
+                    <TextBlock Classes="trigger-badge" Text="{TemplateBinding TriggerText}" />
+                  </Border>
+                </Panel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                  <TextBlock Name="PART_Name"
+                             Classes="row-name"
+                             Text="{TemplateBinding NameText}"
+                             IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="help" Text="{TemplateBinding SummaryText}" />
+                </StackPanel>
+                <TextBlock Grid.Column="2"
+                           Classes="platform-marker"
+                           Text="{TemplateBinding MarkerText}"
+                           IsVisible="{TemplateBinding HasMarker}"
+                           VerticalAlignment="Center" />
+                <CheckBox Grid.Column="3" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:inactive /template/ TextBlock#PART_Name">
+          <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type tree:CommandHeader}" TargetType="tree:CommandHeader">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Background="{StaticResource Brush.Surface}"
+                    Padding="{StaticResource Pad.M}"
+                    Margin="{StaticResource Pad.S}">
+              <Panel>
+                <TextBlock Classes="help"
+                           Text="Select a command to edit its trigger and steps."
+                           IsVisible="{TemplateBinding HasCommand, Converter={x:Static BoolConverters.Not}}" />
+                <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasCommand}">
+                  <TextBlock Classes="section-title" Text="{TemplateBinding NameText}" />
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                    <TextBlock Classes="field-label" Text="Trigger" VerticalAlignment="Center" />
+                    <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
+                    <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                        <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />
+                        <TextBlock Text="{TemplateBinding TriggerText}" VerticalAlignment="Center" />
+                        <TextBlock Classes="help" Text="Change…" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </StackPanel>
+              </Panel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type steps:StepList}" TargetType="steps:StepList">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Background="{StaticResource Brush.Surface}"
+                    Margin="{StaticResource Pad.S}">
+              <DockPanel>
+                <Border DockPanel.Dock="Top"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="{StaticResource Border.Bottom}"
+                        Padding="{StaticResource Pad.S}">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                    <TextBlock Classes="section-title" Text="Steps" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Button Name="PART_New" Classes="toolbar" Content="New step…" IsEnabled="{TemplateBinding HasCommand}" />
+                  </StackPanel>
+                </Border>
+                <Border DockPanel.Dock="Bottom"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="0,1,0,0"
+                        Padding="{StaticResource Pad.S}">
+                  <TextBlock Classes="help" Text="Steps run top to bottom; drag one to reorder. Duplicate places the copy below it, Paste adds at the bottom. Delete asks nothing; Undo brings it back." />
+                </Border>
+                <ListBox Name="PART_Rows"
+                         ItemsSource="{TemplateBinding Rows}"
+                         Background="{StaticResource Brush.Surface}"
+                         SelectionMode="Single">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type steps:StepRow}" TargetType="steps:StepRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame"
+                    Background="{StaticResource Brush.HitTest}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Bottom}">
+              <StackPanel>
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="{StaticResource Pad.S}">
+                  <TextBlock Grid.Column="0" Classes="drag-handle" Text="≡" />
+                  <TextBlock Grid.Column="1" Classes="row-index" Text="{TemplateBinding IndexText}" />
+                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                    <TextBlock Name="PART_Name" Classes="row-name" Text="{TemplateBinding SummaryText}" />
+                    <TextBlock Classes="help" Text="{TemplateBinding TypeText}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="3"
+                             Classes="platform-marker"
+                             Text="{TemplateBinding MarkerText}"
+                             IsVisible="{TemplateBinding HasMarker}"
+                             VerticalAlignment="Center" />
+                  <CheckBox Grid.Column="4" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+                </Grid>
+                <Border Classes="step-form" IsVisible="{TemplateBinding IsExpanded}">
+                  <ContentPresenter Content="{TemplateBinding Form}" />
+                </Border>
+              </StackPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:inactive /template/ TextBlock#PART_Name">
+          <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+        <Style Selector="^:dragging /template/ Border#PART_Frame">
+          <Setter Property="Opacity" Value="{StaticResource Opacity.Dragging}" />
+        </Style>
+        <!-- The frame's thickness never changes, only its colour, so marking a drop target cannot shift the list. -->
+        <Style Selector="^:drop-target /template/ Border#PART_Frame">
+          <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+        </Style>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type picker:StepTypePicker}" TargetType="picker:StepTypePicker">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Padding="{StaticResource Pad.S}" Background="{StaticResource Brush.Surface}">
+              <ItemsControl ItemsSource="{TemplateBinding Entries}" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type gpicker:GesturePicker}" TargetType="gpicker:GesturePicker">
+        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}">
+              <DockPanel Classes="dialog">
+                <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
+                  <Button Name="PART_NoGesture" Classes="toolbar" Content="No Gesture" />
+                  <Button Name="PART_NewGesture" Classes="toolbar" Content="New Gesture…" />
+                  <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
+                  <Button Name="PART_Ok" Classes="toolbar" Content="OK" IsDefault="True" IsEnabled="{TemplateBinding HasSelection}" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="section-title" Text="Select Gesture" />
+                <TextBlock DockPanel.Dock="Top" Classes="help" Text="Pick the gesture that fires this command; double-click also picks. No Gesture leaves the command trigger-less, New Gesture… draws one first." />
+                <ListBox Name="PART_Tiles"
+                         ItemsSource="{TemplateBinding TileControls}"
+                         Background="{StaticResource Brush.Surface}"
+                         SelectionMode="Single"
+                         Margin="0,8,0,0">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type dialog:FormDialog}" TargetType="dialog:FormDialog">
+        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}">
+              <DockPanel Classes="dialog">
+                <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
+                  <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
+                  <Button Name="PART_Confirm" Classes="toolbar" Content="{TemplateBinding ConfirmLabel}" IsDefault="True" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Classes="note"
+                           Text="{TemplateBinding Message}"
+                           TextWrapping="Wrap"
+                           IsVisible="{TemplateBinding HasMessage}" />
+                <form:SectionForm Screen="{TemplateBinding Screen}" IsVisible="{TemplateBinding HasScreen}" />
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
 
@@ -414,5 +753,80 @@
     <Setter Property="FontSize" Value="{StaticResource Font.M}" />
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="Padding" Value="12,4" />
+  </Style>
+  <!-- Commands tab roles: tree rows, step rows, the type picker. -->
+  <Style Selector="TextBlock.group-name">
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+  <Style Selector="TextBlock.row-name">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.platform-marker">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="Margin" Value="8,0" />
+  </Style>
+  <Style Selector="Button.expander">
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+  </Style>
+  <Style Selector="CheckBox.row-active">
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+  <Style Selector="Border.trigger-badge">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+  </Style>
+  <Style Selector="TextBlock.trigger-badge">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.drag-handle, TextBlock.row-index">
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.row-index">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+  </Style>
+  <Style Selector="Border.step-form">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+  </Style>
+  <Style Selector="TextBlock.picker-category">
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    <Setter Property="Margin" Value="0,8,0,4" />
+  </Style>
+  <Style Selector="Button.picker-type">
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="MinWidth" Value="200" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
   </Style>
 </Styles>

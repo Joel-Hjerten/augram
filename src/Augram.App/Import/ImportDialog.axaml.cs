@@ -7,7 +7,7 @@ public sealed partial class ImportDialog : Window
 {
     /// <summary>For the XAML previewer and runtime loader only.</summary>
     public ImportDialog()
-        : this(new ImportViewModel(new Core.Gestures.GestureLibrary(), Core.Diagnostics.NullEventLog.Instance))
+        : this(new ImportViewModel(new Core.Gestures.GestureLibrary(), new Core.Mapping.MappingStore(), Core.Diagnostics.NullEventLog.Instance))
     {
     }
 

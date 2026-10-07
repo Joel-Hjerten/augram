@@ -2,6 +2,8 @@ using System.Threading.Channels;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
+using Augram.Core.Mapping;
+using Augram.Engine.Execution;
 
 namespace Augram.Engine.Hosting;
 
@@ -9,15 +11,23 @@ namespace Augram.Engine.Hosting;
 /// The engine worker thread's loop: the only code that calls <see cref="CaptureStateMachine.Handle"/>.
 /// Drains the channel, runs the machine, publishes its state for the hook thread, and acts on the
 /// outcomes: trail, click replay (the only place that injects input, A19), recognition, events, log.
-/// Also cross-checks every button and wheel decision the hook made against the machine's own.
+/// A recognised gesture or a wheel tick is then offered to the App's intercept (the training popup),
+/// else enqueued to the <see cref="CommandExecutor"/>; the worker itself never runs a step. Also
+/// cross-checks every button and wheel decision the hook made against the machine's own.
 /// </summary>
 internal sealed class EngineWorker
 {
+    public const string NoMappingReason = "no mapping configured";
+    public const string ConsumedReason = "consumed by training";
+
     private readonly EngineHost _host;
     private readonly InputGate _gate;
     private readonly ChannelReader<WorkerMessage> _reader;
     private readonly CaptureStateMachine _machine;
     private readonly StrokeRecognizer _recognizer;
+    private readonly CommandExecutor? _executor;
+    private readonly Func<EngineEvent, bool>? _intercept;
+    private readonly RecognitionLog _recognitionLog;
     private readonly IStrokeTrail _trail;
     private readonly IInputSimulator _simulator;
     private readonly IEventLog _log;
@@ -26,13 +36,16 @@ internal sealed class EngineWorker
     private bool _trailOpen;
     private bool _deepWarned;
 
-    public EngineWorker(EngineHost host, InputGate gate, ChannelReader<WorkerMessage> reader, CaptureStateMachine machine, StrokeRecognizer recognizer, EnginePorts ports, int queueCapacity)
+    public EngineWorker(EngineHost host, InputGate gate, ChannelReader<WorkerMessage> reader, CaptureStateMachine machine, StrokeRecognizer recognizer, CommandExecutor? executor, EnginePorts ports, int queueCapacity)
     {
         _host = host;
         _gate = gate;
         _reader = reader;
         _machine = machine;
         _recognizer = recognizer;
+        _executor = executor;
+        _intercept = ports.Intercept;
+        _recognitionLog = ports.RecognitionLog;
         _trail = ports.Trail;
         _simulator = ports.Simulator;
         _log = ports.Log;
@@ -139,7 +152,9 @@ internal sealed class EngineWorker
                 break;
             case CaptureOutcome.WheelTrigger wheel:
                 _log.Info(LogSources.Capture, "Wheel trigger", ("direction", wheel.Direction), ("x", wheel.Start.X), ("y", wheel.Start.Y));
-                _host.Raise(new EngineEvent.WheelTriggered(wheel.Direction, wheel.Start));
+                var wheelEvent = new EngineEvent.WheelTriggered(wheel.Direction, wheel.Start);
+                _host.Raise(wheelEvent);
+                Fire(wheelEvent, Trigger.ForWheel(wheel.Direction), wheel.Start, null);
                 break;
             case CaptureOutcome.Cancelled cancelled:
                 _log.Debug(LogSources.Capture, "Gesture cancelled", ("reason", cancelled.Reason));
@@ -151,13 +166,65 @@ internal sealed class EngineWorker
     {
         try
         {
-            var engineEvent = _recognizer.Recognize(stroke, _gate.TakeWorstHandlerMicroseconds());
+            var (engineEvent, draft) = _recognizer.Recognize(stroke, _gate.TakeWorstHandlerMicroseconds());
             _host.PublishStrokeLatency(Math.Max(0, _clock.MonotonicMs - stroke.Points[^1].TimestampMs));
             _host.Raise(engineEvent);
+            if (engineEvent is EngineEvent.GestureRecognized recognized)
+            {
+                Fire(engineEvent, Trigger.ForGesture(recognized.GestureId), recognized.Start, draft);
+            }
         }
         catch (Exception exception)
         {
             _log.Error(LogSources.Recognition, "Recognition failed", exception, ("points", stroke.Points.Count));
+        }
+    }
+
+    /// <summary>
+    /// After the event is raised: the App's intercept may claim it (training popup, F3/A6); else the
+    /// executor gets it; else (no Mapping port: recognise and report only, as in M1) the draft is
+    /// completed with the reason and added here. Acts first, logs second.
+    /// </summary>
+    private void Fire(EngineEvent engineEvent, Trigger trigger, CapturePoint start, RecognitionLogEntry? draft)
+    {
+        if (Intercepted(engineEvent))
+        {
+            if (draft is not null)
+            {
+                _recognitionLog.Add(draft with { NothingFiredReason = ConsumedReason });
+            }
+
+            _log.Debug(LogSources.Capture, "Stroke consumed", ("trigger", trigger.Describe()));
+            return;
+        }
+
+        if (_executor is not null)
+        {
+            _executor.Enqueue(new ExecutionRequest(trigger, start, draft));
+            return;
+        }
+
+        if (draft is not null)
+        {
+            _recognitionLog.Add(draft with { NothingFiredReason = NoMappingReason });
+        }
+    }
+
+    private bool Intercepted(EngineEvent engineEvent)
+    {
+        if (_intercept is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return _intercept(engineEvent);
+        }
+        catch (Exception exception)
+        {
+            _log.Error(LogSources.Engine, "Intercept threw", exception, ("event", engineEvent.GetType().Name));
+            return false;
         }
     }
 

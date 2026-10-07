@@ -10,14 +10,15 @@ using Augram.Core.Recognition;
 namespace Augram.Engine.Hosting;
 
 /// <summary>
-/// The worker's button-up step (CLAUDE.md invariant 4): rank the stroke, write the recognition log
-/// entry and the Info line (same facts, so the panel and the file agree), return the event for the
-/// App. Gestures and options come from delegates so the App can wire its stores without the engine
-/// knowing them. Nothing executes here in M1; the "nothing fired" reason says so.
+/// The worker's button-up step (CLAUDE.md invariant 4): rank the stroke, write the Info line, return
+/// the event for the App. A no-match entry is final here and goes into the recognition log at once;
+/// a recognised gesture's entry is returned as a draft (<see cref="RecognitionResult.Draft"/>) for
+/// whoever decides what fires to complete and add, so the panel shows the group and command next to
+/// the match. Gestures and options come from delegates so the App can wire its stores without the
+/// engine knowing them.
 /// </summary>
 internal sealed class StrokeRecognizer
 {
-    public const string NoCommandReason = "no command mapped (M1)";
     public const string NoGesturesReason = "no active gestures";
 
     private readonly GestureMatcher _matcher = new();
@@ -36,7 +37,7 @@ internal sealed class StrokeRecognizer
         _clock = clock;
     }
 
-    public EngineEvent Recognize(CaptureOutcome.StrokeComplete stroke, double worstHandlerUs)
+    public RecognitionResult Recognize(CaptureOutcome.StrokeComplete stroke, double worstHandlerUs)
     {
         var options = _options();
         var points = new GesturePoint[stroke.Points.Count];
@@ -57,13 +58,18 @@ internal sealed class StrokeRecognizer
 
         var best = ranked.Count > 0 && ranked[0].Score > options.Threshold && ranked[0].Score > 0 ? ranked[0] : null;
         var reason = best is not null
-            ? NoCommandReason
+            ? null
             : ranked.Count == 0
                 ? NoGesturesReason
                 : string.Create(CultureInfo.InvariantCulture, $"best score {ranked[0].Score:F0} is not above threshold {options.Threshold:F0}");
         var durationMs = (int)(stroke.Points[^1].TimestampMs - stroke.Points[0].TimestampMs);
 
-        _recognitionLog.Add(new RecognitionLogEntry(_clock.UtcNow, points.Length, durationMs, top, NothingFiredReason: reason, MatchedGesture: best?.GestureId, Stroke: points));
+        var entry = new RecognitionLogEntry(_clock.UtcNow, points.Length, durationMs, top, NothingFiredReason: reason, MatchedGesture: best?.GestureId, Stroke: points);
+        if (best is null)
+        {
+            _recognitionLog.Add(entry);
+        }
+
         _log.Info(
             LogSources.Recognition,
             best is null ? "No match" : "Gesture recognized",
@@ -77,8 +83,8 @@ internal sealed class StrokeRecognizer
             ("reason", reason));
 
         return best is null
-            ? new EngineEvent.NoMatch(reason, stroke.Start, stroke.Points, top)
-            : new EngineEvent.GestureRecognized(best.GestureId, best.Name, best.Score, stroke.Start, stroke.Points, top);
+            ? new RecognitionResult(new EngineEvent.NoMatch(reason!, stroke.Start, stroke.Points, top), null)
+            : new RecognitionResult(new EngineEvent.GestureRecognized(best.GestureId, best.Name, best.Score, stroke.Start, stroke.Points, top), entry);
     }
 
     /// <summary><c>name=score;name=score</c>, invariant, for grepping the file log.</summary>

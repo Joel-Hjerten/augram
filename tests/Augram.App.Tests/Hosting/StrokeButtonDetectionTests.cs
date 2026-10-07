@@ -34,7 +34,7 @@ public sealed class StrokeButtonDetectionTests
         using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action(), TimeSpan.FromMilliseconds(50));
 
         detection.Start();
-        EngineFixture.WaitFor(() => !detection.IsListening, "the timeout");
+        EngineFixture.WaitFor(() => !detection.IsListening, "the timeout"); // Status is written before IsListening clears.
 
         Assert.Equal(StrokeButtonDetection.TimedOutText, detection.Status);
         Assert.Equal(MouseButton.Right, engine.Settings.Current.General.StrokeButton);

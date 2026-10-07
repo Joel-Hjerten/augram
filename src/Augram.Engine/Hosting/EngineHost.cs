@@ -4,6 +4,7 @@ using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Recognition;
+using Augram.Engine.Execution;
 using Augram.Engine.Input;
 
 namespace Augram.Engine.Hosting;
@@ -13,8 +14,10 @@ namespace Augram.Engine.Hosting;
 /// <see cref="HookHealthMonitor"/>, the <see cref="CaptureStateMachine"/>, the hook-to-worker channel,
 /// the worker thread and the tick timer. Thread roles are in <c>src/Augram.Engine/README.md</c>; the
 /// short version: the hook thread only decides suppression (<see cref="InputGate"/>) and enqueues; the
-/// worker (<see cref="EngineWorker"/>) owns the machine and everything after it. Gestures and recognition
-/// options are delegates so the App wires its stores. M1: recognizes and reports, executes nothing.
+/// worker (<see cref="EngineWorker"/>) owns the machine and everything after it; the command executor
+/// (<see cref="CommandExecutor"/>, its own thread, present only when <see cref="EnginePorts.Mapping"/>
+/// is wired) resolves and runs what the worker hands it. Gestures and recognition options are
+/// delegates so the App wires its stores.
 /// </summary>
 public sealed class EngineHost : IDisposable
 {
@@ -26,6 +29,7 @@ public sealed class EngineHost : IDisposable
     private readonly InputGate _gate;
     private readonly HookHealthMonitor _monitor;
     private readonly EngineWorker _worker;
+    private readonly CommandExecutor? _executor;
     private readonly Thread _workerThread;
     private readonly Timer _tick;
     private readonly TimeSpan _tickInterval;
@@ -59,7 +63,8 @@ public sealed class EngineHost : IDisposable
 
         var machine = new CaptureStateMachine(options.StrokeButton, options.Thresholds);
         var recognizer = new StrokeRecognizer(gestures, recognition, ports.RecognitionLog, _log, _clock);
-        _worker = new EngineWorker(this, _gate, _queue.Reader, machine, recognizer, ports, options.QueueCapacity);
+        _executor = ports.Mapping is null ? null : new CommandExecutor(ports, options);
+        _worker = new EngineWorker(this, _gate, _queue.Reader, machine, recognizer, _executor, ports, options.QueueCapacity);
         _workerThread = new Thread(_worker.Run) { IsBackground = true, Name = "augram-engine-worker" };
         _tick = new Timer(_ => _gate.Post(WorkerMessage.Input(new CaptureEvent.Tick(_clock.MonotonicMs), false), critical: false));
         _monitor = new HookHealthMonitor(ports.Input, _clock, _log, ports.CursorProbe, ports.SystemEvents, ports.Health, options.HealthPollInterval);
@@ -109,6 +114,12 @@ public sealed class EngineHost : IDisposable
 
     public long DroppedMoveCount => _gate.DroppedMoveCount;
 
+    /// <summary>True when a Mapping port was wired and recognised gestures and wheel ticks are executed; false is M1 behaviour (recognise and report only).</summary>
+    internal bool HasExecutor => _executor is not null;
+
+    /// <summary>For tests: the executor thread is alive.</summary>
+    internal bool ExecutorRunning => _executor?.IsRunning ?? false;
+
     public void SetThresholds(CaptureThresholds thresholds)
     {
         ArgumentNullException.ThrowIfNull(thresholds);
@@ -139,6 +150,7 @@ public sealed class EngineHost : IDisposable
 
         _log.Info(LogSources.Engine, "Engine starting", ("strokeButton", StrokeButton), ("enabled", Enabled), ("tickMs", _tickInterval.TotalMilliseconds));
         _workerThread.Start();
+        _executor?.Start();
         _monitor.Start(_gate.Handle);
     }
 
@@ -157,6 +169,7 @@ public sealed class EngineHost : IDisposable
             _workerThread.Join(StopTimeout);
         }
 
+        _executor?.Stop();
         _log.Info(LogSources.Engine, "Engine stopped", ("droppedMoves", DroppedMoveCount));
     }
 
@@ -168,6 +181,7 @@ public sealed class EngineHost : IDisposable
         }
 
         Stop();
+        _executor?.Dispose();
         _tick.Dispose();
         _monitor.ResetRequested -= OnResetRequested;
         _monitor.Dispose();

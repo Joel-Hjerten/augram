@@ -1,4 +1,5 @@
 using Augram.Core.Gestures;
+using Augram.Core.Recognition;
 using Augram.Core.Tests.Fixtures;
 using Augram.Import.StrokesPlus;
 using Xunit;
@@ -9,6 +10,7 @@ public sealed class GestureMergeTests
 {
     private static readonly GesturePoint[] Line = [new(0, 0), new(0, 100)];
     private static readonly GesturePoint[] OtherLine = [new(0, 0), new(100, 0)];
+    private static readonly GesturePoint[] LongerLine = [new(0, 0), new(0, 50), new(0, 100)];
 
     private static readonly Gesture MineUp = TestGestures.Create("Up", Line);
     private static readonly Gesture MineLeft = TestGestures.Create("Left", Line);
@@ -80,5 +82,91 @@ public sealed class GestureMergeTests
         Assert.Equal([MineUp, MineLeft], Plan.Existing);
         Assert.Equal("Up", MineUp.Name);
         Assert.Equal("up", TheirsUp.Name);
+    }
+
+    [Theory]
+    [InlineData(MergeChoice.KeepMine, true)]
+    [InlineData(MergeChoice.TakeTheirs, true)]
+    [InlineData(MergeChoice.KeepBoth, false)]
+    public void ApplyWithMapResolvesEveryImportedId(MergeChoice choice, bool resolvesToExisting)
+    {
+        var outcome = GestureMerge.ApplyWithMap(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = choice });
+
+        Assert.Equal(resolvesToExisting ? MineUp.Id : TheirsUp.Id, outcome.IdMap[TheirsUp.Id]);
+        Assert.Equal(TheirsCircle.Id, outcome.IdMap[TheirsCircle.Id]);
+        Assert.Equal(2, outcome.IdMap.Count);
+        Assert.Equal(GestureMerge.Apply(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = choice }), outcome.Gestures);
+    }
+
+    [Fact]
+    public void ShapePlanFlagsADuplicateShapeUnderAnotherName()
+    {
+        var flick = TestGestures.Create("Flick", LongerLine);
+
+        var plan = GestureMerge.Plan([MineUp, MineLeft], [flick], RecognitionOptions.Default);
+
+        var entry = Assert.Single(plan.Entries);
+        Assert.Equal(MergeKind.SameShape, entry.Kind);
+        Assert.Same(MineUp, entry.Existing);
+        Assert.True(entry.ShapeScore >= ConfusionCheck.DuplicateCutOff);
+        Assert.Equal([entry], plan.Conflicts);
+    }
+
+    [Fact]
+    public void ShapePlanLeavesDifferentShapesAsAdditions()
+    {
+        var plan = GestureMerge.Plan([MineUp], [TheirsCircle], RecognitionOptions.Default);
+
+        Assert.Equal(MergeKind.Add, Assert.Single(plan.Entries).Kind);
+    }
+
+    [Fact]
+    public void ShapePlanMatchesInactiveExistingGesturesToo()
+    {
+        var sleeping = TestGestures.Create("Sleeping", isActive: false, Line);
+
+        var plan = GestureMerge.Plan([sleeping], [TestGestures.Create("Flick", LongerLine)], RecognitionOptions.Default);
+
+        Assert.Equal(MergeKind.SameShape, Assert.Single(plan.Entries).Kind);
+    }
+
+    [Fact]
+    public void ShapePlanKeepsNameClashesAsConflicts()
+    {
+        var plan = GestureMerge.Plan([MineUp], [TestGestures.Create("up", LongerLine)], RecognitionOptions.Default);
+
+        Assert.Equal(MergeKind.Conflict, Assert.Single(plan.Entries).Kind);
+    }
+
+    [Fact]
+    public void ShapePlanWithAnEmptyLibraryAddsEverything()
+    {
+        var plan = GestureMerge.Plan([], [TheirsUp, TheirsCircle], RecognitionOptions.Default);
+
+        Assert.All(plan.Entries, entry => Assert.Equal(MergeKind.Add, entry.Kind));
+    }
+
+    [Fact]
+    public void KeepMineOnAShapeMatchMapsToTheExistingGesture()
+    {
+        var flick = TestGestures.Create("Flick", LongerLine);
+        var plan = GestureMerge.Plan([MineUp], [flick], RecognitionOptions.Default);
+
+        var outcome = GestureMerge.ApplyWithMap(plan, new Dictionary<GestureId, MergeChoice>());
+
+        Assert.Equal([MineUp], outcome.Gestures);
+        Assert.Equal(MineUp.Id, outcome.IdMap[flick.Id]);
+    }
+
+    [Fact]
+    public void KeepBothOnAShapeMatchKeepsTheImportedName()
+    {
+        var flick = TestGestures.Create("Flick", LongerLine);
+        var plan = GestureMerge.Plan([MineUp], [flick], RecognitionOptions.Default);
+
+        var outcome = GestureMerge.ApplyWithMap(plan, new Dictionary<GestureId, MergeChoice> { [flick.Id] = MergeChoice.KeepBoth });
+
+        Assert.Equal(["Up", "Flick"], outcome.Gestures.Select(gesture => gesture.Name));
+        Assert.Equal(flick.Id, outcome.IdMap[flick.Id]);
     }
 }

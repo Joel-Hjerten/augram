@@ -21,6 +21,8 @@
   <SolidColorBrush x:Key="Brush.TextMuted" Color="#A0A0A0" />
   <SolidColorBrush x:Key="Brush.Accent" Color="#6CA0DC" />
   <SolidColorBrush x:Key="Brush.Danger" Color="#E5484D" />
+  <!-- Invisible but hit-testable: a row's background so a click on its empty part still reaches the row. -->
+  <SolidColorBrush x:Key="Brush.HitTest" Color="#00000000" />
 
   <!-- F1 inspector outline colours by nesting depth (ADR-0002 §5d) -->
   <Color x:Key="Inspector.Depth0">#D32F2F</Color>
@@ -40,6 +42,9 @@
   <Thickness x:Key="Border.Hairline">1</Thickness>
   <Thickness x:Key="Border.Strong">2</Thickness>
   <Thickness x:Key="Border.Bottom">0,0,0,1</Thickness>
+  <!-- A command row sits this far inside its group header (Commands tab). -->
+  <Thickness x:Key="Pad.Indent">24,0,0,0</Thickness>
+  <x:Double x:Key="Opacity.Dragging">0.5</x:Double>
 
   <!-- Type -->
   <FontFamily x:Key="Font.Family">$Default</FontFamily>
@@ -50,4 +55,6 @@
   <!-- Layout -->
   <GridLength x:Key="Form.LabelColumn">220</GridLength>
   <x:Double x:Key="Editor.MinWidth">180</x:Double>
+  <!-- The command tree's column on the Commands tab; the splitter beside it lets the user change it. -->
+  <GridLength x:Key="Workbench.TreeWidth">380</GridLength>
 </ResourceDictionary>

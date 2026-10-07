@@ -41,7 +41,15 @@ public static class GestureGalleryPages
     public static ScreenDeclaration GridPage()
     {
         var library = new GestureLibrary(Starter.Select((gesture, i) => i % 5 == 4 ? gesture with { IsActive = false } : gesture));
-        var vm = new GesturesViewModel(library, () => RecognitionOptions.Default, new GalleryTrainingPresenter(library), new GalleryImportPresenter());
+        var mapping = new Core.Mapping.MappingStore();
+        var vm = new GesturesViewModel(
+            library,
+            () => RecognitionOptions.Default,
+            new GalleryTrainingPresenter(library),
+            new GalleryImportPresenter(),
+            mapping,
+            new UsedBy.UsedByPresenter(mapping, library, () => null),
+            new UsedBy.ConfirmPresenter());
         return Screens.GesturesScreen.Declare(vm);
     }
 
@@ -72,7 +80,7 @@ public static class GestureGalleryPages
     public static ScreenDeclaration ImportPage()
     {
         var library = new GestureLibrary(Starter);
-        var vm = new ImportViewModel(library, NullEventLog.Instance);
+        var vm = new ImportViewModel(library, new Core.Mapping.MappingStore(), NullEventLog.Instance);
         var theirs = new List<Gesture>
         {
             Starter[0] with { Id = GestureId.New(), Samples = [Starter[0].Samples[0], Starter[0].Samples[0]] },

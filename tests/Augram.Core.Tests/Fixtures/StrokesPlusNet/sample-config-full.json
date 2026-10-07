@@ -1,0 +1,118 @@
+{
+  "Version": "0.5.8.0",
+  "StrokeButton": 4194304,
+  "SecondaryStrokeButton": 0,
+  "MatchProbabilityThreshold": 75,
+  "MatchPrecision": 100,
+  "Gestures": [
+    { "Name": "Synthetic Up", "Active": true, "MatchCount": 9, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 0, "Y": 200 }, { "X": 0, "Y": 100 }, { "X": 0, "Y": 0 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic Down", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 0, "Y": 100 }, { "X": 0, "Y": 200 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic Left", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 200, "Y": 0 }, { "X": 100, "Y": 0 }, { "X": 0, "Y": 0 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic Right", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 100, "Y": 0 }, { "X": 200, "Y": 0 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic L", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 0, "Y": 100 }, { "X": 100, "Y": 100 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic Z", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 100, "Y": 0 }, { "X": 0, "Y": 100 }, { "X": 100, "Y": 100 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic S", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 100, "Y": 0 }, { "X": 0, "Y": 0 }, { "X": 0, "Y": 50 }, { "X": 100, "Y": 50 }, { "X": 100, "Y": 100 }, { "X": 0, "Y": 100 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic C", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 100, "Y": 0 }, { "X": 0, "Y": 0 }, { "X": 0, "Y": 100 }, { "X": 100, "Y": 100 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic M", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 0, "Y": 100 }, { "X": 0, "Y": 0 }, { "X": 50, "Y": 50 }, { "X": 100, "Y": 0 }, { "X": 100, "Y": 100 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic Circle", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 100, "Y": 0 }, { "X": 171, "Y": 29 }, { "X": 200, "Y": 100 }, { "X": 171, "Y": 171 }, { "X": 100, "Y": 200 }, { "X": 29, "Y": 171 }, { "X": 0, "Y": 100 }, { "X": 29, "Y": 29 }, { "X": 100, "Y": 0 } ] } ], "MultiPointPatterns": null },
+    { "Name": "Synthetic Diagonal", "Active": true, "MatchCount": 0, "PointPatterns": [ { "Order": 1, "Points": [ { "X": 0, "Y": 0 }, { "X": 50, "Y": 50 }, { "X": 100, "Y": 100 } ] } ], "MultiPointPatterns": null }
+  ],
+  "GlobalApplication": {
+    "Description": null,
+    "Active": true,
+    "NoGlobalActions": false,
+    "Actions": [
+      { "Description": "Synthetic Close", "Active": true, "GestureName": "Synthetic Up", "Steps": [ { "Description": "Close the window", "Active": true, "Method": "CloseWindow", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Window" } ] } ], "Script": "" },
+      { "Description": "Synthetic Minimize", "Active": true, "GestureName": "Synthetic Down", "Steps": [ { "Description": "", "Active": true, "Method": "MinimizeWindow", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Window" } ] } ], "Script": "" },
+      { "Description": "Synthetic Maximize", "Active": true, "GestureName": "Synthetic L", "Steps": [ { "Description": "", "Active": true, "Method": "MaximizeOrRestoreWindow", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Window" } ] } ], "Script": "" },
+      { "Description": "Synthetic Always On Top", "Active": true, "GestureName": "Synthetic Z", "Steps": [ { "Description": "", "Active": true, "Method": "ToggleWindowAlwaysOnTop", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Window" } ] } ], "Script": "" },
+      { "Description": "Synthetic Center", "Active": true, "GestureName": "Synthetic S", "Steps": [ { "Description": "", "Active": true, "Method": "InvokeObjectMethodByName", "MethodParameters": [ { "Name": "sourceObject", "Value": "_actionVar.Window" }, { "Name": "objMethodParameters", "Value": null }, { "Name": "methodName", "Value": "Center" } ] } ], "Script": "" },
+      { "Description": "Synthetic Set Size", "Active": true, "GestureName": "Synthetic C", "Steps": [ { "Description": "", "Active": true, "Method": "SetWindowSize", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Control" }, { "Name": "height", "Value": 720 }, { "Name": "width", "Value": 1280 } ] } ], "Script": "" },
+      {
+        "Description": "Synthetic Alt Tab",
+        "Active": true,
+        "GestureName": "Synthetic Circle",
+        "Steps": [
+          { "Description": "Hold Alt", "Active": true, "Method": "SendAltDown", "MethodParameters": [] },
+          { "Description": "", "Active": false, "Method": "Delay", "MethodParameters": [ { "Name": "milliseconds", "Value": 60 } ] },
+          { "Description": "Tab", "Active": true, "Method": "SendHotKey", "MethodParameters": [ { "Name": "hotkey", "Value": { "LControl": false, "RControl": false, "LAlt": false, "RAlt": false, "LShift": false, "RShift": false, "LWin": false, "RWin": false, "Key": 9 } } ] },
+          { "Description": "", "Active": true, "Method": "Delay", "MethodParameters": [ { "Name": "milliseconds", "Value": 70000 } ] },
+          { "Description": "Release Alt", "Active": true, "Method": "SendAltUp", "MethodParameters": [] }
+        ],
+        "Script": ""
+      },
+      { "Description": "Synthetic Volume Up", "Active": true, "GestureName": "", "WheelUp": true, "WheelDown": false, "Steps": [ { "Description": "", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 175 } ] } ], "Script": "" },
+      { "Description": "Synthetic Volume Down", "Active": true, "GestureName": "", "WheelUp": false, "WheelDown": true, "Steps": [ { "Description": "", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 174 } ] } ], "Script": "" },
+      { "Description": "Synthetic Refresh Rate", "Active": true, "GestureName": "Synthetic M", "Steps": [], "Script": "sp.RunProgram('C:\\\\Tools\\\\rate.exe', '', '', '');" },
+      { "Description": "Synthetic Dangling", "Active": true, "GestureName": "Synthetic Gone", "Steps": [ { "Description": "", "Active": true, "Method": "Delay", "MethodParameters": [ { "Name": "milliseconds", "Value": 100 } ] } ], "Script": "" },
+      { "Description": "Synthetic Browser Back", "Active": true, "GestureName": "Synthetic Left", "Steps": [ { "Description": "Send the Browser Back app command", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 166 } ] } ], "Script": "" },
+      { "Description": "Synthetic Explorer", "Active": true, "GestureName": "", "WheelUp": false, "WheelDown": false, "Steps": [ { "Description": "", "Active": true, "Method": "Run", "MethodParameters": [ { "Name": "command", "Value": "explorer" } ] } ], "Script": "" },
+      { "Description": "Synthetic Close Twin", "Active": false, "GestureName": "Synthetic Up", "Steps": [ { "Description": "", "Active": true, "Method": "CloseWindow", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Window" } ] } ], "Script": "" },
+      { "Description": "Synthetic Bad Size", "Active": true, "GestureName": "Synthetic Diagonal", "Steps": [ { "Description": "", "Active": true, "Method": "SetWindowSize", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Window" }, { "Name": "height", "Value": "tall" }, { "Name": "width", "Value": "wide" } ] } ], "Script": "" },
+      { "Description": "Synthetic Close", "Active": true, "GestureName": "Synthetic Right", "Steps": [ { "Description": "", "Active": true, "Method": "CloseWindow", "MethodParameters": [ { "Name": "window", "Value": "_actionVar.Window" } ] } ], "Script": "" }
+    ]
+  },
+  "Applications": [
+    {
+      "Description": "Synthetic Browser",
+      "Active": true,
+      "NoGlobalActions": false,
+      "IgnoreFullScreen": true,
+      "FileName": { "Value": "synthetic-browser.exe", "IsRegex": false },
+      "FilePath": { "Value": "", "IsRegex": false },
+      "OwnerClassName": { "Value": "", "IsRegex": false },
+      "ControlID": null,
+      "Actions": [
+        { "Description": "Synthetic Close Tab", "Active": true, "GestureName": "Synthetic Up", "Steps": [ { "Description": "Ctrl+W", "Active": true, "Method": "SendHotKey", "MethodParameters": [ { "Name": "hotkey", "Value": { "LControl": true, "RControl": false, "LAlt": false, "RAlt": false, "LShift": false, "RShift": false, "LWin": false, "RWin": false, "Key": 87 } } ] } ], "Script": "" },
+        { "Description": "Synthetic Nothing", "Active": true, "GestureName": "Synthetic Down", "Steps": [], "Script": "" },
+        { "Description": "Synthetic Shifted", "Active": true, "GestureName": "Synthetic L", "Shift": true, "Steps": [ { "Description": "", "Active": true, "Method": "MouseClick", "MethodParameters": [ { "Name": "point", "Value": "_actionVar.StartPoint" }, { "Name": "button", "Value": "Right" }, { "Name": "down", "Value": true }, { "Name": "up", "Value": true } ] } ], "Script": "" },
+        { "Description": "Synthetic Typed", "Active": true, "GestureName": "Synthetic Z", "Steps": [ { "Description": "", "Active": true, "Method": "SendKeys", "MethodParameters": [ { "Name": "sendKeysString", "Value": "^t" } ] } ], "Script": "" },
+        { "Description": "Synthetic Consume", "Active": true, "GestureName": "Synthetic C", "Steps": [ { "Description": "", "Active": true, "Method": "ConsumePhysicalInput", "MethodParameters": [ { "Name": "active", "Value": true } ] } ], "Script": "" }
+      ]
+    },
+    {
+      "Description": "Synthetic Players",
+      "Active": true,
+      "NoGlobalActions": true,
+      "IgnoreFullScreen": false,
+      "FileName": { "Value": "(alpha\\.exe|beta\\.exe)", "IsRegex": true },
+      "RootClassName": { "Value": "Progman|WorkerW", "IsRegex": true },
+      "ParentClassName": { "Value": "SHELLDLL_DefView", "IsRegex": false },
+      "OwnerWindowText": { "Value": "Synthetic Player", "IsRegex": false },
+      "RootWindowText": { "Value": "^Synthetic.*", "IsRegex": true },
+      "ControlWindowText": { "Value": "Synthetic Player", "IsRegex": false },
+      "Actions": [
+        { "Description": "Synthetic Play Pause", "Active": true, "GestureName": "Synthetic Up", "Steps": [ { "Description": "", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 179 } ] } ], "Script": "" },
+        { "Description": "Synthetic Next", "Active": true, "GestureName": "Synthetic Right", "Steps": [ { "Description": "", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 176 } ] } ], "Script": "" },
+        { "Description": "Synthetic Previous", "Active": true, "GestureName": "Synthetic Left", "Steps": [ { "Description": "", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 177 } ] } ], "Script": "" },
+        { "Description": "Synthetic Stop", "Active": true, "GestureName": "Synthetic Down", "Steps": [ { "Description": "", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 178 } ] } ], "Script": "" },
+        { "Description": "Synthetic Mute", "Active": true, "GestureName": "Synthetic L", "Steps": [ { "Description": "", "Active": true, "Method": "SendVKey", "MethodParameters": [ { "Name": "virtualKey", "Value": 173 } ] } ], "Script": "" }
+      ]
+    },
+    {
+      "Description": "Synthetic Steam Games",
+      "Active": true,
+      "NoGlobalActions": false,
+      "FileName": { "Value": "Game.*\\.exe", "IsRegex": true },
+      "FilePath": { "Value": "^C:\\\\Games\\\\.+$", "IsRegex": true },
+      "ControlID": 42,
+      "Actions": []
+    },
+    {
+      "Description": "Synthetic Blank",
+      "Active": true,
+      "NoGlobalActions": false,
+      "FileName": { "Value": "", "IsRegex": false },
+      "FilePath": { "Value": "", "IsRegex": false },
+      "Actions": [
+        { "Description": "Synthetic Nothing Here", "Active": true, "GestureName": "Synthetic Up", "Steps": [], "Script": "" }
+      ]
+    }
+  ],
+  "IgnoredApplications": [
+    { "Description": "Synthetic VM", "Active": true, "DisableOnFocus": true, "FileName": { "Value": "vmplayer.exe", "IsRegex": false } },
+    { "Description": "Synthetic Game Ignored", "Active": false, "DisableOnFocus": false, "FileName": { "Value": "game.exe", "IsRegex": false } }
+  ],
+  "TextExpansions": [],
+  "Plugins": null
+}

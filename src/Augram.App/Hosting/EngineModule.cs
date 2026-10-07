@@ -5,22 +5,28 @@ using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 using Augram.Engine.Hosting;
 using Augram.Engine.Input;
 using Augram.Platform.Windows.Input;
 using Augram.Platform.Windows.Overlay;
 using Augram.Platform.Windows.Startup;
+using Augram.Platform.Windows.WindowSystem;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Augram.App.Hosting;
 
 /// <summary>
-/// The engine's slice of the composition root: config session and stores, the Platform adapters, the
+/// The engine's slice of the composition root: config session and stores (settings, gestures, mapping),
+/// the Platform adapters (window system and window operations for the M2 executor among them), the
 /// overlay and the <see cref="EngineHost"/>, plus the links that keep them in step. <see cref="Register"/>
 /// only registers; <see cref="Start"/> runs on the UI thread once Avalonia is up, shows the overlay and
 /// starts the hook. Expects the diagnostics services (<see cref="IEventLog"/>, <see cref="HealthRegistry"/>,
-/// <see cref="RecognitionLog"/>) to be registered already.
+/// <see cref="RecognitionLog"/>) to be registered already. The host's <see cref="EnginePorts.Intercept"/>
+/// is the training session when one is registered later in the root (<see cref="GesturesModule"/>); it is
+/// resolved when the host is created, not when the module is registered, so the order of the two modules does
+/// not matter. <see cref="EngineHostOptions.SettleDelayMs"/> stays the default: there is no setting for it yet.
 /// </summary>
 public static class EngineModule
 {
@@ -36,6 +42,7 @@ public static class EngineModule
         services.AddSingleton(sp => CreateSession(sp, options, marshal));
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Settings);
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Gestures);
+        services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Mapping);
         services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>()));
         services.AddSingleton<IInputSimulator>(_ => new SharpHookInputSimulator());
         RegisterPlatform(services, options.PlatformAdapters);
@@ -66,16 +73,41 @@ public static class EngineModule
             return;
         }
 
+        // A completed stroke that started over an open training canvas belongs to the training popup (F3, A6), not
+        // to commands. The host asks through its Intercept port (wired in BuildPorts) before executing anything, so
+        // a claimed stroke never fires a command; nothing is subscribed to EventRaised for it any more.
         var host = services.GetRequiredService<EngineHost>();
-        // A completed stroke that started over an open training canvas belongs to the training popup (F3), not to commands.
-        if (services.GetService<ITrainingSession>() is { } training)
-        {
-            host.EventRaised += (_, e) => training.TryConsume(e);
-        }
-
         services.GetRequiredService<EngineSettingsLink>();
         services.GetRequiredService<AppState>().SyncStartupRegistration();
         host.Start();
+    }
+
+    /// <summary>
+    /// The host's ports as the composition root resolves them: the input source and simulator, the diagnostics,
+    /// the overlay, the platform adapters, the mapping snapshot delegate for the executor and the training
+    /// session as <see cref="EnginePorts.Intercept"/> (null when no <see cref="ITrainingSession"/> is registered).
+    /// Separate from <see cref="CreateHost"/> so tests can check the wiring without a host.
+    /// </summary>
+    internal static EnginePorts BuildPorts(IServiceProvider sp)
+    {
+        var mapping = sp.GetRequiredService<MappingStore>();
+        var training = sp.GetService<ITrainingSession>();
+        return new EnginePorts
+        {
+            Input = sp.GetRequiredService<IInputSource>(),
+            Simulator = sp.GetRequiredService<IInputSimulator>(),
+            Clock = sp.GetRequiredService<IClock>(),
+            Log = sp.GetRequiredService<IEventLog>(),
+            Trail = sp.GetRequiredService<IStrokeTrail>(),
+            RecognitionLog = sp.GetRequiredService<RecognitionLog>(),
+            Health = sp.GetService<HealthRegistry>(),
+            CursorProbe = sp.GetService<ICursorProbe>(),
+            SystemEvents = sp.GetService<ISystemEvents>(),
+            Windows = sp.GetRequiredService<IWindowSystem>(),
+            WindowOperations = sp.GetRequiredService<IWindowOperations>(),
+            Mapping = () => mapping.Current,
+            Intercept = training is null ? null : e => training.TryConsume(e),
+        };
     }
 
     private static void RegisterPlatform(IServiceCollection services, bool adapters)
@@ -88,6 +120,8 @@ public static class EngineModule
 
         services.AddSingleton<IOverlayWindowStyle>(NullOverlayWindowStyle.Instance);
         services.AddSingleton<IStartupRegistration, NullStartupRegistration>();
+        services.AddSingleton<IWindowSystem>(NullWindowSystem.Instance);
+        services.AddSingleton<IWindowOperations>(NullWindowOperations.Instance);
     }
 
     [SupportedOSPlatform("windows")]
@@ -97,6 +131,9 @@ public static class EngineModule
         services.AddSingleton<ISystemEvents, Win32SystemEvents>();
         services.AddSingleton<IOverlayWindowStyle, OverlayWindowStyle>();
         services.AddSingleton<IStartupRegistration>(_ => new RunKeyStartupRegistration());
+        // Constructing these touches no window and installs nothing; every call they make runs on the engine worker.
+        services.AddSingleton<IWindowSystem>(sp => new Win32WindowSystem(sp.GetRequiredService<IEventLog>()));
+        services.AddSingleton<IWindowOperations>(_ => new Win32WindowOperations());
     }
 
     private static ConfigSession CreateSession(IServiceProvider sp, EngineModuleOptions options, Action<Action> marshal)
@@ -133,23 +170,11 @@ public static class EngineModule
         var settings = sp.GetRequiredService<SettingsStore>();
         var gestures = sp.GetRequiredService<GestureLibrary>();
         var current = settings.Current;
-        var ports = new EnginePorts
-        {
-            Input = sp.GetRequiredService<IInputSource>(),
-            Simulator = sp.GetRequiredService<IInputSimulator>(),
-            Clock = sp.GetRequiredService<IClock>(),
-            Log = sp.GetRequiredService<IEventLog>(),
-            Trail = sp.GetRequiredService<IStrokeTrail>(),
-            RecognitionLog = sp.GetRequiredService<RecognitionLog>(),
-            Health = sp.GetService<HealthRegistry>(),
-            CursorProbe = sp.GetService<ICursorProbe>(),
-            SystemEvents = sp.GetService<ISystemEvents>(),
-        };
         var initial = new EngineHostOptions(
             current.General.StrokeButton,
             current.Capture,
             EngineSettingsLink.ToModifiers(current.General.IgnoreKey),
             current.General.Enabled);
-        return new EngineHost(ports, () => gestures.All, () => settings.Current.Recognition, initial);
+        return new EngineHost(BuildPorts(sp), () => gestures.All, () => settings.Current.Recognition, initial);
     }
 }

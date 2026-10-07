@@ -2,6 +2,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 using Augram.Core.Recognition;
 using Augram.Engine.Hosting;
 using Augram.Engine.Tests.Fakes;
@@ -10,7 +11,9 @@ namespace Augram.Engine.Tests.Hosting;
 
 /// <summary>
 /// An <see cref="EngineHost"/> over fakes, with helpers to script raw input and wait for the worker.
-/// The worker is a real thread, so assertions wait with <see cref="WaitFor"/> rather than sleeping.
+/// The worker and the executor are real threads, so assertions wait with <see cref="WaitFor"/> rather
+/// than sleeping. Without a mapping document there is no executor (M1 behaviour: recognise and
+/// report); with one, the window fakes and the settle delay drive the command executor.
 /// </summary>
 internal sealed class EngineHarness : IDisposable
 {
@@ -19,9 +22,22 @@ internal sealed class EngineHarness : IDisposable
     private readonly object _gate = new();
     private readonly List<EngineEvent> _events = [];
 
-    public EngineHarness(EngineHostOptions? options = null, IReadOnlyList<Gesture>? gestures = null, RecognitionOptions? recognition = null)
+    public EngineHarness(
+        EngineHostOptions? options = null,
+        IReadOnlyList<Gesture>? gestures = null,
+        RecognitionOptions? recognition = null,
+        MappingDocument? mapping = null,
+        Func<EngineEvent, bool>? intercept = null,
+        int? settleDelayMs = null)
     {
         Gestures = gestures ?? [LineGesture("right", 200, 0)];
+        Mapping = mapping;
+        options ??= new EngineHostOptions(StrokeButton, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1));
+        if (settleDelayMs is { } settle)
+        {
+            options = options with { SettleDelayMs = settle };
+        }
+
         Host = new EngineHost(
             new EnginePorts
             {
@@ -32,10 +48,14 @@ internal sealed class EngineHarness : IDisposable
                 Trail = Trail,
                 RecognitionLog = RecognitionLog,
                 Health = Health,
+                Windows = Windows,
+                WindowOperations = WindowOperations,
+                Mapping = mapping is null ? null : () => Mapping!,
+                Intercept = intercept,
             },
             () => Gestures,
             () => recognition ?? RecognitionOptions.Default,
-            options ?? new EngineHostOptions(StrokeButton, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1)));
+            options);
         Host.EventRaised += (_, e) =>
         {
             lock (_gate)
@@ -60,9 +80,16 @@ internal sealed class EngineHarness : IDisposable
 
     public HealthRegistry Health { get; } = new();
 
+    public FakeWindowSystem Windows { get; } = new();
+
+    public FakeWindowOperations WindowOperations { get; } = new();
+
     public EngineHost Host { get; }
 
     public IReadOnlyList<Gesture> Gestures { get; set; }
+
+    /// <summary>The document the executor resolves against; read per request, so a test may replace it between strokes.</summary>
+    public MappingDocument? Mapping { get; set; }
 
     public IReadOnlyList<EngineEvent> Events
     {
@@ -114,6 +141,9 @@ internal sealed class EngineHarness : IDisposable
     public void WaitForState(CaptureState state) => WaitFor(() => Host.State == state, $"state {state} (now {Host.State})");
 
     public void WaitForEvents(int count) => WaitFor(() => Events.Count >= count, $"{count} engine events (have {Events.Count})");
+
+    /// <summary>The recognition log entry of a recognised gesture lands after the event is raised (by the worker or the executor), so wait for it before reading it.</summary>
+    public void WaitForRecognitionLog(int count) => WaitFor(() => RecognitionLog.Count >= count, $"{count} recognition log entries (have {RecognitionLog.Count})");
 
     /// <summary>The worker logs after it acts (click injected, event raised), so a test that waited for the act must also wait for the line.</summary>
     public void WaitForLog(string source, string message) => WaitFor(() => Log.Has(source, message), $"log line {source}/{message}");

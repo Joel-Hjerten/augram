@@ -29,6 +29,12 @@ public static class GalleryNavigation
         new("GestureDrawArea", Key + ".gesturedrawarea", GestureGalleryPages.DrawAreaPage),
         new("Training", Key + ".training", GestureGalleryPages.TrainingPage),
         new("Import", Key + ".import", GestureGalleryPages.ImportPage),
+        new("Commands", Key + ".commands", CommandGalleryPages.WorkbenchPage),
+        new("StepList", Key + ".steplist", CommandGalleryPages.StepListPage),
+        new("StepForms", Key + ".stepforms", CommandGalleryPages.StepFormsPage),
+        new("StepTypePicker", Key + ".steptypepicker", CommandGalleryPages.StepTypePickerPage),
+        new("GesturePicker", Key + ".gesturepicker", CommandGalleryPages.GesturePickerPage),
+        new("FormDialog", Key + ".formdialog", CommandGalleryPages.FormDialogPage),
     ]);
 
     private static ScreenDeclaration SectionFormPage()

@@ -44,8 +44,10 @@ internal static class CompositionRoot
 
         // Engine slice: config session and stores, Platform adapters, overlay, EngineHost (started in App.StartDesktop).
         EngineModule.Register(services, new EngineModuleOptions { ConfigFolder = configFolder });
-        // Gestures tab slice: training session, presenters, view model.
+        // Gestures tab slice: training session, presenters ("Used by…", delete confirmation), view model.
         GesturesModule.Register(services);
+        // Commands tab slice, after the Gestures one: pickers, navigator, view model and the ICommandLocator the "Used by…" popup jumps through.
+        CommandsModule.Register(services);
 
         // View models: projections over the stores above (ADR-0002 §5a).
         services.AddSingleton<AppSettingsViewModel>();

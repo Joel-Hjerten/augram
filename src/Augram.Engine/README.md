@@ -1,6 +1,6 @@
 # Augram.Engine
 
-Wires Core to SharpHook: the hook adapter (`IInputSource`), input simulation (`IInputSimulator`), the bounded channel from the hook thread to the engine worker, hook health monitoring, the engine host that composes them, and the diagnostics implementation (`Diagnostics/`). M1 step 4: the engine captures, recognizes, logs and reports; it executes nothing yet (M2).
+Wires Core to SharpHook: the hook adapter (`IInputSource`), input simulation (`IInputSimulator`), the bounded channel from the hook thread to the engine worker, hook health monitoring, the engine host that composes them, the command executor (`Execution/`, M2 step 3) and the diagnostics implementation (`Diagnostics/`). The engine captures, recognizes, logs and reports; when the App wires a mapping it also resolves and runs commands.
 
 **May reference:** `Augram.Core` and the SharpHook package. That is the only project allowed to reference SharpHook.
 
@@ -11,7 +11,8 @@ Wires Core to SharpHook: the hook adapter (`IInputSource`), input simulation (`I
 | Thread | Name | Does | Must not |
 |---|---|---|---|
 | hook | `augram-hook-gN` (one per install, N = generation) | SharpHook `Run()`; per event: translate to `RawInput`, `InputGate.Handle`: read three volatiles, ask `SuppressionShadow`, `TryWrite` one message, measure itself, return the suppress decision. Logs at Trace only. | run the state machine, allocate beyond one `CaptureEvent`, log above Trace, touch the simulator, wait on anything |
-| engine worker | `augram-engine-worker` | drain the channel; the **only** caller of `CaptureStateMachine.Handle`; publish state for the hook thread; trail calls; click replay (the only injector, A19); recognition; `RecognitionLog`; `EngineHost.EventRaised`; all Info/Debug/Warning logging for capture and recognition | touch a UI type; block on the App (`IStrokeTrail` and event handlers must return at once) |
+| engine worker | `augram-engine-worker` | drain the channel; the **only** caller of `CaptureStateMachine.Handle`; publish state for the hook thread; trail calls; click replay (the only click injector, A19); recognition; `EngineHost.EventRaised`; ask `EnginePorts.Intercept`; enqueue an `ExecutionRequest` (or, with no executor, complete the recognition log entry itself); all Info/Debug/Warning logging for capture and recognition | touch a UI type; block on the App (`IStrokeTrail`, event handlers and the intercept must return at once); run a step |
+| command executor | `augram-command-executor` (only when `EnginePorts.Mapping` is wired) | drain its own bounded queue (8, drop-oldest); per request: `IWindowSystem.WindowAt`, `CommandResolver.Resolve`, complete and add the recognition log entry, `IWindowSystem.Activate`, the settle delay (A8), every `IStepType.Execute` in order (the only caller of `IWindowOperations` and of the simulator's key and text members); all `exec` logging; the activation outcome for health | touch the state machine, the hook, the hook-to-worker channel, or a UI type; let a step's exception escape (one Error line, the next request runs) |
 | tick timer | `System.Threading.Timer` | every 25 ms **while a button is held** (armed by the worker on Held/Drawing, disarmed otherwise): enqueue `CaptureEvent.Tick(clock.MonotonicMs)` | anything else |
 | health poll | `System.Threading.Timer`, 1 s | `HookHealthMonitor.Poll`: first-event report, events-per-minute ring, reinstall when the source reported Lost or the cursor watchdog fires, log every transition, raise `ResetRequested` | run inside a source callback (a loss reported from the hook thread is only flagged there and acted on at the next poll) |
 | log drain | thread-pool task | hand events to sinks, flush on idle, report drops (`Diagnostics/`) | touch the hook, the worker, or a UI type |
@@ -50,10 +51,31 @@ The machine is owned by the worker and lags the hook by the queue depth, so the 
 | `InputGate` (internal) | everything that runs on the hook thread: the three volatiles the hook reads, the `SuppressionShadow`, the one `TryWrite`, the worst-handler stopwatch and the drop counters |
 | `EngineHost` | composition point for the engine (the App's composition root creates one): ports in `EnginePorts`, tunables in `EngineHostOptions`, gestures and `RecognitionOptions` as delegates. `Start`/`Stop`/`Dispose`, `Enabled`, `StrokeButton`, `IgnoreKey`, `SetThresholds`, `State`, `Health`, `EventRaised`, `CaptureNextButtonPress` (F1 detect-to-assign: the next physical press is reported once, on the worker, without changing how it is handled) |
 | `EngineWorker` (internal) | the worker loop above; queue depth warning at half capacity; dropped moves/ticks reported as a Warning, a dropped button/wheel event as an Error plus a capture reset |
-| `StrokeRecognizer` (internal) | button-up only: `GestureMatcher.Rank`, top 3, threshold, one `RecognitionLogEntry` and one Info line with the same facts |
+| `StrokeRecognizer` (internal) | button-up only: `GestureMatcher.Rank`, top 3, threshold, one Info line; a no-match entry goes into the `RecognitionLog` at once, a recognised gesture's entry comes back as a draft in `RecognitionResult` for the executor (or the worker) to complete with group, command or reason |
 | `EngineEvent` | `GestureRecognized`, `NoMatch`, `WheelTriggered`; raised on the worker thread with the raw points so training can keep them |
 | `WorkerMessage` (internal) | the channel item: input with the hook's decision, or a setting change, or a reset |
-| `LogSources` | `hook`, `capture`, `recognition`, `engine` |
+| `LogSources` | `hook`, `capture`, `recognition`, `engine`, `exec` |
+
+## Execution (`Execution/`, M2 step 3)
+
+| Type | Role |
+|---|---|
+| `CommandExecutor` (internal) | the executor thread and its queue (`Channel<ExecutionRequest>`, capacity 8, drop-oldest with one `Execution queue full` Warning naming the dropped trigger); `Enqueue` from the worker never blocks; `Stop` cancels the running command, completes the queue (what is still queued is drained, not run) and joins the thread (5 s cap). Built by `EngineHost` only when `EnginePorts.Mapping` is present; the host stops it after the worker |
+| `CommandRunner` (internal) | one resolved command: activation, the one `StepExecutionContext`, the steps, the per-step and per-command lines, the last activation outcome for `HealthSnapshot.LastActivationOutcome` |
+| `ExecutionRequest` (internal) | trigger, stroke start, the recognition log draft (null for a wheel tick), enqueue timestamp |
+
+Per request, in this order:
+
+1. `target = Windows.WindowAt(start)`: the window under the gesture start, not the focused one (F5).
+2. `CommandResolver.Resolve(Mapping(), target, trigger)`; the draft entry is completed (`MatchedGroup`, `FiredCommand` or `NothingFiredReason` = the resolver's reason) and added; one `Trigger resolved` Info line.
+3. Not `Fires` (override to nothing, ignored app, globals suppressed, no command): done. A command with no active steps: `Command has no active steps`, done.
+4. `Windows.Activate(target)` when there is a target; the adapter applies A20 (`not-needed` when the root already has focus or is the desktop). `focusMoved` = succeeded and not `not-needed`. A failure is a Warning and the command still runs on whatever is in front.
+5. Steps in order, inactive ones skipped, each resolved for the adapter's platform (`CommandStep.ResolveFor`, F8). **Settle delay (A8):** waited once, before the first step whose category is Keyboard or Text, only when `focusMoved`; `EngineHostOptions.SettleDelayMs`, default 30, 0 allowed. A window operation, media key or delay never waits for it. `Failed` stops the command (`Command stopped`), `Skipped` continues it, cancellation (the executor stopping) stops it after the step that saw it.
+6. `Command fired` with steps run and skipped and the elapsed time from enqueue.
+
+Before any of this the worker raises `EventRaised`, then asks `EnginePorts.Intercept`; true means the training popup took the stroke (`Stroke consumed`, entry reason `consumed by training`) and nothing is enqueued. Without a Mapping port the worker completes the entry with `no mapping configured` (M1 behaviour).
+
+The ignore list is honoured at resolution time only: a stroke over an ignored app is captured, recognised, resolved to `Ignored` and dropped there, so the app never sees the stroke button. TODO: true pass-through of the stroke button over an ignored app (and `DisableEntirely`) needs a foreground-aware flag the hook thread can read at button-down, before any stroke; deferred.
 
 Queue: bounded, 4,096, `Wait` mode so `TryWrite` reports full instead of silently dropping. Moves and ticks are dropped when full; a press that cannot be enqueued is passed through and the shadow restored; a release is still consumed (A19) and the worker resets the machine when it sees the drop.
 
@@ -69,6 +91,10 @@ Queue: bounded, 4,096, `Wait` mode so `TryWrite` reports full instead of silentl
 | `capture` | Warning / Error | `Input queue deep`, `Input queue full: …`, button `Suppression decision mismatch` | `depth`, `capacity`, `dropped`, `event`, `hook`, `machine` |
 | `recognition` | Info | `Gesture recognized` / `No match`, one per stroke | `gesture`, `score`, `points`, `durationMs`, `matchMs`, `worstHandlerUs`, `top` (`name=score;…`), `reason` |
 | `engine` | Info | `Engine starting`, `Engine stopped`, `Engine enabled` / `Engine disabled`, `Stroke button changed`, `Capture thresholds changed` | `strokeButton`, `enabled`, `tickMs`, `button`, threshold fields |
+| `capture` | Debug | `Stroke consumed` (the intercept took it) | `trigger` |
+| `exec` | Info | `Trigger resolved`, `Window activated`, `Command fired`, `Command has no active steps`, `Command cancelled` | `trigger`, `outcome`, `reason`, `group`, `command`, `process`, `technique`, `elapsedMs`, `focusMoved`, `stepsRun`, `stepsSkipped`, `step` |
+| `exec` | Debug | `Step ran`, one per step; `Execution request dropped: executor stopped` | `index`, `type`, `summary`, `outcome`, `reason`, `ms`, `trigger` |
+| `exec` | Warning / Error | `Activation failed`, `Command stopped` (a Failed step), `Execution queue full`, `Command execution failed` (a step type threw; the exception is attached) | `technique`, `group`, `command`, `step`, `type`, `summary`, `reason`, `dropped`, `capacity`, `trigger` |
 
 ## Diagnostics (N4, M1 step 4a)
 

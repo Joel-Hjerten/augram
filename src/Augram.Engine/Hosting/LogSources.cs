@@ -17,4 +17,7 @@ public static class LogSources
 
     /// <summary>Engine lifecycle: start, stop, enabled toggles, setting changes.</summary>
     public const string Engine = "engine";
+
+    /// <summary>Command execution: what a trigger resolved to, activation, each step, the command's outcome.</summary>
+    public const string Execution = "exec";
 }

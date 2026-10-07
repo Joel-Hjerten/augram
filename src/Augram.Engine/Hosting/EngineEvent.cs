@@ -5,9 +5,10 @@ using Augram.Core.Gestures;
 namespace Augram.Engine.Hosting;
 
 /// <summary>
-/// What the engine tells the App after a stroke or a wheel tick (M1: nothing executes yet; M2's
-/// command resolution hangs off these). Raised on the engine worker thread; the App marshals to
-/// its UI. The raw stroke points travel along so training can store them as a sample (F3).
+/// What the engine tells the App after a stroke or a wheel tick. Raised on the engine worker thread
+/// before the event is offered to <see cref="EnginePorts.Intercept"/> and then to the command
+/// executor; the App marshals to its UI. The raw stroke points travel along so training can store
+/// them as a sample (F3).
 /// </summary>
 public abstract record EngineEvent
 {

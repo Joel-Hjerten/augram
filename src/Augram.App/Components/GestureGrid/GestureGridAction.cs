@@ -12,11 +12,14 @@ public enum GestureGridAction
     /// <summary>Rename the selected gesture to the name the user typed in place.</summary>
     Rename,
 
-    /// <summary>Delete the selected gesture (no confirmation; undo covers it, A9).</summary>
+    /// <summary>Delete the selected gesture. No confirmation while no command uses it (undo covers it, A9); a used gesture asks first and unbinds its commands.</summary>
     Delete,
 
-    /// <summary>Keep the selected gesture and delete its exact duplicates (A7), one undo step. M2 also retargets the commands that used them.</summary>
+    /// <summary>Keep the selected gesture and delete its exact duplicates (A7), one undo step in the library; the commands that used the duplicates are retargeted to the kept gesture.</summary>
     KeepThis,
+
+    /// <summary>Open the "Used by…" popup: every app group › command bound to the selected gesture (F3).</summary>
+    UsedBy,
 
     /// <summary>Start the StrokesPlus.net import flow (toolbar button).</summary>
     Import,

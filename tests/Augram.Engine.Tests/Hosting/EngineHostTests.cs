@@ -28,11 +28,15 @@ public sealed class EngineHostTests
         Assert.Equal(new CapturePoint(100, 100, 0), recognized.Start);
         Assert.Equal(21, recognized.Points.Count);
 
+        // No Mapping port: the worker completes the draft itself, after raising the event.
+        harness.WaitForRecognitionLog(1);
         var entry = Assert.Single(harness.RecognitionLog.Snapshot());
         Assert.Equal(21, entry.PointCount);
         Assert.Equal(200, entry.DurationMs);
         Assert.Equal("right", Assert.Single(entry.TopMatches).Name);
-        Assert.Equal(StrokeRecognizer.NoCommandReason, entry.NothingFiredReason);
+        Assert.Equal(EngineWorker.NoMappingReason, entry.NothingFiredReason);
+        Assert.Null(entry.MatchedGroup);
+        Assert.False(harness.Host.HasExecutor);
 
         var line = harness.Log.Single(LogSources.Recognition, "Gesture recognized");
         Assert.Equal(EventLevel.Info, line.Level);

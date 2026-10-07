@@ -127,6 +127,6 @@ public sealed class StrokesPlusImporterTests
     [Fact]
     public void StatsCountTheSourceNotTheImport()
     {
-        Assert.Equal(new SourceStats(GestureCount: 12, SampleCount: 13, ActionCount: 3, ApplicationCount: 1), Result.Stats);
+        Assert.Equal(new SourceStats(GestureCount: 12, SampleCount: 13, ActionCount: 3, ApplicationCount: 1, StepCount: 3, IgnoredApplicationCount: 0), Result.Stats);
     }
 }

@@ -60,7 +60,7 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
             return;
         }
 
-        Stop();
+        // Status before Stop(): a reader that waits for IsListening to clear must then see the final text, not the prompt.
         var general = _settings.Current.General;
         if (general.StrokeButton != button)
         {
@@ -68,6 +68,7 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
         }
 
         Status = $"Stroke button set to {button}.";
+        Stop();
     }
 
     private void TimedOut()
@@ -77,8 +78,8 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
             return;
         }
 
-        Stop();
         Status = TimedOutText;
+        Stop();
     }
 
     private void Stop()

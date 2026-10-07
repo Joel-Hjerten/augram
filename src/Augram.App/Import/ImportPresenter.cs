@@ -1,6 +1,7 @@
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -16,13 +17,16 @@ namespace Augram.App.Import;
 public sealed class ImportPresenter : IImportPresenter
 {
     private readonly GestureLibrary _library;
+    private readonly MappingStore _mapping;
     private readonly IEventLog _log;
 
-    public ImportPresenter(GestureLibrary library, IEventLog log)
+    public ImportPresenter(GestureLibrary library, MappingStore mapping, IEventLog log)
     {
         ArgumentNullException.ThrowIfNull(library);
+        ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(log);
         _library = library;
+        _mapping = mapping;
         _log = log;
     }
 
@@ -39,7 +43,7 @@ public sealed class ImportPresenter : IImportPresenter
             return;
         }
 
-        var viewModel = new ImportViewModel(_library, _log);
+        var viewModel = new ImportViewModel(_library, _mapping, _log);
         viewModel.Load(path);
         await new ImportDialog(viewModel).ShowDialog(owner).ConfigureAwait(true);
     }
@@ -50,7 +54,7 @@ public sealed class ImportPresenter : IImportPresenter
         var defaultPath = ImportViewModel.DefaultSourcePath;
         var options = new FilePickerOpenOptions
         {
-            Title = "Import gestures from StrokesPlus.net",
+            Title = "Import from StrokesPlus.net",
             AllowMultiple = false,
             SuggestedFileName = ImportViewModel.SuggestedFileName,
             FileTypeFilter = [new FilePickerFileType("StrokesPlus.net config") { Patterns = ["*.json"] }, FilePickerFileTypes.All],

@@ -1,39 +1,32 @@
 using Augram.App.Hosting;
 using Augram.App.Overlay;
 using Augram.App.Tests.Support;
+using Augram.App.Training;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 using Augram.Engine.Hosting;
+using Augram.Platform.Windows.WindowSystem;
 using Avalonia.Headless.XUnit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Augram.App.Tests.Hosting;
 
-/// <summary>The engine slice of the composition root resolves over a fake input source, starts, and follows the settings store.</summary>
+/// <summary>The engine slice of the composition root resolves over a fake input source, starts, follows the settings store, and hands the host its M2 ports.</summary>
 public sealed class EngineModuleTests
 {
     [AvaloniaFact]
     public void RegistersEverything_StartsTheEngine_AndSavesTheConfig()
     {
-        var folder = Path.Combine(Path.GetTempPath(), "augram-module-tests", Guid.NewGuid().ToString("N"));
+        var folder = TempFolder();
         var source = new FakeInputSource();
         var log = new ListEventLog();
-        var services = new ServiceCollection();
-        services.AddSingleton<IEventLog>(log);
-        services.AddSingleton<HealthRegistry>();
-        services.AddSingleton<RecognitionLog>();
-        services.AddSingleton<AppState>();
-        EngineModule.Register(services, new EngineModuleOptions
-        {
-            ConfigFolder = folder,
-            InputSource = _ => source,
-            PlatformAdapters = false,
-            Marshal = action => action(),
-        });
+        var services = Services(log);
+        EngineModule.Register(services, Options(folder, source));
 
         try
         {
@@ -45,9 +38,12 @@ public sealed class EngineModuleTests
                 var host = provider.GetRequiredService<EngineHost>();
                 Assert.Same(session.Settings, settings);
                 Assert.Same(session.Gestures, gestures);
+                Assert.Same(session.Mapping, provider.GetRequiredService<MappingStore>());
                 Assert.NotEmpty(gestures.All);
                 Assert.IsType<TrailOverlayWindow>(provider.GetRequiredService<IStrokeTrail>());
                 Assert.IsType<NullStartupRegistration>(provider.GetRequiredService<IStartupRegistration>());
+                Assert.Same(NullWindowSystem.Instance, provider.GetRequiredService<IWindowSystem>());
+                Assert.Same(NullWindowOperations.Instance, provider.GetRequiredService<IWindowOperations>());
                 Assert.NotNull(provider.GetRequiredService<StrokeButtonDetection>());
                 Assert.True(log.Has(EngineModule.ConfigLogSource, "Configuration loaded"));
 
@@ -80,10 +76,115 @@ public sealed class EngineModuleTests
         }
         finally
         {
-            if (Directory.Exists(folder))
-            {
-                Directory.Delete(folder, recursive: true);
-            }
+            Delete(folder);
+        }
+    }
+
+    [AvaloniaFact]
+    public void PortsCarryTheLiveMappingAndRouteStrokesToTheTrainingSession()
+    {
+        var folder = TempFolder();
+        var services = Services(new ListEventLog());
+        var training = new FakeTrainingSession();
+        services.AddSingleton<ITrainingSession>(training);
+        EngineModule.Register(services, Options(folder, new FakeInputSource()));
+
+        try
+        {
+            using var provider = services.BuildServiceProvider();
+            var mapping = provider.GetRequiredService<MappingStore>();
+            var ports = EngineModule.BuildPorts(provider);
+
+            Assert.Same(NullWindowSystem.Instance, ports.Windows);
+            Assert.Same(NullWindowOperations.Instance, ports.WindowOperations);
+            Assert.Same(mapping.Current, ports.Mapping!());
+            mapping.AddCommand(GroupId.Global, MappingFixture.Unbound("Minimize"));
+            Assert.Same(mapping.Current, ports.Mapping());
+            Assert.Single(ports.Mapping().Global.Commands);
+
+            var stroke = new EngineEvent.NoMatch("no gesture", new CapturePoint(30, 40, 0), [new CapturePoint(30, 40, 0), new CapturePoint(60, 80, 5)], []);
+            Assert.True(ports.Intercept!(stroke));
+            var offered = Assert.Single(training.Offered);
+            Assert.Equal((30, 40), (offered.StartX, offered.StartY));
+            Assert.Equal(2, offered.Points.Count);
+            training.Claims = false;
+            Assert.False(ports.Intercept(stroke));
+            Assert.False(ports.Intercept(new EngineEvent.WheelTriggered(WheelDirection.Up, new CapturePoint(0, 0, 0))), "wheel ticks are never training input");
+        }
+        finally
+        {
+            Delete(folder);
+        }
+    }
+
+    [AvaloniaFact]
+    public void InterceptIsAbsentWithoutATrainingSession()
+    {
+        var folder = TempFolder();
+        var services = Services(new ListEventLog());
+        EngineModule.Register(services, Options(folder, new FakeInputSource()));
+
+        try
+        {
+            using var provider = services.BuildServiceProvider();
+            Assert.Null(EngineModule.BuildPorts(provider).Intercept);
+        }
+        finally
+        {
+            Delete(folder);
+        }
+    }
+
+    [Fact]
+    public void WindowsAdaptersAreTheWin32OnesWhenPlatformAdaptersAreOn()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var folder = TempFolder();
+        var services = Services(new ListEventLog());
+        EngineModule.Register(services, Options(folder, new FakeInputSource()) with { PlatformAdapters = true });
+
+        try
+        {
+            // Constructing the adapters installs nothing and touches no window; only the executor's calls would.
+            using var provider = services.BuildServiceProvider();
+            Assert.IsType<Win32WindowSystem>(provider.GetRequiredService<IWindowSystem>());
+            Assert.IsType<Win32WindowOperations>(provider.GetRequiredService<IWindowOperations>());
+        }
+        finally
+        {
+            Delete(folder);
+        }
+    }
+
+    private static ServiceCollection Services(ListEventLog log)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IEventLog>(log);
+        services.AddSingleton<HealthRegistry>();
+        services.AddSingleton<RecognitionLog>();
+        services.AddSingleton<AppState>();
+        return services;
+    }
+
+    private static EngineModuleOptions Options(string folder, FakeInputSource source) => new()
+    {
+        ConfigFolder = folder,
+        InputSource = _ => source,
+        PlatformAdapters = false,
+        Marshal = action => action(),
+    };
+
+    private static string TempFolder() => Path.Combine(Path.GetTempPath(), "augram-module-tests", Guid.NewGuid().ToString("N"));
+
+    private static void Delete(string folder)
+    {
+        if (Directory.Exists(folder))
+        {
+            Directory.Delete(folder, recursive: true);
         }
     }
 }

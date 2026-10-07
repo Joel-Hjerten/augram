@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.GestureGrid;
 
-/// <summary>Builds the context menu and key bindings of a <see cref="GestureGrid"/> (F5a); every entry ends in one <see cref="GestureGridAction"/>. Import lives on the toolbar only; activation is per command, not per gesture (F3).</summary>
+/// <summary>Builds the context menu and key bindings of a <see cref="GestureGrid"/> (F5a); every entry ends in one <see cref="GestureGridAction"/>. Import lives on the toolbar only; activation is per command, not per gesture (F3). "Used by…" is always offered: an unused gesture's popup says so.</summary>
 internal static class GestureGridMenu
 {
     public static ContextMenu Build(Action<GestureGridAction> request)
@@ -13,6 +13,7 @@ internal static class GestureGridMenu
         menu.Items.Add(Item("New gesture…", GestureGridAction.New, request));
         menu.Items.Add(Item("Redraw…", GestureGridAction.Redraw, request));
         menu.Items.Add(Item("Rename", GestureGridAction.Rename, request));
+        menu.Items.Add(Item("Used by…", GestureGridAction.UsedBy, request));
         menu.Items.Add(Item("Delete", GestureGridAction.Delete, request));
         menu.Items.Add(Item("Keep this, delete its duplicates", GestureGridAction.KeepThis, request));
         return menu;
