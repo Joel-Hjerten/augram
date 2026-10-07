@@ -109,6 +109,37 @@ public sealed class GestureGridTests
         Assert.True(list.ContainerFromItem(list.SelectedItem!)!.Focus());
     }
 
+    [AvaloniaFact]
+    public void SelectingATileMarksItsConfusionPartnersWithTheScore()
+    {
+        var (grid, _) = Show();
+        var up = grid.Tiles.Single(tile => tile.Name == "Up");
+        var down = grid.Tiles.Single(tile => tile.Name == "Down");
+        var tiles = grid.Tiles
+            .Select(tile => tile.Id == up.Id ? tile with { Partners = [new GesturePartner(down.Id, down.Name, 97)] }
+                : tile.Id == down.Id ? tile with { Partners = [new GesturePartner(up.Id, up.Name, 97)] }
+                : tile)
+            .ToList();
+        grid.Tiles = tiles;
+
+        var upTile = grid.TileControls.Single(tile => tile.NameText == "Up");
+        var downTile = grid.TileControls.Single(tile => tile.NameText == "Down");
+        Assert.Contains(":duplicate", upTile.Classes);
+        Assert.Null(downTile.PartnerScoreText);
+
+        grid.Select(up.Id);
+
+        Assert.Equal("97%", downTile.PartnerScoreText);
+        Assert.Contains(":partner", downTile.Classes);
+        Assert.Null(upTile.PartnerScoreText);
+        Assert.DoesNotContain(":partner", grid.TileControls.Single(tile => tile.NameText == "Z").Classes);
+
+        grid.Select(down.Id);
+
+        Assert.Null(downTile.PartnerScoreText);
+        Assert.Equal("97%", upTile.PartnerScoreText);
+    }
+
     private static (GestureGrid Grid, List<GestureGridActionEventArgs> Actions) Show(string? inactive = null)
     {
         var tiles = StarterGestures.All()

@@ -13,6 +13,9 @@ namespace Augram.Core.Recognition;
 /// </summary>
 public static class ConfusionCheck
 {
+    /// <summary>At or above this score a pair is the same shape under two names (an "exact" duplicate, outlined strongly); between the cut-off and this it is merely close.</summary>
+    public const double ExactCutOff = 95;
+
     public static double CutOff(RecognitionOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);

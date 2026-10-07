@@ -11,8 +11,8 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// The Gestures tab's projection over <see cref="GestureLibrary"/> (F3, F4, F5a, A7): tiles sorted by
-/// name, undo/redo availability, the A7 "likely to be confused" line (recomputed, debounced, after
-/// every library change) and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
+/// name with their A7 confusion partners, undo/redo availability, the A7 "likely to be confused" line
+/// (recomputed, debounced, after every library change; tiles are re-projected with it) and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
 /// a store call. Rules live in the library and <see cref="ConfusionCheck"/>; this only shows outcomes.
 /// </summary>
 public sealed partial class GesturesViewModel : ObservableObject, IDisposable
@@ -81,6 +81,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     {
         _diagnosticTimer.Stop();
         ConfusionPairs = ConfusionCheck.Find(_library.All, _options());
+        Project();
         Diagnostic = ConfusionPairs.Count == 0
             ? null
             : "Likely to be confused: " + string.Join(" · ", ConfusionPairs.Select(pair =>
@@ -157,7 +158,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     {
         Tiles = _library.All
             .OrderBy(gesture => gesture.Name, GestureRules.NameComparer)
-            .Select(GestureTileItem.From)
+            .Select(gesture => GestureTileItem.From(gesture, ConfusionPairs))
             .ToList();
         CanUndo = _library.CanUndo;
         CanRedo = _library.CanRedo;

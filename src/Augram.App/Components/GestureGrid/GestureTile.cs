@@ -8,12 +8,14 @@ using Avalonia.Input;
 namespace Augram.App.Components.GestureGrid;
 
 /// <summary>
-/// Lookless tile of the gesture grid: glyph above name, greyed via the <c>:inactive</c> pseudo-class.
+/// Lookless tile of the gesture grid: glyph above name, greyed via the <c>:inactive</c> pseudo-class,
+/// outlined via <c>:close</c> / <c>:duplicate</c> from the item's <see cref="DuplicateTier"/> (A7), and
+/// marked <c>:partner</c> with the score while the selected tile is likely to be confused with it.
 /// Rename edits in place (F5a): <see cref="BeginEdit"/> shows the template's <c>PART_NameEditor</c>
 /// with the current name; Enter raises <see cref="RenameCommitted"/>, Escape reverts. The tile
 /// never touches a store; the grid forwards the commit to its host.
 /// </summary>
-[PseudoClasses(":inactive", ":editing")]
+[PseudoClasses(":inactive", ":editing", ":close", ":duplicate", ":partner")]
 public sealed class GestureTile : TemplatedControl
 {
     public static readonly StyledProperty<GestureTileItem?> ItemProperty =
@@ -30,6 +32,12 @@ public sealed class GestureTile : TemplatedControl
 
     public static readonly StyledProperty<bool> IsEditingProperty =
         AvaloniaProperty.Register<GestureTile, bool>(nameof(IsEditing));
+
+    public static readonly StyledProperty<DuplicateTier> TierProperty =
+        AvaloniaProperty.Register<GestureTile, DuplicateTier>(nameof(Tier));
+
+    public static readonly StyledProperty<string?> PartnerScoreTextProperty =
+        AvaloniaProperty.Register<GestureTile, string?>(nameof(PartnerScoreText));
 
     private TextBox? _editor;
 
@@ -65,6 +73,23 @@ public sealed class GestureTile : TemplatedControl
         get => GetValue(IsEditingProperty);
         private set => SetValue(IsEditingProperty, value);
     }
+
+    public DuplicateTier Tier
+    {
+        get => GetValue(TierProperty);
+        private set => SetValue(TierProperty, value);
+    }
+
+    /// <summary>"97%" while the selected tile is likely to be confused with this one; null otherwise.</summary>
+    public string? PartnerScoreText
+    {
+        get => GetValue(PartnerScoreTextProperty);
+        private set => SetValue(PartnerScoreTextProperty, value);
+    }
+
+    /// <summary>Marks or clears this tile as a partner of the selected one.</summary>
+    public void SetPartner(double? score)
+        => PartnerScoreText = score is { } value ? Math.Round(value).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%" : null;
 
     public void BeginEdit()
     {
@@ -104,6 +129,16 @@ public sealed class GestureTile : TemplatedControl
             NameText = item?.Name ?? string.Empty;
             Points = item?.Points;
             IsActive = item?.IsActive ?? true;
+            Tier = item?.Tier ?? DuplicateTier.None;
+        }
+        else if (change.Property == TierProperty)
+        {
+            PseudoClasses.Set(":duplicate", Tier == DuplicateTier.Exact);
+            PseudoClasses.Set(":close", Tier == DuplicateTier.Close);
+        }
+        else if (change.Property == PartnerScoreTextProperty)
+        {
+            PseudoClasses.Set(":partner", PartnerScoreText is not null);
         }
         else if (change.Property == IsActiveProperty)
         {

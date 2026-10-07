@@ -38,6 +38,7 @@
   <Thickness x:Key="Pad.M">8</Thickness>
   <Thickness x:Key="Pad.L">16</Thickness>
   <Thickness x:Key="Border.Hairline">1</Thickness>
+  <Thickness x:Key="Border.Strong">2</Thickness>
   <Thickness x:Key="Border.Bottom">0,0,0,1</Thickness>
 
   <!-- Type -->

@@ -193,9 +193,17 @@
         <Setter Property="Margin" Value="{StaticResource Pad.S}" />
         <Setter Property="Template">
           <ControlTemplate>
-            <Border Padding="{StaticResource Pad.S}">
+            <Border Name="PART_Frame"
+                    Padding="{StaticResource Pad.S}"
+                    BorderBrush="{StaticResource Brush.Surface}"
+                    BorderThickness="{StaticResource Border.Hairline}">
               <StackPanel Spacing="{StaticResource Space.S}">
                 <glyph:GestureGlyph Points="{TemplateBinding Points}" IsActive="{TemplateBinding IsActive}" HorizontalAlignment="Center" />
+                <TextBlock Name="PART_Partner"
+                           Classes="tile-partner"
+                           Text="{TemplateBinding PartnerScoreText}"
+                           TextAlignment="Center"
+                           IsVisible="{TemplateBinding PartnerScoreText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <TextBlock Name="PART_Name"
                            Classes="tile-name"
                            Text="{TemplateBinding NameText}"
@@ -209,6 +217,17 @@
         </Setter>
         <Style Selector="^:inactive /template/ TextBlock#PART_Name">
           <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+        <!-- A7 outline tiers: close = accent, exact duplicate = danger; a partner of the selected tile gets the strong border. -->
+        <Style Selector="^:close /template/ Border#PART_Frame">
+          <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+        </Style>
+        <Style Selector="^:duplicate /template/ Border#PART_Frame">
+          <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
+        </Style>
+        <Style Selector="^:partner /template/ Border#PART_Frame">
+          <Setter Property="BorderThickness" Value="{StaticResource Border.Strong}" />
+          <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
         </Style>
       </ControlTheme>
 
@@ -364,8 +383,12 @@
   </Style>
   <Style Selector="TextBlock.diagnostic">
     <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
     <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.tile-partner">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
   </Style>
   <Style Selector="TextBlock.error">
     <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />

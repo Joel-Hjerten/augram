@@ -91,6 +91,11 @@ public sealed class GesturesViewModelTests
         Assert.Equal(new HashSet<string> { "Up", "Up twin" }, new HashSet<string> { pair.FirstName, pair.SecondName });
         Assert.StartsWith("Likely to be confused: ", vm.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("Up twin", vm.Diagnostic, StringComparison.Ordinal);
+        var twin = vm.Tiles.Single(t => t.Name == "Up twin");
+        Assert.Equal(DuplicateTier.Exact, twin.Tier);
+        Assert.Equal("Up", Assert.Single(twin.Partners).Name);
+        Assert.Equal(DuplicateTier.Exact, vm.Tiles.Single(t => t.Name == "Up").Tier);
+        Assert.Equal(DuplicateTier.None, vm.Tiles.Single(t => t.Name == "Z").Tier);
     }
 
     private static (GesturesViewModel Vm, GestureLibrary Library, FakeTrainingPresenter Training, FakeImportPresenter Import) Create()

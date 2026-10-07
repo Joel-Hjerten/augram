@@ -11,8 +11,8 @@ namespace Augram.App.Components.GestureGrid;
 /// one <see cref="GestureGridActionEventArgs"/> out per user intent. The template supplies
 /// <c>PART_Tiles</c> (a <see cref="ListBox"/> the tiles live in), the toolbar buttons <c>PART_New</c>,
 /// <c>PART_Import</c>, <c>PART_Undo</c>, <c>PART_Redo</c>, and binds <see cref="Message"/> (rule
-/// feedback) and <see cref="Diagnostic"/> (the A7 "likely to be confused" line). Selection survives a
-/// rebuild by gesture id. Right-click selects before the context menu opens; double-click redraws.
+/// feedback) and <see cref="Diagnostic"/> (the A7 "likely to be confused" line). Selecting a tile marks
+/// its confusion partners with their score. Selection survives a rebuild by gesture id. Right-click selects before the context menu opens; double-click redraws.
 /// </summary>
 public sealed class GestureGrid : TemplatedControl
 {
@@ -104,7 +104,11 @@ public sealed class GestureGrid : TemplatedControl
             // so they work from a focused tile and from the toolbar buttons alike.
             KeyBindings.Clear();
             GestureGridMenu.BindKeys(this, Request, () => !IsEditing);
-            _list.SelectionChanged += (_, _) => _selectedId = SelectedTile?.Id ?? _selectedId;
+            _list.SelectionChanged += (_, _) =>
+            {
+                _selectedId = SelectedTile?.Id ?? _selectedId;
+                MarkPartners();
+            };
             _list.DoubleTapped += (_, _) => Request(GestureGridAction.Redraw);
             if (_selectedId is { } selected)
             {
@@ -150,6 +154,19 @@ public sealed class GestureGrid : TemplatedControl
         if (_selectedId is { } id)
         {
             Select(id);
+        }
+
+        MarkPartners();
+    }
+
+    /// <summary>Lights up the tiles the selected gesture is likely to be confused with (A7), with the score.</summary>
+    private void MarkPartners()
+    {
+        var partners = SelectedTile?.Partners ?? [];
+        foreach (var tile in TileControls)
+        {
+            var match = tile.Item is { } item ? partners.FirstOrDefault(partner => partner.Id == item.Id) : null;
+            tile.SetPartner(match?.Score);
         }
     }
 
