@@ -18,6 +18,19 @@ internal static class GestureGridMenu
         return menu;
     }
 
+    /// <summary>Shows or hides the entries that only apply to some tiles: "Keep this" needs an exact duplicate.</summary>
+    public static void Refresh(ContextMenu menu, GestureTileItem? selected)
+    {
+        ArgumentNullException.ThrowIfNull(menu);
+        foreach (var item in menu.Items.OfType<MenuItem>())
+        {
+            if (item.Tag is GestureGridAction.KeepThis)
+            {
+                item.IsVisible = selected?.Tier == DuplicateTier.Exact;
+            }
+        }
+    }
+
     /// <summary>
     /// Key bindings are evaluated from the focused element up before the key reaches it, so
     /// <paramref name="canExecute"/> must say no while a tile's name editor has focus, or Delete and
@@ -34,7 +47,7 @@ internal static class GestureGridMenu
 
     private static MenuItem Item(string header, GestureGridAction action, Action<GestureGridAction> request)
     {
-        var item = new MenuItem { Header = header };
+        var item = new MenuItem { Header = header, Tag = action };
         item.Click += (_, _) => request(action);
         return item;
     }

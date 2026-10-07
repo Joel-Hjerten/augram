@@ -397,7 +397,7 @@
     <Setter Property="Padding" Value="{StaticResource Pad.S}" />
   </Style>
   <Style Selector="TextBlock.tile-partner">
-    <Setter Property="FontSize" Value="{StaticResource Font.XL}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.L}" />
     <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
   </Style>

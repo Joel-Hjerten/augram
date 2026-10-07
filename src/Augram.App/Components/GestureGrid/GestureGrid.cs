@@ -100,6 +100,7 @@ public sealed class GestureGrid : TemplatedControl
         if (_list is not null)
         {
             _list.ContextMenu = GestureGridMenu.Build(Request);
+            _list.ContextMenu.Opening += (_, _) => GestureGridMenu.Refresh(_list.ContextMenu, SelectedTile);
             // On the grid, not the list: key bindings are evaluated from the focused element upwards,
             // so they work from a focused tile and from the toolbar buttons alike.
             KeyBindings.Clear();

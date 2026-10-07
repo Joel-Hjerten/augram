@@ -140,6 +140,27 @@ public sealed class GestureGridTests
         Assert.Equal("97%", upTile.PartnerScoreText);
     }
 
+    [AvaloniaFact]
+    public void KeepThisIsOnlyOfferedForATileWithAnExactDuplicate()
+    {
+        var (grid, _) = Show();
+        var up = grid.Tiles.Single(tile => tile.Name == "Up");
+        var down = grid.Tiles.Single(tile => tile.Name == "Down");
+        grid.Tiles = grid.Tiles
+            .Select(tile => tile.Id == up.Id ? tile with { Partners = [new GesturePartner(down.Id, down.Name, 99)] } : tile)
+            .ToList();
+        var list = grid.GetVisualDescendants().OfType<ListBox>().Single();
+        var keep = list.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Tag is GestureGridAction.KeepThis);
+
+        grid.Select(down.Id);
+        GestureGridMenu.Refresh(list.ContextMenu, grid.SelectedTile);
+        Assert.False(keep.IsVisible);
+
+        grid.Select(up.Id);
+        GestureGridMenu.Refresh(list.ContextMenu, grid.SelectedTile);
+        Assert.True(keep.IsVisible);
+    }
+
     private static (GestureGrid Grid, List<GestureGridActionEventArgs> Actions) Show(string? inactive = null)
     {
         var tiles = StarterGestures.All()
