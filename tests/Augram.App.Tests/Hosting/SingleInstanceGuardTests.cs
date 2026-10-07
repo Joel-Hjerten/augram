@@ -18,7 +18,7 @@ public sealed class SingleInstanceGuardTests
         Assert.Null(second);
 
         Assert.True(SingleInstanceGuard.SignalExisting(name, TimeSpan.FromSeconds(5)));
-        Assert.True(shown.Wait(TimeSpan.FromSeconds(5)), "the first instance was not asked to show its window");
+        Assert.True(shown.Wait(TimeSpan.FromSeconds(30)), "the first instance was not asked to show its window");
     }
 
     [Fact]

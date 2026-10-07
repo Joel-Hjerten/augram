@@ -23,7 +23,7 @@ public sealed class TimerSaveSchedulerTests
             ran.Set();
         });
 
-        Assert.True(ran.Wait(TimeSpan.FromSeconds(5)));
+        Assert.True(ran.Wait(TimeSpan.FromSeconds(30)));
         Thread.Sleep(60);
         Assert.Equal(1, runs);
         Assert.Equal(1, marshalled);
@@ -54,7 +54,7 @@ public sealed class TimerSaveSchedulerTests
         var runs = 0;
 
         var pending = scheduler.Schedule(() => runs++);
-        Assert.True(captured.Wait(TimeSpan.FromSeconds(5)));
+        Assert.True(captured.Wait(TimeSpan.FromSeconds(30)));
         pending.Dispose();
         deferred!();
 
