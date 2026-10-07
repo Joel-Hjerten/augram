@@ -18,6 +18,7 @@ src/
   Augram.Platform.MacOS/       same contracts, implemented later (compiles as stubs until then)
   Augram.App/                  Avalonia: tray, settings workbench, learn dialog, overlay, components, dev gallery
   Augram.Import.StrokesPlus/   importer for StrokesPlus.net JSON; depends on Core only
+  Augram.Sync.Git/             ISyncRepository over the installed git (added 2026-10-07, F8 sync); depends on Core only
 tests/
   Augram.Core.Tests/           recognizer fixtures (Joel's 90 templates), state-machine scripts, config round-trips
   Augram.Engine.Tests/
@@ -25,7 +26,7 @@ tests/
 docs/                          as today (requirements, adr, reference, plans, learnings)
 ```
 
-Allowed references: `App → Engine, Platform.*, Core` · `Engine → Core` · `Platform.* → Core` · `Import → Core` · `Core → nothing`. An architecture test in `Core.Tests` fails the build if `Augram.Core` ever references Avalonia, SharpHook, `System.Windows.*`, or `System.Drawing`.
+Allowed references: `App → Engine, Platform.*, Core` · `Engine → Core` · `Platform.* → Core` · `Import → Core` · `Sync.Git → Core` · `Core → nothing`. An architecture test in `Core.Tests` fails the build if `Augram.Core` ever references Avalonia, SharpHook, `System.Windows.*`, or `System.Drawing`.
 
 ### 2. Ports and adapters
 
