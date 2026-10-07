@@ -1,0 +1,198 @@
+using Augram.Core.Gestures;
+
+namespace Augram.Core.Mapping;
+
+/// <summary>
+/// The business rules of the mapping (ADR-0002 §5a: one home, called by the store; view models only
+/// display the outcome). Names compare trimmed and case-insensitively, like gesture names. Group and
+/// command order is not a user choice (F5a): <see cref="ValidDocument"/> sorts groups Global first and
+/// then by name, and commands by name, so every snapshot the store hands out is already in display order.
+/// </summary>
+public static class MappingRules
+{
+    public static StringComparer NameComparer => GestureRules.NameComparer;
+
+    /// <summary>Normalises and validates a whole document (a load, an import, every store commit) and returns it sorted.</summary>
+    public static MappingDocument ValidDocument(MappingDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        var groups = new List<AppGroup>();
+        foreach (var group in document.Groups)
+        {
+            var normalised = Normalised(group);
+            EnsureValid(normalised, groups);
+            groups.Add(normalised);
+        }
+
+        if (!groups.Any(group => group.IsGlobal))
+        {
+            throw new MappingValidationException("The Global group is missing.");
+        }
+
+        EnsureCommandIdsUnique(groups);
+
+        var ignored = new List<IgnoredApp>();
+        foreach (var app in document.Ignored)
+        {
+            var normalised = Normalised(app);
+            EnsureValid(normalised, ignored);
+            ignored.Add(normalised);
+        }
+
+        var sortedGroups = groups
+            .OrderBy(group => group.IsGlobal ? 0 : 1)
+            .ThenBy(group => group.Name, NameComparer)
+            .ToArray();
+        return new MappingDocument(sortedGroups, ignored.ToArray());
+    }
+
+    /// <summary>Trims the name, normalises and sorts the commands; the Global group never has a matcher or suppresses itself.</summary>
+    public static AppGroup Normalised(AppGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        var commands = group.Commands.Select(Normalised).OrderBy(command => command.Name, NameComparer).ToArray();
+        return group.IsGlobal
+            ? group with { Name = Trimmed(group.Name), Matcher = null, SuppressGlobals = false, Commands = commands }
+            : group with { Name = Trimmed(group.Name), Commands = commands };
+    }
+
+    public static Command Normalised(Command command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return command with { Name = Trimmed(command.Name) };
+    }
+
+    public static IgnoredApp Normalised(IgnoredApp app)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        return app with { Name = Trimmed(app.Name) };
+    }
+
+    /// <summary>Checks a normalised group, and each of its commands, against the groups it will sit beside.</summary>
+    public static void EnsureValid(AppGroup group, IEnumerable<AppGroup> others)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        ArgumentNullException.ThrowIfNull(others);
+
+        if (group.Name.Length == 0)
+        {
+            throw new MappingValidationException("An app group needs a name.");
+        }
+
+        foreach (var other in others)
+        {
+            if (other.Id == group.Id)
+            {
+                throw new MappingValidationException(group.IsGlobal
+                    ? "Only one Global group is allowed."
+                    : $"An app group with id {group.Id} already exists.");
+            }
+
+            if (NameComparer.Equals(other.Name, group.Name))
+            {
+                throw new MappingValidationException($"An app group named '{other.Name}' already exists.");
+            }
+        }
+
+        if (group.Matcher is not null)
+        {
+            EnsureValid(group.Matcher);
+        }
+
+        var commands = new List<Command>();
+        foreach (var command in group.Commands)
+        {
+            EnsureValid(command, group, commands);
+            commands.Add(command);
+        }
+    }
+
+    /// <summary>Checks a normalised command against the other commands of its group (A7: one command per trigger per group).</summary>
+    public static void EnsureValid(Command command, AppGroup group, IEnumerable<Command> others)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(group);
+        ArgumentNullException.ThrowIfNull(others);
+
+        if (command.Name.Length == 0)
+        {
+            throw new MappingValidationException("A command needs a name.");
+        }
+
+        foreach (var other in others)
+        {
+            if (other.Id == command.Id)
+            {
+                throw new MappingValidationException($"A command with id {command.Id} already exists.");
+            }
+
+            if (NameComparer.Equals(other.Name, command.Name))
+            {
+                throw new MappingValidationException($"A command named '{other.Name}' already exists in '{group.Name}'.");
+            }
+
+            if (command.Trigger.IsBound && other.Trigger == command.Trigger)
+            {
+                throw new MappingValidationException($"'{other.Name}' in '{group.Name}' already uses {command.Trigger.Describe()}.");
+            }
+        }
+    }
+
+    public static void EnsureValid(IgnoredApp app, IEnumerable<IgnoredApp> others)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(others);
+
+        if (app.Name.Length == 0)
+        {
+            throw new MappingValidationException("An ignored app needs a name.");
+        }
+
+        if (others.Any(other => other.Id == app.Id))
+        {
+            throw new MappingValidationException($"An ignored app with id {app.Id} already exists.");
+        }
+
+        EnsureValid(app.Matcher);
+    }
+
+    /// <summary>A regex field that is switched on must hold a pattern the regex engine accepts.</summary>
+    public static void EnsureValid(AppMatcher matcher)
+    {
+        ArgumentNullException.ThrowIfNull(matcher);
+        EnsurePattern("path", matcher.ProcessPath, matcher.ProcessPathIsRegex);
+        EnsurePattern("title", matcher.Title, matcher.TitleIsRegex);
+    }
+
+    private static void EnsurePattern(string field, string? pattern, bool isRegex)
+    {
+        if (!isRegex || string.IsNullOrWhiteSpace(pattern))
+        {
+            return;
+        }
+
+        var problem = MatcherRegexCache.Problem(pattern);
+        if (problem is not null)
+        {
+            throw new MappingValidationException($"The {field} pattern '{pattern}' is not a valid regular expression: {problem}");
+        }
+    }
+
+    private static void EnsureCommandIdsUnique(List<AppGroup> groups)
+    {
+        var seen = new HashSet<CommandId>();
+        foreach (var group in groups)
+        {
+            foreach (var command in group.Commands)
+            {
+                if (!seen.Add(command.Id))
+                {
+                    throw new MappingValidationException($"A command with id {command.Id} exists in more than one group.");
+                }
+            }
+        }
+    }
+
+    private static string Trimmed(string? name) => name?.Trim() ?? string.Empty;
+}

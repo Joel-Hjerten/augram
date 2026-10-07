@@ -1,3 +1,5 @@
+using Augram.Core.Steps;
+
 namespace Augram.Core.Config;
 
 /// <summary>
@@ -13,17 +15,20 @@ public sealed class FileConfigStore : IConfigStore
 
     private readonly Action<string>? _notice;
     private readonly Func<DateTime> _clock;
+    private readonly StepRegistry _steps;
 
     /// <param name="folder">The config folder (checklist A17); created on first save.</param>
-    /// <param name="notice">Receives one line per fallback or failure; null to stay silent.</param>
+    /// <param name="notice">Receives one line per fallback, failure or dropped step; null to stay silent.</param>
     /// <param name="clock">Local time for backup names; injectable for tests.</param>
-    public FileConfigStore(string folder, Action<string>? notice = null, Func<DateTime>? clock = null)
+    /// <param name="steps">The step types a loaded mapping may use; <see cref="StepRegistry.BuiltIn"/> unless a test says otherwise.</param>
+    public FileConfigStore(string folder, Action<string>? notice = null, Func<DateTime>? clock = null, StepRegistry? steps = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         Folder = folder;
         Backups = new ConfigBackups(Path.Combine(folder, BackupFolderName));
         _notice = notice;
         _clock = clock ?? (() => DateTime.Now);
+        _steps = steps ?? StepRegistry.BuiltIn;
     }
 
     public string Folder { get; }
@@ -77,7 +82,7 @@ public sealed class FileConfigStore : IConfigStore
     {
         try
         {
-            document = ConfigSerializer.Read(File.ReadAllText(path));
+            document = ConfigSerializer.Read(File.ReadAllText(path), _steps, _notice);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ConfigFormatException)

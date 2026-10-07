@@ -1,3 +1,8 @@
+using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Imported;
+using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.WindowOp;
+
 namespace Augram.Core.Steps;
 
 /// <summary>
@@ -27,6 +32,10 @@ public sealed class StepRegistry
     /// <summary>Every shipped type, in picker order within each category. Each type's folder adds itself here.</summary>
     public static StepRegistry BuiltIn { get; } = new(
     [
+        WindowOpStepType.Instance,
+        MediaKeyStepType.Instance,
+        DelayStepType.Instance,
+        ImportedStepType.Instance,
     ]);
 
     public IReadOnlyList<IStepType> All { get; }

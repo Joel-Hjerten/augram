@@ -1,13 +1,15 @@
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 
 namespace Augram.Core.Config;
 
 /// <summary>
-/// Owns the store, the loaded document and the two aggregate stores for the app's lifetime,
-/// and implements live save (checklist A3): any change to either store schedules one
-/// debounced write of the whole document <see cref="SaveDelay"/> later; a burst of edits is
-/// one file write and one backup. The scheduler is injected so the host runs the save on
-/// its UI thread (same thread as the edits; this type is single-writer) and tests run it by hand.
+/// Owns the store, the loaded document and the three aggregate stores for the app's lifetime,
+/// and implements live save (checklist A3): any change to any store schedules one debounced
+/// write of the whole document <see cref="SaveDelay"/> later; a burst of edits is one file
+/// write and one backup. The scheduler is injected so the host runs the save on its UI thread
+/// (same thread as the edits; this type is single-writer) and tests run it by hand. Other
+/// threads (the engine) read each store's current snapshot after <see cref="DocumentChanged"/>.
 /// </summary>
 public sealed class ConfigSession : IDisposable
 {
@@ -31,8 +33,10 @@ public sealed class ConfigSession : IDisposable
         var loaded = store.Load();
         Settings = new SettingsStore(ValidSettings(loaded.Settings));
         Gestures = ValidLibrary(loaded.Gestures);
+        Mapping = ValidMapping(loaded.Mapping);
         Settings.Changed += OnChanged;
         Gestures.Changed += OnChanged;
+        Mapping.Changed += OnChanged;
     }
 
     public IConfigStore Store { get; }
@@ -41,8 +45,10 @@ public sealed class ConfigSession : IDisposable
 
     public GestureLibrary Gestures { get; }
 
+    public MappingStore Mapping { get; }
+
     /// <summary>The document as it would be written now, rebuilt from the stores.</summary>
-    public ConfigDocument Document => new() { Settings = Settings.Current, Gestures = Gestures.All };
+    public ConfigDocument Document => new() { Settings = Settings.Current, Gestures = Gestures.All, Mapping = Mapping.Current };
 
     /// <summary>True between a change and the write that persists it.</summary>
     public bool HasPendingSave { get; private set; }
@@ -64,6 +70,7 @@ public sealed class ConfigSession : IDisposable
     {
         Settings.Changed -= OnChanged;
         Gestures.Changed -= OnChanged;
+        Mapping.Changed -= OnChanged;
         Flush();
     }
 
@@ -138,6 +145,67 @@ public sealed class ConfigSession : IDisposable
 
             library.ClearHistory();
             return library;
+        }
+    }
+
+    /// <summary>Strict first; if the saved mapping breaks a rule, load group by group and command by command, keep what passes and report the rest.</summary>
+    private MappingStore ValidMapping(MappingDocument mapping)
+    {
+        try
+        {
+            return new MappingStore(mapping);
+        }
+        catch (MappingValidationException)
+        {
+            var store = new MappingStore();
+            bool globalLoaded = false;
+            foreach (var group in mapping.Groups)
+            {
+                if (group.IsGlobal && globalLoaded)
+                {
+                    _notice?.Invoke($"App group '{group.Name}' ({group.Id}) skipped: only one Global group is allowed.");
+                    continue;
+                }
+
+                globalLoaded |= group.IsGlobal;
+                LoadGroup(store, group);
+            }
+
+            foreach (var app in mapping.Ignored)
+            {
+                Try(() => store.AddIgnored(app), $"Ignored app '{app.Name}' ({app.Id})");
+            }
+
+            store.ClearHistory();
+            return store;
+        }
+    }
+
+    private void LoadGroup(MappingStore store, AppGroup group)
+    {
+        var shell = group with { Commands = [] };
+        if (!Try(() => _ = group.IsGlobal ? store.UpdateGroup(shell) : store.AddGroup(shell), $"App group '{group.Name}' ({group.Id})"))
+        {
+            return;
+        }
+
+        foreach (var command in group.Commands)
+        {
+            Try(() => store.AddCommand(group.Id, command), $"Command '{command.Name}' ({command.Id}) in '{group.Name}'");
+        }
+    }
+
+    private bool Try(Action load, string what)
+    {
+        try
+        {
+            load();
+            return true;
+        }
+        catch (MappingValidationException ex)
+        {
+            _notice?.Invoke($"{what} skipped: {ex.Message}");
+            return false;
         }
     }
 }

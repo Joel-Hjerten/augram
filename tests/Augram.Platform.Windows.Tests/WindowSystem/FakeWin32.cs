@@ -5,13 +5,18 @@ namespace Augram.Platform.Windows.Tests.WindowSystem;
 /// <summary>
 /// Scripted window tree standing in for Win32. Windows are added with their class, parent, root, owner and process;
 /// activation success per technique is a switch, so the activator's order and verification can be asserted.
+/// Window state (iconic, zoomed, topmost) is scripted with <see cref="WithState"/> and follows the commands the
+/// operations adapter issues, which are recorded in <see cref="Calls"/>; <see cref="Error"/> is what a failed
+/// command reports.
 /// </summary>
-internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground
+internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground, IWin32WindowControl
 {
     private readonly Dictionary<nint, Window> _windows = [];
     private readonly Dictionary<int, (string? Path, string? BaseName)> _processes = [];
     private readonly Dictionary<nint, ScreenRect> _windowRects = [];
     private readonly Dictionary<nint, ScreenRect> _monitorRects = [];
+    private readonly Dictionary<nint, ScreenRect> _workAreas = [];
+    private readonly Dictionary<nint, State> _states = [];
 
     public nint Foreground { get; set; }
 
@@ -33,6 +38,12 @@ internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground
 
     public bool AltTapped { get; private set; }
 
+    public bool PostFails { get; set; }
+
+    public bool SetWindowPosFails { get; set; }
+
+    public int Error { get; set; } = 5;
+
     public List<string> Calls { get; } = [];
 
     public FakeWin32 AddWindow(nint hwnd, string className, nint parent = 0, nint root = 0, nint owner = 0, int pid = 0, string title = "", uint thread = 0, bool visible = true)
@@ -47,10 +58,18 @@ internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground
         return this;
     }
 
-    public FakeWin32 WithRects(nint hwnd, ScreenRect window, ScreenRect monitor)
+    public FakeWin32 WithRects(nint hwnd, ScreenRect window, ScreenRect monitor, ScreenRect? work = null)
     {
         _windowRects[hwnd] = window;
         _monitorRects[hwnd] = monitor;
+        _workAreas[hwnd] = work ?? monitor;
+        return this;
+    }
+
+    /// <summary>While zoomed, <see cref="TryWindowRect"/> reports <paramref name="maximizedRect"/>; a restore brings the scripted rect back.</summary>
+    public FakeWin32 WithState(nint hwnd, bool iconic = false, bool zoomed = false, bool topmost = false, ScreenRect? maximizedRect = null)
+    {
+        _states[hwnd] = new State { Iconic = iconic, Zoomed = zoomed, Topmost = topmost, Maximized = maximizedRect };
         return this;
     }
 
@@ -93,9 +112,68 @@ internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground
 
     public nint DesktopWindow() => Desktop;
 
-    public bool TryWindowRect(nint hwnd, out ScreenRect rect) => _windowRects.TryGetValue(hwnd, out rect);
+    public bool TryWindowRect(nint hwnd, out ScreenRect rect)
+    {
+        if (StateOf(hwnd) is { Zoomed: true, Maximized: { } maximized })
+        {
+            rect = maximized;
+            return true;
+        }
+
+        return _windowRects.TryGetValue(hwnd, out rect);
+    }
 
     public bool TryMonitorRect(nint hwnd, out ScreenRect rect) => _monitorRects.TryGetValue(hwnd, out rect);
+
+    public bool TryWorkArea(nint hwnd, out ScreenRect rect) => _workAreas.TryGetValue(hwnd, out rect);
+
+    public bool IsWindow(nint hwnd) => _windows.ContainsKey(hwnd);
+
+    public bool IsIconic(nint hwnd) => StateOf(hwnd)?.Iconic ?? false;
+
+    public bool IsZoomed(nint hwnd) => StateOf(hwnd)?.Zoomed ?? false;
+
+    public bool IsTopmost(nint hwnd) => StateOf(hwnd)?.Topmost ?? false;
+
+    public void ShowWindow(nint hwnd, int command)
+    {
+        Calls.Add($"show:{hwnd}:{command}");
+        var state = _states[hwnd] = StateOf(hwnd) ?? new State();
+        state.Zoomed = command == 3;
+        state.Iconic = command == 6;
+    }
+
+    public bool PostSysCommandClose(nint hwnd)
+    {
+        Calls.Add($"close:{hwnd}");
+        return !PostFails;
+    }
+
+    public bool SetTopmost(nint hwnd, bool topmost)
+    {
+        Calls.Add($"topmost:{hwnd}:{topmost}");
+        if (SetWindowPosFails)
+        {
+            return false;
+        }
+
+        (_states[hwnd] = StateOf(hwnd) ?? new State()).Topmost = topmost;
+        return true;
+    }
+
+    public bool SetWindowBounds(nint hwnd, int x, int y, int width, int height)
+    {
+        Calls.Add($"bounds:{hwnd}:{x},{y},{width}x{height}");
+        if (SetWindowPosFails)
+        {
+            return false;
+        }
+
+        _windowRects[hwnd] = new ScreenRect(x, y, x + width, y + height);
+        return true;
+    }
+
+    public int LastError() => Error;
 
     public nint ForegroundWindow() => Foreground;
 
@@ -130,5 +208,15 @@ internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground
 
     private Window? Get(nint hwnd) => _windows.TryGetValue(hwnd, out var w) ? w : null;
 
+    private State? StateOf(nint hwnd) => _states.TryGetValue(hwnd, out var s) ? s : null;
+
     private sealed record Window(string ClassName, nint Parent, nint Root, nint Owner, int Pid, string Title, uint Thread, bool Visible);
+
+    private sealed class State
+    {
+        public bool Iconic;
+        public bool Zoomed;
+        public bool Topmost;
+        public ScreenRect? Maximized;
+    }
 }

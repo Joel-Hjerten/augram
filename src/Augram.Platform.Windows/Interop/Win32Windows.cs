@@ -1,17 +1,18 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Augram.Platform.Windows.WindowSystem;
 
 namespace Augram.Platform.Windows.Interop;
 
 /// <summary>
-/// The real <see cref="IWin32Windows"/> and <see cref="IWin32Foreground"/>: thin wrappers over
-/// <see cref="NativeMethods"/> that turn buffers into strings and Win32 structs into <see cref="ScreenRect"/>.
+/// The real <see cref="IWin32Windows"/>, <see cref="IWin32Foreground"/> and <see cref="IWin32WindowControl"/>: thin
+/// wrappers over <see cref="NativeMethods"/> that turn buffers into strings and Win32 structs into <see cref="ScreenRect"/>.
 /// No decisions live here; those are in <c>WindowSystem/</c> where a fake can stand in for this class.
 /// </summary>
 [SupportedOSPlatform("windows")]
-internal sealed class Win32Windows : IWin32Windows, IWin32Foreground
+internal sealed class Win32Windows : IWin32Windows, IWin32Foreground, IWin32WindowControl
 {
     private const int MaxClassName = 256;
     private const int MaxTitle = 1024;
@@ -97,12 +98,39 @@ internal sealed class Win32Windows : IWin32Windows, IWin32Foreground
 
     public bool TryMonitorRect(nint hwnd, out ScreenRect rect)
     {
-        var info = new NativeMethods.MonitorInfo { Size = (uint)Unsafe.SizeOf<NativeMethods.MonitorInfo>() };
-        var monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MonitorDefaultToNearest);
-        var ok = monitor != 0 && NativeMethods.GetMonitorInfo(monitor, ref info);
-        rect = ok ? new ScreenRect(info.Monitor.Left, info.Monitor.Top, info.Monitor.Right, info.Monitor.Bottom) : default;
+        var ok = TryMonitorInfo(hwnd, out var info);
+        rect = ok ? ToRect(info.Monitor) : default;
         return ok;
     }
+
+    public bool TryWorkArea(nint hwnd, out ScreenRect rect)
+    {
+        var ok = TryMonitorInfo(hwnd, out var info);
+        rect = ok ? ToRect(info.Work) : default;
+        return ok;
+    }
+
+    public bool IsWindow(nint hwnd) => NativeMethods.IsWindow(hwnd);
+
+    public bool IsIconic(nint hwnd) => NativeMethods.IsIconic(hwnd);
+
+    public bool IsZoomed(nint hwnd) => NativeMethods.IsZoomed(hwnd);
+
+    public bool IsTopmost(nint hwnd)
+        => ((long)NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle) & NativeMethods.WsExTopmost) != 0;
+
+    public void ShowWindow(nint hwnd, int command) => NativeMethods.ShowWindow(hwnd, command);
+
+    public bool PostSysCommandClose(nint hwnd) => NativeMethods.PostMessage(hwnd, NativeMethods.WmSysCommand, NativeMethods.ScClose, 0);
+
+    public bool SetTopmost(nint hwnd, bool topmost)
+        => NativeMethods.SetWindowPos(hwnd, topmost ? NativeMethods.HwndTopmost : NativeMethods.HwndNoTopmost, 0, 0, 0, 0,
+            NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoActivate);
+
+    public bool SetWindowBounds(nint hwnd, int x, int y, int width, int height)
+        => NativeMethods.SetWindowPos(hwnd, 0, x, y, width, height, NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
+
+    public int LastError() => Marshal.GetLastPInvokeError();
 
     public nint ForegroundWindow() => NativeMethods.GetForegroundWindow();
 
@@ -124,4 +152,13 @@ internal sealed class Win32Windows : IWin32Windows, IWin32Foreground
         inputs[1].Union.Keyboard.Flags = NativeMethods.KeyEventKeyUp;
         NativeMethods.SendInput((uint)inputs.Length, inputs, Unsafe.SizeOf<NativeMethods.Input>());
     }
+
+    private static bool TryMonitorInfo(nint hwnd, out NativeMethods.MonitorInfo info)
+    {
+        info = new NativeMethods.MonitorInfo { Size = (uint)Unsafe.SizeOf<NativeMethods.MonitorInfo>() };
+        var monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MonitorDefaultToNearest);
+        return monitor != 0 && NativeMethods.GetMonitorInfo(monitor, ref info);
+    }
+
+    private static ScreenRect ToRect(NativeMethods.Rect r) => new(r.Left, r.Top, r.Right, r.Bottom);
 }

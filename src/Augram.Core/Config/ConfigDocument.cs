@@ -1,11 +1,13 @@
+using System.Text.Json.Serialization;
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 
 namespace Augram.Core.Config;
 
 /// <summary>
 /// The whole on-disk configuration (requirements F8): one JSON file, <c>schemaVersion</c>
-/// first, settings, then the gesture library. Export uses the same shape. Immutable; the
-/// running app rebuilds it from the stores (<see cref="ConfigSession.Document"/>). The
+/// first, settings, the gesture library, then the mapping. Export uses the same shape. Immutable;
+/// the running app rebuilds it from the stores (<see cref="ConfigSession.Document"/>). The
 /// constructor parameters are optional so a missing section takes its default on read.
 /// </summary>
 public sealed record ConfigDocument
@@ -25,6 +27,16 @@ public sealed record ConfigDocument
     public Settings Settings { get; init; }
 
     public IReadOnlyList<Gesture> Gestures { get; init; }
+
+    /// <summary>
+    /// App groups, commands and ignored apps (F5, F5a). Not handled by <see cref="ConfigJsonContext"/>:
+    /// a step's parameters are whatever its type writes, so <see cref="ConfigSerializer"/> reads and
+    /// writes this member through <c>MappingJsonReader</c> / <c>MappingJsonWriter</c>. Missing in the
+    /// file means <see cref="MappingDocument.Empty"/>, which is why a file from before M2 still loads
+    /// under schema version 1.
+    /// </summary>
+    [JsonIgnore]
+    public MappingDocument Mapping { get; init; } = MappingDocument.Empty;
 
     /// <summary>A fresh install: default settings and the starter gestures (plan 0001 C3).</summary>
     public static ConfigDocument Default { get; } = new() { Gestures = StarterGestures.All() };

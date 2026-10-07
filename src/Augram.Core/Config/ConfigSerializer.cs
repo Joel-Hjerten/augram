@@ -1,13 +1,19 @@
+using System.Buffers;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Augram.Core.Steps;
 
 namespace Augram.Core.Config;
 
 /// <summary>
-/// Text in, <see cref="ConfigDocument"/> out, and back. <see cref="Write"/> always emits the
-/// current schema version. <see cref="Read"/> checks the version first (older: migrate;
-/// newer: refuse) and turns every parse problem into a <see cref="ConfigFormatException"/>
-/// whose message says what is wrong, so the store can report it and fall back.
+/// Text in, <see cref="ConfigDocument"/> out, and back. <see cref="Write(ConfigDocument)"/> always
+/// emits the current schema version. <see cref="Read(string)"/> checks the version first (older:
+/// migrate; newer: refuse) and turns every parse problem into a <see cref="ConfigFormatException"/>
+/// whose message says what is wrong, so the store can report it and fall back. The top-level
+/// members go through the generated <see cref="ConfigJsonContext"/>, except <c>mapping</c>, whose
+/// steps are polymorphic: <see cref="MappingJsonWriter"/> and <see cref="MappingJsonReader"/> handle
+/// it, which is why the envelope is written by hand here (its names are the record's, camelCased).
 /// </summary>
 public static class ConfigSerializer
 {
@@ -17,20 +23,39 @@ public static class ConfigSerializer
         CommentHandling = JsonCommentHandling.Skip,
     };
 
+    private static readonly JsonWriterOptions WriterOptions = new() { Indented = true };
+
     public static string Write(ConfigDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        var current = document.SchemaVersion == ConfigDocument.CurrentSchemaVersion
-            ? document
-            : document with { SchemaVersion = ConfigDocument.CurrentSchemaVersion };
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer, WriterOptions))
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("schemaVersion", ConfigDocument.CurrentSchemaVersion);
+            writer.WritePropertyName("settings");
+            JsonSerializer.Serialize(writer, document.Settings, ConfigJsonContext.Default.Settings);
+            writer.WritePropertyName("gestures");
+            JsonSerializer.Serialize(writer, document.Gestures, ConfigJsonContext.Default.IReadOnlyListGesture);
+            writer.WritePropertyName("mapping");
+            MappingJsonWriter.Write(writer, document.Mapping);
+            writer.WriteEndObject();
+        }
 
-        return JsonSerializer.Serialize(current, ConfigJsonContext.Default.ConfigDocument);
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
-    public static ConfigDocument Read(string json)
+    /// <summary>Reads with the built-in step types; a step of an unknown type is dropped silently. Hosts pass a notice sink through the other overload.</summary>
+    public static ConfigDocument Read(string json) => Read(json, StepRegistry.BuiltIn, notice: null);
+
+    /// <param name="json">The file's text.</param>
+    /// <param name="steps">The step types the mapping may use; a step of another type, or one its type refuses, is dropped (F8).</param>
+    /// <param name="notice">Receives one line per dropped step or override; null to drop silently.</param>
+    public static ConfigDocument Read(string json, StepRegistry steps, Action<string>? notice)
     {
         ArgumentNullException.ThrowIfNull(json);
+        ArgumentNullException.ThrowIfNull(steps);
 
         var root = ParseObject(json);
         int version = ReadSchemaVersion(root);
@@ -43,7 +68,8 @@ public static class ConfigSerializer
         {
             var document = root.Deserialize(ConfigJsonContext.Default.ConfigDocument)
                 ?? throw new ConfigFormatException("The configuration is empty.");
-            return Validated(document);
+            var mapping = new MappingJsonReader(steps, notice).Read(root["mapping"]);
+            return Validated(document with { Mapping = mapping });
         }
         catch (JsonException ex)
         {

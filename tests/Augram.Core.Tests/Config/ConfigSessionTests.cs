@@ -1,5 +1,8 @@
 using Augram.Core.Config;
+using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 using Augram.Core.Tests.Fixtures;
+using Augram.Core.Tests.Mapping.Support;
 using Xunit;
 
 namespace Augram.Core.Tests.Config;
@@ -141,6 +144,46 @@ public sealed class ConfigSessionTests
 
         Assert.Equal(Settings.Default, session.Settings.Current);
         Assert.Contains("reset to defaults", Assert.Single(_notices), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AMappingChangeIsSavedWithTheWholeDocument()
+    {
+        var store = new InMemoryConfigStore(new ConfigDocument());
+        using var session = Open(store);
+        int changed = 0;
+        session.DocumentChanged += (_, _) => changed++;
+
+        var chrome = session.Mapping.AddGroup(MappingFixtures.NewGroup("Chrome"));
+        _scheduler.RunPending();
+
+        Assert.Equal(1, changed);
+        var saved = Assert.Single(store.Saved);
+        Assert.Equal(chrome.Id, saved.Mapping.Groups[1].Id);
+        Assert.Same(session.Mapping.Current, session.Document.Mapping);
+    }
+
+    [Fact]
+    public void AnInvalidSavedMappingLoadsWhatPassesWithNoticesAndNoHistory()
+    {
+        var up = GestureId.New();
+        var mapping = new MappingDocument(
+            [
+                MappingFixtures.NewGroup("Chrome", commands: [MappingFixtures.NewCommand("Close tab", up), MappingFixtures.NewCommand("Also close", up)]),
+                MappingFixtures.NewGlobal(MappingFixtures.NewCommand("Close", up)),
+                MappingFixtures.NewGroup("chrome"),
+            ],
+            [new IgnoredApp(GroupId.New(), " ", true, MappingFixtures.ByProcess("x.exe"), false)]);
+
+        using var session = Open(new InMemoryConfigStore(new ConfigDocument { Mapping = mapping }));
+
+        Assert.Equal(["Global", "Chrome"], session.Mapping.Current.Groups.Select(group => group.Name));
+        Assert.Equal("Close", Assert.Single(session.Mapping.Global.Commands).Name);
+        Assert.Equal("Close tab", Assert.Single(session.Mapping.Current.Groups[1].Commands).Name);
+        Assert.Empty(session.Mapping.Current.Ignored);
+        Assert.False(session.Mapping.CanUndo);
+        Assert.Equal(3, _notices.Count);
+        Assert.All(_notices, notice => Assert.Contains("skipped", notice, StringComparison.Ordinal));
     }
 
     private ConfigSession Open(IConfigStore store) => new(store, _scheduler.Schedule, _notices.Add);

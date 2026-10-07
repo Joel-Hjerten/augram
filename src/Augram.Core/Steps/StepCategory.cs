@@ -17,4 +17,11 @@ public enum StepCategory
 
     /// <summary>Delays and other flow control.</summary>
     Timing,
+
+    /// <summary>
+    /// Types the picker never offers: placeholders such as the imported step that only exist because
+    /// a config or an import put them in a command. The picker lists every category but this one, so
+    /// no screen needs to know a type's key to hide it.
+    /// </summary>
+    Other,
 }
