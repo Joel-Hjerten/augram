@@ -111,6 +111,9 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
                 var removed = _library.Remove(tile.Id);
                 Message = $"Deleted '{removed.Name}'. {GestureGridKeymap.Undo} undoes it.";
                 break;
+            case GestureGridAction.KeepThis when e.Tile is { } tile:
+                KeepThis(tile);
+                break;
             case GestureGridAction.Import:
                 _ = ImportAsync();
                 break;
@@ -121,6 +124,21 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
                 _library.Redo();
                 break;
         }
+    }
+
+    /// <summary>Deletes the tile's exact duplicates (A7) as one undo step; the user chose which copy to keep.</summary>
+    private void KeepThis(GestureTileItem tile)
+    {
+        var losers = tile.Partners.Where(partner => partner.Score >= ConfusionCheck.ExactCutOff).Select(partner => partner.Id).ToHashSet();
+        if (losers.Count == 0)
+        {
+            Message = $"'{tile.Name}' has no exact duplicates.";
+            return;
+        }
+
+        var names = _library.All.Where(gesture => losers.Contains(gesture.Id)).Select(gesture => "'" + gesture.Name + "'").ToList();
+        _library.ReplaceAll(_library.All.Where(gesture => !losers.Contains(gesture.Id)));
+        Message = $"Kept '{tile.Name}'; deleted {string.Join(", ", names)}. {GestureGridKeymap.Undo} undoes it.";
     }
 
     private async Task ImportAsync()

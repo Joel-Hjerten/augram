@@ -14,6 +14,7 @@ internal static class GestureGridMenu
         menu.Items.Add(Item("Redraw…", GestureGridAction.Redraw, request));
         menu.Items.Add(Item("Rename", GestureGridAction.Rename, request));
         menu.Items.Add(Item("Delete", GestureGridAction.Delete, request));
+        menu.Items.Add(Item("Keep this, delete its duplicates", GestureGridAction.KeepThis, request));
         return menu;
     }
 

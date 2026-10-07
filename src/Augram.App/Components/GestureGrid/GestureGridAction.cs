@@ -15,6 +15,9 @@ public enum GestureGridAction
     /// <summary>Delete the selected gesture (no confirmation; undo covers it, A9).</summary>
     Delete,
 
+    /// <summary>Keep the selected gesture and delete its exact duplicates (A7), one undo step. M2 also retargets the commands that used them.</summary>
+    KeepThis,
+
     /// <summary>Start the StrokesPlus.net import flow (toolbar button).</summary>
     Import,
 

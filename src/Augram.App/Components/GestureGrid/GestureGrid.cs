@@ -186,7 +186,7 @@ public sealed class GestureGrid : TemplatedControl
             case GestureGridAction.Rename:
                 BeginRename();
                 return;
-            case GestureGridAction.Redraw or GestureGridAction.Delete when tile is null:
+            case GestureGridAction.Redraw or GestureGridAction.Delete or GestureGridAction.KeepThis when tile is null:
                 return;
             default:
                 Raise(action, tile, null);

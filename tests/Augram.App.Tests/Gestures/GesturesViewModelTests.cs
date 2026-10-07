@@ -43,6 +43,31 @@ public sealed class GesturesViewModelTests
     }
 
     [AvaloniaFact]
+    public void KeepThisDeletesTheExactDuplicatesInOneUndoStep()
+    {
+        var (vm, library, _, _) = Create();
+        var up = library.All.Single(g => g.Name == "Up");
+        var twinA = library.Add(new Gesture(GestureId.New(), "Up twin A", IsActive: true, [up.Samples[0]]));
+        var twinB = library.Add(new Gesture(GestureId.New(), "Up twin B", IsActive: true, [up.Samples[0]]));
+        vm.RefreshDiagnostic();
+        var count = library.All.Count;
+
+        vm.Handle(new GestureGridActionEventArgs(GestureGridAction.KeepThis, vm.Tiles.Single(t => t.Name == "Up")));
+
+        Assert.NotNull(library.Find(up.Id));
+        Assert.Null(library.Find(twinA.Id));
+        Assert.Null(library.Find(twinB.Id));
+        Assert.Equal(count - 2, library.All.Count);
+        Assert.StartsWith("Kept 'Up'; deleted 'Up twin A', 'Up twin B'.", vm.Message, StringComparison.Ordinal);
+
+        vm.Handle(new GestureGridActionEventArgs(GestureGridAction.Undo, null));
+
+        Assert.Equal(count, library.All.Count);
+        vm.Handle(new GestureGridActionEventArgs(GestureGridAction.KeepThis, vm.Tiles.Single(t => t.Name == "Z")));
+        Assert.Equal("'Z' has no exact duplicates.", vm.Message);
+    }
+
+    [AvaloniaFact]
     public void DeleteRemovesWithoutAskingAndUndoRestores()
     {
         var (vm, library, _, _) = Create();

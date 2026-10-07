@@ -46,6 +46,7 @@
   <x:Double x:Key="Font.S">11</x:Double>
   <x:Double x:Key="Font.M">13</x:Double>
   <x:Double x:Key="Font.L">16</x:Double>
+  <x:Double x:Key="Font.XL">22</x:Double>
 
   <!-- Layout -->
   <GridLength x:Key="Form.LabelColumn">220</GridLength>

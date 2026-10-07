@@ -198,12 +198,16 @@
                     BorderBrush="{StaticResource Brush.Surface}"
                     BorderThickness="{StaticResource Border.Hairline}">
               <StackPanel Spacing="{StaticResource Space.S}">
-                <glyph:GestureGlyph Points="{TemplateBinding Points}" IsActive="{TemplateBinding IsActive}" HorizontalAlignment="Center" />
-                <TextBlock Name="PART_Partner"
-                           Classes="tile-partner"
-                           Text="{TemplateBinding PartnerScoreText}"
-                           TextAlignment="Center"
-                           IsVisible="{TemplateBinding PartnerScoreText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Panel HorizontalAlignment="Center">
+                  <glyph:GestureGlyph Points="{TemplateBinding Points}" IsActive="{TemplateBinding IsActive}" />
+                  <!-- Partner score sits over the glyph's centre so the grid never reflows. -->
+                  <Border Classes="tile-partner"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          IsVisible="{TemplateBinding PartnerScoreText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Name="PART_Partner" Classes="tile-partner" Text="{TemplateBinding PartnerScoreText}" />
+                  </Border>
+                </Panel>
                 <TextBlock Name="PART_Name"
                            Classes="tile-name"
                            Text="{TemplateBinding NameText}"
@@ -386,8 +390,15 @@
     <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
+  <Style Selector="Border.tile-partner">
+    <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+  </Style>
   <Style Selector="TextBlock.tile-partner">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.XL}" />
+    <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
   </Style>
   <Style Selector="TextBlock.error">
