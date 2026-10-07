@@ -7,20 +7,31 @@ namespace Augram.Core.Sync;
 /// The machine files of one pull, read and sorted (README: the run): this machine's own file (only its revision
 /// matters), the other machines' readable files in machine-id order, and one note per file skipped. A file is
 /// skipped when it does not parse, breaks a rule, is filed under another machine's id, or would lose steps this
-/// build cannot read (merging it would delete them everywhere; the note says to update Augram here).
+/// build cannot read (merging it would delete them everywhere; the note says to update Augram here). A file a newer
+/// Augram wrote (README: format version) is not read past its header: it goes to <see cref="Newer"/>, and the run stops.
 /// </summary>
 internal sealed record SyncRepositoryFiles(SyncFile? Own, IReadOnlyList<SyncFile> Others, IReadOnlyList<string> Notes)
 {
+    /// <summary>The files a newer Augram wrote, this machine's own included; none of them is in <see cref="Own"/> or <see cref="Others"/>.</summary>
+    public IReadOnlyList<SyncNewerMachine> Newer { get; init; } = [];
+
     public static SyncRepositoryFiles Read(IReadOnlyDictionary<string, string> texts, Guid self, StepRegistry steps)
     {
         SyncFile? own = null;
         var others = new List<SyncFile>();
         var notes = new List<string>();
+        var newer = new List<SyncNewerMachine>();
         foreach (var (name, text) in texts.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase))
         {
             if (!Guid.TryParse(name, out var id))
             {
                 notes.Add($"machines/{name}.json skipped: the name is not a machine id.");
+                continue;
+            }
+
+            if (SyncFileSerializer.ReadHeader(text) is { IsNewer: true } header)
+            {
+                newer.Add(new SyncNewerMachine(id, header.MachineName ?? $"machine {id}", id == self, header.FormatVersion, header.SchemaVersion));
                 continue;
             }
 
@@ -47,7 +58,7 @@ internal sealed record SyncRepositoryFiles(SyncFile? Own, IReadOnlyList<SyncFile
             }
         }
 
-        return new SyncRepositoryFiles(own, others, notes);
+        return new SyncRepositoryFiles(own, others, notes) { Newer = newer };
     }
 
     public IReadOnlyList<SyncMachineSummary> Summaries() => Others

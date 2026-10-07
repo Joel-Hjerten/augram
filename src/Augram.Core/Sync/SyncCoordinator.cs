@@ -136,6 +136,16 @@ public sealed class SyncCoordinator
         }
 
         var files = SyncRepositoryFiles.Read(_repository.ReadMachineFiles(), self, _steps);
+        if (NewerThanThisBuild(self, files) is { Count: > 0 } newer)
+        {
+            // Merging would misread what this build cannot see, and publishing would overwrite it: stop before either.
+            return new SyncReport(SyncStatus.NeedsUpdate, _clock.UtcNow)
+            {
+                NewerMachines = newer,
+                Notes = [.. newer.Select(machine => machine.Description), .. files.Notes],
+            };
+        }
+
         bool joining = _bases.IsEmpty && files.Others.Count > 0;
         if (joining && join is null)
         {
@@ -217,6 +227,19 @@ public sealed class SyncCoordinator
         };
     }
 
+    /// <summary>The files a newer Augram wrote, and this machine when it has published in a newer format than this build writes.</summary>
+    private List<SyncNewerMachine> NewerThanThisBuild(Guid self, SyncRepositoryFiles files)
+    {
+        var newer = files.Newer.ToList();
+        int published = _bases.PublishedFormatVersion;
+        if (published > SyncFile.CurrentFormatVersion && !newer.Any(machine => machine.IsThisMachine))
+        {
+            newer.Add(new SyncNewerMachine(self, _settings.Current.Sync.MachineName, IsThisMachine: true, published, ConfigDocument.CurrentSchemaVersion));
+        }
+
+        return newer;
+    }
+
     private Guid EnsureMachineId()
     {
         if (_settings.Current.Sync.MachineId == Guid.Empty)
@@ -235,6 +258,17 @@ public sealed class SyncCoordinator
 
     private void Log(SyncReport report, string host, string what)
     {
+        if (report.Status == SyncStatus.NeedsUpdate)
+        {
+            _log.Warning(
+                LogSource,
+                $"{what} paused: a newer Augram wrote to the repository",
+                ("host", host),
+                ("newest format", report.NewerMachines.Max(machine => machine.FormatVersion)),
+                ("this build", SyncFile.CurrentFormatVersion));
+            return;
+        }
+
         if (report.Status == SyncStatus.Failed)
         {
             _log.Warning(LogSource, $"{what} failed", ("host", host), ("error", report.Error));

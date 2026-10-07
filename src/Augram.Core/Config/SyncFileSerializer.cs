@@ -14,7 +14,9 @@ namespace Augram.Core.Config;
 /// Text in, <see cref="SyncFile"/> out, and back (README: sync file). The <c>gestures</c> and <c>mapping</c>
 /// members go through exactly the config file's code (<see cref="ConfigJsonContext"/>,
 /// <see cref="MappingJsonWriter"/>, <see cref="MappingJsonReader"/>), so the two never drift; the schema
-/// version is the config file's and is checked and migrated the same way. A file read here is validated by
+/// version is the config file's and is checked and migrated the same way. The sync format version
+/// (<see cref="SyncFile.CurrentFormatVersion"/>) is the sync's own; <see cref="ReadHeader"/> reads both before
+/// anything else, and <see cref="Read"/> refuses a file newer in either. A file read here is validated by
 /// <see cref="GestureRules"/> and <see cref="MappingRules"/> and comes back normalised. <see cref="TryRead"/>
 /// is the tolerant entry point the sync uses: a broken file is an error line, never an exception.
 /// </summary>
@@ -33,6 +35,7 @@ public static class SyncFileSerializer
         {
             writer.WriteStartObject();
             writer.WriteNumber("schemaVersion", ConfigDocument.CurrentSchemaVersion);
+            writer.WriteNumber("formatVersion", SyncFile.CurrentFormatVersion);
             writer.WriteStartObject("machine");
             writer.WriteString("id", file.MachineId);
             writer.WriteString("name", file.MachineName);
@@ -54,6 +57,27 @@ public static class SyncFileSerializer
         }
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    /// <summary>The file's versions and machine name, or null when it is not a JSON object with readable versions (<see cref="TryRead"/> then says why).</summary>
+    public static SyncFileHeader? ReadHeader(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        try
+        {
+            var root = ConfigSerializer.ParseObject(json, What);
+            if (root["schemaVersion"] is not JsonValue schema || !schema.TryGetValue(out int schemaVersion))
+            {
+                return null;
+            }
+
+            string? name = root["machine"] is JsonObject machine && machine["name"] is JsonValue value && value.TryGetValue(out string? text) ? text : null;
+            return new SyncFileHeader(schemaVersion, ReadFormatVersion(root), name);
+        }
+        catch (ConfigFormatException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Reads, validates and normalises; every problem is the returned <paramref name="error"/> line, nothing throws.</summary>
@@ -78,7 +102,7 @@ public static class SyncFileSerializer
         }
     }
 
-    /// <exception cref="ConfigFormatException">Malformed, newer than this build, or breaking a gesture or mapping rule.</exception>
+    /// <exception cref="ConfigFormatException">Malformed, newer than this build (config schema or sync format), or breaking a gesture or mapping rule.</exception>
     public static SyncFile Read(string json, StepRegistry steps, Action<string>? notice)
     {
         ArgumentNullException.ThrowIfNull(json);
@@ -89,6 +113,13 @@ public static class SyncFileSerializer
         if (version < ConfigDocument.CurrentSchemaVersion)
         {
             root = ConfigMigrations.Migrate(root, version);
+        }
+
+        int format = ReadFormatVersion(root);
+        if (format > SyncFile.CurrentFormatVersion)
+        {
+            throw new ConfigFormatException(
+                $"{What} was written by a newer Augram (sync format {format}); this build reads up to format {SyncFile.CurrentFormatVersion}.");
         }
 
         var machine = JsonMembers.RequireObject(root["machine"], "'machine' of the sync file");
@@ -107,6 +138,7 @@ public static class SyncFileSerializer
                 GestureRules.ValidSet(gestures),
                 MappingRules.ValidDocument(mapping))
             {
+                FormatVersion = format,
                 Revision = JsonMembers.RequireGuid(machine, "revision", where),
                 Merged = merged,
             };
@@ -115,6 +147,19 @@ public static class SyncFileSerializer
         {
             throw new ConfigFormatException($"{What} breaks a rule: {ex.Message}", ex);
         }
+    }
+
+    /// <summary>The sync format; 1 when the member is missing (every file written before it existed).</summary>
+    private static int ReadFormatVersion(JsonObject root)
+    {
+        if (root["formatVersion"] is not { } node)
+        {
+            return 1;
+        }
+
+        return node is JsonValue value && value.TryGetValue(out int format) && format >= 1
+            ? format
+            : throw new ConfigFormatException("'formatVersion' of the sync file must be an integer of 1 or more.");
     }
 
     private static List<Gesture> ReadGestures(JsonNode? node)

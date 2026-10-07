@@ -18,7 +18,7 @@ Everything in this folder is pure except `SyncBaseStore` (local files) and `Sync
 | `SyncPlanner` (internal) | one run's merges, pure |
 | `ConflictResolution` (internal) | what a resolution does to the document, pure |
 | `SyncCoordinator` (+ internal `SyncStoreWriter`, `SyncPublisher`, `SyncRepositoryFiles`) | a run and a resolution, end to end |
-| `SyncReport`, `SyncStatus`, `SyncJoin`, `SyncChoice`, `SyncApplied`, `SyncMachineSummary` | the App's side of it |
+| `SyncReport`, `SyncStatus`, `SyncJoin`, `SyncChoice`, `SyncApplied`, `SyncMachineSummary`, `SyncNewerMachine` | the App's side of it |
 
 ## Items
 
@@ -88,10 +88,19 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 1. Sync off (no repository) → `Off`. The machine id is generated on first use (`SettingsStore.EnsureMachineId`, on the store thread).
 2. `Prepare(url)`, `Pull()`, `ReadMachineFiles()`; a failure → `Failed`, stores and state untouched.
 3. Read the files (`SyncRepositoryFiles`): this machine's own (only its revision matters) and the others, in machine-id order. A file that does not parse, breaks a rule, sits under another id, or has steps this build cannot read is skipped with a note (merging the last kind would delete those steps everywhere; the note says to update Augram here).
+   - **A newer Augram** (see Format version): a file whose header is newer than this build, or this machine having published a newer format → `NeedsUpdate` with `NewerMachines`, before the join question; nothing merged, applied, saved or published.
 4. **Join**: no local state yet and other machines' files exist → without a `SyncJoin`, `NeedsJoinChoice` with each machine's name and counts, nothing changed. `UseRemote` adopts the newest other machine's gestures and mapping (its base is its own content); `Merge` merges with empty bases (two machines that imported StrokesPlus.net separately get everything twice, renamed).
 5. Merge each other file in turn against its base (`SyncPlanner`), the result of one feeding the next; then apply once: one `ReplaceAll` per store that changed (one undo step each; the config file's backup-before-write keeps the old file).
 6. Save each machine's new state, then publish (`SyncPublisher`) when there is something new: different items, different `merged` entries (a newer acknowledged revision alone does not count, or two idle machines would acknowledge each other forever), the repo lacking our newest revision, or a failed publish last time. The revision is saved locally before the push. Commit message: `sync from <MachineName>`.
-7. Report: status (`UpToDate` or `Applied`, or `Failed` when publishing failed), counts relative to this machine before the run, every pending conflict, repairs, notes. One log line, source `sync`: Info with the counts, or Warning with the error line; the URL appears only as its host.
+7. Report: status (`UpToDate` or `Applied`, or `Failed` when publishing failed), counts relative to this machine before the run, every pending conflict, repairs, notes. One log line, source `sync`: Info with the counts, or Warning with the error line (or, for `NeedsUpdate`, the newest format found and this build's); the URL appears only as its host.
+
+## Format version
+
+`SyncFile.CurrentFormatVersion` (the file's `formatVersion`, separate from the config `schemaVersion`) is the sync's own contract. **Raise it with every change to what a sync item holds or to which item kinds exist**, and add a line to its history on the constant. 1: every file before 2026-10-07 (no member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own steps as an item of their own). Why: a build that reads a newer file drops what it cannot see, and its next publish deletes that on every machine (2026-10-07: the PC, still on an old build, had to be stopped by hand before it read the Mac's own steps).
+
+- `SyncFileSerializer.ReadHeader` reads both versions and the machine name before anything else. A file newer in either goes to `SyncRepositoryFiles.Newer` unread, and the run answers `NeedsUpdate`. `Read` refuses such a file too.
+- **Never downgrade.** The publisher records the format it publishes in `SyncBaseStore.PublishedFormatVersion` (before the push; only ever raised). A build that writes an older format answers `NeedsUpdate` naming this machine, as it does when this machine's own file in the repo is newer.
+- **An older file still merges**: members it lacks read as their defaults. That is safe because a build with this guard never publishes after seeing a newer file, so an older file never acknowledges items it could not read. Builds from before the guard have no such protection; keep every machine on one that has it.
 
 ## Threading
 
@@ -102,12 +111,13 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 - `machines/<id>.json`: one `SyncMachineState` (name, merged revision, applied acknowledgement, held keys, pending conflicts with both contents, base).
 - `published/<sequence>-<revision>.json`: our newest 20 revisions (items and `merged`), named by a counter so age never depends on the clock.
 - `publish-pending.txt`: present after a failed publish.
+- `published-format.txt`: the newest sync format this machine has published (see Format version).
 
 An unreadable state file is reported and treated as absent (no base: conflicts rather than guesses). All writes are temp file + atomic replace.
 
 ## Limits
 
-- Contents are compared as text: a release that changes how an item is written makes items here look changed once (they are kept and published, not lost); a format change needs a schema version and a migration (`../Config/ConfigMigrations`).
-- The state belongs to one repository and Core does not know which. `SyncBaseStore.Clear()` forgets it (every machine's state, the published revisions, the pending-publish flag); the App calls it when the repository URL changes or is cleared, so the next run asks the join question again (`src/Augram.App/README.md`, Sync).
+- Contents are compared as text: a release that changes how an item is written makes items here look changed once (they are kept and published, not lost); a format change needs a schema version and a migration (`../Config/ConfigMigrations`), and any change to what an item holds raises the sync format version.
+- The state belongs to one repository and Core does not know which. `SyncBaseStore.Clear()` forgets it (every machine's state, the published revisions, the pending-publish flag, the published format); the App calls it when the repository URL changes or is cleared, so the next run asks the join question again (`src/Augram.App/README.md`, Sync).
 
 **May reference:** `Abstractions` (`ISyncRepository`, `IClock`, `IEventLog`), `Config` (settings, the sync file, item JSON), `Diagnostics`, `Gestures`, `Mapping`, `Steps`. **Referenced by:** the composition root and the Options › Sync view model.

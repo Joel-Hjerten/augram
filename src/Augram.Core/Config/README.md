@@ -9,7 +9,7 @@ The on-disk configuration (requirements F8, checklist A3/A17) and the session th
 | `ConfigDocument` | the whole file: `SchemaVersion` (const `CurrentSchemaVersion` = 1), `Settings`, `Gestures`, `Mapping` (`MappingDocument`, default `Empty`). `Default` = default settings + `StarterGestures` + an empty mapping |
 | `Settings` | one record per subsystem: `General` (`GeneralSettings`), `Capture` (`CaptureThresholds`, reused), `Trail` (`TrailSettings`), `Recognition` (`RecognitionOptions`, reused), `NoMatch` (`NoMatchBehaviour`), `Sync` (`SyncSettings`). All of it stays on this machine: sync carries gestures and the mapping only |
 | `SyncSettings`, `SyncSettingsRules` | F8 sync, local: `RepositoryUrl` (null = off), `MachineId` (empty until `SettingsStore.EnsureMachineId` generates it once; that clears the settings undo history so no undo can bring the empty id back), `MachineName` (default `Environment.MachineName`), `AutoSync` (default true). Rules: the name is not blank; the URL is `https://…`, `git@host:path`, a full local path or `file://`, never with a user name or token (`UserInfoProblem` says why: git's credential helper signs in). `Host(url)` is all the log may show. `SettingsStore.SetSync` trims, turns a blank URL into null and keeps the machine id |
-| `SyncFile`, `SyncAcknowledgement`, `SyncFileSerializer` | one machine's file in the sync repo, see "Sync file" below. `TryRead` never throws: a broken file is an error line |
+| `SyncFile`, `SyncAcknowledgement`, `SyncFileHeader`, `SyncFileSerializer` | one machine's file in the sync repo, see "Sync file" below. `TryRead` never throws: a broken file is an error line |
 | `SyncItemJson` (internal) | the canonical text of one sync item (`../Sync/README.md`), written and read back by the writers and readers above |
 | `GeneralSettings` | stroke button (`Capture.MouseButton`, default Right), `IgnoreKeys` flags, start at login, enabled |
 | `TrailSettings`, `RgbColor` | width px 5, opacity 0.5, colour `#00FF40` |
@@ -79,6 +79,7 @@ The `sync` section (schema version 1, additive): missing, null or partial takes 
 ```json
 {
   "schemaVersion": 1,
+  "formatVersion": 2,
   "machine": { "id": "<machine id>", "name": "PC-HOME", "writtenAt": "2026-10-07T18:30:00+00:00", "revision": "<new Guid per publish>" },
   "merged": [
     { "machineId": "<other machine>", "revision": "<its revision merged here>", "except": ["command:<id>"], "pending": ["command:<id>"] }
@@ -88,7 +89,7 @@ The `sync` section (schema version 1, additive): missing, null or partial takes 
 }
 ```
 
-`merged` has one entry per other machine this one has merged: the revision of its file, the item keys of that revision not taken (`except`: pending conflicts on either side) and the keys this machine has a conflict on with it, waiting for the user (`pending`; the other machine leaves those alone). The schema version is the config file's: newer is refused, older is migrated by `ConfigMigrations` (same members, same steps). Reading validates with `GestureRules` and `MappingRules`; a file that breaks a rule is an error like a malformed one. Steps of an unknown type are dropped with a notice, as on load; the sync then skips such a file rather than merge it lossily.
+`merged` has one entry per other machine this one has merged: the revision of its file, the item keys of that revision not taken (`except`: pending conflicts on either side) and the keys this machine has a conflict on with it, waiting for the user (`pending`; the other machine leaves those alone). The schema version is the config file's: newer is refused, older is migrated by `ConfigMigrations` (same members, same steps). `formatVersion` is the sync's own (`SyncFile.CurrentFormatVersion`; missing = 1): newer is refused, older reads with defaults. `ReadHeader` reads both and the machine name alone, so the sync can pause on a file a newer Augram wrote without reading the rest (`../Sync/README.md`, Format version; `SyncFileHeader`). Reading validates with `GestureRules` and `MappingRules`; a file that breaks a rule is an error like a malformed one. Steps of an unknown type are dropped with a notice, as on load; the sync then skips such a file rather than merge it lossily.
 
 ## Store contract (`FileConfigStore`)
 

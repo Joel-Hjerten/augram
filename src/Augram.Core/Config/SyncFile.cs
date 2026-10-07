@@ -18,6 +18,18 @@ public sealed record SyncFile(
     IReadOnlyList<Gesture> Gestures,
     MappingDocument Mapping)
 {
+    /// <summary>
+    /// The sync format this build writes and the newest it reads (README: format version), separate from the config
+    /// schema. Raise it with every change to what a sync item holds or to which item kinds exist: a build that reads a
+    /// newer file pauses sync instead of merging what it cannot see. 1: every file before 2026-10-07 (no
+    /// <c>formatVersion</c> member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own
+    /// steps as an item of their own).
+    /// </summary>
+    public const int CurrentFormatVersion = 2;
+
+    /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
+    public int FormatVersion { get; init; } = CurrentFormatVersion;
+
     /// <summary>Identifies this version of the file; a new Guid per publish.</summary>
     public Guid Revision { get; init; }
 

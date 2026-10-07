@@ -225,6 +225,11 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
             return RunningText;
         }
 
+        if (report?.Status == SyncStatus.NeedsUpdate)
+        {
+            return NeedsUpdateText(report.NewerMachines);
+        }
+
         if (paused || report?.Status == SyncStatus.NeedsJoinChoice)
         {
             return PausedText;
@@ -243,6 +248,10 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
             _ => $"Sync failed at {at}: {report.Error ?? "unknown error"}",
         };
     }
+
+    /// <summary>"Paused: Mac uses a newer Augram. Update this machine (pull, rebuild, restart) to resume."</summary>
+    public static string NeedsUpdateText(IReadOnlyList<SyncNewerMachine> machines)
+        => $"Paused: {SyncNewerMachine.Summary(machines)}. Update this machine (pull, rebuild, restart) to resume.";
 
     /// <summary>"3 commands changed", "1 gesture, 2 groups and 3 commands changed".</summary>
     public static string Changes(SyncCounts counts)

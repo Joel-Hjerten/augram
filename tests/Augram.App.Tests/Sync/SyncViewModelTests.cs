@@ -1,6 +1,7 @@
 using System.Globalization;
 using Augram.App.Hosting;
 using Augram.App.Tests.Sync.Support;
+using Augram.App.Tray;
 using Augram.App.ViewModels;
 using Augram.Core.Config;
 using Augram.Core.Sync;
@@ -137,6 +138,22 @@ public sealed class SyncViewModelTests : SyncTestBase
         var report = status is { } s ? new SyncReport(s, At) : null;
 
         Assert.Equal(expected, SyncViewModel.Status(configured, running, paused, report, []));
+    }
+
+    [Fact]
+    public void ANewerAugramElsewhereReadsTheSameInOptionsTheTrayAndTheHealthLine()
+    {
+        var report = new SyncReport(SyncStatus.NeedsUpdate, At)
+        {
+            NewerMachines = [new SyncNewerMachine(Guid.NewGuid(), "Mac", IsThisMachine: false, SyncFile.CurrentFormatVersion + 1, ConfigDocument.CurrentSchemaVersion)],
+        };
+
+        Assert.Equal(
+            "Paused: Mac uses a newer Augram. Update this machine (pull, rebuild, restart) to resume.",
+            SyncViewModel.Status(true, false, true, report, ["Mac"]));
+        Assert.Equal("sync paused: Mac uses a newer Augram", SyncTrayItem.Short(true, false, true, report));
+        Assert.Equal("Paused (Mac uses a newer Augram)", SyncHealthContributor.Outcome(report));
+        Assert.Equal("UpToDate", SyncHealthContributor.Outcome(new SyncReport(SyncStatus.UpToDate, At)));
     }
 
     [Fact]

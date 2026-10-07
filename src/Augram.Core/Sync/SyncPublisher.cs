@@ -8,8 +8,9 @@ namespace Augram.Core.Sync;
 /// otherwise, so two idle machines do not commit every few minutes. Something new is: different items, different
 /// <c>merged</c> entries (a new machine, a pending conflict or held key added or gone; a newer acknowledged revision
 /// alone is not enough, or each machine's acknowledgement of the other's would publish forever), a new machine name,
-/// the repo lacking this machine's newest revision, or a publish that failed last time. The revision is stored locally before it is
-/// published: another machine may acknowledge it even when the push looked failed here.
+/// the repo lacking this machine's newest revision, or a publish that failed last time. The revision and the sync format are
+/// stored locally before it is published: another machine may acknowledge it even when the push looked failed here, and an
+/// older build must never rewrite the file in an older format (README: format version).
 /// </summary>
 internal sealed class SyncPublisher
 {
@@ -42,6 +43,7 @@ internal sealed class SyncPublisher
             Merged = merged,
         };
         _bases.Save(new SyncPublished(file.Revision, now, plan.Items.Contents(), merged));
+        _bases.RaisePublishedFormatVersion(SyncFile.CurrentFormatVersion);
         var result = _repository.Publish(self.ToString("D"), SyncFileSerializer.Write(file), $"sync from {machineName}");
         _bases.PublishPending = !result.Succeeded;
         return result.Succeeded ? null : result.Error ?? "Publishing this machine's file failed.";

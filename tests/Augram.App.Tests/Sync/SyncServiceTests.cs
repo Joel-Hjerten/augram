@@ -1,6 +1,8 @@
 using Augram.App.Hosting;
 using Augram.App.Tests.Support;
 using Augram.App.Tests.Sync.Support;
+using Augram.App.ViewModels;
+using Augram.Core.Config;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
 using Xunit;
@@ -9,7 +11,8 @@ namespace Augram.App.Tests.Sync;
 
 /// <summary>
 /// The sync worker (F8 sync, "when"): the start-up run, Sync now, coalescing, the 20 s change delay that ignores the
-/// sync's own changes, the 5 minute poll (only with automatic sync on), the pause on the join question, and stopping.
+/// sync's own changes, the 5 minute poll (only with automatic sync on), the pause on the join question and on a newer
+/// Augram in the repo, and stopping.
 /// Timers are a <see cref="ManualSchedule"/>; the repository is in memory.
 /// </summary>
 public sealed class SyncServiceTests : SyncTestBase
@@ -194,6 +197,38 @@ public sealed class SyncServiceTests : SyncTestBase
         Assert.True(home.HasGesture("Up"));
         Assert.False(home.HasGesture("Mine too"));
         Assert.Equal(1, home.Schedule.Pending(SyncService.PollInterval));
+    }
+
+    [Fact]
+    public void ANewerAugramInTheRepoPausesAutomaticSyncAndSyncNowOnlyChecksAgain()
+    {
+        var (work, home) = Joined();
+        var workKey = work.Settings.Current.Sync.MachineId.ToString("D");
+        Remote.Write(workKey, Remote.Files[workKey].Replace(
+            $"\"formatVersion\": {SyncFile.CurrentFormatVersion}",
+            $"\"formatVersion\": {SyncFile.CurrentFormatVersion + 1}",
+            StringComparison.Ordinal));
+        var homeKey = home.Settings.Current.Sync.MachineId.ToString("D");
+        var own = Remote.Files[homeKey];
+
+        home.Service.Start();
+        home.WaitForRuns(1);
+
+        Assert.Equal(SyncStatus.NeedsUpdate, home.Service.LastReport!.Status);
+        Assert.True(home.Service.IsPaused);
+        Assert.Equal(0, home.Schedule.Pending(SyncService.PollInterval));
+        home.Gestures.Rename(home.Gesture("Up").Id, "North");
+        Assert.Equal(0, home.Schedule.Scheduled(SyncService.ChangeDelay));
+        Assert.Equal(
+            "Paused: PC-WORK uses a newer Augram. Update this machine (pull, rebuild, restart) to resume.",
+            SyncViewModel.Status(true, false, home.Service.IsPaused, home.Service.LastReport, home.Service.OtherMachines));
+
+        home.Service.SyncNow();
+        home.WaitForRuns(2);
+        Assert.Equal(SyncStatus.NeedsUpdate, home.Service.LastReport!.Status);
+        Assert.True(home.Service.IsPaused);
+        Assert.Equal(own, Remote.Files[homeKey]);
+        Assert.True(home.HasGesture("North"), "nothing here is merged over");
     }
 
     [Fact]

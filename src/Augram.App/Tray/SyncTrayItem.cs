@@ -62,7 +62,7 @@ public sealed class SyncTrayItem : IDisposable
 
     public void Dispose() => _service.Changed -= OnServiceChanged;
 
-    /// <summary>"synced 14:32", "sync failed 14:32", "sync paused", "syncing…"; null while off or before the first run.</summary>
+    /// <summary>"synced 14:32", "sync failed 14:32", "sync paused", "sync paused: Mac uses a newer Augram", "syncing…"; null while off or before the first run.</summary>
     public static string? Short(bool configured, bool running, bool paused, SyncReport? report)
     {
         if (!configured)
@@ -73,6 +73,11 @@ public sealed class SyncTrayItem : IDisposable
         if (running)
         {
             return "syncing…";
+        }
+
+        if (report?.Status == SyncStatus.NeedsUpdate)
+        {
+            return $"sync paused: {SyncNewerMachine.Summary(report.NewerMachines)}";
         }
 
         if (paused || report?.Status == SyncStatus.NeedsJoinChoice)

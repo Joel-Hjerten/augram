@@ -14,8 +14,10 @@ namespace Augram.App.Hosting;
 /// the last gesture or mapping change the sync itself did not cause (it tells them apart through
 /// <see cref="SyncStoreThread.IsApplying"/>), every <see cref="PollInterval"/> while automatic sync is on, a new
 /// repository URL, the join answer (<see cref="Join"/>) and conflict resolutions (<see cref="Resolve"/>). With no
-/// repository set nothing runs, and automatic triggers wait while <see cref="SyncSettings.AutoSync"/> is off or a
-/// <see cref="SyncStatus.NeedsJoinChoice"/> report is waiting for the user (<see cref="IsPaused"/>). Before every run
+/// repository set nothing runs, and automatic triggers wait while <see cref="SyncSettings.AutoSync"/> is off, a
+/// <see cref="SyncStatus.NeedsJoinChoice"/> report is waiting for the user, or the last run answered
+/// <see cref="SyncStatus.NeedsUpdate"/> (a newer Augram wrote to the repo; only a restart on a newer build, a new URL or
+/// Sync now runs again, and Sync now only checks) (<see cref="IsPaused"/>). Before every run
 /// the worker lets <see cref="SyncFolders"/> reset the state and move the clone aside when the URL changed.
 /// <see cref="Changed"/> is raised on the worker when a run starts and when it ends; consumers marshal. The store
 /// handlers run on the stores' (UI) thread; the timers' callbacks on pool threads; everything shared is under one
@@ -101,7 +103,10 @@ public sealed class SyncService : IDisposable
 
     public bool IsRunning => Locked(() => _running);
 
-    /// <summary>True after a run answered <see cref="SyncStatus.NeedsJoinChoice"/> and until the user chooses (or the URL changes): automatic runs wait.</summary>
+    /// <summary>
+    /// True after a run answered <see cref="SyncStatus.NeedsJoinChoice"/> (until the user chooses) or <see cref="SyncStatus.NeedsUpdate"/>
+    /// (until a run answers otherwise), or until the URL changes: automatic runs wait.
+    /// </summary>
     public bool IsPaused => Locked(() => _paused);
 
     /// <summary>The last run's report; null before the first run.</summary>
@@ -266,7 +271,7 @@ public sealed class SyncService : IDisposable
                 _last = report;
                 _lastTrigger = job.Trigger;
                 _otherMachines = others;
-                _paused = report.Status == SyncStatus.NeedsJoinChoice;
+                _paused = report.Status is SyncStatus.NeedsJoinChoice or SyncStatus.NeedsUpdate;
                 _stateCleared &= report.Status == SyncStatus.Off;
                 _runs++;
                 if (_disposed)

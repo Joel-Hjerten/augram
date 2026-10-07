@@ -61,6 +61,62 @@ public sealed class SyncFileSerializerTests
     }
 
     [Fact]
+    public void TheSyncFormatIsWrittenAndAFileWithoutItReadsAsFormatOne()
+    {
+        var json = SyncFileSerializer.Write(SampleFile());
+        var node = JsonNode.Parse(json)!.AsObject();
+
+        Assert.Equal(SyncFile.CurrentFormatVersion, (int)node["formatVersion"]!);
+        Assert.Equal(SyncFile.CurrentFormatVersion, SyncFileSerializer.Read(json, FakeStepType.Registry, notice: null).FormatVersion);
+        node.Remove("formatVersion");
+        var older = SyncFileSerializer.Read(node.ToJsonString(), FakeStepType.Registry, notice: null);
+        Assert.Equal(1, older.FormatVersion);
+        Assert.Equal(SampleFile().Gestures.Count, older.Gestures.Count);
+    }
+
+    [Fact]
+    public void AFileInANewerSyncFormatIsRefusedAndItsHeaderSaysWhose()
+    {
+        var node = JsonNode.Parse(SyncFileSerializer.Write(SampleFile()))!.AsObject();
+        node["formatVersion"] = SyncFile.CurrentFormatVersion + 1;
+        var json = node.ToJsonString();
+
+        Assert.False(SyncFileSerializer.TryRead(json, FakeStepType.Registry, notice: null, out _, out var error));
+
+        Assert.Contains($"newer Augram (sync format {SyncFile.CurrentFormatVersion + 1})", error, StringComparison.Ordinal);
+        var header = SyncFileSerializer.ReadHeader(json);
+        Assert.NotNull(header);
+        Assert.True(header.IsNewer);
+        Assert.Equal(("PC-WORK", SyncFile.CurrentFormatVersion + 1), (header.MachineName, header.FormatVersion));
+    }
+
+    [Theory]
+    [InlineData("{ \"schemaVersion\": 1 }", false)]
+    [InlineData("{ \"schemaVersion\": 1, \"formatVersion\": 1 }", false)]
+    [InlineData("{ \"schemaVersion\": 99 }", true)]
+    [InlineData("{ \"schemaVersion\": 1, \"formatVersion\": 99 }", true)]
+    public void TheHeaderIsReadWithoutTheRestOfTheFile(string json, bool newer)
+    {
+        var header = SyncFileSerializer.ReadHeader(json);
+
+        Assert.NotNull(header);
+        Assert.Equal(newer, header.IsNewer);
+        Assert.Null(header.MachineName);
+    }
+
+    [Theory]
+    [InlineData("{ not json")]
+    [InlineData("[]")]
+    [InlineData("{ \"schemaVersion\": \"one\" }")]
+    [InlineData("{ \"schemaVersion\": 1, \"formatVersion\": 0 }")]
+    [InlineData("{ \"schemaVersion\": 1, \"formatVersion\": \"two\" }")]
+    public void AHeaderThatCannotBeReadIsNullAndTheFullReadSaysWhy(string json)
+    {
+        Assert.Null(SyncFileSerializer.ReadHeader(json));
+        Assert.False(SyncFileSerializer.TryRead(json, FakeStepType.Registry, notice: null, out _, out _));
+    }
+
+    [Fact]
     public void AFileThatBreaksARuleIsAnErrorLine()
     {
         var file = SampleFile() with { Gestures = [SyncSamples.NewGesture("Twin"), SyncSamples.NewGesture("twin")] };

@@ -59,6 +59,18 @@ public sealed class SyncBaseStore
 
     private string PublishPendingPath => Path.Combine(Folder, "publish-pending.txt");
 
+    /// <summary>
+    /// The newest sync format this machine has published (README: format version); 0 before a build that records it
+    /// first published. A build that writes an older format pauses instead of rewriting this machine's file in it.
+    /// </summary>
+    public int PublishedFormatVersion
+        => File.Exists(PublishedFormatPath)
+            && int.TryParse(File.ReadAllText(PublishedFormatPath).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int version)
+            ? version
+            : 0;
+
+    private string PublishedFormatPath => Path.Combine(Folder, "published-format.txt");
+
     /// <summary>The state of every machine this one has merged with (unreadable files skipped and reported).</summary>
     public IReadOnlyList<SyncMachineState> Machines()
         => Files(MachinesFolder).Select(path => Read(path, SyncStateJson.ReadMachine)).OfType<SyncMachineState>().ToArray();
@@ -92,6 +104,15 @@ public sealed class SyncBaseStore
         return newest is null ? null : Read(newest, SyncStateJson.ReadPublished);
     }
 
+    /// <summary>Records a publish in sync format <paramref name="version"/>; never lowers <see cref="PublishedFormatVersion"/>.</summary>
+    public void RaisePublishedFormatVersion(int version)
+    {
+        if (version > PublishedFormatVersion)
+        {
+            WriteAtomically(PublishedFormatPath, version.ToString(CultureInfo.InvariantCulture));
+        }
+    }
+
     /// <summary>Stores a revision about to be published and prunes all but the newest <see cref="KeepPublished"/>.</summary>
     public void Save(SyncPublished published)
     {
@@ -107,7 +128,7 @@ public sealed class SyncBaseStore
 
     /// <summary>
     /// Forgets everything this machine knew about the repository it synced with: every machine's state, the
-    /// published revisions and the pending-publish flag (leftover temp files too), so <see cref="IsEmpty"/> is
+    /// published revisions, the pending-publish flag and the published format (leftover temp files too), so <see cref="IsEmpty"/> is
     /// true and the next run asks the join question again. The App calls it when the repository URL changes or
     /// is cleared. Deletes files one by one inside <see cref="Folder"/>; the folders themselves stay.
     /// </summary>
