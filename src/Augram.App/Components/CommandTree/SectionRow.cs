@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -26,6 +28,11 @@ public sealed class SectionRow : ItemRow
 
     public static readonly StyledProperty<bool> CanToggleActiveProperty =
         AvaloniaProperty.Register<SectionRow, bool>(nameof(CanToggleActive));
+
+    public SectionRow()
+    {
+        Tapped += OnHeaderTapped;
+    }
 
     public event EventHandler? ExpandToggled;
 
@@ -62,6 +69,33 @@ public sealed class SectionRow : ItemRow
         {
             expander.Click += (_, _) => ExpandToggled?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    /// <summary>
+    /// A tap anywhere on the header toggles it, not only on the expander (Joel, 2026-10-07); the row is selected as
+    /// well, as a click on any row is. A tap that lands on a button (the expander raises its own toggle, the active
+    /// box is a toggle button) or in the name editor belongs to that control. A double click toggles once: the
+    /// second click is a double tap, not a tap.
+    /// </summary>
+    private void OnHeaderTapped(object? sender, TappedEventArgs e)
+    {
+        if (!e.Handled && !FromOwnControl(e.Source as Visual))
+        {
+            ExpandToggled?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool FromOwnControl(Visual? source)
+    {
+        for (var visual = source; visual is not null && visual != this; visual = visual.GetVisualParent())
+        {
+            if (visual is Button or TextBox)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

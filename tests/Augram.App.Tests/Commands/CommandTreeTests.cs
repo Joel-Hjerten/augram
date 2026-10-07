@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.ViewModels.Commands;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -185,6 +186,40 @@ public sealed class CommandTreeTests
         FocusSelectedRow(global);
         globalWindow.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
         Assert.Equal("Media", Assert.Single(globalActions).Section!.Name);
+    }
+
+    [AvaloniaFact]
+    public void ClickingAnywhereOnAHeaderTogglesItAndSelectsIt_TheActiveBoxStaysItsOwn()
+    {
+        var (tree, actions, _) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        var chrome = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
+        var name = chrome.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "Chrome");
+
+        ClickAt(window, name);
+
+        Assert.Contains(actions, action => action is { Action: CommandTreeAction.Select, Section.Name: "Chrome", Command: null });
+        Assert.Equal("Chrome", Assert.Single(actions, action => action.Action == CommandTreeAction.ToggleExpanded).Section!.Name);
+
+        actions.Clear();
+        var active = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome").GetVisualDescendants().OfType<CheckBox>().Single();
+        ClickAt(window, active);
+
+        Assert.DoesNotContain(actions, action => action.Action == CommandTreeAction.ToggleExpanded);
+        Assert.Contains(actions, action => action.Action == CommandTreeAction.ToggleActive);
+
+        actions.Clear();
+        var expander = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome").GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("expander"));
+        ClickAt(window, expander);
+
+        Assert.Single(actions, action => action.Action == CommandTreeAction.ToggleExpanded);
+    }
+
+    private static void ClickAt(Window window, Visual target)
+    {
+        var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
     }
 
     private static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
