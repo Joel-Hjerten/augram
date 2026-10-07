@@ -10,9 +10,11 @@ namespace Augram.Core.Config;
 /// through <see cref="ConfigJsonContext"/> because a step is polymorphic: its parameters are whatever
 /// its <see cref="IStepType.Write"/> returns, under the envelope F8 names (<c>type</c>, <c>authoredOn</c>,
 /// <c>isActive</c>, <c>params</c>, <c>overrides</c>). Every member is written in full except
-/// <c>overrides</c> (omitted when there are none) and <c>note</c> (omitted when null), so a diff after
-/// an edit shows only the edit. An override is always of the same type as its step and is written
-/// as that type's parameters under the platform's camelCase name (<c>windows</c>, <c>macOS</c>).
+/// <c>overrides</c> (omitted when there are none), <c>note</c> and a command's <c>category</c> (omitted
+/// when null) and a group's <c>categories</c> (omitted when empty), so a diff after an edit shows only the
+/// edit and a file without categories looks as it did before they existed. An override is always of
+/// the same type as its step and is written as that type's parameters under the platform's camelCase
+/// name (<c>windows</c>, <c>macOS</c>).
 /// </summary>
 internal static class MappingJsonWriter
 {
@@ -47,6 +49,7 @@ internal static class MappingJsonWriter
         writer.WriteBoolean("isActive", group.IsActive);
         writer.WriteBoolean("suppressGlobals", group.SuppressGlobals);
         WriteMatcher(writer, group.Matcher);
+        WriteCategories(writer, group.Categories);
         writer.WriteStartArray("commands");
         foreach (var command in group.Commands)
         {
@@ -64,6 +67,11 @@ internal static class MappingJsonWriter
         writer.WriteString("name", command.Name);
         WriteTrigger(writer, command.Trigger);
         writer.WriteBoolean("isActive", command.IsActive);
+        if (command.CategoryId is { } category)
+        {
+            writer.WriteString("category", category.Value);
+        }
+
         if (command.Note is not null)
         {
             writer.WriteString("note", command.Note);
@@ -77,6 +85,25 @@ internal static class MappingJsonWriter
 
         writer.WriteEndArray();
         writer.WriteEndObject();
+    }
+
+    private static void WriteCategories(Utf8JsonWriter writer, IReadOnlyList<CommandCategory> categories)
+    {
+        if (categories.Count == 0)
+        {
+            return;
+        }
+
+        writer.WriteStartArray("categories");
+        foreach (var category in categories)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("id", category.Id.Value);
+            writer.WriteString("name", category.Name);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WriteTrigger(Utf8JsonWriter writer, Trigger trigger)

@@ -22,7 +22,8 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 | `JsonRead`, `MethodParameterReader`, `RegexAlternation` (internal) | the tolerant member reads every reader shares; `MethodParameters[]` as name → value text (numbers, bools and objects kept as JSON text); the "plain alternation of literals" regex splitter |
 | `GestureReader` (internal) | `Gestures[]` to `Gesture` records: fresh `GestureId`, trimmed `Name`, `IsActive` from `Active`, one `GestureSample` per `PointPattern` ordered by `Order` |
 | `StepReader` (internal) | one `Steps[]` entry to one `CommandStep` authored on Windows, per the table below; counts placeholders per method and reports them once per file |
-| `ActionReader` (internal) | one `Action` to one `Command`: name = `Description` (fallback "Action N", unique in the group with a numbered suffix), trigger, modifier flags, steps, script, `Active` |
+| `ActionReader` (internal) | one `Action` to one `Command`: name = `Description` (fallback "Action N", unique in the group with a numbered suffix), trigger, modifier flags, steps, script, `Active`; hands back each action's `Category` name beside its command |
+| `CategoryReader` (internal) | an application's `Categories[]` and its actions' `Category` names to the group's `CommandCategory` list and each command's `CategoryId`, per the table below |
 | `MatcherReader` (internal) | the shared matcher fields to an `AppMatcher`, per the table below |
 | `ApplicationReader`, `IgnoredApplicationReader` (internal) | `GlobalApplication` to the Global group's commands; `Applications[]` to `AppGroup`s (`NoGlobalActions` → `SuppressGlobals`); `IgnoredApplications[]` to `IgnoredApp`s (`DisableOnFocus` → `DisableEntirely`). An entry whose matcher ends up empty is imported **inactive** with a warning ("needs an app definition") |
 | `MappingAssembler` (internal) | validates each group and ignored app on its own through `MappingRules`; a failing group is dropped with a warning (Global falls back to empty) and the rest still import |
@@ -56,6 +57,19 @@ One **Info** line per distinct placeholder method per file ("12 SendHotKey step(
 | `Steps` empty, `Script` non-empty | one `ImportedStep("Script", name, { script })` so the script is visible on the step list, plus `Note` "Imported from StrokesPlus.net: script-only action"; `Active` carried over |
 | both empty | a command with no steps: the override to nothing, no warning |
 
+## Category mapping (Joel, 2026-10-07)
+
+| SP.net | Augram |
+|---|---|
+| `GlobalApplication.Categories[]`, `Applications[].Categories[]` (strings) | the group's `Categories`, fresh `CategoryId`s, the list's spelling (trimmed; empty and repeated names ignored, the first spelling wins) |
+| `Action.Category` naming a listed category (case-insensitive) | the command's `CategoryId` |
+| `Action.Category` empty or missing | Uncategorized (`CategoryId` null) |
+| every action of the group in one category named `General` (or the group has no actions) | **no categories at all**, every command Uncategorized: SP.net gives every app "General", so this is noise (18 of the reference config's 19 apps) |
+| a listed category no imported action uses | left out, no warning |
+| `Action.Category` naming a category the list lacks | the category is created with the action's spelling; **Info** "Category 'X' is not in the application's category list; created for its commands.", once per category per group |
+
+"General" beside other used categories is kept like any other (the reference Photoshop group: General plus four "Blend Mode …" categories).
+
 ## Matcher mapping (F5)
 
 | SP.net | `AppMatcher` |
@@ -75,10 +89,10 @@ One **Info** line per distinct placeholder method per file ("12 SendHotKey step(
 | Type | Role |
 |---|---|
 | `GestureMerge` | `Plan(existing, imported)` classifies each imported gesture as `Add` or `Conflict` (name clash, case-insensitive). `Plan(existing, imported, RecognitionOptions)` also scores each addition's first sample against every existing gesture (inactive included) and makes a match at or above `ConfusionCheck.DuplicateCutOff` (90) a `SameShape` entry with the twin and the score (A7: a re-import reuses the existing gesture). `Apply`/`ApplyWithMap(plan, choices)` resolve conflicts with `KeepMine`, `TakeTheirs` (existing id kept, content replaced) or `KeepBoth` (a name clash is renamed `Name (imported)`; a shape match keeps its name); `ApplyWithMap` also returns `MergeOutcome.IdMap`, imported id → final id (existing id for KeepMine and TakeTheirs, own id for Add and KeepBoth) |
-| `MappingImport` | `Rebind(document, idMap)` points the imported gesture triggers at the final ids. `Merge(existing, imported)` is **add-only in this slice**: groups merge by name (case-insensitive; Global always into Global; an existing group keeps its own matcher and flags), a command whose name or bound trigger is already taken in that group is skipped and counted, ignored apps merge by name; returns `MappingMergeResult` (validated document + groups added, commands added/skipped, ignored added/skipped). A per-group replace/overwrite choice is a later slice |
+| `MappingImport` | `Rebind(document, idMap)` points the imported gesture triggers at the final ids. `Merge(existing, imported)` is **add-only in this slice**: groups merge by name (case-insensitive; Global always into Global; an existing group keeps its own matcher and flags), a command whose name or bound trigger is already taken in that group is skipped and counted, ignored apps merge by name; categories merge by name: an added command lands in the existing group's category of the same name (case-insensitive) or brings its own category along when the group has none by that name (a fresh id if its id is already taken there), so only categories an added command uses arrive, and a new group arrives with its categories whole; returns `MappingMergeResult` (validated document + groups added, commands added/skipped, ignored added/skipped). A per-group replace/overwrite choice is a later slice |
 
-Report lines (`ImportWarning`): gesture with no usable sample skipped (warning); sample with fewer than 2 distinct points dropped (warning); duplicate source name imported as `Name (2)` (warning, for gestures, commands, apps and ignored apps alike); stock 2-point gesture detected (info only); no `Gestures` array (warning); no `GlobalApplication` (info); plus the rows above. Unknown members and nulls are ignored.
+Report lines (`ImportWarning`): gesture with no usable sample skipped (warning); sample with fewer than 2 distinct points dropped (warning); duplicate source name imported as `Name (2)` (warning, for gestures, commands, apps and ignored apps alike); stock 2-point gesture detected (info only); no `Gestures` array (warning); no `GlobalApplication` (info); a category an action names but the list lacks (info); plus the rows above. Unknown members and nulls are ignored.
 
 ## Tests: no real data
 
-Tests read only hand-written fixtures under `tests/Augram.Core.Tests/Fixtures/StrokesPlusNet/` (`sample-config.json` for gestures, `sample-config-full.json` for the whole mapping; every name starts with `Synthetic`). Joel's real `StrokesPlus.net.json` and the backups under `J:\` are never copied into the repo, referenced by path, or used as a fixture. If a real-world shape needs a test, reproduce it synthetically (the real file was read once to learn the member shapes: `MethodParameters[].Value` can be a string, a number, a bool, an object or null; one real step has a null `Method`).
+Tests read only hand-written fixtures under `tests/Augram.Core.Tests/Fixtures/StrokesPlusNet/` (`sample-config.json` for gestures, `sample-config-full.json` for the whole mapping, including Global with several categories, apps with only "General" and an app with "General" plus another; every name except "General" starts with `Synthetic`). Joel's real `StrokesPlus.net.json` and the backups under `J:\` are never copied into the repo, referenced by path, or used as a fixture. If a real-world shape needs a test, reproduce it synthetically (the real file was read once to learn the member shapes: `MethodParameters[].Value` can be a string, a number, a bool, an object or null; one real step has a null `Method`; `Categories[]` is an array of strings and every real `Action.Category` is a string naming one of them).

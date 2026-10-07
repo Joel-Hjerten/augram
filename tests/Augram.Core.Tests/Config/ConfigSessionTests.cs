@@ -186,5 +186,22 @@ public sealed class ConfigSessionTests
         Assert.All(_notices, notice => Assert.Contains("skipped", notice, StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ADuplicateSavedCategoryCostsOnlyItselfAndItsCommandsLoadUncategorized()
+    {
+        var media = MappingFixtures.NewCategory("Media");
+        var twin = MappingFixtures.NewCategory("media");
+        var global = MappingFixtures.NewGlobal(
+            MappingFixtures.NewCommand("Play").In(media),
+            MappingFixtures.NewCommand("Pause").In(twin)) with { Categories = [media, twin] };
+
+        using var session = Open(new InMemoryConfigStore(new ConfigDocument { Mapping = new MappingDocument([global], []) }));
+
+        Assert.Equal(media, Assert.Single(session.Mapping.Global.Categories));
+        Assert.Equal([null, media.Id], session.Mapping.Global.Commands.Select(command => command.CategoryId));
+        Assert.Equal($"Category 'media' ({twin.Id}) in 'Global' skipped: A category named 'Media' already exists in 'Global'.", Assert.Single(_notices));
+        Assert.False(session.Mapping.CanUndo);
+    }
+
     private ConfigSession Open(IConfigStore store) => new(store, _scheduler.Schedule, _notices.Add);
 }

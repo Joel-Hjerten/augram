@@ -55,6 +55,12 @@ public static class StrokesPlusJson
         public const string ParentWindowText = "ParentWindowText";
         public const string ControlWindowText = "ControlWindowText";
         public const string ControlId = "ControlID";
+
+        /// <summary>The application's category names (an array of strings); <see cref="Action.Category"/> picks one by name.</summary>
+        public const string Categories = "Categories";
+
+        /// <summary>Not a member: the category SP.net gives every application. A group whose actions all sit in it imports without categories.</summary>
+        public const string DefaultCategory = "General";
     }
 
     /// <summary>Members of a matcher field (<c>{ Value, IsRegex }</c>).</summary>
@@ -68,6 +74,7 @@ public static class StrokesPlusJson
     public static class Action
     {
         public const string Description = "Description";
+        public const string Category = "Category";
         public const string Active = "Active";
         public const string GestureName = "GestureName";
         public const string Control = "Control";

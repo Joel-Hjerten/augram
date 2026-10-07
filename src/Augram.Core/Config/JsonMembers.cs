@@ -35,6 +35,14 @@ internal static class JsonMembers
         return node is JsonValue value && value.TryGetValue(out string? text) ? text : throw Refuse(name, where, "a string");
     }
 
+    /// <summary>The member as a string, or null when it is missing, null or not a string: for members a reader drops rather than refuses.</summary>
+    public static string? TryString(JsonObject owner, string name)
+        => owner[name] is JsonValue value && value.TryGetValue(out string? text) ? text : null;
+
+    /// <summary>The member as a Guid, or null when it is missing or not a Guid string.</summary>
+    public static Guid? TryGuid(JsonObject owner, string name)
+        => Guid.TryParse(TryString(owner, name), out var guid) ? guid : null;
+
     public static bool OptionalBool(JsonObject owner, string name, bool fallback, string where)
     {
         var node = owner[name];

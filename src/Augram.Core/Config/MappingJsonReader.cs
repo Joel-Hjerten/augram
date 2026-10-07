@@ -13,15 +13,20 @@ namespace Augram.Core.Config;
 /// every optional member takes its default. Structure only: ids and names must be there and have the
 /// right shape (a <see cref="ConfigFormatException"/> otherwise), but the rules (unique names, one
 /// command per trigger, a Global group) are the store's, so <see cref="ConfigSession"/> can keep what
-/// passes and report the rest. Steps go through <see cref="CommandStepJsonReader"/>.
+/// passes and report the rest. Steps go through <see cref="CommandStepJsonReader"/>. Categories are
+/// cosmetic, so a bad entry never fails a load: a category without a Guid <c>id</c> or a name is dropped
+/// with a notice, a command <c>category</c> that is not a Guid string reads as null with a notice, and
+/// one that names no category of its group is left for <see cref="CategoryRules"/> to clear silently.
 /// </summary>
 internal sealed class MappingJsonReader
 {
     private readonly CommandStepJsonReader _steps;
+    private readonly Action<string>? _notice;
 
     public MappingJsonReader(StepRegistry registry, Action<string>? notice)
     {
         _steps = new CommandStepJsonReader(registry, notice);
+        _notice = notice;
     }
 
     public MappingDocument Read(JsonNode? node)
@@ -45,6 +50,7 @@ internal sealed class MappingJsonReader
         var name = JsonMembers.RequireString(group, "name", "an app group");
         var where = $"app group '{name}'";
         var matcher = group["matcher"] is null ? null : ReadMatcher(group["matcher"], where);
+        var categories = ReadCategories(JsonMembers.OptionalArray(group, "categories", where), where);
         var commands = JsonMembers.OptionalArray(group, "commands", where)
             .Select(command => ReadCommand(command, name))
             .ToArray();
@@ -55,7 +61,35 @@ internal sealed class MappingJsonReader
             JsonMembers.OptionalBool(group, "isActive", fallback: true, where),
             JsonMembers.OptionalBool(group, "suppressGlobals", fallback: false, where),
             matcher,
-            commands);
+            commands,
+            categories);
+    }
+
+    private List<CommandCategory> ReadCategories(JsonArray array, string where)
+    {
+        var categories = new List<CommandCategory>(array.Count);
+        for (int i = 0; i < array.Count; i++)
+        {
+            var what = $"Category {i + 1} of {where}";
+            if (array[i] is not JsonObject category)
+            {
+                _notice?.Invoke($"{what} dropped: it is not a JSON object.");
+            }
+            else if (JsonMembers.TryGuid(category, "id") is not { } id)
+            {
+                _notice?.Invoke($"{what} dropped: 'id' is missing or not a Guid string.");
+            }
+            else if (JsonMembers.TryString(category, "name") is not { } name || string.IsNullOrWhiteSpace(name))
+            {
+                _notice?.Invoke($"{what} dropped: it has no name.");
+            }
+            else
+            {
+                categories.Add(new CommandCategory(new CategoryId(id), name));
+            }
+        }
+
+        return categories;
     }
 
     private Command ReadCommand(JsonNode? node, string groupName)
@@ -70,7 +104,25 @@ internal sealed class MappingJsonReader
             ReadTrigger(command["trigger"], where),
             JsonMembers.OptionalBool(command, "isActive", fallback: true, where),
             _steps.ReadAll(JsonMembers.OptionalArray(command, "steps", where), where),
-            JsonMembers.OptionalString(command, "note", where));
+            JsonMembers.OptionalString(command, "note", where),
+            ReadCategoryReference(command, where));
+    }
+
+    /// <summary>Missing or null: Uncategorized. Not a Guid string: Uncategorized, with a notice.</summary>
+    private CategoryId? ReadCategoryReference(JsonObject command, string where)
+    {
+        if (command["category"] is null)
+        {
+            return null;
+        }
+
+        if (JsonMembers.TryGuid(command, "category") is { } id)
+        {
+            return new CategoryId(id);
+        }
+
+        _notice?.Invoke($"The category of {where} dropped: 'category' must be a Guid string; the command is uncategorized.");
+        return null;
     }
 
     private static Trigger ReadTrigger(JsonNode? node, string where)

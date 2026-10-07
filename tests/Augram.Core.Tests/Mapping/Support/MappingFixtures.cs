@@ -33,6 +33,11 @@ internal static class MappingFixtures
     public static Command NewCommand(string name, GestureId gesture, params CommandStep[] steps)
         => NewCommand(name, Trigger.ForGesture(gesture), steps);
 
+    public static CommandCategory NewCategory(string name) => new(CategoryId.New(), name);
+
+    /// <summary>The command, sorted into the category.</summary>
+    public static Command In(this Command command, CommandCategory category) => command with { CategoryId = category.Id };
+
     public static CommandStep NewStep(string text, HostPlatform authoredOn = HostPlatform.Windows)
         => new(new FakeStep(text), authoredOn);
 

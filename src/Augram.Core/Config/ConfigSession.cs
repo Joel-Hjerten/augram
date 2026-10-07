@@ -181,18 +181,30 @@ public sealed class ConfigSession : IDisposable
         }
     }
 
+    /// <summary>The group without its commands and categories first, then each category, then each command: a bad category costs only itself (its commands load Uncategorized).</summary>
     private void LoadGroup(MappingStore store, AppGroup group)
     {
-        var shell = group with { Commands = [] };
+        var shell = group with { Commands = [], Categories = [] };
         if (!Try(() => _ = group.IsGlobal ? store.UpdateGroup(shell) : store.AddGroup(shell), $"App group '{group.Name}' ({group.Id})"))
         {
             return;
+        }
+
+        foreach (var category in group.Categories)
+        {
+            Try(() => AddCategory(store, group.Id, category), $"Category '{category.Name}' ({category.Id}) in '{group.Name}'");
         }
 
         foreach (var command in group.Commands)
         {
             Try(() => store.AddCommand(group.Id, command), $"Command '{command.Name}' ({command.Id}) in '{group.Name}'");
         }
+    }
+
+    private static void AddCategory(MappingStore store, GroupId groupId, CommandCategory category)
+    {
+        var group = store.FindGroup(groupId)!;
+        store.UpdateGroup(group with { Categories = [.. group.Categories, category] });
     }
 
     private bool Try(Action load, string what)

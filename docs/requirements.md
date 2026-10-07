@@ -76,7 +76,7 @@ App
 
 (Hierarchy as stated by Joel, 2026-10-05.)
 
-- SP.net calls the middle level "Action" and nests categories inside apps; Augram drops those categories and calls it a **Command**. A **Step** is one executable unit; a step's *type* defines its category, parameter form, conversion rule and executor (one folder per step type, per N3). The **category** in the step picker is metadata declared by the type, so the picker groups itself and adding a type never touches the picker.
+- SP.net calls the middle level "Action"; Augram calls it a **Command**. SP.net also sorts actions into per-application categories; **Augram keeps them (Joel, 2026-10-07, replacing the earlier "drops those categories"):** the Commands tab has two sub-tabs, **Global** and **Apps**. Global commands are organized into collapsible **categories** the way app commands are organized into app groups (Joel's Global: Window Related, Media, Clipboard, …), with an Uncategorized section; the Apps tab lists app groups only, and an app group's categories (rare: Photoshop) show as a label on the command. Categories have ids (renaming never breaks a command); deleting one moves its commands to Uncategorized. On import a lone "General" category is dropped as noise. A **Step** is one executable unit; a step's *type* defines its category, parameter form, conversion rule and executor (one folder per step type, per N3). The **category** in the step picker is metadata declared by the type, so the picker groups itself and adding a type never touches the picker.
 - LEANING refinements:
   - The **Global group is pinned first and cannot be deleted**.
 - **List editing — DECIDED (Joel, 2026-10-05):**

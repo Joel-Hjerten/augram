@@ -9,7 +9,9 @@ namespace Augram.Import.StrokesPlus;
 /// settled on; <see cref="Merge"/> is add-only in this slice: groups merge by name (case-insensitive,
 /// Global always into Global; an existing group keeps its own matcher and flags), a command whose name
 /// or bound trigger is already taken in its group is skipped and counted, ignored apps merge by name.
-/// A per-group replace/overwrite choice is a later slice. No UI, no store.
+/// Categories merge by name too: an added command lands in the existing category of the same name, or
+/// brings its category along when the group lacks it. A per-group replace/overwrite choice is a later
+/// slice. No UI, no store.
 /// </summary>
 public static class MappingImport
 {
@@ -52,6 +54,7 @@ public static class MappingImport
 
             var target = groups[index];
             var commands = target.Commands.ToList();
+            var categories = target.Categories.ToList();
             foreach (var command in group.Commands)
             {
                 if (IsTaken(command, commands))
@@ -60,11 +63,11 @@ public static class MappingImport
                     continue;
                 }
 
-                commands.Add(command);
+                commands.Add(command with { CategoryId = Placed(command.CategoryId, group, categories) });
                 commandsAdded++;
             }
 
-            groups[index] = target with { Commands = commands };
+            groups[index] = target with { Commands = commands, Categories = categories };
         }
 
         var ignored = existing.Ignored.ToList();
@@ -84,6 +87,29 @@ public static class MappingImport
 
         var document = MappingRules.ValidDocument(new MappingDocument(groups, ignored));
         return new MappingMergeResult(document, groupsAdded, commandsAdded, commandsSkipped, ignoredAdded, ignoredSkipped);
+    }
+
+    /// <summary>
+    /// The id, among the merged group's <paramref name="categories"/>, of the category named like the
+    /// command's category in <paramref name="imported"/>: an existing one is reused, a missing one is
+    /// added (with a fresh id if its own is taken). Only categories an added command uses arrive.
+    /// </summary>
+    private static CategoryId? Placed(CategoryId? id, AppGroup imported, List<CommandCategory> categories)
+    {
+        if (id is not { } value || imported.FindCategory(value) is not { } category)
+        {
+            return null;
+        }
+
+        var existing = categories.FirstOrDefault(candidate => MappingRules.NameComparer.Equals(candidate.Name, category.Name));
+        if (existing is not null)
+        {
+            return existing.Id;
+        }
+
+        var added = categories.Any(candidate => candidate.Id == category.Id) ? category with { Id = CategoryId.New() } : category;
+        categories.Add(added);
+        return added.Id;
     }
 
     private static bool IsTaken(Command command, List<Command> commands)

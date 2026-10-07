@@ -70,7 +70,7 @@ public sealed class MappingStore
         return FindGroup(group.Id)!;
     }
 
-    /// <summary>Replaces the group with the same id, commands included.</summary>
+    /// <summary>Replaces the group with the same id, commands and categories included (adding, renaming or deleting a category is this call: one undo step).</summary>
     public AppGroup UpdateGroup(AppGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -120,7 +120,11 @@ public sealed class MappingStore
         return removed;
     }
 
-    /// <summary>Moves the command into another group (paste), keeping its id. One undo step.</summary>
+    /// <summary>
+    /// Moves the command into another group (paste), keeping its id. Its category goes with it only when
+    /// the target group has a category of the same name (case-insensitive), whose id it takes; otherwise
+    /// it lands Uncategorized. One undo step.
+    /// </summary>
     public Command MoveCommand(CommandId id, GroupId toGroupId)
     {
         var (from, command) = RequireCommand(id);
@@ -130,9 +134,10 @@ public sealed class MappingStore
             return command;
         }
 
+        var moved = command with { CategoryId = CategoryRules.Carried(command.CategoryId, from, to) };
         var groups = Current.Groups.Select(group =>
             group.Id == from.Id ? group with { Commands = group.Commands.Where(other => other.Id != id).ToArray() }
-            : group.Id == to.Id ? group with { Commands = [.. group.Commands, command] }
+            : group.Id == to.Id ? group with { Commands = [.. group.Commands, moved] }
             : group).ToArray();
         Commit(Current with { Groups = groups });
         return FindCommand(id)!.Value.Command;

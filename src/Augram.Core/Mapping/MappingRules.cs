@@ -4,9 +4,10 @@ namespace Augram.Core.Mapping;
 
 /// <summary>
 /// The business rules of the mapping (ADR-0002 §5a: one home, called by the store; view models only
-/// display the outcome). Names compare trimmed and case-insensitively, like gesture names. Group and
-/// command order is not a user choice (F5a): <see cref="ValidDocument"/> sorts groups Global first and
-/// then by name, and commands by name, so every snapshot the store hands out is already in display order.
+/// display the outcome). Names compare trimmed and case-insensitively, like gesture names. Group,
+/// command and category order is not a user choice (F5a): <see cref="ValidDocument"/> sorts groups Global
+/// first and then by name, and commands and categories by name, so every snapshot the store hands out is
+/// already in display order. A group's categories follow <see cref="CategoryRules"/>.
 /// </summary>
 public static class MappingRules
 {
@@ -47,14 +48,17 @@ public static class MappingRules
         return new MappingDocument(sortedGroups, ignored.ToArray());
     }
 
-    /// <summary>Trims the name, normalises and sorts the commands; the Global group never has a matcher or suppresses itself.</summary>
+    /// <summary>
+    /// Trims the name, normalises and sorts the commands and the categories (a command in a category the
+    /// group lacks becomes Uncategorized); the Global group never has a matcher or suppresses itself.
+    /// </summary>
     public static AppGroup Normalised(AppGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
         var commands = group.Commands.Select(Normalised).OrderBy(command => command.Name, NameComparer).ToArray();
-        return group.IsGlobal
+        return CategoryRules.Normalised(group.IsGlobal
             ? group with { Name = Trimmed(group.Name), Matcher = null, SuppressGlobals = false, Commands = commands }
-            : group with { Name = Trimmed(group.Name), Commands = commands };
+            : group with { Name = Trimmed(group.Name), Commands = commands });
     }
 
     public static Command Normalised(Command command)
@@ -69,7 +73,7 @@ public static class MappingRules
         return app with { Name = Trimmed(app.Name) };
     }
 
-    /// <summary>Checks a normalised group, and each of its commands, against the groups it will sit beside.</summary>
+    /// <summary>Checks a normalised group, its categories and each of its commands against the groups it will sit beside.</summary>
     public static void EnsureValid(AppGroup group, IEnumerable<AppGroup> others)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -100,6 +104,7 @@ public static class MappingRules
             EnsureValid(group.Matcher);
         }
 
+        CategoryRules.EnsureValid(group);
         var commands = new List<Command>();
         foreach (var command in group.Commands)
         {

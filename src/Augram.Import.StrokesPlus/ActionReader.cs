@@ -31,12 +31,17 @@ internal sealed class ActionReader
         _steps = steps;
     }
 
-    public List<Command> ReadCommands(JsonElement application, string groupName)
+    /// <summary>
+    /// The application's commands in file order, and beside each (same index) the trimmed <c>Category</c>
+    /// name of its action, empty when it has none; <see cref="CategoryReader"/> turns those into categories.
+    /// </summary>
+    public (List<Command> Commands, List<string> Categories) ReadCommands(JsonElement application, string groupName)
     {
         var commands = new List<Command>();
+        var categories = new List<string>();
         if (!JsonRead.TryArray(application, StrokesPlusJson.Actions, out var actions))
         {
-            return commands;
+            return (commands, categories);
         }
 
         var names = new HashSet<string>(MappingRules.NameComparer);
@@ -52,9 +57,10 @@ internal sealed class ActionReader
             }
 
             commands.Add(Bound(ReadAction(element, index, names), element, groupName, commands, bound));
+            categories.Add(JsonRead.Text(element, StrokesPlusJson.Action.Category));
         }
 
-        return commands;
+        return (commands, categories);
     }
 
     private Command ReadAction(JsonElement action, int index, HashSet<string> names)

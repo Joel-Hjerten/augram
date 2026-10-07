@@ -7,8 +7,9 @@ namespace Augram.Import.StrokesPlus;
 /// Reads <c>GlobalApplication</c> into the Global group's commands and each <c>Applications[]</c>
 /// entry into an <see cref="AppGroup"/> (plan 0001 §C1, F5): description as the name (unique; "Global"
 /// is reserved), <c>Active</c>, <c>NoGlobalActions</c> as <see cref="AppGroup.SuppressGlobals"/>, the
-/// matcher through <see cref="MatcherReader"/> and the actions through <see cref="ActionReader"/>. A
-/// group whose matcher ends up empty would match nothing, so it is imported inactive and reported.
+/// matcher through <see cref="MatcherReader"/>, the actions through <see cref="ActionReader"/> and their
+/// categories through <see cref="CategoryReader"/>. A group whose matcher ends up empty would match
+/// nothing, so it is imported inactive and reported.
 /// </summary>
 internal sealed class ApplicationReader
 {
@@ -58,7 +59,8 @@ internal sealed class ApplicationReader
             return AppGroup.EmptyGlobal;
         }
 
-        return AppGroup.EmptyGlobal with { Commands = _actions.ReadCommands(global, AppGroup.GlobalName) };
+        var (commands, categories) = _actions.ReadCommands(global, AppGroup.GlobalName);
+        return CategoryReader.Categorised(AppGroup.EmptyGlobal with { Commands = commands }, global, categories, _warnings);
     }
 
     private AppGroup ReadApplication(JsonElement application, int index)
@@ -74,7 +76,9 @@ internal sealed class ApplicationReader
         }
 
         var suppressGlobals = JsonRead.Flag(application, StrokesPlusJson.Application.NoGlobalActions);
-        return new AppGroup(GroupId.New(), name, isActive, suppressGlobals, matcher, _actions.ReadCommands(application, name));
+        var (commands, categories) = _actions.ReadCommands(application, name);
+        var group = new AppGroup(GroupId.New(), name, isActive, suppressGlobals, matcher, commands);
+        return CategoryReader.Categorised(group, application, categories, _warnings);
     }
 
     private string UniqueName(string name)
