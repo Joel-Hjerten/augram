@@ -13,6 +13,17 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/memory-sync.mjs\" prompt 2>/dev/null || true",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
