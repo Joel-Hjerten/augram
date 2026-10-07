@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <!-- Throwaway risk spike (see CLAUDE.md). Inherits net10.0 from Directory.Build.props; retired, not promoted. -->
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="SharpHook" />
-  </ItemGroup>
-</Project>

@@ -1,0 +1,20 @@
+namespace Augram.Core.Steps;
+
+/// <summary>How the step picker groups types (F5a: "System built-ins · Hotkey · String · Command-prompt execution · Delay"). Declared by each type; the picker never lists kinds itself.</summary>
+public enum StepCategory
+{
+    /// <summary>Window operations, volume, media playback: things the OS does.</summary>
+    System,
+
+    /// <summary>Hotkeys and key sequences.</summary>
+    Keyboard,
+
+    /// <summary>Typed strings.</summary>
+    Text,
+
+    /// <summary>Programs and command lines.</summary>
+    Run,
+
+    /// <summary>Delays and other flow control.</summary>
+    Timing,
+}
