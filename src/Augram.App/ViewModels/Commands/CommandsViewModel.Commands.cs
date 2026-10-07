@@ -13,7 +13,7 @@ public sealed partial class CommandsViewModel
     private void NewCommand(GroupId groupId)
     {
         var group = _store.FindGroup(groupId) ?? _store.Global;
-        _collapsed.Remove(group.Id);
+        _expanded.Add(group.Id);
         var stored = _store.AddCommand(group.Id, new Command(CommandId.New(), NextCommandName(group), Trigger.None, IsActive: true, Steps: []));
         Select(group.Id, stored.Id);
         ProjectSelection();
@@ -36,7 +36,7 @@ public sealed partial class CommandsViewModel
         }
 
         var group = _store.FindGroup(groupId) ?? _store.Global;
-        _collapsed.Remove(group.Id);
+        _expanded.Add(group.Id);
         var copy = source with { Id = CommandId.New(), Name = UniqueName(group, source.Name) };
         Command stored;
         try

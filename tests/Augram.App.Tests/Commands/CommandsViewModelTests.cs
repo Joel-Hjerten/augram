@@ -19,7 +19,7 @@ public sealed class CommandsViewModelTests
 
         Assert.Equal(["Global", "Apple", "Chrome"], vm.Groups.Select(group => group.Name));
         Assert.True(vm.Groups[0].IsGlobal);
-        Assert.All(vm.Groups, group => Assert.True(group.IsExpanded));
+        Assert.All(vm.Groups, group => Assert.False(group.IsExpanded));
 
         var global = vm.Groups[0].Commands;
         Assert.Equal(["Close window", "Three steps", "Volume up"], global.Select(command => command.Name));
@@ -251,16 +251,23 @@ public sealed class CommandsViewModelTests
     }
 
     [AvaloniaFact]
-    public void CollapsingAGroupHidesNothingFromTheProjectionAndShowCommandExpandsIt()
+    public void GroupsStartCollapsedStayAsTheUserLeftThemAndShowCommandExpandsOne()
     {
         var (vm, store, _, _) = CommandsTestData.Create();
         var chrome = vm.Groups.Single(group => group.Name == "Chrome");
+        Assert.False(chrome.IsExpanded);
+        Assert.Equal(2, chrome.Commands.Count);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, chrome));
+        Assert.True(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
 
-        var collapsed = vm.Groups.Single(group => group.Name == "Chrome");
-        Assert.False(collapsed.IsExpanded);
-        Assert.Equal(2, collapsed.Commands.Count);
+        // A store change re-projects every group; what the user opened stays open.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleActive, vm.Groups.Single(group => group.Name == "Apple")));
+        Assert.True(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
+        Assert.False(vm.Groups.Single(group => group.Name == "Apple").IsExpanded);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, vm.Groups.Single(group => group.Name == "Chrome")));
+        Assert.False(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
 
         var closeTab = CommandsTestData.Find(store, "Close tab");
         Assert.True(vm.ShowCommand(closeTab.Id));

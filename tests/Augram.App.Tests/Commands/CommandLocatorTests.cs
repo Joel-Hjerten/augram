@@ -1,4 +1,3 @@
-using Augram.App.Components.CommandTree;
 using Augram.App.Navigation;
 using Augram.App.ViewModels;
 using Augram.App.ViewModels.Commands;
@@ -18,8 +17,7 @@ public sealed class CommandLocatorTests
         var window = new MainWindowViewModel(new NavigationRegistry([])) { InitialTabKey = AppNavigation.CommandsKey };
         var services = new ServiceCollection().AddSingleton(window).BuildServiceProvider();
         var locator = new CommandLocator(vm, new TabNavigator(services));
-        var chrome = vm.Groups.Single(group => group.Name == "Chrome");
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, chrome));
+        Assert.False(vm.Groups.Single(group => group.Name == "Chrome").IsExpanded);
         var keys = new List<string?>();
         window.PropertyChanged += (_, _) => keys.Add(window.InitialTabKey);
         var closeTab = CommandsTestData.Find(store, "Close tab");

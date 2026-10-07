@@ -178,12 +178,13 @@ public sealed class CommandTreeTests
         Assert.True(list.ContainerFromItem(list.SelectedItem!)!.Focus());
     }
 
+    /// <summary>Groups start collapsed; the tree tests need commands on screen, so every group but <paramref name="collapse"/> is expanded first.</summary>
     private static (CommandTree Tree, List<CommandTreeActionEventArgs> Actions, CommandsViewModel Vm) Show(string? collapse = null)
     {
         var (vm, _, _, _) = CommandsTestData.Create();
-        if (collapse is not null)
+        foreach (var name in vm.Groups.Select(group => group.Name).Where(name => name != collapse).ToList())
         {
-            vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, vm.Groups.Single(group => group.Name == collapse)));
+            vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, vm.Groups.Single(group => group.Name == name)));
         }
 
         var actions = new List<CommandTreeActionEventArgs>();

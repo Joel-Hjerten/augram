@@ -63,7 +63,8 @@ Three levels, and these are the names used in code, config, and UI:
 ```
 App
 └─ Commands page                         one page for global and per-app commands
-   └─ Command list                       expand/collapsible groups, one per app; "Global" is the first group
+   └─ Command list                       expand/collapsible groups, one per app; "Global" is the first group;
+                                         all start collapsed, open ones stay open for the session (Joel, 2026-10-07)
       └─ App group
          └─ Command                      tied to one gesture (or a wheel trigger); named
             └─ Step list                 one or more steps, played in order when the command triggers

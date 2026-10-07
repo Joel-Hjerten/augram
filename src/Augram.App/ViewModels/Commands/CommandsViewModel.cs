@@ -17,8 +17,10 @@ namespace Augram.App.ViewModels.Commands;
 /// their commands (Global first, then by name, as the store sorts them), the selection, the selected
 /// command's steps, undo/redo availability and the message line. Turns the tree's and the step list's
 /// intents into store calls; the rules live in <see cref="MappingRules"/> and only their messages
-/// show here. UI-only state (selection, collapsed groups, the clipboard) is all it owns; deleting it
-/// loses nothing. This file holds the state and the dispatch; the partials <c>.Commands</c>,
+/// show here. UI-only state (selection, expanded groups, the clipboard) is all it owns; deleting it
+/// loses nothing. Groups start collapsed (Joel, 2026-10-07: a long list otherwise); the view model is
+/// a process-lifetime singleton, so what the user opened stays open for the running session (tab
+/// switches, closing and reopening the window) and starts collapsed again on the next launch. This file holds the state and the dispatch; the partials <c>.Commands</c>,
 /// <c>.Groups</c> and <c>.Steps</c> hold the intents of each level.
 /// </summary>
 public sealed partial class CommandsViewModel : ObservableObject, IDisposable
@@ -30,7 +32,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     private readonly IConfirmPresenter _confirm;
     private readonly HostPlatform _platform;
     private readonly CommandClipboard _clipboard = new();
-    private readonly HashSet<GroupId> _collapsed = [];
+    private readonly HashSet<GroupId> _expanded = [];
     private CommandId? _stepsOf;
 
     /// <summary><paramref name="platform"/> is what a new step is authored on (F8).</summary>
@@ -109,7 +111,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        _collapsed.Remove(found.Group.Id);
+        _expanded.Add(found.Group.Id);
         Select(found.Group.Id, id);
         Project();
         return true;
@@ -130,9 +132,9 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 ProjectSelection();
                 break;
             case CommandTreeAction.ToggleExpanded when e.Group is { } group:
-                if (!_collapsed.Remove(group.Id))
+                if (!_expanded.Remove(group.Id))
                 {
-                    _collapsed.Add(group.Id);
+                    _expanded.Add(group.Id);
                 }
 
                 Project();
@@ -221,7 +223,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 
     private void Project()
     {
-        Groups = _store.Current.Groups.Select(group => GroupItem.From(group, !_collapsed.Contains(group.Id), _gestures.Find)).ToList();
+        Groups = _store.Current.Groups.Select(group => GroupItem.From(group, _expanded.Contains(group.Id), _gestures.Find)).ToList();
         CanUndo = _store.CanUndo;
         CanRedo = _store.CanRedo;
         ProjectSelection();
