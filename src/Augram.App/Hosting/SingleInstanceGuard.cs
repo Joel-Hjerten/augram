@@ -32,7 +32,7 @@ public sealed class SingleInstanceGuard : IDisposable
     public static SingleInstanceGuard? TryAcquire(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var mutex = new Mutex(initiallyOwned: true, MutexNameFor(name), out var createdNew);
+        var mutex = new Mutex(initiallyOwned: true, name + ".instance", MutexScope, out var createdNew);
         if (createdNew)
         {
             return new SingleInstanceGuard(name, mutex);
@@ -71,7 +71,12 @@ public sealed class SingleInstanceGuard : IDisposable
         _stopping.Dispose();
     }
 
-    private static string MutexNameFor(string name) => @"Local\" + name + ".instance";
+    /// <summary>
+    /// One instance per user. On Windows that is also per logon session (<c>Local\</c>). Elsewhere a session is a terminal
+    /// session, and every launch from the Dock, Finder or another terminal starts a new one, so a session-scoped mutex let
+    /// a second Augram start beside the first on macOS (2026-10-07, two hooks on one mouse).
+    /// </summary>
+    private static NamedWaitHandleOptions MutexScope => new() { CurrentUserOnly = true, CurrentSessionOnly = OperatingSystem.IsWindows() };
 
     /// <summary>
     /// Off Windows a named pipe is a domain socket at <c>$TMPDIR/CoreFxPipe_&lt;name&gt;</c>, and macOS caps that path at
