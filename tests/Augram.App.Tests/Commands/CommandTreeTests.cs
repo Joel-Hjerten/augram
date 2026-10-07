@@ -267,6 +267,22 @@ public sealed class CommandTreeTests
         Assert.True(chrome.IsEditing);
     }
 
+    [AvaloniaFact]
+    public void ARebuildKeepsTheKeyboardFocusOnTheSelectedRow_SoTheRenameKeyStillReachesAHeader()
+    {
+        var (tree, _, vm) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        FocusSelectedRow(tree);
+
+        // What a click on a header does: the toggle comes back as new sections and every row is rebuilt.
+        tree.Sections = vm.Sections.ToList();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        window.KeyPressQwerty(CommandsKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
+
+        Assert.True(tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome").IsEditing);
+    }
+
     private static void DoubleClickAt(Window window, Visual target)
     {
         ClickAt(window, target);

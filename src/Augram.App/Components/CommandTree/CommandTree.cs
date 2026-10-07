@@ -169,13 +169,31 @@ public sealed class CommandTree : TemplatedControl
         }
     }
 
+    /// <summary>
+    /// Replaces every row. When the list had the keyboard focus (a click on a header toggles it, which lands here), the
+    /// focus moves to the selected row's replacement once it is laid out; otherwise it went with the old row and the
+    /// rename and delete keys stopped reaching the tree (Joel, 2026-10-07: Return renamed commands but not groups).
+    /// </summary>
     private void Rebuild()
     {
+        var hadFocus = _list?.IsKeyboardFocusWithin == true;
         var rows = CommandTreeRows.Build(Sections, (action, section, command, name) => Raise(action, section, command, name), OnRowPressed);
 
         // Replacing the rows clears the list's selection at once; that is not the user selecting nothing.
         Quietly(() => Rows = rows);
         ApplySelection();
+        if (hadFocus)
+        {
+            Dispatcher.UIThread.Post(FocusSelectedRow, DispatcherPriority.Loaded);
+        }
+    }
+
+    private void FocusSelectedRow()
+    {
+        if (_list?.SelectedItem is { } selected && !IsEditing && !(_list.IsKeyboardFocusWithin && _list.ContainerFromItem(selected)?.IsKeyboardFocusWithin == true))
+        {
+            _list.ContainerFromItem(selected)?.Focus();
+        }
     }
 
     /// <summary>Selects the row the host asked for without raising Select back at it.</summary>
