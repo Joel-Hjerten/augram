@@ -88,6 +88,10 @@ All recorded in requirements.md (F5a lines) and `src/Augram.App/README.md`; list
 - Hotkeys read with the platform's key names (Cmd, Opt, Ctrl, Shift on macOS; words, not symbols); display only.
 - Executable names on macOS are the executable's file name (`Google Chrome`); a per-app command overrides the global one on the same gesture without "Suppress global commands" (verified by Joel with Chrome's Close Tab over the global Close).
 
+## 8c. Sync between machines (built 2026-10-07, ahead of the remaining M2 step types)
+
+Design and rules: requirements F8 "Sync between machines". Code: `Core/Sync/` (README: items, three-way merge, the acknowledgement design that replaced a naive "last merge" base, join, conflicts), `Augram.Sync.Git` (README: process and credential rules), App `Hosting/SyncService` + `SyncModule`, Options › Sync, `Sync/` dialogs (App README "Sync between machines"). Joel's repo: `https://github.com/Joel-Hjerten/augram-sync.git` (private, created empty). Gestures and the mapping sync; settings stay per machine. Augram stores no credentials (git's credential helper; `GIT_TERMINAL_PROMPT=0`; network calls capped at 30 s). The PC publishes first; the Mac joins with "Use the synced settings". Open: a longer timeout for a first sign-in if one ever needs it; F8 hotkey conversion and Mac app-group names now matter because the PC's commands arrive on the Mac unchanged.
+
 ## 9. Open questions for Joel
 
 - May Joel's 105 gestures be copied into the public repo as a test fixture? Not asked yet; do not do it without his yes.
