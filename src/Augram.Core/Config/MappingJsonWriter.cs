@@ -12,7 +12,8 @@ namespace Augram.Core.Config;
 /// its <see cref="IStepType.Write"/> returns, under the envelope F8 names (<c>type</c>, <c>authoredOn</c>,
 /// <c>isActive</c>, <c>params</c>, <c>overrides</c>). Every member is written in full except
 /// <c>overrides</c> (omitted when there are none), <c>note</c> and a command's <c>category</c> (omitted
-/// when null) and a group's <c>categories</c> (omitted when empty), so a diff after an edit shows only the
+/// when null), a group's <c>categories</c> (omitted when empty) and the <c>useOn</c> of a group, a category or a command
+/// (omitted when every platform), so a diff after an edit shows only the
 /// edit and a file without categories looks as it did before they existed. An override is always of
 /// the same type as its step and is written as that type's parameters under the platform's camelCase
 /// name (<c>windows</c>, <c>macOS</c>).
@@ -127,12 +128,19 @@ internal static class MappingJsonWriter
         foreach (var category in categories)
         {
             writer.WriteStartObject();
-            writer.WriteString("id", category.Id.Value);
-            writer.WriteString("name", category.Name);
+            WriteCategoryMembers(writer, category);
             writer.WriteEndObject();
         }
 
         writer.WriteEndArray();
+    }
+
+    /// <summary>A category's own members, <c>id</c>, <c>name</c> and <c>useOn</c> when it is not on every platform; the sync item writes the same after its group.</summary>
+    public static void WriteCategoryMembers(Utf8JsonWriter writer, CommandCategory category)
+    {
+        writer.WriteString("id", category.Id.Value);
+        writer.WriteString("name", category.Name);
+        WriteUseOn(writer, category.UseOn);
     }
 
     private static void WriteTrigger(Utf8JsonWriter writer, Trigger trigger)
@@ -191,8 +199,9 @@ internal static class MappingJsonWriter
     }
 
     /// <summary>
-    /// F8 "Use on": written only when the group is not on every platform, so a file (and a sync item) without the member is
-    /// unchanged by it; a list of target names, so specific machines can join it later without a new format.
+    /// F8 "Use on" of a group, a category or a command: written only when it is not every platform, so a file (and a sync
+    /// item) without the member is unchanged by it; a list of target names, so specific machines can join it later without a
+    /// new format.
     /// </summary>
     private static void WriteUseOn(Utf8JsonWriter writer, PlatformSet useOn)
     {

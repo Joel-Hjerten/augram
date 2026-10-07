@@ -15,9 +15,11 @@ using Augram.Core.Steps.WindowOp;
 namespace Augram.App.DevGallery;
 
 /// <summary>
-/// The fake mapping and the instant-answer presenters behind the Commands gallery pages: Global with two
-/// categories (Window, Media) and one uncategorized command, Chrome, Steam games (an override to
-/// nothing) and Photoshop with categories, so every section kind, tag and marker has a case.
+/// The fake mapping and the instant-answer presenters behind the Commands gallery pages: Global with the
+/// categories Window and Media, "PC tools" (Use on Windows only: its command's header shows the macOS box disabled
+/// with "Set by category") and "Mac tools" (macOS only: listed greyed with Show other platforms), and one
+/// uncategorized command; Chrome, Steam games (an override to nothing) and Photoshop with categories, so every
+/// section kind, tag and marker has a case.
 /// </summary>
 public static class CommandGalleryFakes
 {
@@ -25,9 +27,11 @@ public static class CommandGalleryFakes
     {
         var window = new CommandCategory(CategoryId.New(), "Window");
         var media = new CommandCategory(CategoryId.New(), "Media");
+        var pcTools = new CommandCategory(CategoryId.New(), "PC tools") { UseOn = PlatformSet.Windows };
+        var macTools = new CommandCategory(CategoryId.New(), "Mac tools") { UseOn = PlatformSet.MacOS };
         var global = AppGroup.EmptyGlobal with
         {
-            Categories = [window, media],
+            Categories = [window, media, pcTools, macTools],
             Commands =
             [
                 Cmd("Close window", Trigger.ForGesture(StarterGestures.IdFor("Up")), new WindowOpStep(WindowOperation.Close)) with { CategoryId = window.Id },
@@ -35,6 +39,8 @@ public static class CommandGalleryFakes
                 Cmd("Volume up", Trigger.ForWheel(WheelDirection.Up), new MediaKeyStep(MediaKeyKind.VolumeUp)) with { CategoryId = media.Id },
                 Cmd("Volume down", Trigger.ForWheel(WheelDirection.Down), new MediaKeyStep(MediaKeyKind.VolumeDown)) with { CategoryId = media.Id },
                 Cmd("Unbound", Trigger.None, new DelayStep(30)),
+                Cmd("Show desktop", Trigger.ForGesture(StarterGestures.IdFor("Left")), new DelayStep(10)) with { CategoryId = pcTools.Id },
+                Cmd("Mission Control", Trigger.ForGesture(StarterGestures.IdFor("Right")), new DelayStep(10)) with { CategoryId = macTools.Id },
             ],
         };
         var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false,

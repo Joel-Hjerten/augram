@@ -14,7 +14,8 @@ namespace Augram.Core.Config;
 /// items are equal exactly when their text is, and read back by the same readers when a stored text has to
 /// become an item again (resolving a conflict). One line of compact JSON, except that a gesture's samples keep
 /// the config file's one-sample-per-line layout. A command and a category carry their group's id beside them:
-/// <c>{ "group": "&lt;id&gt;", "command": { … } }</c>, <c>{ "group": "&lt;id&gt;", "id": "…", "name": "…" }</c>.
+/// <c>{ "group": "&lt;id&gt;", "command": { … } }</c>, <c>{ "group": "&lt;id&gt;", "id": "…", "name": "…", "useOn": [ … ] }</c>
+/// (<c>useOn</c> only when not every platform).
 /// A group is its header only (no commands, no categories): those are items of their own.
 /// </summary>
 internal static class SyncItemJson
@@ -27,13 +28,13 @@ internal static class SyncItemJson
     public static string GroupHeader(AppGroup group)
         => Write(writer => MappingJsonWriter.WriteGroup(writer, group with { Commands = [], Categories = [] }));
 
+    /// <summary><c>{ "group", "id", "name" }</c>, plus <c>useOn</c> when the category is not on every platform (sync format 3).</summary>
     public static string Category(GroupId groupId, CommandCategory category)
         => Write(writer =>
         {
             writer.WriteStartObject();
             writer.WriteString("group", groupId.Value);
-            writer.WriteString("id", category.Id.Value);
-            writer.WriteString("name", category.Name);
+            MappingJsonWriter.WriteCategoryMembers(writer, category);
             writer.WriteEndObject();
         });
 
@@ -91,7 +92,10 @@ internal static class SyncItemJson
         var item = Parse(content, "A category item");
         const string where = "a category item";
         var group = new GroupId(JsonMembers.RequireGuid(item, "group", where));
-        var category = new CommandCategory(new CategoryId(JsonMembers.RequireGuid(item, "id", where)), JsonMembers.RequireString(item, "name", where));
+        var category = new CommandCategory(new CategoryId(JsonMembers.RequireGuid(item, "id", where)), JsonMembers.RequireString(item, "name", where))
+        {
+            UseOn = MappingJsonReader.ReadUseOn(item, where),
+        };
         return (group, category);
     }
 

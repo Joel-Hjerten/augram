@@ -15,10 +15,11 @@ namespace Augram.Core.Config;
 /// every optional member takes its default. Structure only: ids and names must be there and have the
 /// right shape (a <see cref="ConfigFormatException"/> otherwise), but the rules (unique names, one
 /// command per trigger, a Global group) are the store's, so <see cref="ConfigSession"/> can keep what
-/// passes and report the rest. Steps go through <see cref="CommandStepJsonReader"/>. Categories are
-/// cosmetic, so a bad entry never fails a load: a category without a Guid <c>id</c> or a name is dropped
-/// with a notice, a command <c>category</c> that is not a Guid string reads as null with a notice, and
-/// one that names no category of its group is left for <see cref="CategoryRules"/> to clear silently.
+/// passes and report the rest. Steps go through <see cref="CommandStepJsonReader"/>. A bad category
+/// entry never fails a load: a category without a Guid <c>id</c> or a name is dropped with a notice, one
+/// whose <c>useOn</c> is not a list of strings is used on every platform with a notice, a command
+/// <c>category</c> that is not a Guid string reads as null with a notice, and one that names no category of
+/// its group is left for <see cref="CategoryRules"/> to clear silently.
 /// </summary>
 internal sealed class MappingJsonReader
 {
@@ -70,8 +71,11 @@ internal sealed class MappingJsonReader
         };
     }
 
-    /// <summary>F8 "Use on": absent is every platform; target names this version does not know (a later machine target) are passed over.</summary>
-    private static PlatformSet ReadUseOn(JsonObject owner, string where)
+    /// <summary>
+    /// F8 "Use on" of a group, a category or a command: absent is every platform; target names this version does not know (a
+    /// later machine target) are passed over.
+    /// </summary>
+    public static PlatformSet ReadUseOn(JsonObject owner, string where)
     {
         if (owner["useOn"] is null)
         {
@@ -114,11 +118,25 @@ internal sealed class MappingJsonReader
             }
             else
             {
-                categories.Add(new CommandCategory(new CategoryId(id), name));
+                categories.Add(new CommandCategory(new CategoryId(id), name) { UseOn = ReadCategoryUseOn(category, $"Category '{name}' of {where}") });
             }
         }
 
         return categories;
+    }
+
+    /// <summary>A category's "Use on" (F8, 2026-10-08); one that is not a list of strings never fails a load: every platform, with a notice.</summary>
+    private PlatformSet ReadCategoryUseOn(JsonObject category, string what)
+    {
+        try
+        {
+            return ReadUseOn(category, what);
+        }
+        catch (ConfigFormatException)
+        {
+            _notice?.Invoke($"{what}: 'useOn' must be a list of platform names; the category is used on every platform.");
+            return PlatformSet.All;
+        }
     }
 
     public Command ReadCommand(JsonNode? node, string groupName)

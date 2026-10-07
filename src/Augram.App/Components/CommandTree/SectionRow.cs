@@ -11,7 +11,7 @@ namespace Augram.App.Components.CommandTree;
 /// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count and, when the item
 /// allows it, the active toggle (<see cref="CanToggleActive"/>). Marked <c>:collapsed</c> while its
 /// commands are hidden, <c>:pinned</c> for a section that can be neither renamed nor deleted
-/// (Uncategorized) and <c>:elsewhere</c> for a group used only on the other platform (F8). What the header offers comes from the <see cref="SectionItem"/>, never from the tab.
+/// (Uncategorized) and <c>:elsewhere</c> for a group or category used only on the other platform (F8). What the header offers comes from the <see cref="SectionItem"/>, never from the tab.
 /// </summary>
 [PseudoClasses(":collapsed", ":pinned", ":elsewhere")]
 public sealed class SectionRow : ItemRow

@@ -1,3 +1,5 @@
+using Augram.Core.Abstractions;
+
 namespace Augram.Core.Mapping;
 
 /// <summary>
@@ -7,4 +9,14 @@ namespace Augram.Core.Mapping;
 /// points at one by <see cref="Command.CategoryId"/>; none means "Uncategorized". Names are unique
 /// within a group and sorted by name like everything else in F5a.
 /// </summary>
-public sealed record CommandCategory(CategoryId Id, string Name);
+public sealed record CommandCategory(CategoryId Id, string Name)
+{
+    /// <summary>
+    /// Where the category's commands take part (F8 "Use on", Joel 2026-10-08): both by default. It applies to every command
+    /// in it on top of the command's own, so a set of Global commands can be kept off the Mac or the PC in one place
+    /// (<see cref="AppGroup.IsCommandUsedOn"/>); the commands' own values are kept. Refused when used nowhere, like a group's.
+    /// </summary>
+    public PlatformSet UseOn { get; init; } = PlatformSet.All;
+
+    public bool IsUsedOn(HostPlatform platform) => UseOn.Includes(platform);
+}

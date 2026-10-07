@@ -28,7 +28,7 @@ A document splits into items keyed by kind + id. Each item's `Content` is its JS
 |---|---|---|
 | gesture | `GestureId` | the gesture as in `gestures` |
 | group | `GroupId` | the group header: name, active, suppress globals, matcher; no categories, no commands |
-| category | group id + `CategoryId` (category ids are unique per group only) | `{ "group", "id", "name" }` |
+| category | group id + `CategoryId` (category ids are unique per group only) | `{ "group", "id", "name" }`, plus `useOn` when the category is not on every platform (format 3, 2026-10-08), so a category on every platform has the same content as before |
 | command | `CommandId` | `{ "group": <id>, "command": { … } }`: moving a command to another group is a change of the command; without its own version |
 | own steps (`version:`) | the command's `CommandId` | `{ "command": <id>, "version": { "platform", "basedOn", "changedAt", "steps" } }` (F8, 2026-10-07): a command's own steps for the platform it was not authored on, apart from the command so the original changing on one machine and the own steps on the other merge without a conflict; the rebuild puts them back on their command and drops them, with a repair line (`OwnStepsDropped`), when the command is gone; counted as a command change in the log |
 | ignored app | its id | the ignored app as in `ignored` |
@@ -96,7 +96,7 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 
 ## Format version
 
-`SyncFile.CurrentFormatVersion` (the file's `formatVersion`, separate from the config `schemaVersion`) is the sync's own contract. **Raise it with every change to what a sync item holds or to which item kinds exist**, and add a line to its history on the constant. 1: every file before 2026-10-07 (no member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own steps as an item of their own). Why: a build that reads a newer file drops what it cannot see, and its next publish deletes that on every machine (2026-10-07: the PC, still on an old build, had to be stopped by hand before it read the Mac's own steps).
+`SyncFile.CurrentFormatVersion` (the file's `formatVersion`, separate from the config `schemaVersion`) is the sync's own contract. **Raise it with every change to what a sync item holds or to which item kinds exist**, and add a line to its history on the constant. 1: every file before 2026-10-07 (no member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own steps as an item of their own). 3 (2026-10-08): "Use on" on a category (the category item's `useOn`); a format 2 build would read such a category as used everywhere and publish it back that way, so it pauses instead ("Paused: PC-WORK uses a newer Augram…"). Why: a build that reads a newer file drops what it cannot see, and its next publish deletes that on every machine (2026-10-07: the PC, still on an old build, had to be stopped by hand before it read the Mac's own steps).
 
 - `SyncFileSerializer.ReadHeader` reads both versions and the machine name before anything else. A file newer in either goes to `SyncRepositoryFiles.Newer` unread, and the run answers `NeedsUpdate`. `Read` refuses such a file too.
 - **Never downgrade.** The publisher records the format it publishes in `SyncBaseStore.PublishedFormatVersion` (before the push; only ever raised). A build that writes an older format answers `NeedsUpdate` naming this machine, as it does when this machine's own file in the repo is newer.

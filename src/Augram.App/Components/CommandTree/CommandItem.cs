@@ -36,10 +36,19 @@ public sealed record CommandItem(
     /// <summary>What the header's Category dropdown offers, Uncategorized first; empty hides the dropdown.</summary>
     public IReadOnlyList<CategoryChoice> Categories { get; init; } = [];
 
-    /// <summary>Where the command takes part (F8 "Use on"), for the header's check boxes.</summary>
+    /// <summary>Where the command itself takes part (F8 "Use on"; its own stored value), for the header's check boxes.</summary>
     public PlatformSet UseOn { get; init; } = PlatformSet.All;
 
-    /// <summary>F8: not used on the platform Augram runs on; listed greyed only while the list shows other platforms.</summary>
+    /// <summary>
+    /// The platforms its app group and its category leave it (<see cref="AppGroup.UseOnLimitFor"/>, Joel 2026-10-08): the
+    /// header shows a platform outside it unchecked and disabled, whatever <see cref="UseOn"/> says.
+    /// </summary>
+    public PlatformSet UseOnLimit { get; init; } = PlatformSet.All;
+
+    /// <summary>Who sets <see cref="UseOnLimit"/>: "Set by category 'Personal': Windows only"; null when nothing limits the command.</summary>
+    public string? UseOnLimitText { get; init; }
+
+    /// <summary>F8: not used on the platform Augram runs on (its group, category or itself leave it out); listed greyed only while the list shows other platforms.</summary>
     public bool IsElsewhere { get; init; }
 
     /// <summary>F8: the header's line about this platform's steps (original, converted, own version, changed since); null for none.</summary>
@@ -69,6 +78,7 @@ public sealed record CommandItem(
         var kind = TriggerKindExtensions.KindOf(command.Trigger);
         var triggerText = kind == TriggerKind.Gesture ? gesture?.Name ?? "Missing gesture" : kind.Label();
         var points = gesture is { Samples.Count: > 0 } ? gesture.Samples[0] : null;
+        var usedHere = group.IsCommandUsedOn(command, here);
         return new CommandItem(
             command.Id,
             group.Id,
@@ -78,12 +88,14 @@ public sealed record CommandItem(
             triggerText,
             points,
             Summarise(group, command, here),
-            command.IsUsedOn(here) ? StepPlatformMarker.ForCommand(command, here) : $"{StepPlatformMarker.Name(Other(here))} only")
+            usedHere ? StepPlatformMarker.ForCommand(command, here) : StepPlatformMarker.Only(group.EffectiveUseOn(command)))
         {
             Section = SectionId.ForGroup(group.Id),
             CategoryId = command.CategoryId,
             UseOn = command.UseOn,
-            IsElsewhere = !command.IsUsedOn(here),
+            UseOnLimit = group.UseOnLimitFor(command),
+            UseOnLimitText = LimitLine(group, command),
+            IsElsewhere = !usedHere,
             VersionText = VersionLine(command, here),
             HasOwnVersionHere = command.OwnVersion?.Platform == here,
             IsOwnVersionStale = command.IsOwnVersionStale,
@@ -91,6 +103,29 @@ public sealed record CommandItem(
     }
 
     private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
+
+    /// <summary>"Set by category 'Personal': Windows only", "Set by app group 'Steam' and category 'Games': …"; null when neither limits the command.</summary>
+    private static string? LimitLine(AppGroup group, Command command)
+    {
+        var limit = group.UseOnLimitFor(command);
+        if (limit == PlatformSet.All)
+        {
+            return null;
+        }
+
+        var by = new List<string>(2);
+        if (!group.IsGlobal && group.UseOn != PlatformSet.All)
+        {
+            by.Add($"app group '{group.Name}'");
+        }
+
+        if (group.CategoryOf(command) is { } category && category.UseOn != PlatformSet.All)
+        {
+            by.Add($"category '{category.Name}'");
+        }
+
+        return $"Set by {string.Join(" and ", by)}: {StepPlatformMarker.Only(limit)}";
+    }
 
     /// <summary>
     /// The header's line about this platform's steps (F8): where they come from and what an edit here does; null for a

@@ -23,9 +23,10 @@ public sealed record SyncFile(
     /// schema. Raise it with every change to what a sync item holds or to which item kinds exist: a build that reads a
     /// newer file pauses sync instead of merging what it cannot see. 1: every file before 2026-10-07 (no
     /// <c>formatVersion</c> member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own
-    /// steps as an item of their own).
+    /// steps as an item of their own). 3 (2026-10-08): "Use on" on a category (a category item's <c>useOn</c>); a format 2
+    /// build would read such a category as used everywhere and publish it back that way.
     /// </summary>
-    public const int CurrentFormatVersion = 2;
+    public const int CurrentFormatVersion = 3;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;

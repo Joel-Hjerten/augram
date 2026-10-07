@@ -23,8 +23,8 @@ namespace Augram.App.ViewModels.Commands;
 /// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
 /// process-lifetime singleton, so what the user opened stays open for the running session (tab
 /// switches, closing and reopening the window) and starts collapsed again on the next launch. This file
-/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c> keeps the selected app
-/// group's form in step with it, and <c>.Commands</c>,
+/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c> and <c>.CategoryPanel</c> keep
+/// the selected app group's or category's form in step with it, and <c>.Commands</c>,
 /// <c>.Sections</c>, <c>.Groups</c>, <c>.Categories</c> and <c>.Steps</c> hold the intents of each level.
 /// </summary>
 public sealed partial class CommandsViewModel : ObservableObject, IDisposable
@@ -92,7 +92,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 
     /// <summary>The help line under the tree.</summary>
     public string Help => Scope == CommandsScope.Global
-        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories; Uncategorized holds the rest. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
+        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories (select one to rename it or choose where it is used); Uncategorized holds the rest. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
         : "One section per app group; its commands win over Global in that app. Right-click a row for the menu; rename with the rename key. Deleting a group or a command asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
 
     [ObservableProperty]
@@ -111,7 +111,10 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial IReadOnlyList<StepItem> Steps { get; private set; } = [];
 
-    /// <summary>The selected app group's form for the side panel; null unless an app group row (not a command) is selected.</summary>
+    /// <summary>
+    /// The side panel's form for the selected section header: an app group's on the Apps tab, a category's (name, Use on) on
+    /// the Global tab; null while a command, Uncategorized or nothing is selected.
+    /// </summary>
     [ObservableProperty]
     public partial FormScreen? GroupForm { get; private set; }
 

@@ -24,6 +24,38 @@ public sealed record AppGroup(
     /// <summary>True for the Global group, and for an app group used on <paramref name="platform"/>.</summary>
     public bool IsUsedOn(Abstractions.HostPlatform platform) => IsGlobal || UseOn.Includes(platform);
 
+    /// <summary>
+    /// The "Use on" rule for a command (F8, Joel 2026-10-08), the one place it is decided: a command is used on a platform
+    /// only if its group, its category (when it has one) and the command itself all include it. The resolver, the lists and
+    /// the command header all ask this; none of the three stored values is changed by the others.
+    /// </summary>
+    public bool IsCommandUsedOn(Command command, Abstractions.HostPlatform platform) => EffectiveUseOn(command).Includes(platform);
+
+    /// <summary>Where <paramref name="command"/> takes part: <see cref="UseOnLimitFor"/> ANDed with the command's own <see cref="Command.UseOn"/>.</summary>
+    public PlatformSet EffectiveUseOn(Command command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return UseOnLimitFor(command) & command.UseOn;
+    }
+
+    /// <summary>
+    /// The platforms the group and the command's category leave the command: the group's (every platform for Global) ANDed
+    /// with its category's (every platform for Uncategorized). A platform outside it is set by the group or the category,
+    /// whatever the command's own value says.
+    /// </summary>
+    public PlatformSet UseOnLimitFor(Command command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return (IsGlobal ? PlatformSet.All : UseOn) & (CategoryOf(command)?.UseOn ?? PlatformSet.All);
+    }
+
+    /// <summary>The category <paramref name="command"/> is sorted into; null for Uncategorized, or for a category this group does not have.</summary>
+    public CommandCategory? CategoryOf(Command command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return command.CategoryId is { } id ? FindCategory(id) : null;
+    }
+
     public const string GlobalName = "Global";
 
     /// <summary>The Global group of a fresh document: active, no commands.</summary>

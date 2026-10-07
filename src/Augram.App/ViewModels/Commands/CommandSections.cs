@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.StepList;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
@@ -19,8 +20,10 @@ internal static class CommandSections
     public static bool Includes(CommandsScope scope, AppGroup group) => group.IsGlobal == (scope == CommandsScope.Global);
 
     /// <summary>
-    /// The sections of a tab as they read on <paramref name="here"/>. An app group or a command not used here (F8 "Use on")
-    /// is left out unless <paramref name="showOtherPlatforms"/>, and is then marked "Windows only" and greyed.
+    /// The sections of a tab as they read on <paramref name="here"/>. An app group, a category or a command not used here (F8
+    /// "Use on"; a command is not used here when its group, its category or itself leaves this platform out,
+    /// <see cref="AppGroup.IsCommandUsedOn"/>) is left out unless <paramref name="showOtherPlatforms"/>, and is then marked
+    /// "Windows only" and greyed; a category's commands follow it.
     /// </summary>
     public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms = false)
     {
@@ -46,7 +49,7 @@ internal static class CommandSections
         var id = SectionId.ForGroup(group.Id);
         var choices = Choices(group);
         var commands = group.Commands
-            .Where(command => showOtherPlatforms || command.IsUsedOn(here))
+            .Where(command => showOtherPlatforms || group.IsCommandUsedOn(command, here))
             .Select(command => Item(group, command, findGesture, here) with
             {
                 Section = id,
@@ -68,20 +71,24 @@ internal static class CommandSections
     /// <summary>"Windows only" for a group not used here; "no macOS name" for one used here that has names, but neither its own nor a guess for this platform; else none.</summary>
     private static string? PlatformNote(AppGroup group, HostPlatform here)
     {
-        var name = here == HostPlatform.MacOS ? "macOS" : "Windows";
         if (!group.IsUsedOn(here))
         {
-            return group.UseOn == PlatformSet.None ? "used nowhere" : $"{(here == HostPlatform.MacOS ? "Windows" : "macOS")} only";
+            return StepPlatformMarker.Only(group.UseOn);
         }
 
-        return group.Matcher is { HasProcessNames: true } matcher && matcher.EffectiveProcessNames(here).Count == 0 ? $"no {name} name" : null;
+        return group.Matcher is { HasProcessNames: true } matcher && matcher.EffectiveProcessNames(here).Count == 0 ? $"no {StepPlatformMarker.Name(here)} name" : null;
     }
 
+    /// <summary>
+    /// Uncategorized (always everywhere: it has no settings), then each category by name; a category not used here
+    /// (Joel, 2026-10-08) is left out unless <paramref name="showOtherPlatforms"/>, then greyed with "Windows only", and its
+    /// commands go with it: hidden, or greyed.
+    /// </summary>
     private static List<SectionItem> GlobalSections(AppGroup global, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
     {
         var choices = Choices(global);
         var items = global.Commands
-            .Where(command => showOtherPlatforms || command.IsUsedOn(here))
+            .Where(command => showOtherPlatforms || global.IsCommandUsedOn(command, here))
             .Select(command => Item(global, command, findGesture, here) with { Section = SectionOf(CommandsScope.Global, global, command), Categories = choices })
             .ToList();
         var sections = new List<SectionItem>();
@@ -93,11 +100,19 @@ internal static class CommandSections
 
         foreach (var category in Sorted(global))
         {
+            var usedHere = category.IsUsedOn(here);
+            if (!usedHere && !showOtherPlatforms)
+            {
+                continue;
+            }
+
             var id = SectionId.ForCategory(global.Id, category.Id);
             sections.Add(new SectionItem(id, category.Name, global.IsActive, expanded.Contains(id), [.. items.Where(item => item.Section == id)])
             {
                 CanRename = true,
                 CanDelete = true,
+                IsElsewhere = !usedHere,
+                Note = usedHere ? null : StepPlatformMarker.Only(category.UseOn),
             });
         }
 

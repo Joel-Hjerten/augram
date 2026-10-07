@@ -15,7 +15,9 @@ namespace Augram.App.Components.CommandTree;
 /// (<see cref="CommandItem.Categories"/>: always on the Global tab, only for a group that has some on the
 /// Apps tab). Choosing Gesture in the kind dropdown asks for the picker too. Both dropdowns only ask
 /// (<see cref="AskingDropdown"/>): they are put back to the command's real value after every request, so
-/// a cancelled picker or a refused change leaves them honest.
+/// a cancelled picker or a refused change leaves them honest. The Use on boxes (<c>PART_UseOnWindows</c>,
+/// <c>PART_UseOnMac</c>, F8) ask the same way; a platform the command's category or app group leaves out shows its box
+/// unchecked and disabled, with <see cref="UseOnNote"/> saying which one (Joel, 2026-10-08).
 /// </summary>
 public sealed class CommandHeader : TemplatedControl
 {
@@ -48,6 +50,9 @@ public sealed class CommandHeader : TemplatedControl
 
     public static readonly StyledProperty<bool> HasCategoriesProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasCategories));
+
+    public static readonly StyledProperty<string?> UseOnNoteProperty =
+        AvaloniaProperty.Register<CommandHeader, string?>(nameof(UseOnNote));
 
     private AskingDropdown? _kind;
     private AskingDropdown? _category;
@@ -102,6 +107,16 @@ public sealed class CommandHeader : TemplatedControl
     {
         get => GetValue(HasCategoriesProperty);
         private set => SetValue(HasCategoriesProperty, value);
+    }
+
+    /// <summary>
+    /// F8: why a Use on box is disabled, beside the boxes (<see cref="CommandItem.UseOnLimitText"/>: "Set by category 'Personal':
+    /// Windows only"); null when the command's group and category leave it every platform.
+    /// </summary>
+    public string? UseOnNote
+    {
+        get => GetValue(UseOnNoteProperty);
+        private set => SetValue(UseOnNoteProperty, value);
     }
 
     /// <summary>F8: where this platform's steps come from and what an edit here does (<see cref="CommandItem.VersionText"/>).</summary>
@@ -205,16 +220,21 @@ public sealed class CommandHeader : TemplatedControl
             IsGestureKind = item?.TriggerKind == TriggerKind.Gesture;
             HasCategories = item is { Categories.Count: > 0 };
             VersionText = item?.VersionText;
+            UseOnNote = item?.UseOnLimitText;
             HasOwnVersionHere = item is { HasOwnVersionHere: true };
             CanMarkChecked = item is { HasOwnVersionHere: true, IsOwnVersionStale: true };
             Apply();
         }
     }
 
-    /// <summary>What a Use on box does (F8): asks the host for the command's platforms with this one flipped; the boxes then show the answer.</summary>
+    /// <summary>
+    /// What a Use on box does (F8): asks the host for the command's own platforms with this one flipped; the boxes then show
+    /// the answer. A platform its group or category leaves out (<see cref="CommandItem.UseOnLimit"/>) asks nothing: its box is
+    /// disabled, and the command's own value for it is kept for when the category or group takes the platform back.
+    /// </summary>
     public void ChooseUseOn(HostPlatform platform, bool used)
     {
-        if (Item is { } item && item.UseOn.Includes(platform) != used)
+        if (Item is { } item && item.UseOnLimit.Includes(platform) && item.UseOn.Includes(platform) != used)
         {
             ActionRequested?.Invoke(this, new CommandTreeActionEventArgs(CommandTreeAction.SetUseOn, command: item, useOn: item.UseOn.With(platform, used)));
         }
@@ -250,22 +270,18 @@ public sealed class CommandHeader : TemplatedControl
         }
     }
 
-    /// <summary>Puts both dropdowns and the Use on boxes on the command's real values.</summary>
+    /// <summary>
+    /// Puts both dropdowns and the Use on boxes on the command's real values: a box is checked when the command is used there,
+    /// and disabled (unchecked) when its group or category leaves that platform out.
+    /// </summary>
     private void Apply()
     {
         var item = Item;
         _applying = true;
         try
         {
-            if (_useOnWindows is not null)
-            {
-                _useOnWindows.IsChecked = item?.UseOn.Includes(HostPlatform.Windows) ?? false;
-            }
-
-            if (_useOnMac is not null)
-            {
-                _useOnMac.IsChecked = item?.UseOn.Includes(HostPlatform.MacOS) ?? false;
-            }
+            ShowUseOn(_useOnWindows, item, HostPlatform.Windows);
+            ShowUseOn(_useOnMac, item, HostPlatform.MacOS);
         }
         finally
         {
@@ -275,6 +291,18 @@ public sealed class CommandHeader : TemplatedControl
         _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
         var choices = item?.Categories ?? [];
         _category?.Show([.. choices.Select(choice => choice.Name)], item is null ? -1 : IndexOfCategory(item));
+    }
+
+    private static void ShowUseOn(CheckBox? box, CommandItem? item, HostPlatform platform)
+    {
+        if (box is null)
+        {
+            return;
+        }
+
+        var allowed = item?.UseOnLimit.Includes(platform) ?? true;
+        box.IsEnabled = allowed;
+        box.IsChecked = allowed && (item?.UseOn.Includes(platform) ?? false);
     }
 
     /// <summary>The command's category, or Uncategorized when it names none the group still has.</summary>

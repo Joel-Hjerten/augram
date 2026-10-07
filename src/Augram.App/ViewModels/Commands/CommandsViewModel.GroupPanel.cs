@@ -4,12 +4,13 @@ using Augram.Core.Mapping;
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
-/// The selected app group's form in the side panel (Joel, 2026-10-07: selecting a group shows it, as selecting a
-/// command shows its trigger and steps). Shown while an app group row, not a command, is selected. Each edit applies
-/// at once, one undo step each like a step edit; a rule the store refuses (an empty or taken name) shows on the message
-/// line and the field keeps what was typed. The form is rebuilt only when another group is selected, so typing never
-/// loses focus; a change from elsewhere (undo, a rename or the active box in the tree) is synced into it, but the
-/// panel's own edits are not echoed back.
+/// The side panel's form for a selected section header (<see cref="GroupForm"/>): an app group's on the Apps tab (Joel,
+/// 2026-10-07: selecting a group shows it, as selecting a command shows its trigger and steps) and a category's on the
+/// Global tab (<c>.CategoryPanel</c>, Joel 2026-10-08); Uncategorized has none. Shown while a section row, not a command,
+/// is selected. Each edit applies at once, one undo step each like a step edit; a rule the store refuses (an empty or
+/// taken name) shows on the message line and the field keeps what was typed. The form is rebuilt only when another
+/// section is selected, so typing never loses focus; a change from elsewhere (undo, a rename or the active box in the
+/// tree) is synced into it, but the panel's own edits are not echoed back.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -18,17 +19,31 @@ public sealed partial class CommandsViewModel
     private bool _applyingGroupEdit;
     private bool _syncingGroupEdit;
 
-    private void ProjectGroupPanel()
+    /// <summary>Shows the selected app group's or category's form, or none.</summary>
+    private void ProjectSidePanel()
     {
         var section = SelectedCommandId is null && SelectedSectionId is { } id ? Sections.FirstOrDefault(s => s.Id == id) : null;
-        var group = section is { CanEditDefinition: true } ? _store.FindGroup(section.Id.GroupId) : null;
-        if (group is null)
+        var group = section is null ? null : _store.FindGroup(section.Id.GroupId);
+        if (section is { CanEditDefinition: true } && group is not null)
+        {
+            DetachCategoryEdit();
+            ProjectGroupPanel(group);
+        }
+        else if (section?.Id.CategoryId is { } categoryId && group?.FindCategory(categoryId) is { } category)
         {
             DetachGroupEdit();
-            GroupForm = null;
-            return;
+            ProjectCategoryPanel(group.Id, category);
         }
+        else
+        {
+            DetachGroupEdit();
+            DetachCategoryEdit();
+            GroupForm = null;
+        }
+    }
 
+    private void ProjectGroupPanel(AppGroup group)
+    {
         if (_groupEdit is null || _groupEditId != group.Id)
         {
             DetachGroupEdit();

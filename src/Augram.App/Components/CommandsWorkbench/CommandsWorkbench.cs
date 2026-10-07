@@ -14,7 +14,7 @@ namespace Augram.App.Components.CommandsWorkbench;
 /// Lookless layout of a Commands sub-tab (F5a, F7; Global and Apps since 2026-10-07): the
 /// <see cref="CommandTree.CommandTree"/> (<c>PART_Tree</c>) beside the selected command's
 /// <see cref="CommandHeader"/> (<c>PART_Header</c>) and <see cref="StepList.StepList"/> (<c>PART_Steps</c>),
-/// or, while an app group row is selected, that group's <see cref="GroupForm"/> (<c>PART_GroupForm</c>), with
+/// or, while an app group or category row is selected, its form (<see cref="GroupForm"/>, <c>PART_GroupForm</c>), with
 /// the message line. Both sub-tabs use it; what differs (the sections, the tree's heading, the
 /// new-section label, the help line) comes in as properties. Where the step panel sits is the template's
 /// choice (ADR-0002 §5b). It passes properties down and raises its parts' intents up unchanged:
@@ -133,7 +133,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         private set => SetValue(HasCommandProperty, value);
     }
 
-    /// <summary>The selected app group's form; while set it takes the side panel's place of the command header and steps.</summary>
+    /// <summary>The selected app group's or category's form; while set it takes the side panel's place of the command header and steps.</summary>
     public FormScreen? GroupForm
     {
         get => GetValue(GroupFormProperty);
@@ -146,7 +146,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         private set => SetValue(HasGroupFormProperty, value);
     }
 
-    /// <summary>The command header and steps show unless an app group's form does.</summary>
+    /// <summary>The command header and steps show unless an app group's or category's form does.</summary>
     public bool ShowsCommandPanel
     {
         get => GetValue(ShowsCommandPanelProperty);
@@ -211,7 +211,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         GroupFormPart = e.NameScope.Find<SectionForm.SectionForm>("PART_GroupForm");
         if (GroupFormPart is not null)
         {
-            Region.Mark(GroupFormPart, "App group form");
+            Region.Mark(GroupFormPart, "App group or category form");
         }
 
         if (TreePart is not null)

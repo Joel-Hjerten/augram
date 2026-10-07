@@ -102,6 +102,10 @@ public static class CommandGalleryPages
             [
                 new CustomField("Edit app group", () => new FormDialog { Message = "Chrome has 2 commands; they stay as they are.", Screen = GroupEditViewModel.From(CommandGalleryFakes.Mapping().Groups[1]).Declare(), ConfirmLabel = "Save", Width = 560 }),
             ]),
+            new Section("The category form (the Global tab's side panel): name and Use on, here Windows only",
+            [
+                new CustomField("Category", () => new FormDialog { Screen = CategoryEditViewModel.From(CommandGalleryFakes.Mapping().Global.Categories.Single(category => category.Name == "PC tools")).Declare(), ConfirmLabel = "Save", Width = 560 }),
+            ]),
         ]);
 
     private static CustomField FormField(string label, IStep step)

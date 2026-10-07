@@ -7,5 +7,8 @@ namespace Augram.Core.Config;
 public sealed record SyncFileHeader(int SchemaVersion, int FormatVersion, string? MachineName)
 {
     /// <summary>True when this build cannot read the file: a newer config schema or a newer sync format.</summary>
-    public bool IsNewer => SchemaVersion > ConfigDocument.CurrentSchemaVersion || FormatVersion > SyncFile.CurrentFormatVersion;
+    public bool IsNewer => IsNewerThan(ConfigDocument.CurrentSchemaVersion, SyncFile.CurrentFormatVersion);
+
+    /// <summary>True when a build that reads up to these versions cannot read the file: what an older build's guard answers.</summary>
+    public bool IsNewerThan(int schemaVersion, int formatVersion) => SchemaVersion > schemaVersion || FormatVersion > formatVersion;
 }

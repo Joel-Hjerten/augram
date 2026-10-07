@@ -527,6 +527,10 @@
                     <TextBlock Classes="field-label header-label" Text="Use on" VerticalAlignment="Center" />
                     <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
                     <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
+                    <TextBlock Classes="help"
+                               Text="{TemplateBinding UseOnNote}"
+                               VerticalAlignment="Center"
+                               IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
                   <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <TextBlock Classes="help" Text="{TemplateBinding VersionText}" TextWrapping="Wrap" />

@@ -6,8 +6,9 @@ namespace Augram.Core.Mapping;
 /// Which command a trigger fires over a window (F5: global, then app override, then override to
 /// nothing; plan 0001 M2 step 1). Pure: a document snapshot and the platform it runs on in, a resolution out; the
 /// engine calls it on its worker with the snapshot it was last handed. Inactive groups, commands and ignored apps,
-/// and app groups and commands not used on this platform (F8 "Use on"), are invisible here; matchers match on this platform's
-/// executable names or their known-app guess. The rule, in order:
+/// and app groups and commands not used on this platform (F8 "Use on": a command counts as used only when its group, its
+/// category and itself all include the platform, <see cref="AppGroup.IsCommandUsedOn"/>), are invisible here; matchers match
+/// on this platform's executable names or their known-app guess. The rule, in order:
 /// <list type="number">
 /// <item>the window belongs to an active ignored app → <see cref="ResolutionOutcome.Ignored"/>;</item>
 /// <item>the first active app group (in document order) whose matcher matches the window is the app group;</item>
@@ -109,7 +110,7 @@ public static class CommandResolver
     {
         foreach (var command in group.Commands)
         {
-            if (command.IsActive && command.IsUsedOn(platform) && command.Trigger == trigger)
+            if (command.IsActive && group.IsCommandUsedOn(command, platform) && command.Trigger == trigger)
             {
                 return command;
             }

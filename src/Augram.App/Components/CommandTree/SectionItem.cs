@@ -21,7 +21,7 @@ public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool 
     /// <summary>The header's active check box: app groups only (a category has no active flag).</summary>
     public bool CanToggleActive { get; init; }
 
-    /// <summary>F8: a group used only on the other platform ("Windows only"), shown greyed when the list shows other platforms.</summary>
+    /// <summary>F8: a group or a category used only on the other platform ("Windows only"), shown greyed when the list shows other platforms.</summary>
     public bool IsElsewhere { get; init; }
 
     /// <summary>A short F8 note after the count: "Windows only", "no macOS name"; null for none.</summary>

@@ -72,5 +72,14 @@ public static class StepPlatformMarker
 
     public static string Name(HostPlatform platform) => platform == HostPlatform.MacOS ? "macOS" : "Windows";
 
+    /// <summary>A "Use on" set in a few words (F8): "Windows only", "macOS only", "used nowhere", "every platform".</summary>
+    public static string Only(PlatformSet set) => set switch
+    {
+        PlatformSet.None => "used nowhere",
+        PlatformSet.Windows => "Windows only",
+        PlatformSet.MacOS => "macOS only",
+        _ => "every platform",
+    };
+
     private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 }

@@ -4,7 +4,8 @@ namespace Augram.Core.Mapping;
 /// The rules for a group's <see cref="CommandCategory"/> list, split out of <see cref="MappingRules"/>,
 /// which runs them for every group it normalises and validates (so every store commit, load and import
 /// goes through them). Names are trimmed, must not be empty and are unique within the group
-/// case-insensitively (<see cref="MappingRules.NameComparer"/>); ids are unique within the group;
+/// case-insensitively (<see cref="MappingRules.NameComparer"/>); ids are unique within the group; a category is used on
+/// at least one platform (F8 "Use on", as a group and a command must be);
 /// categories are sorted by name like groups and commands. A command whose
 /// <see cref="Command.CategoryId"/> names no category of its group is normalised to Uncategorized
 /// (null), never refused: a hand-edited file, a deleted category or a moved command must not fail.
@@ -48,6 +49,11 @@ public static class CategoryRules
         if (string.IsNullOrEmpty(category.Name))
         {
             throw new MappingValidationException($"A category in '{group.Name}' needs a name.");
+        }
+
+        if (category.UseOn == PlatformSet.None)
+        {
+            throw new MappingValidationException($"Use '{category.Name}' on at least one platform.");
         }
 
         foreach (var other in others)

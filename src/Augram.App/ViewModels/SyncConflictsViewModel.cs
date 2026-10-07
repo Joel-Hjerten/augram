@@ -1,4 +1,5 @@
 using System.Globalization;
+using Augram.App.Components.StepList;
 using Augram.App.Components.SyncConflictList;
 using Augram.App.Declarations;
 using Augram.App.Hosting;
@@ -140,6 +141,7 @@ public sealed class SyncConflictsViewModel
             SyncItem.GestureItem gesture => new SyncConflictSide(GestureText(gesture.Gesture), gesture.Gesture.Samples.Count > 0 ? gesture.Gesture.Samples[0] : null),
             SyncItem.CommandItem command => new SyncConflictSide(CommandText(command.GroupId, command.Command)),
             SyncItem.GroupItem group => new SyncConflictSide(GroupText(group.Header)),
+            SyncItem.CategoryItem category => new SyncConflictSide(CategoryText(category.Category)),
             SyncItem.IgnoredItem ignored => new SyncConflictSide(IgnoredText(ignored.App)),
             SyncItem.VersionItem version => new SyncConflictSide(VersionText(version.Version)),
             _ => new SyncConflictSide(item.Name),
@@ -178,6 +180,10 @@ public sealed class SyncConflictsViewModel
         var matches = group.Matcher is { WindowsProcessNames.Count: > 0 } matcher ? "matches " + string.Join(", ", matcher.WindowsProcessNames) : "matches no app yet";
         return $"{group.Name}: {matches}{(group.SuppressGlobals ? ", suppresses global commands" : string.Empty)}{(group.IsActive ? string.Empty : " (inactive)")}";
     }
+
+    /// <summary>"Personal", or "Personal · Windows only" when its Use on (F8, 2026-10-08) is what differs.</summary>
+    private static string CategoryText(CommandCategory category)
+        => category.UseOn == PlatformSet.All ? category.Name : $"{category.Name} · {StepPlatformMarker.Only(category.UseOn)}";
 
     private static string IgnoredText(IgnoredApp app)
     {

@@ -24,11 +24,13 @@ public sealed record Command(
     CategoryId? CategoryId = null)
 {
     /// <summary>
-    /// Where the command takes part (F8 "Use on", Joel 2026-10-07): both by default. A command not used on a platform is
-    /// absent there, so its trigger falls through as if it did not exist (an app group's to Global).
+    /// Where the command itself takes part (F8 "Use on", Joel 2026-10-07): both by default. A command not used on a platform is
+    /// absent there, so its trigger falls through as if it did not exist (an app group's to Global). Its group and its
+    /// category can narrow this further; <see cref="AppGroup.IsCommandUsedOn"/> is the whole rule.
     /// </summary>
     public PlatformSet UseOn { get; init; } = PlatformSet.All;
 
+    /// <summary>The command's own value only; ask <see cref="AppGroup.IsCommandUsedOn"/> for whether it is used on a platform.</summary>
     public bool IsUsedOn(HostPlatform platform) => UseOn.Includes(platform);
 
     /// <summary>
