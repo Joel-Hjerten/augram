@@ -139,6 +139,15 @@ App
 - LEANING: back up the previous file before every write; fall back to backup, then shipped defaults, on load failure (GestureSign behaviour).
 - LEANING (D9): **import from StrokesPlus.net's live JSON** (`%APPDATA%\StrokesPlus.net\StrokesPlus.net.json`) as a v1 feature: 90 gestures, 19 apps, 212 actions migrate in one step. Script-only actions import disabled with the script kept as a note.
 - OPEN: file location conventions per platform; single file vs split (settings vs gesture library).
+- **Sync between machines (DECIDED — Joel, 2026-10-07; built before the remaining M2 step types because he switches between work and home daily):**
+  - **Transport: a private git repo** (Joel's own, e.g. `augram-settings`; no Google Drive on the work machine, no server on joelart.com for now). Augram runs the installed `git` with argument lists (never a shell string) in its own clone under the config folder (`sync/repo`).
+  - **No credentials in Augram.** Authentication is git's credential helper (Git Credential Manager on Windows, Keychain on macOS): the first push opens GitHub's sign-in, the token is stored encrypted by the OS. Augram never reads, stores or logs a token or a credentialed URL; git runs with `GIT_TERMINAL_PROMPT=0` so it can never hang on a hidden prompt.
+  - **What syncs: gestures and the mapping** (groups, categories, commands, ignored apps). Settings stay per machine (stroke button, trail, start at login, the sync settings themselves).
+  - **One file per machine** (`machines/<machine-id>.json`, the same JSON as the config file plus a machine header). Each machine commits only its own file, so git never merges content and pushes never conflict; it never force-pushes.
+  - **Augram merges item by item** (gesture, group, category, command, ignored app, matched by id) as a three-way merge against the state of the last sync with that machine, stored locally per machine (so deletions propagate without tombstones). Changed on one side only: take it. Changed on both sides differently: a **conflict** Joel resolves (keep mine / take theirs / keep both); until then the local version stays and the conflict is listed, nothing blocks. Name clashes after a merge (two different gestures both called "Zig") are renamed with a suffix and reported.
+  - **Joining a repo that already has another machine's file** offers "Use the synced settings on this machine" (replace local gestures and commands, after a backup; the default) or "Merge". Two machines that imported StrokesPlus.net separately have different ids, and a merge would double everything.
+  - **When:** at start, on "Sync now", 20 s after a local change, and every 5 minutes while running. Applying a sync is one undo step per store. Options › Sync shows the repo, this machine's name, the last sync and its result, and the pending conflicts.
+  - Later, not now: a passphrase that encrypts the file before it leaves the machine (typed-text and Run steps travel with the settings; do not put passwords in them).
 
 ## 3. Non-functional requirements
 
