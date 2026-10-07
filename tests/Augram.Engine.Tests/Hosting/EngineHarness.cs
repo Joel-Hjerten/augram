@@ -18,7 +18,9 @@ namespace Augram.Engine.Tests.Hosting;
 internal sealed class EngineHarness : IDisposable
 {
     public const MouseButton StrokeButton = MouseButton.Right;
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    // Generous: only a failing test waits this long.
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(10);
     private readonly object _gate = new();
     private readonly List<EngineEvent> _events = [];
 
@@ -130,11 +132,18 @@ internal sealed class EngineHarness : IDisposable
         return (down, up);
     }
 
+    /// <summary>Polls every 10 ms rather than spinning, so parallel tests do not starve the worker threads they wait on (2026-10-07, Windows CI).</summary>
     public static void WaitFor(Func<bool> condition, string what)
     {
-        if (!SpinWait.SpinUntil(condition, Timeout))
+        var deadline = DateTime.UtcNow + Timeout;
+        while (!condition())
         {
-            throw new TimeoutException($"timed out waiting for {what}");
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException($"timed out waiting for {what}");
+            }
+
+            Thread.Sleep(PollInterval);
         }
     }
 

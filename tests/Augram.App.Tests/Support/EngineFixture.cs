@@ -8,7 +8,9 @@ namespace Augram.App.Tests.Support;
 /// <summary>A settings store and an <see cref="EngineHost"/> over fakes (no hook), for the hosting services that bridge the two.</summary>
 internal sealed class EngineFixture : IDisposable
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    // Generous: only a failing test waits this long. Two Windows CI runs missed 5 s (2026-10-07) while other tests spun.
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(10);
 
     public EngineFixture(bool start = true, Settings? settings = null)
     {
@@ -34,11 +36,21 @@ internal sealed class EngineFixture : IDisposable
 
     public EngineHost Host { get; }
 
+    /// <summary>
+    /// Polls <paramref name="condition"/> every 10 ms instead of spinning: the conditions wait on the engine worker or a
+    /// thread-pool timer, and busy-spinning tests running in parallel starved exactly those threads on a small CI runner.
+    /// </summary>
     public static void WaitFor(Func<bool> condition, string what)
     {
-        if (!SpinWait.SpinUntil(condition, Timeout))
+        var deadline = DateTime.UtcNow + Timeout;
+        while (!condition())
         {
-            throw new TimeoutException($"timed out waiting for {what}");
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException($"timed out waiting for {what}");
+            }
+
+            Thread.Sleep(PollInterval);
         }
     }
 

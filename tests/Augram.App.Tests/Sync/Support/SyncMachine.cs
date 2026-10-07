@@ -19,7 +19,9 @@ internal sealed class SyncMachine : IDisposable
 {
     public const string Url = "https://github.com/joel/augram-settings.git";
     public const string OtherUrl = "https://github.com/joel/augram-elsewhere.git";
-    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+    // Generous: only a failing test waits this long.
+    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(10);
 
     public SyncMachine(string name, SyncRemote remote, IEnumerable<Gesture>? gestures = null, MappingDocument? mapping = null, string? url = Url, bool autoSync = true)
     {
@@ -75,11 +77,18 @@ internal sealed class SyncMachine : IDisposable
     /// <summary>Waits until the service has finished <paramref name="count"/> runs in all.</summary>
     public void WaitForRuns(int count) => WaitFor(() => Service.RunCount >= count, $"{count} sync run(s); {Service.RunCount} so far");
 
+    /// <summary>Polls every 10 ms rather than spinning, so parallel tests do not starve the worker threads they wait on (2026-10-07, Windows CI).</summary>
     public static void WaitFor(Func<bool> condition, string what)
     {
-        if (!SpinWait.SpinUntil(condition, Timeout))
+        var deadline = DateTime.UtcNow + Timeout;
+        while (!condition())
         {
-            throw new TimeoutException($"timed out waiting for {what}");
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException($"timed out waiting for {what}");
+            }
+
+            Thread.Sleep(PollInterval);
         }
     }
 
