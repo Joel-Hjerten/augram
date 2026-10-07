@@ -21,3 +21,6 @@ strokes/
 
 # Claude Code agent worktrees (isolated subagent checkouts; merged by branch, never committed)
 .claude/worktrees/
+
+# Local copies of Joel's real StrokesPlus.net settings: personal data, never in this (public) repo
+sources/
