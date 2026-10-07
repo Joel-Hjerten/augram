@@ -9,16 +9,19 @@ internal static class MacWindowPick
     public const int NormalLayer = 0;
 
     /// <summary>
-    /// The frontmost window containing the point, skipping fully transparent windows and this process's windows above the
-    /// normal layer (the trail overlay covers the screen during a stroke; Augram's own settings window stays a target, as
-    /// on Windows). A window on a higher layer (the Dock, the menu bar) wins over the normal window behind it, so a
-    /// gesture there never acts on a window the user was not pointing at.
+    /// The frontmost window containing the point, skipping fully transparent windows, this process's windows above the
+    /// normal layer (the trail overlay; Augram's own settings window stays a target, as on Windows) and display-sized
+    /// windows above the normal layer: the Dock draws itself in a transparent window as large as its display (2026-10-07,
+    /// every stroke on that display resolved to Dock), and screen-overlay utilities do the same; the window server's list
+    /// cannot say which of their pixels take clicks. A smaller window on a higher layer (the menu bar, a status item)
+    /// wins over the normal window behind it, so a gesture there never acts on a window the user was not pointing at.
     /// </summary>
-    public static MacWindowInfo? At(IEnumerable<MacWindowInfo> frontToBack, double x, double y, int ownProcessId)
+    public static MacWindowInfo? At(IEnumerable<MacWindowInfo> frontToBack, double x, double y, int ownProcessId, IReadOnlyList<MacRect> displays)
     {
         ArgumentNullException.ThrowIfNull(frontToBack);
+        ArgumentNullException.ThrowIfNull(displays);
         return frontToBack.FirstOrDefault(window =>
-            !(window.ProcessId == ownProcessId && window.Layer > NormalLayer)
+            !(window.Layer > NormalLayer && (window.ProcessId == ownProcessId || CoversADisplay(window, displays)))
             && window.Alpha > 0
             && !window.Bounds.IsEmpty
             && window.Bounds.Contains(x, y));
@@ -36,6 +39,9 @@ internal static class MacWindowPick
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(displays);
-        return window.Layer == NormalLayer && displays.Any(display => display.IsNear(window.Bounds, 1));
+        return window.Layer == NormalLayer && CoversADisplay(window, displays);
     }
+
+    private static bool CoversADisplay(MacWindowInfo window, IReadOnlyList<MacRect> displays)
+        => displays.Any(display => display.IsNear(window.Bounds, 1));
 }

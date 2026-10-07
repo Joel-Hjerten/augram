@@ -21,8 +21,9 @@ public sealed class MacWindowSystem : IWindowSystem
 
     public WindowIdentity? WindowAt(int x, int y)
     {
-        var hit = MacWindowPick.At(MacWindowList.OnScreen(), x, y, Environment.ProcessId);
-        return hit is null ? null : Identify(hit);
+        var displays = MacWindowList.Displays();
+        var hit = MacWindowPick.At(MacWindowList.OnScreen(), x, y, Environment.ProcessId, displays);
+        return hit is null ? null : Identify(hit, displays);
     }
 
     public WindowIdentity? Foreground()
@@ -32,7 +33,7 @@ public sealed class MacWindowSystem : IWindowSystem
         {
             var id = window == 0 ? null : Ax.WindowId(window);
             var info = id is null ? null : MacWindowList.ById(id.Value);
-            return info is null ? null : Identify(info);
+            return info is null ? null : Identify(info, MacWindowList.Displays());
         }
         finally
         {
@@ -94,7 +95,7 @@ public sealed class MacWindowSystem : IWindowSystem
         }
     }
 
-    private static WindowIdentity Identify(MacWindowInfo info)
+    private static WindowIdentity Identify(MacWindowInfo info, IReadOnlyList<MacRect> displays)
     {
         var path = MacWindowList.ProcessPath(info.ProcessId);
         var name = path is null ? info.OwnerName : Path.GetFileName(path);
@@ -106,7 +107,7 @@ public sealed class MacWindowSystem : IWindowSystem
             string.IsNullOrEmpty(info.Title) ? null : info.Title,
             [],
             info.ProcessId,
-            MacWindowPick.IsFullScreen(info, MacWindowList.Displays()),
+            MacWindowPick.IsFullScreen(info, displays),
             MacWindowPick.IsDesktop(info));
     }
 

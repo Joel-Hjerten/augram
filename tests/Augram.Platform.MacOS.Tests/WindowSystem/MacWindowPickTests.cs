@@ -8,6 +8,8 @@ public sealed class MacWindowPickTests
 {
     private const int Own = 100;
     private static readonly MacRect Display = new(0, 0, 1512, 982);
+    private static readonly MacRect External = new(-2560, -213, 2560, 1440);
+    private static readonly MacRect[] Displays = [Display, External];
 
     [Fact]
     public void At_ReturnsFrontmostWindowContainingPoint()
@@ -15,8 +17,8 @@ public sealed class MacWindowPickTests
         var front = Window(1, pid: 1, new MacRect(100, 100, 400, 300));
         var back = Window(2, pid: 2, new MacRect(0, 0, 1000, 800));
 
-        Assert.Same(front, MacWindowPick.At([front, back], 200, 200, Own));
-        Assert.Same(back, MacWindowPick.At([front, back], 50, 50, Own));
+        Assert.Same(front, MacWindowPick.At([front, back], 200, 200, Own, Displays));
+        Assert.Same(back, MacWindowPick.At([front, back], 50, 50, Own, Displays));
     }
 
     [Fact]
@@ -25,7 +27,7 @@ public sealed class MacWindowPickTests
         var overlay = Window(1, pid: Own, Display, layer: 25);
         var app = Window(2, pid: 1, new MacRect(0, 0, 800, 600));
 
-        Assert.Same(app, MacWindowPick.At([overlay, app], 10, 10, Own));
+        Assert.Same(app, MacWindowPick.At([overlay, app], 10, 10, Own, Displays));
     }
 
     [Fact]
@@ -34,7 +36,7 @@ public sealed class MacWindowPickTests
         var settings = Window(1, pid: Own, new MacRect(100, 100, 900, 600));
         var app = Window(2, pid: 1, Display);
 
-        Assert.Same(settings, MacWindowPick.At([settings, app], 200, 200, Own));
+        Assert.Same(settings, MacWindowPick.At([settings, app], 200, 200, Own, Displays));
     }
 
     [Fact]
@@ -44,16 +46,28 @@ public sealed class MacWindowPickTests
         var empty = Window(2, pid: 2, new MacRect(10, 10, 0, 0));
         var app = Window(3, pid: 3, Display);
 
-        Assert.Same(app, MacWindowPick.At([invisible, empty, app], 10, 10, Own));
+        Assert.Same(app, MacWindowPick.At([invisible, empty, app], 10, 10, Own, Displays));
     }
 
     [Fact]
-    public void At_HigherLayerWins_SoAGestureOnTheDockNeverReachesTheWindowBehindIt()
+    public void At_SmallerPanelOnAHigherLayerWins_SoAGestureOnTheMenuBarNeverReachesTheWindowBehindIt()
     {
-        var dock = Window(1, pid: 1, new MacRect(400, 900, 700, 82), layer: 20);
+        var menuBar = Window(1, pid: 1, new MacRect(0, 0, 1512, 33), layer: 24);
         var app = Window(2, pid: 2, Display);
 
-        Assert.Same(dock, MacWindowPick.At([dock, app], 500, 950, Own));
+        Assert.Same(menuBar, MacWindowPick.At([menuBar, app], 500, 10, Own, Displays));
+    }
+
+    [Fact]
+    public void At_SkipsDisplaySizedWindowsAboveTheNormalLayer_TheDockDrawsInOne()
+    {
+        // As listed on Joel's Mac: the Dock's layer-20 window covers the whole external display it sits on.
+        var dock = Window(1, pid: 1, External, layer: 20);
+        var editor = Window(2, pid: 2, new MacRect(-2120, 253, 1425, 800));
+        var wallpaper = Window(3, pid: 3, External, layer: -2147483603);
+
+        Assert.Same(editor, MacWindowPick.At([dock, editor, wallpaper], -2000, 300, Own, Displays));
+        Assert.Same(wallpaper, MacWindowPick.At([dock, editor, wallpaper], -100, 1000, Own, Displays));
     }
 
     [Fact]
@@ -61,13 +75,13 @@ public sealed class MacWindowPickTests
     {
         var app = Window(1, pid: 1, new MacRect(0, 0, 100, 100));
 
-        Assert.Null(MacWindowPick.At([app], 100, 50, Own));
-        Assert.Null(MacWindowPick.At([app], 50, 100, Own));
-        Assert.Same(app, MacWindowPick.At([app], 99.5, 99.5, Own));
+        Assert.Null(MacWindowPick.At([app], 100, 50, Own, Displays));
+        Assert.Null(MacWindowPick.At([app], 50, 100, Own, Displays));
+        Assert.Same(app, MacWindowPick.At([app], 99.5, 99.5, Own, Displays));
     }
 
     [Fact]
-    public void At_NothingThere_Null() => Assert.Null(MacWindowPick.At([], 10, 10, Own));
+    public void At_NothingThere_Null() => Assert.Null(MacWindowPick.At([], 10, 10, Own, Displays));
 
     [Fact]
     public void IsDesktop_BelowNormalLayer()
