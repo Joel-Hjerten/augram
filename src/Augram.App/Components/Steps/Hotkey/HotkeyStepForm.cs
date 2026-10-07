@@ -19,9 +19,12 @@ public sealed class HotkeyStepForm : IStepForm
 {
     public const string CaptureHelp = "Capture, press the combination, then Accept or click anywhere else. Clear removes it.";
 
-    public const string ModifiersHelp = "Windows modifiers; R sends the right-hand key (RAlt, RCtrl), which some apps treat differently. macOS conversion comes later (F8).";
+    /// <summary>R names the right-hand keys under this platform's names (RAlt, RCtrl on Windows; ROpt, RCmd on macOS).</summary>
+    public static string ModifiersHelp =>
+        $"R sends the right-hand key ({HotkeyText.Format(KeyModifiers.Alt, KeyCode.None, KeyModifiers.Alt)}, {HotkeyText.Format(KeyModifiers.Control, KeyCode.None, KeyModifiers.Control)}), which some apps treat differently.";
 
-    private static readonly IReadOnlyList<Choice<KeyCode>> Keys =
+    // Built per form, not once per type: the key names follow HotkeyText.Names, which the App sets at startup.
+    private static IReadOnlyList<Choice<KeyCode>> Keys =>
         [.. Enum.GetValues<KeyCode>().Select(key => new Choice<KeyCode>(key == KeyCode.None ? HotkeyCaptureBox.EmptyText : HotkeyText.KeyName(key), key))];
 
     public string TypeKey => HotkeyStepType.Instance.Key;
@@ -88,7 +91,7 @@ public sealed class HotkeyStepForm : IStepForm
                 new CustomField(HotkeyText.Format(KeyModifiers.Alt, KeyCode.None), Modifier(KeyModifiers.Alt)),
                 new CustomField(HotkeyText.Format(KeyModifiers.Shift, KeyCode.None), Modifier(KeyModifiers.Shift)),
                 new CustomField(HotkeyText.Format(KeyModifiers.Meta, KeyCode.None), Modifier(KeyModifiers.Meta)),
-                new DropdownField<KeyCode>("Key", Keys, key, "Also for a key alone, a lone modifier (Left Win) or a key the capture cannot see."),
+                new DropdownField<KeyCode>("Key", Keys, key, $"Also for a key alone, a lone modifier ({HotkeyText.KeyName(KeyCode.LeftMeta)}) or a key the capture cannot see."),
             ], ModifiersHelp),
         ]);
         return new SectionForm.SectionForm { Screen = screen };

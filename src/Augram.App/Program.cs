@@ -1,4 +1,5 @@
 using Augram.App.Hosting;
+using Augram.Core.Steps.Hotkey;
 using Avalonia;
 
 namespace Augram.App;
@@ -23,6 +24,8 @@ internal static class Program
             return;
         }
 
+        // Hotkeys read with this platform's key names (Cmd and Opt on a Mac); stored values are the same everywhere.
+        HotkeyText.Names = CommandsModule.CurrentPlatform;
         using var services = CompositionRoot.Build(guard);
         BuildAvaloniaApp(services).StartWithClassicDesktopLifetime(args);
     }

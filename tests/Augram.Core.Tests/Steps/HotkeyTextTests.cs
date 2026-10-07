@@ -59,10 +59,12 @@ public sealed class HotkeyTextTests
         Assert.Equal(expected, HotkeyText.KeyName(key));
     }
 
-    [Fact]
-    public void EveryKeyHasADistinctNonEmptyName()
+    [Theory]
+    [InlineData(HostPlatform.Windows)]
+    [InlineData(HostPlatform.MacOS)]
+    public void EveryKeyHasADistinctNonEmptyName(HostPlatform platform)
     {
-        var names = Enum.GetValues<KeyCode>().Select(HotkeyText.KeyName).ToList();
+        var names = Enum.GetValues<KeyCode>().Select(key => HotkeyText.KeyName(key, platform)).ToList();
 
         Assert.All(names, name => Assert.False(string.IsNullOrWhiteSpace(name)));
         Assert.Equal(names.Count, names.Distinct(StringComparer.Ordinal).Count());
@@ -80,6 +82,31 @@ public sealed class HotkeyTextTests
         Assert.True(HotkeyKeys.IsModifier(KeyCode.LeftMeta));
         Assert.False(HotkeyKeys.IsModifier(KeyCode.CapsLock));
         Assert.Equal(8, Enum.GetValues<KeyCode>().Count(HotkeyKeys.IsModifier));
+    }
+
+    [Theory]
+    [InlineData(KeyModifiers.Meta, KeyCode.W, KeyModifiers.None, "Cmd+W")]
+    [InlineData(KeyModifiers.Meta | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Control, KeyCode.Z, KeyModifiers.None, "Ctrl+Opt+Shift+Cmd+Z")]
+    [InlineData(KeyModifiers.Alt | KeyModifiers.Meta, KeyCode.F9, KeyModifiers.Alt | KeyModifiers.Meta, "ROpt+RCmd+F9")]
+    [InlineData(KeyModifiers.Control, KeyCode.Tab, KeyModifiers.None, "Ctrl+Tab")]
+    public void Format_MacNames_SameKeysUnderTheMacKeyboardsNames(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand, string expected)
+        => Assert.Equal(expected, HotkeyText.Format(modifiers, key, rightHand, HostPlatform.MacOS));
+
+    [Theory]
+    [InlineData(KeyCode.LeftMeta, "Left Cmd")]
+    [InlineData(KeyCode.RightMeta, "Right Cmd")]
+    [InlineData(KeyCode.LeftAlt, "Left Opt")]
+    [InlineData(KeyCode.RightAlt, "Right Opt")]
+    [InlineData(KeyCode.LeftControl, "Left Ctrl")]
+    [InlineData(KeyCode.PageUp, "PgUp")]
+    public void KeyName_MacNames(KeyCode key, string expected)
+        => Assert.Equal(expected, HotkeyText.KeyName(key, HostPlatform.MacOS));
+
+    [Fact]
+    public void WithoutAPlatform_TheDefaultIsWindowsNames()
+    {
+        Assert.Equal(HostPlatform.Windows, HotkeyText.Names);
+        Assert.Equal("Win+W", HotkeyText.Format(KeyModifiers.Meta, KeyCode.W));
     }
 
     [Fact]

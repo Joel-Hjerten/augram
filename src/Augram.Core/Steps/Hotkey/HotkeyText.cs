@@ -4,17 +4,20 @@ using Augram.Core.Abstractions;
 namespace Augram.Core.Steps.Hotkey;
 
 /// <summary>
-/// How a hotkey reads to a person: "Ctrl+Shift+T". Windows names (Ctrl, Alt, Shift, Win) in that
-/// order, a right-hand modifier as "RCtrl", "RAlt", "RShift", "RWin" in the same place ("Ctrl+RAlt+F9"),
-/// then the key's short name (letters and digits as themselves, "F5", "Esc", "PgUp", "Left", "Num 4",
-/// "Volume Up"). The step summary, the App's capture field and dropdown, and the importer's messages all
-/// use this, so a hotkey reads the same everywhere. macOS names (⌘, ⌥) arrive with the F8 conversion slice.
+/// How a hotkey reads to a person: "Ctrl+Shift+T". The modifiers in a fixed order (Ctrl, Alt, Shift, Win on
+/// Windows; Ctrl, Opt, Shift, Cmd on macOS, the order macOS menus use), a right-hand modifier as "RCtrl", "RAlt"…
+/// in the same place ("Ctrl+RAlt+F9"), then the key's short name (letters and digits as themselves, "F5", "Esc",
+/// "PgUp", "Left", "Num 4", "Volume Up"). The step summary, the App's capture field and dropdown, the log and the
+/// importer's messages all use this, so a hotkey reads the same everywhere. The names are display only: Meta is
+/// the Win key on Windows and the Command key on macOS, the same stored value under the name on that keyboard
+/// (Joel, 2026-10-07: words, not ⌘⌥ symbols). Converting a Windows shortcut to its Mac counterpart (Ctrl+W → Cmd+W)
+/// is a different matter, the F8 conversion.
 /// </summary>
 public static class HotkeyText
 {
     public const string Separator = "+";
 
-    private static readonly (KeyModifiers Flag, string Name, string RightName)[] ModifierOrder =
+    private static readonly (KeyModifiers Flag, string Name, string RightName)[] WindowsModifiers =
     [
         (KeyModifiers.Control, "Ctrl", "RCtrl"),
         (KeyModifiers.Alt, "Alt", "RAlt"),
@@ -22,15 +25,30 @@ public static class HotkeyText
         (KeyModifiers.Meta, "Win", "RWin"),
     ];
 
+    private static readonly (KeyModifiers Flag, string Name, string RightName)[] MacModifiers =
+    [
+        (KeyModifiers.Control, "Ctrl", "RCtrl"),
+        (KeyModifiers.Alt, "Opt", "ROpt"),
+        (KeyModifiers.Shift, "Shift", "RShift"),
+        (KeyModifiers.Meta, "Cmd", "RCmd"),
+    ];
+
+    /// <summary>
+    /// Whose key names a call without an explicit platform uses. Windows by default; the App sets it once at startup
+    /// to the platform it runs on, so Core and its tests read the same on every machine.
+    /// </summary>
+    public static HostPlatform Names { get; set; } = HostPlatform.Windows;
+
     /// <summary>
     /// "Ctrl+Shift+T", "RCtrl+RShift+P"; the modifiers alone ("Ctrl+Shift") when <paramref name="key"/> is
     /// <see cref="KeyCode.None"/>; empty when both are empty. A <paramref name="rightHand"/> bit outside
     /// <paramref name="modifiers"/> prints nothing.
     /// </summary>
-    public static string Format(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None)
+    public static string Format(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None, HostPlatform? names = null)
     {
+        var platform = names ?? Names;
         var parts = new List<string>(5);
-        foreach (var (flag, name, rightName) in ModifierOrder)
+        foreach (var (flag, name, rightName) in platform == HostPlatform.MacOS ? MacModifiers : WindowsModifiers)
         {
             if ((modifiers & flag) != 0)
             {
@@ -40,14 +58,25 @@ public static class HotkeyText
 
         if (key != KeyCode.None)
         {
-            parts.Add(KeyName(key));
+            parts.Add(KeyName(key, platform));
         }
 
         return string.Join(Separator, parts);
     }
 
     /// <summary>The short display name of one key; the enum name for anything without a nicer one.</summary>
-    public static string KeyName(KeyCode key) => key switch
+    public static string KeyName(KeyCode key, HostPlatform? names = null) => (names ?? Names) == HostPlatform.MacOS
+        ? key switch
+        {
+            KeyCode.LeftAlt => "Left Opt",
+            KeyCode.RightAlt => "Right Opt",
+            KeyCode.LeftMeta => "Left Cmd",
+            KeyCode.RightMeta => "Right Cmd",
+            _ => CommonKeyName(key),
+        }
+        : CommonKeyName(key);
+
+    private static string CommonKeyName(KeyCode key) => key switch
     {
         >= KeyCode.Digit0 and <= KeyCode.Digit9 => Digit(key - KeyCode.Digit0),
         >= KeyCode.NumPad0 and <= KeyCode.NumPad9 => "Num " + Digit(key - KeyCode.NumPad0),
