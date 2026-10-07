@@ -20,12 +20,21 @@ public sealed class MacWindowPickTests
     }
 
     [Fact]
-    public void At_SkipsOwnProcess_SoTheTrailOverlayIsNeverTheTarget()
+    public void At_SkipsOwnOverlay_SoTheTrailIsNeverTheTarget()
     {
         var overlay = Window(1, pid: Own, Display, layer: 25);
         var app = Window(2, pid: 1, new MacRect(0, 0, 800, 600));
 
         Assert.Same(app, MacWindowPick.At([overlay, app], 10, 10, Own));
+    }
+
+    [Fact]
+    public void At_OwnNormalWindowIsATarget_LikeAnyOtherApp()
+    {
+        var settings = Window(1, pid: Own, new MacRect(100, 100, 900, 600));
+        var app = Window(2, pid: 1, Display);
+
+        Assert.Same(settings, MacWindowPick.At([settings, app], 200, 200, Own));
     }
 
     [Fact]

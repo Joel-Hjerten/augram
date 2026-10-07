@@ -9,15 +9,16 @@ internal static class MacWindowPick
     public const int NormalLayer = 0;
 
     /// <summary>
-    /// The frontmost window containing the point, skipping this process's own windows (the trail overlay covers the
-    /// screen during a stroke) and fully transparent ones. A window on a higher layer (the Dock, the menu bar) wins over
-    /// the normal window behind it, so a gesture there never acts on a window the user was not pointing at.
+    /// The frontmost window containing the point, skipping fully transparent windows and this process's windows above the
+    /// normal layer (the trail overlay covers the screen during a stroke; Augram's own settings window stays a target, as
+    /// on Windows). A window on a higher layer (the Dock, the menu bar) wins over the normal window behind it, so a
+    /// gesture there never acts on a window the user was not pointing at.
     /// </summary>
     public static MacWindowInfo? At(IEnumerable<MacWindowInfo> frontToBack, double x, double y, int ownProcessId)
     {
         ArgumentNullException.ThrowIfNull(frontToBack);
         return frontToBack.FirstOrDefault(window =>
-            window.ProcessId != ownProcessId
+            !(window.ProcessId == ownProcessId && window.Layer > NormalLayer)
             && window.Alpha > 0
             && !window.Bounds.IsEmpty
             && window.Bounds.Contains(x, y));
