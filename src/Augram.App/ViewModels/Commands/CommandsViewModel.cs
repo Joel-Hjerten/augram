@@ -83,8 +83,8 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     /// <summary>The new-section button: a category on the Global tab, an app group on the Apps tab.</summary>
     public string NewSectionLabel => Scope == CommandsScope.Global ? "New category" : "New group";
 
-    /// <summary>The Apps tab's platform filter toggle (F8 "Use on"); null on the Global tab, where everything applies everywhere.</summary>
-    public string? PlatformFilterLabel => Scope == CommandsScope.Apps ? "Show other platforms" : null;
+    /// <summary>The platform filter toggle (F8 "Use on"): app groups and commands not used here are hidden until it is on.</summary>
+    public string? PlatformFilterLabel => "Show other platforms";
 
     /// <summary>List the groups used only on the other platform too, greyed. Session state, like the expanded sections; off at start.</summary>
     [ObservableProperty]
@@ -207,6 +207,9 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 break;
             case CommandTreeAction.SetTriggerKind when e.Command is { } command && e.Kind is { } kind:
                 SetTriggerKind(command, kind);
+                break;
+            case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
+                UpdateCommand(command.Id, stored => stored with { UseOn = useOn });
                 break;
             case CommandTreeAction.SetCategory when e.Command is { } command && e.Category is { } category:
                 SetCategory(command, category.Id);

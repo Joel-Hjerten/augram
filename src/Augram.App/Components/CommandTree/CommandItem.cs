@@ -36,6 +36,12 @@ public sealed record CommandItem(
     /// <summary>What the header's Category dropdown offers, Uncategorized first; empty hides the dropdown.</summary>
     public IReadOnlyList<CategoryChoice> Categories { get; init; } = [];
 
+    /// <summary>Where the command takes part (F8 "Use on"), for the header's check boxes.</summary>
+    public PlatformSet UseOn { get; init; } = PlatformSet.All;
+
+    /// <summary>F8: not used on the platform Augram runs on; listed greyed only while the list shows other platforms.</summary>
+    public bool IsElsewhere { get; init; }
+
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
 
     public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
@@ -63,12 +69,16 @@ public sealed record CommandItem(
             triggerText,
             points,
             Summarise(group, command, here),
-            StepPlatformMarker.ForCommand(command.Steps, here))
+            command.IsUsedOn(here) ? StepPlatformMarker.ForCommand(command.Steps, here) : $"{StepPlatformMarker.Name(Other(here))} only")
         {
             Section = SectionId.ForGroup(group.Id),
             CategoryId = command.CategoryId,
+            UseOn = command.UseOn,
+            IsElsewhere = !command.IsUsedOn(here),
         };
     }
+
+    private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 
     private static string Summarise(AppGroup group, Command command, HostPlatform here) => command.Steps.Count switch
     {

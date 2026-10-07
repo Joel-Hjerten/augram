@@ -130,6 +130,11 @@ public static class MappingRules
             throw new MappingValidationException("A command needs a name.");
         }
 
+        if (command.UseOn == PlatformSet.None)
+        {
+            throw new MappingValidationException($"Use '{command.Name}' on at least one platform.");
+        }
+
         foreach (var other in others)
         {
             if (other.Id == command.Id)

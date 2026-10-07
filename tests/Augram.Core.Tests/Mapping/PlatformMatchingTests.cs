@@ -110,5 +110,35 @@ public sealed class PlatformMatchingTests
         Assert.Equal(json, ConfigSerializer.Write(new ConfigDocument { Mapping = back }));
     }
 
+    [Fact]
+    public void ACommandNotUsedHereIsAbsentHere_ItsTriggerFallsThroughToGlobal()
+    {
+        var closeTab = NewCommand("Close tab", Up) with { UseOn = PlatformSet.Windows };
+        var chrome = NewGroup("Chrome", ByProcess("chrome.exe"), closeTab);
+        var mapping = MappingRules.ValidDocument(new MappingDocument([NewGlobal(NewCommand("Close window", Up)), chrome], []));
+
+        Assert.Equal("Close tab", CommandResolver.Resolve(mapping, Window("chrome.exe"), Trigger.ForGesture(Up), Windows).Command!.Name);
+        var onMac = CommandResolver.Resolve(mapping, Window("Google Chrome"), Trigger.ForGesture(Up), Mac);
+        Assert.Equal("Close window", onMac.Command!.Name);
+        Assert.Equal("global", onMac.Reason);
+    }
+
+    [Fact]
+    public void ACommandMustBeUsedSomewhere_AndItsUseOnIsWrittenOnlyWhenSet()
+    {
+        var nowhere = NewGroup("Chrome", ByProcess("chrome.exe"), NewCommand("Close tab", Up) with { UseOn = PlatformSet.None });
+        var ex = Assert.Throws<MappingValidationException>(() => MappingRules.ValidDocument(new MappingDocument([NewGlobal(), nowhere], [])));
+        Assert.Equal("Use 'Close tab' on at least one platform.", ex.Message);
+
+        var mapping = MappingRules.ValidDocument(new MappingDocument([NewGlobal(NewCommand("Both", Up), NewCommand("Mac only", Down) with { UseOn = PlatformSet.MacOS })], []));
+        var json = ConfigSerializer.Write(new ConfigDocument { Mapping = mapping });
+        var back = ConfigSerializer.Read(json).Mapping;
+
+        Assert.Equal(1, Count(json, "\"useOn\""));
+        Assert.Contains("\"useOn\":[\"macos\"]", string.Concat(json.Where(c => !char.IsWhiteSpace(c))), StringComparison.Ordinal);
+        Assert.Equal(PlatformSet.MacOS, back.Global.Commands.Single(command => command.Name == "Mac only").UseOn);
+        Assert.Equal(PlatformSet.All, back.Global.Commands.Single(command => command.Name == "Both").UseOn);
+    }
+
     private static int Count(string text, string part) => (text.Length - text.Replace(part, string.Empty, StringComparison.Ordinal).Length) / part.Length;
 }

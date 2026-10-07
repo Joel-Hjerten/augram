@@ -1,3 +1,5 @@
+using Augram.Core.Mapping;
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
@@ -40,6 +42,10 @@ public sealed class CommandHeader : TemplatedControl
 
     private AskingDropdown? _kind;
     private AskingDropdown? _category;
+
+    private CheckBox? _useOnWindows;
+    private CheckBox? _useOnMac;
+    private bool _applying;
 
     public event EventHandler<CommandTreeActionEventArgs>? ActionRequested;
 
@@ -137,6 +143,10 @@ public sealed class CommandHeader : TemplatedControl
             });
         }
 
+        _useOnWindows = e.NameScope.Find<CheckBox>("PART_UseOnWindows");
+        _useOnMac = e.NameScope.Find<CheckBox>("PART_UseOnMac");
+        WireUseOn(_useOnWindows, HostPlatform.Windows);
+        WireUseOn(_useOnMac, HostPlatform.MacOS);
         Apply();
         if (e.NameScope.Find<Button>("PART_PickGesture") is { } pick)
         {
@@ -166,10 +176,53 @@ public sealed class CommandHeader : TemplatedControl
         }
     }
 
-    /// <summary>Puts both dropdowns on the command's real values.</summary>
+    /// <summary>What a Use on box does (F8): asks the host for the command's platforms with this one flipped; the boxes then show the answer.</summary>
+    public void ChooseUseOn(HostPlatform platform, bool used)
+    {
+        if (Item is { } item && item.UseOn.Includes(platform) != used)
+        {
+            ActionRequested?.Invoke(this, new CommandTreeActionEventArgs(CommandTreeAction.SetUseOn, command: item, useOn: item.UseOn.With(platform, used)));
+        }
+
+        Apply();
+    }
+
+    private void WireUseOn(CheckBox? box, HostPlatform platform)
+    {
+        if (box is not null)
+        {
+            box.IsCheckedChanged += (_, _) =>
+            {
+                if (!_applying)
+                {
+                    ChooseUseOn(platform, box.IsChecked == true);
+                }
+            };
+        }
+    }
+
+    /// <summary>Puts both dropdowns and the Use on boxes on the command's real values.</summary>
     private void Apply()
     {
         var item = Item;
+        _applying = true;
+        try
+        {
+            if (_useOnWindows is not null)
+            {
+                _useOnWindows.IsChecked = item?.UseOn.Includes(HostPlatform.Windows) ?? false;
+            }
+
+            if (_useOnMac is not null)
+            {
+                _useOnMac.IsChecked = item?.UseOn.Includes(HostPlatform.MacOS) ?? false;
+            }
+        }
+        finally
+        {
+            _applying = false;
+        }
+
         _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
         var choices = item?.Categories ?? [];
         _category?.Show([.. choices.Select(choice => choice.Name)], item is null ? -1 : IndexOfCategory(item));

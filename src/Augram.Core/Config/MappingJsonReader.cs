@@ -69,15 +69,15 @@ internal sealed class MappingJsonReader
     }
 
     /// <summary>F8 "Use on": absent is every platform; target names this version does not know (a later machine target) are passed over.</summary>
-    private static PlatformSet ReadUseOn(JsonObject group, string where)
+    private static PlatformSet ReadUseOn(JsonObject owner, string where)
     {
-        if (group["useOn"] is null)
+        if (owner["useOn"] is null)
         {
             return PlatformSet.All;
         }
 
         var set = PlatformSet.None;
-        foreach (var target in JsonMembers.OptionalStrings(group, "useOn", where))
+        foreach (var target in JsonMembers.OptionalStrings(owner, "useOn", where))
         {
             if (string.Equals(target, MappingJsonWriter.UseOnWindows, StringComparison.OrdinalIgnoreCase))
             {
@@ -132,7 +132,10 @@ internal sealed class MappingJsonReader
             JsonMembers.OptionalBool(command, "isActive", fallback: true, where),
             _steps.ReadAll(JsonMembers.OptionalArray(command, "steps", where), where),
             JsonMembers.OptionalString(command, "note", where),
-            ReadCategoryReference(command, where));
+            ReadCategoryReference(command, where))
+        {
+            UseOn = ReadUseOn(command, where),
+        };
     }
 
     /// <summary>Missing or null: Uncategorized. Not a Guid string: Uncategorized, with a notice.</summary>

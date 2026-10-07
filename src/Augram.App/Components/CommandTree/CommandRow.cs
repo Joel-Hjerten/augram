@@ -1,5 +1,7 @@
 using Augram.Core.Gestures;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Metadata;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -7,8 +9,10 @@ namespace Augram.App.Components.CommandTree;
 /// Lookless command row of the <see cref="CommandTree"/> (F5a): the gesture's glyph, or a trigger
 /// badge ("Wheel up", "No trigger") when there is no glyph to draw, the name (editable in place), the
 /// category tag when the item has one (an app group with categories), the step summary, the F8
-/// platform marker when the command has one, and the active toggle.
+/// platform marker when the command has one, and the active toggle. Marked <c>:elsewhere</c> for a command used only on the
+/// other platform (F8), listed while the list shows other platforms.
 /// </summary>
+[PseudoClasses(":elsewhere")]
 public sealed class CommandRow : ItemRow
 {
     public static readonly StyledProperty<CommandItem?> ItemProperty =
@@ -104,6 +108,7 @@ public sealed class CommandRow : ItemRow
             TriggerText = item?.TriggerText ?? string.Empty;
             SummaryText = item?.StepSummary ?? string.Empty;
             MarkerText = item?.PlatformMarker;
+            PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });
             CategoryText = item?.CategoryLabel;
             Points = item?.GlyphPoints;
             HasGlyph = item?.HasGlyph ?? false;

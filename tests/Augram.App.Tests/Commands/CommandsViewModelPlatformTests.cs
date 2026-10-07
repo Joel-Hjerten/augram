@@ -40,10 +40,39 @@ public sealed class CommandsViewModelPlatformTests
     }
 
     [AvaloniaFact]
-    public void OnlyTheAppsTabHasThePlatformFilter()
+    public void BothTabsHaveThePlatformFilter()
     {
         Assert.Equal("Show other platforms", Create().Vm.PlatformFilterLabel);
-        Assert.Null(Create(CommandsScope.Global).Vm.PlatformFilterLabel);
+        Assert.Equal("Show other platforms", Create(CommandsScope.Global).Vm.PlatformFilterLabel);
+    }
+
+    [AvaloniaFact]
+    public void ACommandNotUsedHereIsHidden_TheFilterShowsItGreyedWithItsPlatform()
+    {
+        var (vm, store, _, _) = Create(CommandsScope.Global, platform: HostPlatform.MacOS);
+        var minimize = Item(vm, "Minimize");
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetUseOn, Section(vm, "Window"), minimize, useOn: PlatformSet.Windows));
+
+        Assert.Equal(PlatformSet.Windows, Find(store, "Minimize").UseOn);
+        Assert.DoesNotContain(vm.Sections.SelectMany(section => section.Commands), command => command.Name == "Minimize");
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleOtherPlatforms));
+
+        var shown = Item(vm, "Minimize");
+        Assert.True(shown.IsElsewhere);
+        Assert.Equal("Windows only", shown.PlatformMarker);
+    }
+
+    [AvaloniaFact]
+    public void ACommandUsedNowhereIsRefusedWithTheRule()
+    {
+        var (vm, store, _, _) = Create(CommandsScope.Global);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetUseOn, Section(vm, "Window"), Item(vm, "Minimize"), useOn: PlatformSet.None));
+
+        Assert.Equal("Use 'Minimize' on at least one platform.", vm.Message);
+        Assert.Equal(PlatformSet.All, Find(store, "Minimize").UseOn);
     }
 
     [AvaloniaFact]

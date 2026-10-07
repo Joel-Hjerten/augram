@@ -1,3 +1,4 @@
+using Augram.Core.Mapping;
 using Augram.App.Components.CommandTree;
 using Augram.App.ViewModels.Commands;
 using Avalonia.Controls;
@@ -27,13 +28,31 @@ public sealed class CommandHeaderTests
         Assert.Equal("Close window", kind.Command!.Name);
         Assert.Equal((int)TriggerKind.Gesture, header.KindIndex);
 
-        Click(header.GetVisualDescendants().OfType<Button>().Single());
+        Click(header.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PART_PickGesture"));
         Assert.Equal(CommandTreeAction.PickGesture, actions[^1].Action);
 
         header.Item = null;
         Assert.False(header.HasCommand);
         Assert.Equal(-1, header.KindIndex);
         Assert.Equal(-1, header.CategoryIndex);
+    }
+
+    [AvaloniaFact]
+    public void UseOnBoxesAskForTheCommandsPlatformsAndShowTheCommandsRealOnes()
+    {
+        var (vm, _, _, _) = Create(CommandsScope.Global);
+        var (header, actions) = Show(Item(vm, "Close window"));
+        var windows = header.GetVisualDescendants().OfType<CheckBox>().Single(box => box.Name == "PART_UseOnWindows");
+        var mac = header.GetVisualDescendants().OfType<CheckBox>().Single(box => box.Name == "PART_UseOnMac");
+        Assert.True(windows.IsChecked);
+        Assert.True(mac.IsChecked);
+
+        mac.IsChecked = false;
+
+        var asked = Assert.Single(actions);
+        Assert.Equal(CommandTreeAction.SetUseOn, asked.Action);
+        Assert.Equal(PlatformSet.Windows, asked.UseOn);
+        Assert.True(mac.IsChecked);
     }
 
     [AvaloniaFact]

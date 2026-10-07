@@ -489,6 +489,9 @@
         <Style Selector="^:inactive /template/ TextBlock#PART_Name">
           <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
         </Style>
+        <Style Selector="^:elsewhere">
+          <Setter Property="Opacity" Value="0.55" />
+        </Style>
       </ControlTheme>
 
       <ControlTheme x:Key="{x:Type tree:CommandHeader}" TargetType="tree:CommandHeader">
@@ -519,6 +522,11 @@
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
                     <TextBlock Classes="field-label header-label" Text="Category" VerticalAlignment="Center" />
                     <ComboBox Name="PART_Category" Classes="field-editor" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                    <TextBlock Classes="field-label header-label" Text="Use on" VerticalAlignment="Center" />
+                    <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
+                    <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
                   </StackPanel>
                 </StackPanel>
               </Panel>

@@ -1,3 +1,4 @@
+using Augram.Core.Mapping;
 namespace Augram.App.Components.CommandTree;
 
 /// <summary>
@@ -12,8 +13,10 @@ public sealed class CommandTreeActionEventArgs : EventArgs
         CommandItem? command = null,
         string? name = null,
         TriggerKind? kind = null,
-        CategoryChoice? category = null)
+        CategoryChoice? category = null,
+        PlatformSet? useOn = null)
     {
+        UseOn = useOn;
         Action = action;
         Section = section;
         Command = command;
@@ -34,4 +37,7 @@ public sealed class CommandTreeActionEventArgs : EventArgs
     public TriggerKind? Kind { get; }
 
     public CategoryChoice? Category { get; }
+
+    /// <summary>The platforms a <see cref="CommandTreeAction.SetUseOn"/> asks for.</summary>
+    public PlatformSet? UseOn { get; }
 }

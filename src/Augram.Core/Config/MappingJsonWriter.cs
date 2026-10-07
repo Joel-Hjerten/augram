@@ -71,6 +71,7 @@ internal static class MappingJsonWriter
         writer.WriteString("name", command.Name);
         WriteTrigger(writer, command.Trigger);
         writer.WriteBoolean("isActive", command.IsActive);
+        WriteUseOn(writer, command.UseOn);
         if (command.CategoryId is { } category)
         {
             writer.WriteString("category", category.Value);

@@ -65,7 +65,7 @@ public sealed class CommandTreeTests
         var (global, _, _) = Show(CommandsScope.Global);
         Assert.Contains(global.GetVisualDescendants().OfType<Button>(), button => Equals(button.Content, "New category"));
         Assert.Contains(global.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Global commands");
-        Assert.False(global.GetVisualDescendants().OfType<ToggleButton>().Single(button => button.Name == "PART_OtherPlatforms").IsVisible);
+        Assert.True(global.GetVisualDescendants().OfType<ToggleButton>().Single(button => button.Name == "PART_OtherPlatforms").IsVisible);
     }
 
     [AvaloniaFact]

@@ -20,6 +20,14 @@ public sealed record Command(
     string? Note = null,
     CategoryId? CategoryId = null)
 {
+    /// <summary>
+    /// Where the command takes part (F8 "Use on", Joel 2026-10-07): both by default. A command not used on a platform is
+    /// absent there, so its trigger falls through as if it did not exist (an app group's to Global).
+    /// </summary>
+    public PlatformSet UseOn { get; init; } = PlatformSet.All;
+
+    public bool IsUsedOn(Abstractions.HostPlatform platform) => UseOn.Includes(platform);
+
     /// <summary>No steps: in an app group this shadows the global command for the same trigger with nothing.</summary>
     public bool IsOverrideToNothing => Steps.Count == 0;
 

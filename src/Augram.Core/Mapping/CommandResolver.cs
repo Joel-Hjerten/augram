@@ -6,7 +6,7 @@ namespace Augram.Core.Mapping;
 /// Which command a trigger fires over a window (F5: global, then app override, then override to
 /// nothing; plan 0001 M2 step 1). Pure: a document snapshot and the platform it runs on in, a resolution out; the
 /// engine calls it on its worker with the snapshot it was last handed. Inactive groups, commands and ignored apps,
-/// and app groups not used on this platform (F8 "Use on"), are invisible here; matchers match on this platform's
+/// and app groups and commands not used on this platform (F8 "Use on"), are invisible here; matchers match on this platform's
 /// executable names or their known-app guess. The rule, in order:
 /// <list type="number">
 /// <item>the window belongs to an active ignored app → <see cref="ResolutionOutcome.Ignored"/>;</item>
@@ -39,7 +39,7 @@ public static class CommandResolver
         var group = FindGroup(mapping, target, platform);
         if (group is not null)
         {
-            var command = ActiveCommandFor(group, trigger);
+            var command = ActiveCommandFor(group, trigger, platform);
             if (command is not null)
             {
                 return CommandResolution.Matched(group, command, command.IsOverrideToNothing
@@ -59,7 +59,7 @@ public static class CommandResolver
             return CommandResolution.None("the Global group is inactive");
         }
 
-        var globalCommand = ActiveCommandFor(global, trigger);
+        var globalCommand = ActiveCommandFor(global, trigger, platform);
         return globalCommand is not null
             ? CommandResolution.Matched(global, globalCommand, "global")
             : CommandResolution.None($"no command for {trigger.Describe()}");
@@ -105,11 +105,11 @@ public static class CommandResolver
         return null;
     }
 
-    private static Command? ActiveCommandFor(AppGroup group, Trigger trigger)
+    private static Command? ActiveCommandFor(AppGroup group, Trigger trigger, HostPlatform platform)
     {
         foreach (var command in group.Commands)
         {
-            if (command.IsActive && command.Trigger == trigger)
+            if (command.IsActive && command.IsUsedOn(platform) && command.Trigger == trigger)
             {
                 return command;
             }
