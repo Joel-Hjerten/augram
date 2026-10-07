@@ -11,7 +11,7 @@ namespace Augram.App.Components.GestureGrid;
 /// one <see cref="GestureGridActionEventArgs"/> out per user intent. The template supplies
 /// <c>PART_Tiles</c> (a <see cref="ListBox"/> the tiles live in), the toolbar buttons <c>PART_New</c>,
 /// <c>PART_Import</c>, <c>PART_Undo</c>, <c>PART_Redo</c>, and binds <see cref="Message"/> (rule
-/// feedback) and <see cref="Diagnostic"/> (the A7 "likely to be confused" line). Selecting a tile marks
+/// feedback). Selecting a tile marks
 /// its confusion partners with their score. Selection survives a rebuild by gesture id. Right-click selects before the context menu opens; double-click redraws.
 /// </summary>
 public sealed class GestureGrid : TemplatedControl
@@ -30,9 +30,6 @@ public sealed class GestureGrid : TemplatedControl
 
     public static readonly StyledProperty<string?> MessageProperty =
         AvaloniaProperty.Register<GestureGrid, string?>(nameof(Message));
-
-    public static readonly StyledProperty<string?> DiagnosticProperty =
-        AvaloniaProperty.Register<GestureGrid, string?>(nameof(Diagnostic));
 
     private ListBox? _list;
     private GestureId? _selectedId;
@@ -68,12 +65,6 @@ public sealed class GestureGrid : TemplatedControl
     {
         get => GetValue(MessageProperty);
         set => SetValue(MessageProperty, value);
-    }
-
-    public string? Diagnostic
-    {
-        get => GetValue(DiagnosticProperty);
-        set => SetValue(DiagnosticProperty, value);
     }
 
     public GestureTileItem? SelectedTile => (_list?.SelectedItem as GestureTile)?.Item;

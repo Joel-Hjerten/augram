@@ -25,7 +25,6 @@ public static class GesturesScreen
         grid.Bind(GestureGrid.CanUndoProperty, new Binding(nameof(GesturesViewModel.CanUndo)));
         grid.Bind(GestureGrid.CanRedoProperty, new Binding(nameof(GesturesViewModel.CanRedo)));
         grid.Bind(GestureGrid.MessageProperty, new Binding(nameof(GesturesViewModel.Message)));
-        grid.Bind(GestureGrid.DiagnosticProperty, new Binding(nameof(GesturesViewModel.Diagnostic)));
         grid.ActionRequested += (_, e) => vm.Handle(e);
         return grid;
     }

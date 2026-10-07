@@ -257,7 +257,6 @@
                         Padding="{StaticResource Pad.S}">
                   <StackPanel Spacing="{StaticResource Space.XS}">
                     <TextBlock Classes="note" Text="{TemplateBinding Message}" IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                    <TextBlock Classes="diagnostic" Text="{TemplateBinding Diagnostic}" IsVisible="{TemplateBinding Diagnostic, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <TextBlock Classes="help" Text="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
                   </StackPanel>
                 </Border>
@@ -380,11 +379,6 @@
     <Setter Property="CornerRadius" Value="0" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="Padding" Value="{StaticResource Pad.S}" />
-  </Style>
-  <Style Selector="TextBlock.diagnostic">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
-    <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <Style Selector="Border.tile-partner">
     <Setter Property="Background" Value="{StaticResource Brush.Surface}" />

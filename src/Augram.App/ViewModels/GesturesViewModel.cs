@@ -1,4 +1,3 @@
-using System.Globalization;
 using Augram.App.Components.GestureGrid;
 using Augram.App.Import;
 using Augram.App.Training;
@@ -11,8 +10,8 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// The Gestures tab's projection over <see cref="GestureLibrary"/> (F3, F4, F5a, A7): tiles sorted by
-/// name with their A7 confusion partners, undo/redo availability, the A7 "likely to be confused" line
-/// (recomputed, debounced, after every library change; tiles are re-projected with it) and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
+/// name with their A7 confusion partners (recomputed, debounced, after every library change; the
+/// tiles outline exact duplicates and light up partners on select), undo/redo availability and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
 /// a store call. Rules live in the library and <see cref="ConfusionCheck"/>; this only shows outcomes.
 /// </summary>
 public sealed partial class GesturesViewModel : ObservableObject, IDisposable
@@ -58,10 +57,6 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial IReadOnlyList<ConfusionPair> ConfusionPairs { get; private set; } = [];
 
-    /// <summary>The A7 line under the grid; null when no two active gestures confuse the recognizer.</summary>
-    [ObservableProperty]
-    public partial string? Diagnostic { get; private set; }
-
     public void Handle(GestureGridActionEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
@@ -76,16 +71,12 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Recomputes the confusion line now (the timer calls this after the debounce).</summary>
+    /// <summary>Recomputes the confusion pairs now and re-projects the tiles with them (the timer calls this after the debounce).</summary>
     public void RefreshDiagnostic()
     {
         _diagnosticTimer.Stop();
         ConfusionPairs = ConfusionCheck.Find(_library.All, _options());
         Project();
-        Diagnostic = ConfusionPairs.Count == 0
-            ? null
-            : "Likely to be confused: " + string.Join(" · ", ConfusionPairs.Select(pair =>
-                string.Create(CultureInfo.InvariantCulture, $"{pair.FirstName} and {pair.SecondName} ({Math.Round(pair.Score)}%)")));
     }
 
     public void Dispose()

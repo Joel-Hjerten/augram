@@ -102,7 +102,7 @@ public sealed class GesturesViewModelTests
     }
 
     [AvaloniaFact]
-    public void DiagnosticListsPairsLikelyToBeConfused()
+    public void ConfusionPairsOutlineExactDuplicatesOnTheirTiles()
     {
         var (vm, library, _, _) = Create();
         var before = vm.ConfusionPairs.Count;
@@ -114,8 +114,6 @@ public sealed class GesturesViewModelTests
         Assert.Equal(before + 1, vm.ConfusionPairs.Count);
         var pair = vm.ConfusionPairs.Single(p => p.SecondName == "Up twin" || p.FirstName == "Up twin");
         Assert.Equal(new HashSet<string> { "Up", "Up twin" }, new HashSet<string> { pair.FirstName, pair.SecondName });
-        Assert.StartsWith("Likely to be confused: ", vm.Diagnostic, StringComparison.Ordinal);
-        Assert.Contains("Up twin", vm.Diagnostic, StringComparison.Ordinal);
         var twin = vm.Tiles.Single(t => t.Name == "Up twin");
         Assert.Equal(DuplicateTier.Exact, twin.Tier);
         Assert.Equal("Up", Assert.Single(twin.Partners).Name);
