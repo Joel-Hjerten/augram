@@ -1,6 +1,6 @@
-using Augram.Core.Mapping;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;

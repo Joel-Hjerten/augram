@@ -1,6 +1,6 @@
-using Augram.Core.Mapping;
 using Augram.App.Components.CommandTree;
 using Augram.App.ViewModels.Commands;
+using Augram.Core.Mapping;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
