@@ -54,6 +54,7 @@ Commands and steps: Core/Mapping (AppGroup, Command, CommandResolver with overri
 - **Vocabulary is fixed:** app group › command › step; the command-line step type is `Run`; never "action".
 - **Tile layout must not move on selection:** the tile frame is a constant 2 px and only its colour changes; the partner score overlays the glyph. A 1 px border change shifted the whole grid and Joel noticed.
 - **CI is red → fix before moving on.** `node scripts/ci-status.mjs` names the failing tests. Runner-specific traps so far: desktop-dependent tests (skip when `GITHUB_ACTIONS` is set) and the act-then-log ordering above.
+- **Watch item (2026-10-07):** `EngineKeyCaptureTests.ARunningEngineCapturesAndEveryEventIsMarshalled` timed out once ("timed out waiting for the marshalled key", 5 s) on commit 167f031; the next two runs with the same code were green and the capture path has no ordering race (arming is synchronous under a lock; the key goes to the worker's channel as a non-critical write). Which runner (Windows or macOS) failed was not established. If it recurs, check whether the worker channel dropped the non-critical `KeyCaptured` write (`InputGate.Post` counts drops) before raising the timeout.
 
 ## 7. Working with subagents (what worked)
 
