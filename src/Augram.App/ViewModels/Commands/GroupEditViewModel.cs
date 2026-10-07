@@ -70,6 +70,11 @@ public sealed partial class GroupEditViewModel : ObservableObject
         return existing with { Name = Name, IsActive = IsActive, SuppressGlobals = SuppressGlobals, Matcher = Matcher() };
     }
 
+    /// <summary>The examples follow the platform: the executable's file name is "chrome.exe" on Windows and "Google Chrome" on macOS (the log's process= shows it).</summary>
+    public static string ProcessNamesHelp => OperatingSystem.IsMacOS()
+        ? "Comma-separated; any of them matches. The app's executable name, as the log shows it after process=: Google Chrome, Safari"
+        : "Comma-separated; any of them matches: chrome.exe, msedge.exe";
+
     public FormScreen Declare() => new("App group",
     [
         new Section("App group",
@@ -80,7 +85,7 @@ public sealed partial class GroupEditViewModel : ObservableObject
         ]),
         new Section("App identification",
         [
-            new TextField("Executable names", new DelegateBinding<string>(() => ProcessNames, value => ProcessNames = value, this), "Comma-separated; any of them matches: chrome.exe, msedge.exe"),
+            new TextField("Executable names", new DelegateBinding<string>(() => ProcessNames, value => ProcessNames = value, this), ProcessNamesHelp),
             new TextField("Window title", new DelegateBinding<string>(() => WindowTitle, value => WindowTitle = value, this), "Exact, case-insensitive, unless the toggle below makes it a pattern."),
             new ToggleField("Title is a regular expression", new DelegateBinding<bool>(() => TitleIsRegex, value => TitleIsRegex = value, this)),
             new NoteField("Pick a window", "A crosshair that fills these fields from a window on screen comes in a later slice; type the executable name for now."),
