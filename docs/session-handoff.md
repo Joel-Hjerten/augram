@@ -1,6 +1,6 @@
-# Agent handoff — Augram, M1 accepted, M2 next (updated 2026-10-07 02:50)
+# Agent handoff — Augram, M1 accepted, M2 under way, macOS port started (updated 2026-10-07 17:00)
 
-You are picking up a project whose first runnable milestone is built and accepted by Joel. Everything decided is in the docs; this file tells you the state, the order to read things, what to do next, and the rules that came from mistakes. Joel works on his **Windows 11 PC**; the Mac comes later and is already wired for it (section 8).
+You are picking up a project whose first runnable milestone is built and accepted by Joel. Everything decided is in the docs; this file tells you the state, the order to read things, what to do next, and the rules that came from mistakes. Joel works on his **Windows 11 PC** and, since 2026-10-07, on his **Mac** too (sections 8 and 8a).
 
 ## 1. Read in this order (30 minutes)
 
@@ -14,7 +14,7 @@ You are picking up a project whose first runnable milestone is built and accepte
 
 ## 2. State of the code (main, after tag `m1` plus the 2026-10-07 acceptance fixes)
 
-Solution `Augram.slnx`, .NET 10, Avalonia 11.3.22, SharpHook 7.1.3. `dotnet build`, `dotnet test`, `dotnet format --verify-no-changes` are all green (487 tests); CI (`.github/workflows/ci.yml`, windows-latest) runs on every push and `node scripts/ci-status.mjs` prints recent runs with failing test names.
+Solution `Augram.slnx`, .NET 10, Avalonia 11.3.22, SharpHook 7.1.3. `dotnet build`, `dotnet test`, `dotnet format --verify-no-changes` are all green on Windows and macOS (1078 tests on 2026-10-07: Core 714, App 228, Engine 117, Platform.MacOS 19, plus Platform.Windows on Windows only); CI (`.github/workflows/ci.yml`, windows-latest and macos-latest) runs on every push and `node scripts/ci-status.mjs` prints recent runs with failing test names.
 
 | Project | What is there | Tests |
 |---|---|---|
@@ -77,7 +77,22 @@ macOS traps found that day (each fixed, with a code comment where it lives):
 
 Open: D6 (maximize = fill the visible frame, working choice; Joel has used it), the placement operations, an app bundle (Accessibility is granted to VS Code while launched from it), start at login, system events.
 
+## 8b. Commands tab changes from Joel's Mac session (2026-10-07)
+
+All recorded in requirements.md (F5a lines) and `src/Augram.App/README.md`; listed here so a new agent does not undo them:
+- Selecting an app group shows its form (name, active, suppress globals, executable names, title) in the side panel; edits apply at once, one undo step each. The right-click "Edit app definition…" is gone; New group… still uses the dialog.
+- A click anywhere on a section header toggles it; a double click on any row renames it (a header's double click puts its toggle back); F2 or Enter renames on Windows, Return on macOS; a rebuild keeps keyboard focus on the selected row.
+- A click outside a focused text box accepts it and takes the focus, in every window (`Views/ClickAwayFocus`); in-place renames commit on leaving, Escape reverts.
+- No Undo/Redo buttons on the Global and Apps lists (deletes of groups, categories and commands ask first); Ctrl/Cmd+Z still undoes. The Gestures tab still has its buttons.
+- Hotkeys read with the platform's key names (Cmd, Opt, Ctrl, Shift on macOS; words, not symbols); display only.
+- Executable names on macOS are the executable's file name (`Google Chrome`); a per-app command overrides the global one on the same gesture without "Suppress global commands" (verified by Joel with Chrome's Close Tab over the global Close).
+
 ## 9. Open questions for Joel
 
 - May Joel's 105 gestures be copied into the public repo as a test fixture? Not asked yet; do not do it without his yes.
 - Avalonia 12 / SharpHook 8 upgrade: deferred to the start of M2 or later; nothing blocks on it.
+- **Tray click on macOS** (asked 2026-10-07, no answer yet): 1) Windows behaviour via a native NSStatusItem (single click toggles, double opens, right-click menu; recommended), 2) Mac convention (click opens the menu, first item toggles), 3) click opens the menu, Option-click toggles. Today Avalonia's tray on macOS opens the menu on every click.
+- **F8 conversion of Windows-authored hotkeys** (proposed, not decided): Ctrl → Cmd, Alt → Opt, Shift stays, Win combos marked "needs a Mac version" (A18). Matters as soon as Joel's imported SP.net commands run on the Mac; app groups' `.exe` names need Mac names the same way.
+- **D6** maximize = fill the visible frame and restore (working choice; Joel has used it without objecting).
+- Gestures tab Undo/Redo buttons: keep or drop like the Commands lists? Keyboard undo on the Commands lists: kept; Joel may want it gone.
+- Next Mac slices offered: Close (built, untested), Center / snap halves / set size, an `Augram.app` bundle (own Accessibility grant, start at login).
