@@ -54,11 +54,10 @@ public sealed class CommandTreeTests
 
         Click(buttons["New group…"]);
         Click(buttons["New command"]);
-        Click(buttons["Undo"]);
-        Click(buttons["Redo"]);
         Click(tree.Rows.OfType<SectionRow>().Last().GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("expander")));
 
-        Assert.Equal([CommandTreeAction.NewSection, CommandTreeAction.NewCommand, CommandTreeAction.Undo, CommandTreeAction.Redo, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
+        Assert.Equal([CommandTreeAction.NewSection, CommandTreeAction.NewCommand, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
+        Assert.Equal(["New group…", "New command"], buttons.Keys);
         Assert.Equal("Photoshop", actions[^1].Section!.Name);
 
         var (global, _, _) = Show(CommandsScope.Global);

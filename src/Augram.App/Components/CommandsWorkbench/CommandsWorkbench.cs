@@ -44,12 +44,6 @@ public sealed class CommandsWorkbench : TemplatedControl
     public static readonly StyledProperty<IReadOnlyList<IStepType>> StepTypesProperty =
         AvaloniaProperty.Register<CommandsWorkbench, IReadOnlyList<IStepType>>(nameof(StepTypes), []);
 
-    public static readonly StyledProperty<bool> CanUndoProperty =
-        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(CanUndo));
-
-    public static readonly StyledProperty<bool> CanRedoProperty =
-        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(CanRedo));
-
     public static readonly StyledProperty<string?> MessageProperty =
         AvaloniaProperty.Register<CommandsWorkbench, string?>(nameof(Message));
 
@@ -118,18 +112,6 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         get => GetValue(StepTypesProperty);
         set => SetValue(StepTypesProperty, value);
-    }
-
-    public bool CanUndo
-    {
-        get => GetValue(CanUndoProperty);
-        set => SetValue(CanUndoProperty, value);
-    }
-
-    public bool CanRedo
-    {
-        get => GetValue(CanRedoProperty);
-        set => SetValue(CanRedoProperty, value);
     }
 
     /// <summary>Rule messages and feedback ("Deleted 'X'. Ctrl+Z undoes it.").</summary>

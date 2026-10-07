@@ -338,8 +338,6 @@
                                   Sections="{TemplateBinding Sections}"
                                   SelectedSectionId="{TemplateBinding SelectedSectionId}"
                                   SelectedCommandId="{TemplateBinding SelectedCommandId}"
-                                  CanUndo="{TemplateBinding CanUndo}"
-                                  CanRedo="{TemplateBinding CanRedo}"
                                   Heading="{TemplateBinding TreeHeading}"
                                   NewSectionLabel="{TemplateBinding NewSectionLabel}"
                                   HelpText="{TemplateBinding TreeHelp}" />
@@ -380,8 +378,6 @@
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                       <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
                       <Button Name="PART_NewCommand" Classes="toolbar" Content="New command" />
-                      <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
-                      <Button Name="PART_Redo" Classes="toolbar" Content="Redo" IsEnabled="{TemplateBinding CanRedo}" />
                     </StackPanel>
                   </StackPanel>
                 </Border>

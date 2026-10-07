@@ -85,8 +85,8 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 
     /// <summary>The help line under the tree.</summary>
     public string Help => Scope == CommandsScope.Global
-        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories; Uncategorized holds the rest. Right-click a row for the menu; rename with the rename key. Deleting asks first; Undo brings it back."
-        : "One section per app group; its commands win over Global in that app. Right-click a row for the menu; rename with the rename key. Deleting a group or a command asks first; Undo brings it back.";
+        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories; Uncategorized holds the rest. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
+        : "One section per app group; its commands win over Global in that app. Right-click a row for the menu; rename with the rename key. Deleting a group or a command asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
 
     [ObservableProperty]
     public partial IReadOnlyList<SectionItem> Sections { get; private set; } = [];

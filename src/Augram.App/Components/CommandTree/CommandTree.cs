@@ -13,8 +13,8 @@ namespace Augram.App.Components.CommandTree;
 /// <see cref="CommandTreeActionEventArgs"/> out per user intent. Rendered as one flat list
 /// (<c>PART_Rows</c>, built by <see cref="CommandTreeRows"/>) of <see cref="SectionRow"/>s with a
 /// <see cref="CommandRow"/> under each expanded section; the toolbar buttons <c>PART_NewSection</c>
-/// (labelled <see cref="NewSectionLabel"/>), <c>PART_NewCommand</c>, <c>PART_Undo</c>, <c>PART_Redo</c>,
-/// the right-click menu and the keymap all end in that event. It never asks which tab it is on: each
+/// (labelled <see cref="NewSectionLabel"/>) and <c>PART_NewCommand</c>, the right-click menu and the keymap
+/// (undo and redo are keys only since 2026-10-07: deletes ask first) all end in that event. It never asks which tab it is on: each
 /// <see cref="SectionItem"/> says what its header can do and the host supplies the words. Selection
 /// follows <see cref="SelectedCommandId"/> / <see cref="SelectedSectionId"/> from the host and survives a
 /// rebuild; a user click raises <see cref="CommandTreeAction.Select"/>.
@@ -32,12 +32,6 @@ public sealed class CommandTree : TemplatedControl
 
     public static readonly StyledProperty<SectionId?> SelectedSectionIdProperty =
         AvaloniaProperty.Register<CommandTree, SectionId?>(nameof(SelectedSectionId));
-
-    public static readonly StyledProperty<bool> CanUndoProperty =
-        AvaloniaProperty.Register<CommandTree, bool>(nameof(CanUndo));
-
-    public static readonly StyledProperty<bool> CanRedoProperty =
-        AvaloniaProperty.Register<CommandTree, bool>(nameof(CanRedo));
 
     public static readonly StyledProperty<string> HeadingProperty =
         AvaloniaProperty.Register<CommandTree, string>(nameof(Heading), "Commands");
@@ -77,18 +71,6 @@ public sealed class CommandTree : TemplatedControl
     {
         get => GetValue(SelectedSectionIdProperty);
         set => SetValue(SelectedSectionIdProperty, value);
-    }
-
-    public bool CanUndo
-    {
-        get => GetValue(CanUndoProperty);
-        set => SetValue(CanUndoProperty, value);
-    }
-
-    public bool CanRedo
-    {
-        get => GetValue(CanRedoProperty);
-        set => SetValue(CanRedoProperty, value);
     }
 
     /// <summary>The title above the toolbar ("Global commands", "App groups").</summary>
@@ -155,8 +137,6 @@ public sealed class CommandTree : TemplatedControl
 
         Wire(e, "PART_NewSection", CommandTreeAction.NewSection);
         Wire(e, "PART_NewCommand", CommandTreeAction.NewCommand);
-        Wire(e, "PART_Undo", CommandTreeAction.Undo);
-        Wire(e, "PART_Redo", CommandTreeAction.Redo);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
