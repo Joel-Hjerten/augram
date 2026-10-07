@@ -18,3 +18,6 @@ Thumbs.db
 
 # Local stroke recordings (spike output)
 strokes/
+
+# Claude Code agent worktrees (isolated subagent checkouts; merged by branch, never committed)
+.claude/worktrees/
