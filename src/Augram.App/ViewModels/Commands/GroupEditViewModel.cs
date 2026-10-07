@@ -89,9 +89,9 @@ public sealed partial class GroupEditViewModel : ObservableObject
         return existing with { Name = Name, IsActive = IsActive, SuppressGlobals = SuppressGlobals, Matcher = Matcher() };
     }
 
-    /// <summary>The examples follow the platform: the executable's file name is "chrome.exe" on Windows and "Google Chrome" on macOS (the log's process= shows it).</summary>
+    /// <summary>The examples follow the platform: the executable's file name is "chrome.exe" on Windows and "Google Chrome" on macOS (Diagnostics and the log show it for each gesture).</summary>
     public static string ProcessNamesHelp => OperatingSystem.IsMacOS()
-        ? "Comma-separated; any of them matches. The app's executable name, as the log shows it after process=: Google Chrome, Safari"
+        ? "Comma-separated; any of them matches. The app's executable name, for example: Google Chrome, Safari"
         : "Comma-separated; any of them matches: chrome.exe, msedge.exe";
 
     public FormScreen Declare() => new("App group",
