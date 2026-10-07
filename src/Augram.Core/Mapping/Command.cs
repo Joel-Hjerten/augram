@@ -7,7 +7,8 @@ namespace Augram.Core.Mapping;
 /// An empty step list in an app group is the "override to nothing" in daily use in the reference
 /// config (F5: Steam games ignore the global Close). Inactive commands stay in the list and are
 /// invisible to the resolver. <paramref name="Note"/> is free text shown read-only; the importer keeps
-/// a script-only SP.net action's script there. Immutable: a change is a new record committed through
+/// a script-only SP.net action's script there. <paramref name="CategoryId"/> is the section of its group
+/// it is sorted into (<see cref="AppGroup.Categories"/>); null is "Uncategorized". Immutable: a change is a new record committed through
 /// <see cref="MappingStore"/>.
 /// </summary>
 public sealed record Command(
@@ -16,7 +17,8 @@ public sealed record Command(
     Trigger Trigger,
     bool IsActive,
     IReadOnlyList<CommandStep> Steps,
-    string? Note = null)
+    string? Note = null,
+    CategoryId? CategoryId = null)
 {
     /// <summary>No steps: in an app group this shadows the global command for the same trigger with nothing.</summary>
     public bool IsOverrideToNothing => Steps.Count == 0;
