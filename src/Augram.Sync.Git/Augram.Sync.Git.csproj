@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Depends on Core only. No package references: the installed git is driven through System.Diagnostics.Process. -->
+  <ItemGroup>
+    <ProjectReference Include="../Augram.Core/Augram.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Augram.Sync.Git.Tests" />
+  </ItemGroup>
+</Project>

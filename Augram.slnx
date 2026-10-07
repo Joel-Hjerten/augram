@@ -6,6 +6,7 @@
     <Project Path="src/Augram.Platform.MacOS/Augram.Platform.MacOS.csproj" />
     <Project Path="src/Augram.App/Augram.App.csproj" />
     <Project Path="src/Augram.Import.StrokesPlus/Augram.Import.StrokesPlus.csproj" />
+    <Project Path="src/Augram.Sync.Git/Augram.Sync.Git.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Augram.Core.Tests/Augram.Core.Tests.csproj" />
@@ -13,5 +14,6 @@
     <Project Path="tests/Augram.Platform.MacOS.Tests/Augram.Platform.MacOS.Tests.csproj" />
     <Project Path="tests/Augram.Platform.Windows.Tests/Augram.Platform.Windows.Tests.csproj" />
     <Project Path="tests/Augram.App.Tests/Augram.App.Tests.csproj" />
+    <Project Path="tests/Augram.Sync.Git.Tests/Augram.Sync.Git.Tests.csproj" />
   </Folder>
 </Solution>

@@ -4,8 +4,6 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Augram.Core/Augram.Core.csproj" />
-    <ProjectReference Include="../../src/Augram.Import.StrokesPlus/Augram.Import.StrokesPlus.csproj" />
     <ProjectReference Include="../../src/Augram.Sync.Git/Augram.Sync.Git.csproj" />
   </ItemGroup>
   <ItemGroup>
