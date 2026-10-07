@@ -20,4 +20,7 @@ public enum SyncRepairKind
 
     /// <summary>The category's app group is gone, so the category was dropped.</summary>
     CategoryDropped,
+
+    /// <summary>A command's own steps arrived for a command that is gone, so they were dropped (F8).</summary>
+    OwnStepsDropped,
 }

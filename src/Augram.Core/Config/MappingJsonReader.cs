@@ -149,8 +149,13 @@ internal sealed class MappingJsonReader
             return null;
         }
 
-        var what = $"the own version of {where}";
-        var own = JsonMembers.RequireObject(command["ownVersion"], what);
+        return ReadOwnVersion(command["ownVersion"], $"the own version of {where}");
+    }
+
+    /// <summary>An own version object as <see cref="MappingJsonWriter.WriteOwnVersion"/> writes it.</summary>
+    public CommandVersion ReadOwnVersion(JsonNode? node, string what)
+    {
+        var own = JsonMembers.RequireObject(node, what);
         var changedAt = JsonMembers.OptionalString(own, "changedAt", what);
         return new CommandVersion(
             JsonMembers.OptionalEnum(own, "platform", HostPlatform.MacOS, what),

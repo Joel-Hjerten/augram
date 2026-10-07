@@ -29,7 +29,8 @@ A document splits into items keyed by kind + id. Each item's `Content` is its JS
 | gesture | `GestureId` | the gesture as in `gestures` |
 | group | `GroupId` | the group header: name, active, suppress globals, matcher; no categories, no commands |
 | category | group id + `CategoryId` (category ids are unique per group only) | `{ "group", "id", "name" }` |
-| command | `CommandId` | `{ "group": <id>, "command": { … } }`: moving a command to another group is a change of the command |
+| command | `CommandId` | `{ "group": <id>, "command": { … } }`: moving a command to another group is a change of the command; without its own version |
+| own steps (`version:`) | the command's `CommandId` | `{ "command": <id>, "version": { "platform", "basedOn", "changedAt", "steps" } }` (F8, 2026-10-07): a command's own steps for the platform it was not authored on, apart from the command so the original changing on one machine and the own steps on the other merge without a conflict; the rebuild puts them back on their command and drops them, with a repair line (`OwnStepsDropped`), when the command is gone; counted as a command change in the log |
 | ignored app | its id | the ignored app as in `ignored` |
 
 Moving a category to another group is a delete in one group and an add in the other. Gesture order is not synced (it is not an item property).

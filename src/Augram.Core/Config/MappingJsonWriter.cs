@@ -87,14 +87,21 @@ internal static class MappingJsonWriter
         if (command.OwnVersion is { } own)
         {
             // F8: the steps of the platform the command was not authored on; absent while that platform runs the converted original.
-            writer.WriteStartObject("ownVersion");
-            writer.WriteString("platform", own.Platform.ToString());
-            writer.WriteString("basedOn", own.BasedOn);
-            writer.WriteString("changedAt", own.ChangedAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture));
-            WriteSteps(writer, own.Steps);
-            writer.WriteEndObject();
+            writer.WritePropertyName("ownVersion");
+            WriteOwnVersion(writer, own);
         }
 
+        writer.WriteEndObject();
+    }
+
+    /// <summary>An own version as an object value (the caller writes the property name, if any).</summary>
+    public static void WriteOwnVersion(Utf8JsonWriter writer, CommandVersion own)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("platform", own.Platform.ToString());
+        writer.WriteString("basedOn", own.BasedOn);
+        writer.WriteString("changedAt", own.ChangedAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture));
+        WriteSteps(writer, own.Steps);
         writer.WriteEndObject();
     }
 

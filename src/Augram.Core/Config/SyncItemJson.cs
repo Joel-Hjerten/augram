@@ -49,6 +49,24 @@ internal static class SyncItemJson
 
     public static string Ignored(IgnoredApp app) => Write(writer => MappingJsonWriter.WriteIgnored(writer, app));
 
+    /// <summary>A command's own version with the command's id: <c>{ "command": "&lt;id&gt;", "version": { … } }</c>.</summary>
+    public static string Version(CommandId commandId, CommandVersion version)
+        => Write(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteString("command", commandId.Value);
+            writer.WritePropertyName("version");
+            MappingJsonWriter.WriteOwnVersion(writer, version);
+            writer.WriteEndObject();
+        });
+
+    public static (CommandId Command, CommandVersion Version) ReadVersion(string content, StepRegistry steps)
+    {
+        var item = Parse(content, "An own-steps item");
+        var command = new CommandId(JsonMembers.RequireGuid(item, "command", "an own-steps item"));
+        return (command, new MappingJsonReader(steps, notice: null).ReadOwnVersion(item["version"], "the steps of an own-steps item"));
+    }
+
     /// <exception cref="ConfigFormatException">The text is not a gesture.</exception>
     public static Gesture ReadGesture(string content)
     {

@@ -10,7 +10,8 @@ namespace Augram.Core.Sync;
 /// from the other side, or displaced by the merge) are the ones renamed " (2)" or unbound. A command whose
 /// group is gone moves into Global; a gesture trigger is cleared when the merge removed the gesture (or the
 /// command is incoming); a category reference is cleared when the category is gone; a category whose group
-/// is gone is dropped. Gestures keep the order of <c>merged</c>.
+/// is gone is dropped; a command's own version (F8) goes back onto its command, and is dropped when the command is gone.
+/// Gestures keep the order of <c>merged</c>.
 /// </summary>
 internal static class SyncDocumentBuilder
 {
@@ -23,9 +24,14 @@ internal static class SyncDocumentBuilder
         var commands = new CommandPlacement(groups, categories, gestures.Select(gesture => gesture.Id).ToHashSet(), before, repairs)
             .Place(merged.OfType<SyncItem.CommandItem>(), incoming);
         var ignored = merged.OfType<SyncItem.IgnoredItem>().Select(item => item.App).ToArray();
+        var versions = Versions(merged.OfType<SyncItem.VersionItem>().ToArray(), commands, repairs);
 
         var document = new MappingDocument(
-            groups.Select(group => group with { Categories = categories[group.Id], Commands = commands[group.Id] }).ToArray(),
+            groups.Select(group => group with
+            {
+                Categories = categories[group.Id],
+                Commands = [.. commands[group.Id].Select(command => versions.TryGetValue(command.Id, out var own) ? command with { OwnVersion = own } : command)],
+            }).ToArray(),
             ignored);
         var validGestures = GestureRules.ValidSet(gestures);
         var validMapping = MappingRules.ValidDocument(document);
@@ -108,6 +114,26 @@ internal static class SyncDocumentBuilder
         }
 
         return byGroup;
+    }
+
+    /// <summary>Each own version by its command; one whose command did not survive the merge is dropped with a repair line.</summary>
+    private static Dictionary<CommandId, CommandVersion> Versions(SyncItem.VersionItem[] items, Dictionary<GroupId, List<Command>> commands, List<SyncRepair> repairs)
+    {
+        var present = commands.Values.SelectMany(list => list).Select(command => command.Id).ToHashSet();
+        var versions = new Dictionary<CommandId, CommandVersion>();
+        foreach (var item in items)
+        {
+            if (present.Contains(item.CommandId))
+            {
+                versions[item.CommandId] = item.Version;
+            }
+            else
+            {
+                repairs.Add(new(item.Key, SyncRepairKind.OwnStepsDropped, $"{item.Name} dropped: the command is gone."));
+            }
+        }
+
+        return versions;
     }
 
     /// <summary>What <see cref="Build"/> returns.</summary>

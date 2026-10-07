@@ -17,4 +17,10 @@ public enum SyncItemKind
 
     /// <summary>One ignored app, by its id.</summary>
     Ignored,
+
+    /// <summary>
+    /// A command's own steps for the platform it was not authored on (F8), by the command's id: an item of its own so the
+    /// original changing on one machine and the own steps changing on the other merge without a conflict.
+    /// </summary>
+    CommandVersion,
 }

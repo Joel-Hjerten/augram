@@ -2,6 +2,7 @@ using System.Globalization;
 using Augram.App.Components.SyncConflictList;
 using Augram.App.Declarations;
 using Augram.App.Hosting;
+using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
@@ -106,6 +107,7 @@ public sealed class SyncConflictsViewModel
         SyncItemKind.Group => "App group",
         SyncItemKind.Category => "Category",
         SyncItemKind.Command => "Command",
+        SyncItemKind.CommandVersion => "Own steps",
         _ => "Ignored app",
     };
 
@@ -139,6 +141,7 @@ public sealed class SyncConflictsViewModel
             SyncItem.CommandItem command => new SyncConflictSide(CommandText(command.GroupId, command.Command)),
             SyncItem.GroupItem group => new SyncConflictSide(GroupText(group.Header)),
             SyncItem.IgnoredItem ignored => new SyncConflictSide(IgnoredText(ignored.App)),
+            SyncItem.VersionItem version => new SyncConflictSide(VersionText(version.Version)),
             _ => new SyncConflictSide(item.Name),
         };
     }
@@ -161,6 +164,13 @@ public sealed class SyncConflictsViewModel
         };
         var steps = command.Steps.Count == 0 ? "no steps" : string.Join(", ", command.Steps.Select(step => step.Step.Summary));
         return $"{command.Name} in {group}: {trigger} → {steps}{(command.IsActive ? string.Empty : " (inactive)")}";
+    }
+
+    private static string VersionText(CommandVersion version)
+    {
+        var platform = version.Platform == HostPlatform.MacOS ? "macOS" : "Windows";
+        var steps = version.Steps.Count == 0 ? "no steps (does nothing there)" : string.Join(", ", version.Steps.Select(step => step.Step.SummaryOn(step.AuthoredOn)));
+        return $"{platform} steps: {steps}";
     }
 
     private static string GroupText(AppGroup group)

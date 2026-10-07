@@ -8,7 +8,7 @@ namespace Augram.Core.Sync;
 /// The identity of a <see cref="SyncItem"/>: its kind and id, plus the group id for a category (category
 /// ids are unique within their group only). Text form, used in the sync file and the state files:
 /// <c>gesture:&lt;id&gt;</c>, <c>group:&lt;id&gt;</c>, <c>category:&lt;groupId&gt;/&lt;id&gt;</c>, <c>command:&lt;id&gt;</c>,
-/// <c>ignored:&lt;id&gt;</c>.
+/// <c>ignored:&lt;id&gt;</c>, <c>version:&lt;commandId&gt;</c>.
 /// </summary>
 public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group = default)
 {
@@ -21,6 +21,8 @@ public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group
     public static SyncItemKey ForCommand(CommandId id) => new(SyncItemKind.Command, id.Value);
 
     public static SyncItemKey ForIgnored(GroupId id) => new(SyncItemKind.Ignored, id.Value);
+
+    public static SyncItemKey ForCommandVersion(CommandId id) => new(SyncItemKind.CommandVersion, id.Value);
 
     public override string ToString() => Kind == SyncItemKind.Category
         ? $"{Prefix(Kind)}:{Group:D}/{Id:D}"
@@ -74,6 +76,7 @@ public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group
         SyncItemKind.Group => "group",
         SyncItemKind.Category => "category",
         SyncItemKind.Command => "command",
+        SyncItemKind.CommandVersion => "version",
         _ => "ignored",
     };
 }

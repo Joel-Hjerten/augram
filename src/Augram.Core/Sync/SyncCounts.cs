@@ -22,7 +22,7 @@ public sealed record SyncCounts(
         SyncItemKind.Gesture => Gestures,
         SyncItemKind.Group => Groups,
         SyncItemKind.Category => Categories,
-        SyncItemKind.Command => Commands,
+        SyncItemKind.Command or SyncItemKind.CommandVersion => Commands,
         _ => Ignored,
     };
 
@@ -32,23 +32,25 @@ public sealed record SyncCounts(
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
 
+        // A command's own version counts as a change of the command: one line in the log, not a kind of its own.
+        static SyncItemKind Counted(SyncItem item) => item.Kind == SyncItemKind.CommandVersion ? SyncItemKind.Command : item.Kind;
         var counts = Enum.GetValues<SyncItemKind>().ToDictionary(kind => kind, _ => SyncKindCounts.None);
         foreach (var item in after)
         {
             var old = before.Find(item.Key);
             if (old is null)
             {
-                counts[item.Kind] = counts[item.Kind].Plus(new(1, 0, 0));
+                counts[Counted(item)] = counts[Counted(item)].Plus(new(1, 0, 0));
             }
             else if (!string.Equals(old.Content, item.Content, StringComparison.Ordinal))
             {
-                counts[item.Kind] = counts[item.Kind].Plus(new(0, 1, 0));
+                counts[Counted(item)] = counts[Counted(item)].Plus(new(0, 1, 0));
             }
         }
 
         foreach (var item in before.Where(item => !after.Contains(item.Key)))
         {
-            counts[item.Kind] = counts[item.Kind].Plus(new(0, 0, 1));
+            counts[Counted(item)] = counts[Counted(item)].Plus(new(0, 0, 1));
         }
 
         return new(
@@ -63,7 +65,7 @@ public sealed record SyncCounts(
     public override string ToString()
     {
         var parts = Enum.GetValues<SyncItemKind>()
-            .Where(kind => For(kind).Total > 0)
+            .Where(kind => kind != SyncItemKind.CommandVersion && For(kind).Total > 0)
             .Select(kind => $"{Label(kind)} {For(kind)}")
             .ToArray();
         return parts.Length == 0 ? "no changes" : string.Join(", ", parts);
