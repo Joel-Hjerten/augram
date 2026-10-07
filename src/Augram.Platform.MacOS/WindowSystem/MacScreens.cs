@@ -6,13 +6,19 @@ namespace Augram.Platform.MacOS.WindowSystem;
 /// <summary>
 /// <c>NSScreen.screens</c> in global top-left points, main screen first. AppKit is the only source of the visible frame
 /// (the screen without the menu bar and the Dock); its rectangles are bottom-left based, so each is flipped by the main
-/// screen's height. Called from the command executor thread inside an autorelease pool; <c>NSScreen</c> is read-only
-/// here and AppKit is already loaded by the UI toolkit. Empty when AppKit is not.
+/// screen's height. AppKit is main-thread only, so the command executor's calls hop there through <see cref="MainThread"/>
+/// (inline when already on it), inside an autorelease pool; a process without a main loop (a test host) reads in place.
+/// Empty when AppKit is not loaded.
 /// </summary>
 [SupportedOSPlatform("macos")]
 internal static class MacScreens
 {
-    public static IReadOnlyList<MacScreen> All()
+    public static IReadOnlyList<MacScreen> All() => MainThread.TryInvoke(ReadAll, out var screens) ? screens : ReadAll();
+
+    /// <summary>The main screen's height in points: the axis every Cocoa ↔ top-left flip turns around. Zero without AppKit.</summary>
+    public static double MainHeight() => MainThread.TryInvoke(ReadMainHeight, out var height) ? height : ReadMainHeight();
+
+    private static List<MacScreen> ReadAll()
     {
         var screenClass = ObjC.Class("NSScreen");
         if (screenClass == 0)
@@ -43,8 +49,7 @@ internal static class MacScreens
         return result;
     }
 
-    /// <summary>The main screen's height in points: the axis every Cocoa ↔ top-left flip turns around. Zero without AppKit.</summary>
-    public static double MainHeight()
+    private static double ReadMainHeight()
     {
         var screenClass = ObjC.Class("NSScreen");
         if (screenClass == 0)

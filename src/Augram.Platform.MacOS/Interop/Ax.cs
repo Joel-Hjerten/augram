@@ -9,7 +9,7 @@ namespace Augram.Platform.MacOS.Interop;
 /// by the caller with <see cref="Cf.Release"/>. Every call talks to the target app over IPC; the messaging timeout set
 /// on each application element keeps a hung app from holding the calling thread for the system default of 6 s.
 /// Every method returns an <c>AXError</c> or a null value instead of throwing; <see cref="Describe"/> turns the error
-/// into the reason the log shows.
+/// into the reason the log shows. Calls on Augram's own elements go through <see cref="MainThread"/> (see <see cref="IsOwn"/>).
 /// </summary>
 [SupportedOSPlatform("macos")]
 internal static class Ax
@@ -48,7 +48,7 @@ internal static class Ax
 
     public static bool? GetBool(nint element, string attribute)
     {
-        if (MacNative.AXUIElementCopyAttributeValue(element, Cf.Constant(attribute), out var value) != MacNative.AXErrorSuccess)
+        if (Copy(element, Cf.Constant(attribute), out var value) != MacNative.AXErrorSuccess)
         {
             return null;
         }
@@ -65,7 +65,7 @@ internal static class Ax
 
     public static string? GetString(nint element, string attribute)
     {
-        if (MacNative.AXUIElementCopyAttributeValue(element, Cf.Constant(attribute), out var value) != MacNative.AXErrorSuccess)
+        if (Copy(element, Cf.Constant(attribute), out var value) != MacNative.AXErrorSuccess)
         {
             return null;
         }
@@ -81,12 +81,12 @@ internal static class Ax
     }
 
     public static int SetBool(nint element, string attribute, bool value) =>
-        MacNative.AXUIElementSetAttributeValue(element, Cf.Constant(attribute), value ? Cf.True : Cf.False);
+        Set(element, Cf.Constant(attribute), value ? Cf.True : Cf.False);
 
     /// <summary>The window's outer frame in global top-left points, as <c>AXPosition</c> and <c>AXSize</c> report it.</summary>
     public static MacRect? Frame(nint window)
     {
-        if (MacNative.AXUIElementCopyAttributeValue(window, Cf.Constant(PositionAttribute), out var position) != MacNative.AXErrorSuccess)
+        if (Copy(window, Cf.Constant(PositionAttribute), out var position) != MacNative.AXErrorSuccess)
         {
             return null;
         }
@@ -94,7 +94,7 @@ internal static class Ax
         try
         {
             if (MacNative.AXValueGetPoint(position, MacNative.AXValueCGPointType, out var origin) == 0
-                || MacNative.AXUIElementCopyAttributeValue(window, Cf.Constant(SizeAttribute), out var sizeValue) != MacNative.AXErrorSuccess)
+                || Copy(window, Cf.Constant(SizeAttribute), out var sizeValue) != MacNative.AXErrorSuccess)
             {
                 return null;
             }
@@ -132,14 +132,14 @@ internal static class Ax
         return error != MacNative.AXErrorSuccess ? error : SetPosition(window, frame.X, frame.Y);
     }
 
-    public static int Perform(nint element, string action) => MacNative.AXUIElementPerformAction(element, Cf.Constant(action));
+    public static int Perform(nint element, string action) => Act(element, Cf.Constant(action));
 
     private static int SetPosition(nint element, double x, double y)
     {
         var value = MacNative.AXValueCreatePoint(MacNative.AXValueCGPointType, new MacNative.CGPoint { X = x, Y = y });
         try
         {
-            return MacNative.AXUIElementSetAttributeValue(element, Cf.Constant(PositionAttribute), value);
+            return Set(element, Cf.Constant(PositionAttribute), value);
         }
         finally
         {
@@ -152,7 +152,7 @@ internal static class Ax
         var value = MacNative.AXValueCreateSize(MacNative.AXValueCGSizeType, new MacNative.CGSize { Width = width, Height = height });
         try
         {
-            return MacNative.AXUIElementSetAttributeValue(element, Cf.Constant(SizeAttribute), value);
+            return Set(element, Cf.Constant(SizeAttribute), value);
         }
         finally
         {
@@ -163,7 +163,7 @@ internal static class Ax
     /// <summary>Presses one of the window's title-bar buttons (<see cref="CloseButtonAttribute"/>, <see cref="ZoomButtonAttribute"/>).</summary>
     public static int PressButton(nint window, string buttonAttribute)
     {
-        var error = MacNative.AXUIElementCopyAttributeValue(window, Cf.Constant(buttonAttribute), out var button);
+        var error = Copy(window, Cf.Constant(buttonAttribute), out var button);
         if (error != MacNative.AXErrorSuccess)
         {
             return error;
@@ -186,7 +186,7 @@ internal static class Ax
     /// <summary>The window of <paramref name="app"/> whose <c>CGWindowID</c> is <paramref name="windowId"/>. Owned; zero with the error when absent.</summary>
     public static nint FindWindow(nint app, uint windowId, out int error)
     {
-        error = MacNative.AXUIElementCopyAttributeValue(app, Cf.Constant(WindowsAttribute), out var windows);
+        error = Copy(app, Cf.Constant(WindowsAttribute), out var windows);
         if (error != MacNative.AXErrorSuccess)
         {
             return 0;
@@ -226,7 +226,7 @@ internal static class Ax
         try
         {
             MacNative.AXUIElementSetMessagingTimeout(system, MessagingTimeoutSeconds);
-            if (MacNative.AXUIElementCopyAttributeValue(system, Cf.Constant(FocusedApplicationAttribute), out var app) != MacNative.AXErrorSuccess)
+            if (Copy(system, Cf.Constant(FocusedApplicationAttribute), out var app) != MacNative.AXErrorSuccess)
             {
                 return 0;
             }
@@ -234,7 +234,7 @@ internal static class Ax
             try
             {
                 MacNative.AXUIElementGetPid(app, out pid);
-                return MacNative.AXUIElementCopyAttributeValue(app, Cf.Constant(FocusedWindowAttribute), out var window) == MacNative.AXErrorSuccess ? window : 0;
+                return Copy(app, Cf.Constant(FocusedWindowAttribute), out var window) == MacNative.AXErrorSuccess ? window : 0;
             }
             finally
             {
@@ -246,6 +246,41 @@ internal static class Ax
             Cf.Release(system);
         }
     }
+
+    /// <summary>
+    /// AX calls on Augram's own elements are not IPC: AppKit answers them in-process on the calling thread, and AppKit must run
+    /// on the main thread (2026-10-07: maximizing Augram's own window from the command executor hung the executor for good).
+    /// </summary>
+    private static bool IsOwn(nint element) =>
+        MacNative.AXUIElementGetPid(element, out var pid) == MacNative.AXErrorSuccess && pid == Environment.ProcessId;
+
+    private static int Copy(nint element, nint attribute, out nint value)
+    {
+        if (!IsOwn(element))
+        {
+            return MacNative.AXUIElementCopyAttributeValue(element, attribute, out value);
+        }
+
+        var ran = MainThread.TryInvoke(
+            () =>
+            {
+                var result = MacNative.AXUIElementCopyAttributeValue(element, attribute, out var v);
+                return (result, v);
+            },
+            out var copied);
+        value = ran ? copied.v : 0;
+        return ran ? copied.result : MacNative.AXErrorCannotComplete;
+    }
+
+    private static int Set(nint element, nint attribute, nint value) => IsOwn(element)
+        ? OnMain(() => MacNative.AXUIElementSetAttributeValue(element, attribute, value))
+        : MacNative.AXUIElementSetAttributeValue(element, attribute, value);
+
+    private static int Act(nint element, nint action) => IsOwn(element)
+        ? OnMain(() => MacNative.AXUIElementPerformAction(element, action))
+        : MacNative.AXUIElementPerformAction(element, action);
+
+    private static int OnMain(Func<int> call) => MainThread.TryInvoke(call, out var error) ? error : MacNative.AXErrorCannotComplete;
 
     /// <summary>The reason for the log: what an <c>AXError</c> means for a window operation.</summary>
     public static string Describe(int error) => error switch

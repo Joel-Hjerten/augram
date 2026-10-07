@@ -227,4 +227,15 @@ internal static partial class MacNative
 
     [LibraryImport(SystemLibrary)]
     public static partial int proc_pidpath(int pid, Span<byte> buffer, uint bufferSize);
+
+    // libdispatch and pthread
+
+    /// <summary>The main dispatch queue is the global object itself (<c>dispatch_get_main_queue()</c> is <c>&amp;_dispatch_main_q</c>).</summary>
+    public static nint MainQueue() => NativeLibrary.GetExport(NativeLibrary.Load(SystemLibrary), "_dispatch_main_q");
+
+    [LibraryImport(SystemLibrary)]
+    public static unsafe partial void dispatch_async_f(nint queue, nint context, delegate* unmanaged<nint, void> work);
+
+    [LibraryImport(SystemLibrary)]
+    public static partial int pthread_main_np();
 }
