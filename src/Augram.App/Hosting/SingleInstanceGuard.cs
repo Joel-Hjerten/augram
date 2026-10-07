@@ -93,6 +93,18 @@ public sealed class SingleInstanceGuard : IDisposable
         return "augram-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(pipe)).AsSpan(0, 8));
     }
 
+    private static void TryReadByte(NamedPipeServerStream server)
+    {
+        try
+        {
+            server.ReadByte();
+        }
+        catch (IOException)
+        {
+            // Already closed by the second launch: nothing more to read.
+        }
+    }
+
     private void Listen()
     {
         while (!_stopping.IsCancellationRequested)
@@ -101,8 +113,11 @@ public sealed class SingleInstanceGuard : IDisposable
             {
                 using var server = new NamedPipeServerStream(_pipeName, PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
                 server.WaitForConnectionAsync(_stopping.Token).GetAwaiter().GetResult();
-                server.ReadByte();
+
+                // The connection is the request. The second launch writes one byte and closes at once; reading after it
+                // closed can fail as a broken pipe, which must not swallow the request (a Windows CI run lost it, 2026-10-07).
                 ShowRequested?.Invoke(this, EventArgs.Empty);
+                TryReadByte(server);
             }
             catch (OperationCanceledException)
             {
