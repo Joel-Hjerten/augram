@@ -3,6 +3,7 @@ using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.WindowOp;
 using Augram.Engine.Hosting;
@@ -173,6 +174,23 @@ public sealed class CommandExecutionTests
         harness.WaitForState(CaptureState.Idle);
         Assert.Equal((10, 10), Assert.Single(harness.Windows.Lookups));
         Assert.Empty(harness.RecognitionLog.Snapshot());
+    }
+
+    [Fact]
+    public void WheelTrigger_BoundToARightHandHotkey_SendsTheRightHandSetToTheSimulator()
+    {
+        var mapping = Mappings.Global(Mappings.Command("Ctrl+RAlt+F9", Trigger.ForWheel(WheelDirection.Up), new HotkeyStep(KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt)));
+        using var harness = new EngineHarness(mapping: mapping);
+
+        Assert.True(harness.Down(EngineHarness.StrokeButton, 10, 10, 0));
+        harness.WaitForState(CaptureState.Held);
+        Assert.True(harness.Wheel(WheelDirection.Up, 10, 10, 20));
+        harness.WaitForState(CaptureState.WheelFiring);
+        Assert.True(harness.Up(EngineHarness.StrokeButton, 10, 10, 60));
+
+        EngineHarness.WaitFor(() => harness.Simulator.Keys.Count == 1, "the hotkey");
+        Assert.Equal(["hotkey Control, Alt+F9 right Alt"], harness.Simulator.Keys);
+        harness.WaitForLog(LogSources.Execution, "Command fired");
     }
 
     [Fact]

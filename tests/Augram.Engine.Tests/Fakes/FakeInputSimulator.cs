@@ -46,7 +46,9 @@ internal sealed class FakeInputSimulator : IInputSimulator
 
     public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}");
 
-    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key) => Record($"hotkey {modifiers}+{key}");
+    /// <summary>"hotkey Control+W"; "hotkey Alt+F9 right Alt" when some modifiers are the right-hand key.</summary>
+    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) =>
+        Record(rightHand == KeyModifiers.None ? $"hotkey {modifiers}+{key}" : $"hotkey {modifiers}+{key} right {rightHand}");
 
     public SimulationResult TypeText(string text) => Record($"text {text}");
 

@@ -2,9 +2,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:hk="using:Augram.App.Components.HotkeyCapture">
   <!--
-    Wireframe look of the hotkey capture field (F5). Included by Wireframe.axaml next to Tokens.axaml;
-    it merges the tokens itself so it also loads on its own (tests). Tokens only, no literal colours.
-    The field's frame keeps one thickness; capturing changes only its colour, so nothing shifts.
+    Wireframe look of the hotkey capture field and the hand editor's modifier toggle (F5). Included by
+    Wireframe.axaml next to Tokens.axaml; it merges the tokens itself so it also loads on its own (tests).
+    Tokens only, no literal colours. The field's frame keeps one thickness; capturing changes only its
+    colour, so nothing shifts.
   -->
   <ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
@@ -43,6 +44,28 @@
     </Style>
     <Style Selector="^:capturing /template/ Border#PART_Field">
       <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+    </Style>
+  </ControlTheme>
+
+  <!-- A modifier's check box with a small "R" toggle beside it: the right-hand key (RAlt, RCtrl). -->
+  <ControlTheme x:Key="{x:Type hk:ModifierToggle}" TargetType="hk:ModifierToggle">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+          <CheckBox Name="PART_On" VerticalAlignment="Center" />
+          <ToggleButton Name="PART_Right"
+                        Content="R"
+                        ToolTip.Tip="Right-hand key"
+                        VerticalAlignment="Center" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^ /template/ ToggleButton#PART_Right">
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="{StaticResource Pad.Tag}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+      <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+      <Setter Property="FontSize" Value="{StaticResource Font.S}" />
     </Style>
   </ControlTheme>
 </ResourceDictionary>

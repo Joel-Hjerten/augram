@@ -2,7 +2,11 @@ using Augram.Core.Abstractions;
 
 namespace Augram.Core.Steps.Hotkey;
 
-/// <summary>Which <see cref="KeyCode"/>s are modifier keys and which <see cref="KeyModifiers"/> flag each one holds; left and right fold together, as the flags do.</summary>
+/// <summary>
+/// Which <see cref="KeyCode"/>s are modifier keys, which <see cref="KeyModifiers"/> flag each one holds
+/// (left and right fold together, as the flags do) and which are the right-hand key (what
+/// <see cref="HotkeyStep.RightHand"/> records).
+/// </summary>
 public static class HotkeyKeys
 {
     /// <summary>Every modifier flag, for masking a reported set down to the four a hotkey stores.</summary>
@@ -19,4 +23,7 @@ public static class HotkeyKeys
     };
 
     public static bool IsModifier(KeyCode key) => ModifierOf(key) != KeyModifiers.None;
+
+    /// <summary>True for the four right-hand modifier keys (RightControl, RightAlt, RightShift, RightMeta).</summary>
+    public static bool IsRightHand(KeyCode key) => key is KeyCode.RightControl or KeyCode.RightAlt or KeyCode.RightShift or KeyCode.RightMeta;
 }

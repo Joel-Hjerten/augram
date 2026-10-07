@@ -30,11 +30,35 @@ public sealed class HotkeyMappingTests
     }
 
     [Fact]
-    public void RightSideModifiersFoldIntoTheSameFlag()
+    public void RightSideModifiersAreKept()
     {
-        Assert.Equal(new HotkeyStep(KeyModifiers.Control | KeyModifiers.Shift, KeyCode.P), HotkeyMapping.FromSendHotKey(HotKey(Full(rControl: true, rShift: true, key: 80))));
-        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F9), HotkeyMapping.FromSendHotKey(HotKey(Full(rAlt: true, key: 120))));
+        // Joel's own: RAlt+F9, RAlt+F10, RControl+RShift+P, RControl+0 (some apps misbehave with plain Alt).
+        var rAltF9 = HotkeyMapping.FromSendHotKey(HotKey(Full(rAlt: true, key: 120)));
+        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), rAltF9);
+        Assert.Equal("RAlt+F9", rAltF9!.Summary);
+        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F10, KeyModifiers.Alt), HotkeyMapping.FromSendHotKey(HotKey(Full(rAlt: true, key: 121))));
+        Assert.Equal(
+            new HotkeyStep(KeyModifiers.Control | KeyModifiers.Shift, KeyCode.P, KeyModifiers.Control | KeyModifiers.Shift),
+            HotkeyMapping.FromSendHotKey(HotKey(Full(rControl: true, rShift: true, key: 80))));
+        var rControl0 = HotkeyMapping.FromSendHotKey(HotKey(Full(rControl: true, key: 48)));
+        Assert.Equal(new HotkeyStep(KeyModifiers.Control, KeyCode.Digit0, KeyModifiers.Control), rControl0);
+        Assert.Equal("RCtrl+0", rControl0!.Summary);
+        Assert.Equal(
+            new HotkeyStep(KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt),
+            HotkeyMapping.FromSendHotKey(HotKey(Full(lControl: true, rAlt: true, key: 120))));
+        Assert.Equal(new HotkeyStep(KeyModifiers.Meta, KeyCode.D, KeyModifiers.Meta), HotkeyMapping.FromSendHotKey(HotKey("""{"RWin":true,"Key":68}""")));
+    }
+
+    [Fact]
+    public void AModifierSetOnBothSidesIsThePlainOne()
+    {
+        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F9), HotkeyMapping.FromSendHotKey(HotKey(Full(lAlt: true, rAlt: true, key: 120))));
         Assert.Equal(new HotkeyStep(KeyModifiers.Meta, KeyCode.D), HotkeyMapping.FromSendHotKey(HotKey(Full(rWin: true, lWin: true, key: 68))));
+        Assert.Equal(
+            new HotkeyStep(KeyModifiers.Control | KeyModifiers.Shift, KeyCode.P, KeyModifiers.Shift),
+            HotkeyMapping.FromSendHotKey(HotKey(Full(lControl: true, rControl: true, rShift: true, key: 80))));
+        // A WinForms modifier bit names no side and counts as the left key, like the generic VK_CONTROL.
+        Assert.Equal(new HotkeyStep(KeyModifiers.Control, KeyCode.P), HotkeyMapping.FromSendHotKey(HotKey("""{"RControl":true,"Key":131152}""")));
     }
 
     [Fact]
@@ -91,11 +115,13 @@ public sealed class HotkeyMappingTests
     public void TryUpgradeConvertsTheTwoKeyboardPlaceholdersOnly()
     {
         var hotkey = new ImportedStep("SendHotKey", "Send Hot Key", HotKey(Full(lControl: true, key: 87)));
+        var rightHand = new ImportedStep("SendHotKey", "Send Hot Key", HotKey(Full(rAlt: true, key: 120)));
         var vkey = new ImportedStep("SendVKey", "Send Virtual Key", new Dictionary<string, string> { ["virtualKey"] = "9" });
         var broken = new ImportedStep("SendHotKey", "Send Hot Key", HotKey("{}"));
         var other = new ImportedStep("SendKeys", "Send Keys", new Dictionary<string, string> { ["hotkey"] = Full(lControl: true, key: 87) });
 
         Assert.Equal(new HotkeyStep(KeyModifiers.Control, KeyCode.W), HotkeyMapping.TryUpgrade(hotkey));
+        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), HotkeyMapping.TryUpgrade(rightHand));
         Assert.Equal(new HotkeyStep(KeyModifiers.None, KeyCode.Tab), HotkeyMapping.TryUpgrade(vkey));
         Assert.Null(HotkeyMapping.TryUpgrade(broken));
         Assert.Null(HotkeyMapping.TryUpgrade(other));

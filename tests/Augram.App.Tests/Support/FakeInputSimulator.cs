@@ -34,7 +34,7 @@ internal sealed class FakeInputSimulator : IInputSimulator
 
     public SimulationResult KeyRelease(KeyCode key) => SimulationResult.Success;
 
-    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key) => SimulationResult.Success;
+    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) => SimulationResult.Success;
 
     public SimulationResult TypeText(string text) => SimulationResult.Success;
 

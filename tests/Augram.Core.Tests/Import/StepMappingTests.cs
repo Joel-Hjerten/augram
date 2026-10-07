@@ -50,6 +50,16 @@ public sealed class StepMappingTests
 
         Assert.Equal(KeyModifiers.Control, hotkey.Modifiers);
         Assert.Equal(KeyCode.Tab, hotkey.Key);
+        Assert.Equal(KeyModifiers.None, hotkey.RightHand);
+    }
+
+    [Fact]
+    public void SendHotKeyKeepsARightHandModifier()
+    {
+        var hotkey = Assert.IsType<HotkeyStep>(OnlyStep("{ \"Method\": \"SendHotKey\", \"MethodParameters\": [ { \"Name\": \"hotkey\", \"Value\": { \"LControl\": false, \"RAlt\": true, \"Key\": 120 } } ] }").Step);
+
+        Assert.Equal(new HotkeyStep(KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), hotkey);
+        Assert.Equal("RAlt+F9", hotkey.Summary);
     }
 
     [Fact]

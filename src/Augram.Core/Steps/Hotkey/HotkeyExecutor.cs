@@ -4,7 +4,8 @@ using Augram.Core.Diagnostics;
 namespace Augram.Core.Steps.Hotkey;
 
 /// <summary>
-/// Sends a <see cref="HotkeyStep"/> through <see cref="IInputSimulator.Hotkey"/>: modifiers down, key
+/// Sends a <see cref="HotkeyStep"/> through <see cref="IInputSimulator.Hotkey"/>: modifiers down (the
+/// right-hand key for those in <see cref="HotkeyStep.RightHand"/>, bits outside the modifiers ignored), key
 /// tapped, modifiers up in reverse. No key set → Skipped (the command goes on); a simulator answer other
 /// than success → Failed with it (the command stops). The settle delay after an activation (A8) is the
 /// executor's, applied before this step runs, never here. One Debug line per run.
@@ -27,7 +28,7 @@ internal static class HotkeyExecutor
             return StepResult.Skipped(NoKeyReason);
         }
 
-        var sent = input.Hotkey(step.Modifiers, step.Key);
+        var sent = input.Hotkey(step.Modifiers, step.Key, step.RightHand & step.Modifiers);
         return sent == SimulationResult.Success
             ? StepResult.Done
             : StepResult.Failed($"{step.Summary}: {sent}");

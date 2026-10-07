@@ -18,8 +18,12 @@ public interface IInputSimulator
 
     SimulationResult KeyRelease(KeyCode key);
 
-    /// <summary>Presses the modifiers, taps <paramref name="key"/>, releases the modifiers in reverse order.</summary>
-    SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key);
+    /// <summary>
+    /// Presses the modifiers, taps <paramref name="key"/>, releases the modifiers in reverse order. Each
+    /// modifier in <paramref name="rightHand"/> is pressed with its right-hand key (RightAlt, RightControl…),
+    /// the others with the left; a <paramref name="rightHand"/> bit outside <paramref name="modifiers"/> is ignored.
+    /// </summary>
+    SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None);
 
     SimulationResult TypeText(string text);
 

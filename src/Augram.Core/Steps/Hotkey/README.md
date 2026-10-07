@@ -4,25 +4,35 @@ The **Hotkey** step (key `hotkey`, category Keyboard, **platform-bound**): press
 
 | File | Role |
 |---|---|
-| `HotkeyStep` | record: `Modifiers` (`KeyModifiers` flags), `Key` (`KeyCode`) · `IsSet` (key is not `None`) · `Summary` "Ctrl+Shift+T", "Alt+F4", "Esc", or "Hotkey (no key set)" · `Unset`, the default a new step starts with |
+| `HotkeyStep` | record: `Modifiers` (`KeyModifiers` flags), `Key` (`KeyCode`), `RightHand` (which of `Modifiers` are the right-hand key; default none) · `IsSet` (key is not `None`) · `Summary` "Ctrl+Shift+T", "Alt+F4", "RAlt+F9", "Esc", or "Hotkey (no key set)" · `Normalized()` (`RightHand` cut down to `Modifiers`) · `Unset`, the default a new step starts with |
 | `HotkeyStepType` | metadata and JSON (below); `CreateDefault()` is `HotkeyStep.Unset` |
-| `HotkeyExecutor` | no key set → Skipped "no key set" (the command goes on) · `IInputSimulator.Hotkey(modifiers, key)` → Done, or Failed "Ctrl+W: Unsupported" with the simulator's answer (the command stops). One Debug line (`steps` / "Hotkey": keys, outcome, reason) per run |
-| `HotkeyText` | the one place a hotkey becomes text: Windows names Ctrl, Alt, Shift, Win in that order, joined by "+", then the key's short name (letters and digits as themselves, F-keys, "Esc", "Tab", "PgUp", "PgDn", "Ins", "Del", "PrtSc", arrows as "Left"/"Up"…, "Num 4", "Volume Up", punctuation as its character). The step summary, the App's capture field and key dropdown, and the importer share it |
-| `HotkeyKeys` | which `KeyCode`s are modifier keys and which flag each holds (left and right fold together); `AllModifiers` |
+| `HotkeyExecutor` | no key set → Skipped "no key set" (the command goes on) · `IInputSimulator.Hotkey(modifiers, key, rightHand & modifiers)` → Done, or Failed "Ctrl+W: Unsupported" with the simulator's answer (the command stops). One Debug line (`steps` / "Hotkey": keys, outcome, reason) per run |
+| `HotkeyText` | the one place a hotkey becomes text: Windows names Ctrl, Alt, Shift, Win in that order (a right-hand one as RCtrl, RAlt, RShift, RWin in the same place: "Ctrl+RAlt+F9", "RCtrl+RShift+P"), joined by "+", then the key's short name (letters and digits as themselves, F-keys, "Esc", "Tab", "PgUp", "PgDn", "Ins", "Del", "PrtSc", arrows as "Left"/"Up"…, "Num 4", "Volume Up", punctuation as its character). The step summary, the App's capture field and key dropdown, and the importer share it |
+| `HotkeyKeys` | which `KeyCode`s are modifier keys and which flag each holds (left and right fold together); `IsRightHand` (the four Right* keys); `AllModifiers` |
 
 ## Parameters
 
 ```json
-{ "modifiers": "Control, Shift", "key": "T" }
+{ "modifiers": "Control, Alt", "rightHand": "Alt", "key": "F9" }
 ```
 
 - `modifiers`: `KeyModifiers` flag names (`Control`, `Alt`, `Shift`, `Meta`), case-insensitive, comma-separated; `"None"` or `""` for none; absent = none. Any other name is a `StepFormatException` naming `modifiers`. `Write` emits `KeyModifiers.ToString()` ("None", "Control", "Control, Shift"), so the round trip is byte-stable.
+- `rightHand`: the same flag names for the modifiers pressed with the right-hand key. Written only when there are any (so a plain hotkey's JSON is unchanged and older files read as plain); read and written cut down to `modifiers`. A bad name is a `StepFormatException` naming `rightHand`.
 - `key`: a `KeyCode` name (`T`, `Digit5`, `F5`, `PageUp`, `Escape`…), case-insensitive; absent = `None` (unset). Numbers are refused: the stored name is the contract, not the enum value.
+
+## Right-hand modifiers (F5, Joel 2026-10-07)
+
+Some apps treat plain Alt and Ctrl differently from the right-hand keys, which is why 8 of Joel's 199 SP.net hotkeys use RAlt or RControl (RAlt+F9, RAlt+F10, RControl+RShift+P, RControl+0). A hotkey records, shows, stores and sends the right-hand key when that is what was pressed or imported; it is never folded into the plain modifier.
+
+- `RightHand` is a second `KeyModifiers` set, not new enum bits: `KeyModifiers` stays four bits because `Config.IgnoreKeys` shares it bit for bit.
+- A positional record cannot validate in its constructor, so `RightHand` may carry bits outside `Modifiers` in memory. They mean nothing: `HotkeyText` and the executor ignore them, and `Read`, `Write`, the App's form and capture field and the importer normalise (`Normalized()`).
+- Held on both sides at once, a modifier is plain. The importer does the same for `LAlt` and `RAlt` both true.
+- AltGr layouts (Joel's Swedish one): Windows reports AltGr as a synthesised LeftControl plus RightAlt, so the capture field records "Ctrl+RAlt+…", and replaying it sends what Windows saw. An imported `RAlt` alone stays RAlt, the key SP.net sent.
 
 ## Execution rules
 
 - The **settle delay (A8)** is not this step's: the executor activates the target and waits once before the first Keyboard or Text step, only when focus moved. This step just sends.
-- The simulator presses the **left** modifier keys. Left and right are folded in the model; SP.net's `RAlt`/`RControl`/`RShift`/`RWin` import as the plain modifier (8 of Joel's 199 steps; on an AltGr layout RAlt alone means Ctrl+Alt, see the importer's notes).
+- The simulator presses the **left** modifier keys, and the right-hand key (RightAlt, RightControl, RightShift, RightMeta) for each modifier in `RightHand`.
 - A key held by the user while the step runs is the user's business; the step never releases keys it did not press.
 
 ## Platform (F8)

@@ -10,8 +10,9 @@ using KeyModifiers = Augram.Core.Abstractions.KeyModifiers;
 namespace Augram.App.Components.HotkeyCapture;
 
 /// <summary>
-/// The hotkey capture field (F5): shows the combination ("Ctrl+Shift+T"), and while capturing shows what
-/// is held live ("Press a combination…" until then). Parts: <c>PART_Field</c> (clicking it captures),
+/// The hotkey capture field (F5): shows the combination ("Ctrl+Shift+T", "RAlt+F9" when a modifier was held
+/// on the right side only, see <see cref="RightHand"/>), and while capturing shows what is held live
+/// ("Press a combination…" until then). Parts: <c>PART_Field</c> (clicking it captures),
 /// <c>PART_Capture</c>, <c>PART_Accept</c>, <c>PART_Clear</c>; <c>:capturing</c> while capturing.
 /// Capturing arms <see cref="IKeyCapture"/> (from <see cref="KeyCapture"/>, else the resource
 /// <see cref="KeyCaptureResourceKey"/> the composition root publishes), so every key goes here and none to
@@ -30,6 +31,8 @@ public sealed class HotkeyCaptureBox : TemplatedControl
     public const string WindowOnlyText = "The engine is off, so only keys this window receives are recorded: not Win+L, Alt+Tab or PrintScreen.";
 
     public static readonly StyledProperty<KeyModifiers> ModifiersProperty = AvaloniaProperty.Register<HotkeyCaptureBox, KeyModifiers>(nameof(Modifiers));
+
+    public static readonly StyledProperty<KeyModifiers> RightHandProperty = AvaloniaProperty.Register<HotkeyCaptureBox, KeyModifiers>(nameof(RightHand));
 
     public static readonly StyledProperty<KeyCode> KeyProperty = AvaloniaProperty.Register<HotkeyCaptureBox, KeyCode>(nameof(Key));
 
@@ -54,6 +57,9 @@ public sealed class HotkeyCaptureBox : TemplatedControl
     public event EventHandler<HotkeyCommittedEventArgs>? Committed;
 
     public KeyModifiers Modifiers { get => GetValue(ModifiersProperty); set => SetValue(ModifiersProperty, value); }
+
+    /// <summary>Which of <see cref="Modifiers"/> are the right-hand key; bits outside <see cref="Modifiers"/> show nothing.</summary>
+    public KeyModifiers RightHand { get => GetValue(RightHandProperty); set => SetValue(RightHandProperty, value); }
 
     public KeyCode Key { get => GetValue(KeyProperty); set => SetValue(KeyProperty, value); }
 
@@ -102,9 +108,10 @@ public sealed class HotkeyCaptureBox : TemplatedControl
     {
         End(keep: false, status: string.Empty);
         Modifiers = KeyModifiers.None;
+        RightHand = KeyModifiers.None;
         Key = KeyCode.None;
         Refresh(string.Empty);
-        Committed?.Invoke(this, new HotkeyCommittedEventArgs(KeyModifiers.None, KeyCode.None));
+        Committed?.Invoke(this, new HotkeyCommittedEventArgs(KeyModifiers.None, KeyCode.None, KeyModifiers.None));
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -122,7 +129,7 @@ public sealed class HotkeyCaptureBox : TemplatedControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ModifiersProperty || change.Property == KeyProperty)
+        if (change.Property == ModifiersProperty || change.Property == RightHandProperty || change.Property == KeyProperty)
         {
             Refresh(StatusText);
         }
@@ -188,8 +195,9 @@ public sealed class HotkeyCaptureBox : TemplatedControl
         if (keep && _recorder.HasCombination)
         {
             Modifiers = _recorder.Modifiers;
+            RightHand = _recorder.RightHand;
             Key = _recorder.Key;
-            Committed?.Invoke(this, new HotkeyCommittedEventArgs(_recorder.Modifiers, _recorder.Key));
+            Committed?.Invoke(this, new HotkeyCommittedEventArgs(_recorder.Modifiers, _recorder.Key, _recorder.RightHand));
         }
 
         Refresh(status);
@@ -199,7 +207,7 @@ public sealed class HotkeyCaptureBox : TemplatedControl
     {
         DisplayText = IsCapturing
             ? _recorder.LiveText ?? PromptText
-            : Key == KeyCode.None ? EmptyText : HotkeyText.Format(Modifiers, Key);
+            : Key == KeyCode.None ? EmptyText : HotkeyText.Format(Modifiers, Key, RightHand);
         StatusText = status;
         HasStatus = status.Length > 0;
     }

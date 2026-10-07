@@ -41,7 +41,7 @@ The machine is owned by the worker and lags the hook by the queue depth, so the 
 | Type | Role |
 |---|---|
 | `SharpHookInputSource` | the `IInputSource`: `SimpleGlobalHook(All)` per `Start`, own thread; drops `IsEventSimulated` events (true for input injected by *any* process, so other utilities' synthetic input is ignored too, learnings 0001); maps buttons, wheel (SharpHook rotation > 0 is up; horizontal ignored), keys, modifier mask; key events go through the handler like the rest, so the gate alone decides key suppression. Thin and untested: needs a desktop |
-| `SharpHookInputSimulator` | the `IInputSimulator`: click at point, key press/release, hotkey, Unicode text entry, per-key text via `AsciiKeyLayout` (US layout). Untested for the same reason |
+| `SharpHookInputSimulator` | the `IInputSimulator`: click at point, key press/release, hotkey (left modifier keys, the right-hand key for each modifier in the right-hand set: "RAlt+F9" presses RightAlt), Unicode text entry, per-key text via `AsciiKeyLayout` (US layout). Untested for the same reason, except `ModifierKeys`, the left/right choice |
 | `MouseButtonMap`, `KeyCodeMap`, `AsciiKeyLayout` | the only places that know SharpHook's numbering; `KeyCodeMap` maps by name and a test proves every `Core.KeyCode` has a counterpart |
 | `SuppressionShadow` | above |
 | `KeySuppressionShadow` | per key: up, passed (the OS saw the press) or owed (the press was suppressed); a press is suppressed iff a hotkey capture is armed when it starts, its repeats and release follow it; a record older than 2 s means the release was missed and the next press starts fresh |

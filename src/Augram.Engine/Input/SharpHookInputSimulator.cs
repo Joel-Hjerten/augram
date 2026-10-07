@@ -6,12 +6,21 @@ namespace Augram.Engine.Input;
 
 /// <summary>
 /// <see cref="IInputSimulator"/> over SharpHook's <see cref="EventSimulator"/>. Thin and untested
-/// (it needs a desktop); everything above it is driven through a fake in tests. Injected events come
+/// (it needs a desktop) except for <see cref="ModifierKeys"/>, the left/right choice a hotkey presses;
+/// everything above it is driven through a fake in tests. Injected events come
 /// back through the hook with <c>IsEventSimulated</c> set and <see cref="SharpHookInputSource"/> drops
 /// them, which is what keeps a replayed click from being captured again.
 /// </summary>
 public sealed class SharpHookInputSimulator : IInputSimulator
 {
+    private static readonly (KeyModifiers Flag, KeyCode Left, KeyCode Right)[] ModifierKeyPairs =
+    [
+        (KeyModifiers.Control, KeyCode.LeftControl, KeyCode.RightControl),
+        (KeyModifiers.Alt, KeyCode.LeftAlt, KeyCode.RightAlt),
+        (KeyModifiers.Shift, KeyCode.LeftShift, KeyCode.RightShift),
+        (KeyModifiers.Meta, KeyCode.LeftMeta, KeyCode.RightMeta),
+    ];
+
     private readonly IEventSimulator _simulator;
 
     public SharpHookInputSimulator()
@@ -38,9 +47,9 @@ public sealed class SharpHookInputSimulator : IInputSimulator
 
     public SimulationResult KeyRelease(KeyCode key) => WithKey(key, _simulator.SimulateKeyRelease);
 
-    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key)
+    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None)
     {
-        var held = ModifierKeys(modifiers);
+        var held = ModifierKeys(modifiers, rightHand);
         var result = SimulationResult.Success;
         foreach (var modifier in held)
         {
@@ -81,27 +90,19 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         return result;
     }
 
-    private static List<KeyCode> ModifierKeys(KeyModifiers modifiers)
+    /// <summary>
+    /// The keys <see cref="Hotkey"/> holds, in press order (Ctrl, Alt, Shift, Win): the right-hand key for a
+    /// modifier in <paramref name="rightHand"/>, the left one otherwise; right-hand bits outside the modifiers press nothing.
+    /// </summary>
+    internal static List<KeyCode> ModifierKeys(KeyModifiers modifiers, KeyModifiers rightHand)
     {
-        var keys = new List<KeyCode>(4);
-        if (modifiers.HasFlag(KeyModifiers.Control))
+        var keys = new List<KeyCode>(ModifierKeyPairs.Length);
+        foreach (var (flag, left, right) in ModifierKeyPairs)
         {
-            keys.Add(KeyCode.LeftControl);
-        }
-
-        if (modifiers.HasFlag(KeyModifiers.Alt))
-        {
-            keys.Add(KeyCode.LeftAlt);
-        }
-
-        if (modifiers.HasFlag(KeyModifiers.Shift))
-        {
-            keys.Add(KeyCode.LeftShift);
-        }
-
-        if (modifiers.HasFlag(KeyModifiers.Meta))
-        {
-            keys.Add(KeyCode.LeftMeta);
+            if ((modifiers & flag) != 0)
+            {
+                keys.Add((rightHand & flag) != 0 ? right : left);
+            }
         }
 
         return keys;
