@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using Augram.Core.Abstractions;
 using Augram.Core.Steps;
 
 namespace Augram.Engine.Tests.Fakes;
@@ -27,6 +28,11 @@ internal sealed class FakeStepType : IStepType
     public StepCategory Category { get; }
 
     public bool IsPlatformNeutral => true;
+
+    /// <summary>What a run on another platform than the authored one gets; null runs the step as is.</summary>
+    public Func<IStep, StepConversion>? Converts { get; set; }
+
+    public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to) => Converts?.Invoke(step) ?? StepConversion.Same(step);
 
     public StepResult Result { get; set; } = StepResult.Done;
 

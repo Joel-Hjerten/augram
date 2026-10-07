@@ -6,8 +6,8 @@ A **step** is one executable unit of a command (F5a: app group › command › s
 
 | Type | Role |
 |---|---|
-| `IStep` | an immutable record holding one step's parameters: `Type` (its `IStepType`), `Summary` (one line for the command row: "Minimize window", "Wait 30 ms") |
-| `IStepType` | what the rest of Augram knows about a kind of step: `Key` (stable, written to the config, never renamed), `DisplayName` and `Category` (the picker), `IsPlatformNeutral` (F8: no conversion or override needed), `CreateDefault()`, `Read(JsonObject)` / `Write(IStep)` (the parameters only), `Execute(IStep, StepExecutionContext)` |
+| `IStep` | an immutable record holding one step's parameters: `Type` (its `IStepType`), `Summary` (one line for the command row: "Minimize window", "Wait 30 ms"), `SummaryOn(platform)` (the same in that platform's words; only platform-bound types differ) |
+| `IStepType` | what the rest of Augram knows about a kind of step: `Key` (stable, written to the config, never renamed), `DisplayName` and `Category` (the picker), `IsPlatformNeutral` (F8: no conversion or override needed), `Convert(step, from, to)` (F8: the step on the other platform, a `StepConversion`: unchanged, converted, or none with the reason), `CreateDefault()`, `Read(JsonObject)` / `Write(IStep)` (the parameters only), `Execute(IStep, StepExecutionContext)` |
 | `StepCategory` | `System`, `Keyboard`, `Text`, `Run`, `Timing`, and `Other` (never offered by the picker; placeholders only) |
 | `StepRegistry` | `BuiltIn`: the static registration list, one line per type; `All`, `Find(key)` (null when unknown), `Require(key)` (`StepFormatException` when unknown); duplicate keys are refused at construction |
 | `StepExecutionContext` | what a step may touch while running: `Target` (window under the gesture start, already activated per A20, null when nothing was there), `Start`, `Windows` (`IWindowOperations`), `Input` (`IInputSimulator`), `Log`, `Cancellation`, `FocusMoved` |
@@ -23,11 +23,11 @@ Picker order within a category is `BuiltIn` order.
 |---|---|---|---|---|---|
 | `windowOp` | `WindowOp/` | Window | System | yes | "Close window", "Maximize or restore", "Set size 1280×720", "Snap to left half" |
 | `mediaKey` | `MediaKey/` | Media key | System | yes | "Volume up", "Mute", "Play/pause", "Next track" |
-| `hotkey` | `Hotkey/` | Hotkey | Keyboard | no (F8; conversion later) | "Ctrl+Shift+T", "Alt+F4", "Esc", "Hotkey (no key set)" |
+| `hotkey` | `Hotkey/` | Hotkey | Keyboard | no (F8: Ctrl ↔ Cmd, Alt ↔ Option, exception table) | "Ctrl+Shift+T", "Alt+F4", "Esc", "Hotkey (no key set)" |
 | `delay` | `Delay/` | Delay | Timing | yes | "Wait 30 ms" |
 | `imported` | `Imported/` | Imported (not supported yet) | Other | yes (nothing to convert) | "SendAltDown (not supported yet)" |
 
-Still to land in M2 (plan 0001 step 2): the Hotkey's Ctrl ↔ Cmd conversion for macOS, `TypeText` (Text), `Run` (Run, platform-bound: paths), later `MouseClick`.
+Still to land in M2 (plan 0001 step 2): `TypeText` (Text), `Run` (Run, platform-bound: paths), later `MouseClick`.
 
 ## Adding a type (the recipe)
 

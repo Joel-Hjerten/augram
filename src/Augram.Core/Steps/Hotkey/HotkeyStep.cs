@@ -9,7 +9,7 @@ namespace Augram.Core.Steps.Hotkey;
 /// <see cref="Modifiers"/> are pressed with the right-hand key (RAlt, RCtrl: some apps treat them
 /// differently, F5); a bit outside <see cref="Modifiers"/> means nothing, the text and the executor
 /// ignore it, and <see cref="Normalized"/> drops it. The modifiers are platform-bound (F8): a step stores
-/// what was authored, and the Ctrl ↔ Cmd conversion for macOS is a later slice.
+/// what was authored, and the other platform runs <see cref="HotkeyConversion"/>'s best guess.
 /// </summary>
 public sealed record HotkeyStep(KeyModifiers Modifiers, KeyCode Key, KeyModifiers RightHand = KeyModifiers.None) : IStep
 {
@@ -24,6 +24,9 @@ public sealed record HotkeyStep(KeyModifiers Modifiers, KeyCode Key, KeyModifier
 
     /// <summary>"Ctrl+Shift+T", "Alt+F4", "RCtrl+RShift+P", "Esc"; <see cref="UnsetSummary"/> while no key is set.</summary>
     public string Summary => IsSet ? HotkeyText.Format(Modifiers, Key, RightHand) : UnsetSummary;
+
+    /// <summary>"Win+D" on Windows, "Cmd+D" on macOS: the same Meta modifier under that keyboard's name.</summary>
+    public string SummaryOn(HostPlatform platform) => IsSet ? HotkeyText.Format(Modifiers, Key, RightHand, platform) : UnsetSummary;
 
     /// <summary>This step with <see cref="RightHand"/> cut down to <see cref="Modifiers"/>; itself when it already is.</summary>
     public HotkeyStep Normalized() => (RightHand & ~Modifiers) == KeyModifiers.None ? this : this with { RightHand = RightHand & Modifiers };

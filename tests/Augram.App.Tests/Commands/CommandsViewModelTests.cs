@@ -31,7 +31,7 @@ public sealed class CommandsViewModelTests
         var chrome = Section(vm, "Chrome").Commands;
         Assert.Equal(["Close tab", "Nothing on Up"], chrome.Select(command => command.Name));
         Assert.Equal(["Wait 5 ms", "Does nothing here"], chrome.Select(command => command.StepSummary));
-        Assert.Equal("has macOS override", chrome[0].PlatformMarker);
+        Assert.Equal("has macOS version", chrome[0].PlatformMarker);
         Assert.All(chrome, command =>
         {
             Assert.Null(command.CategoryLabel);
@@ -62,7 +62,7 @@ public sealed class CommandsViewModelTests
         Assert.Equal(closeTab.Id, vm.SelectedCommandId);
         Assert.Equal(chrome.Id, vm.SelectedSectionId);
         Assert.Equal("Wait 5 ms", Assert.Single(vm.Steps).Summary);
-        Assert.Equal("has macOS override", vm.Steps[0].PlatformMarker);
+        Assert.Equal("has macOS version", vm.Steps[0].PlatformMarker);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand));
 

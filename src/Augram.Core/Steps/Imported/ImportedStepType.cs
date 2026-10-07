@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Augram.Core.Abstractions;
 
 namespace Augram.Core.Steps.Imported;
 
@@ -24,6 +25,9 @@ public sealed class ImportedStepType : IStepType
     public StepCategory Category => StepCategory.Other;
 
     public bool IsPlatformNeutral => true;
+
+    /// <summary>The same on every platform: nothing to convert.</summary>
+    public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to) => StepConversion.Same(step);
 
     public IStep CreateDefault() => new ImportedStep(string.Empty, string.Empty, ImportedStep.NoParameters);
 

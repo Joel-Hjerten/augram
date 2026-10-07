@@ -37,6 +37,16 @@ Some apps treat plain Alt and Ctrl differently from the right-hand keys, which i
 
 ## Platform (F8)
 
-`IsPlatformNeutral` is **false**: Ctrl on Windows is usually Cmd on macOS, Win is usually Ctrl or Cmd, and app shortcuts differ. The step stores what was authored; the command step's envelope records `authoredOn` (the App authors on `CommandsModule.CurrentPlatform`, the importer on Windows), and the step list marks the row "Windows". The **auto-conversion** (Ctrl ↔ Cmd, Alt ↔ Option, Win → Ctrl, keys unchanged) and the per-platform override editor are a later slice; until then a Windows-authored hotkey runs unconverted on macOS. Conversion will live in this folder (the type owns its rule and its "convertible?" answer) so adding it stays one folder.
+`IsPlatformNeutral` is **false**: the step stores what was authored and its envelope records `authoredOn` (the App authors on `CommandsModule.CurrentPlatform`, the importer on Windows). On the other platform `HotkeyConversion` gives the best guess (F8, Joel 2026-10-07: both ways, best effort), computed for display and before every run, never stored:
+
+| Authored on | Rule | Examples |
+|---|---|---|
+| Windows → macOS | the exception table first, then Ctrl → Cmd; Alt (Option), Shift and the key stay; a right-hand modifier keeps its side | Ctrl+W → Cmd+W · RCtrl+0 → RCmd+0 · Alt+Tab → Cmd+Tab · Alt+F4 → Cmd+W · Ctrl+Y → Shift+Cmd+Z · Ctrl+Tab stays |
+| Windows → macOS, with the Windows key | no guess: "Win+D needs a macOS version: the Windows key has no Mac counterpart"; the executor skips the step and the command goes on | Win+D, Ctrl+Win+Left |
+| macOS → Windows | the exception table first, then Cmd → Ctrl; Ctrl, Option (Alt), Shift and the key stay | Cmd+W → Ctrl+W · Cmd+Tab → Alt+Tab · Cmd+Q → Alt+F4 · Shift+Cmd+Z → Ctrl+Y · Ctrl+Tab stays |
+| macOS → Windows, with Cmd and Ctrl together | no guess: "… needs a Windows version: Cmd and Ctrl together have no Windows counterpart" | Ctrl+Cmd+F |
+| either way, the rules change nothing | unchanged | F5, Shift+F5, Alt+F9, Space |
+
+The exception table is in `HotkeyConversion` and grows as real use shows more. `SummaryOn(platform)` reads a step in that platform's names, so a Windows "Win+D" reads "Win+D" on a Mac too.
 
 **May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn` (one line), the importer (`Augram.Import.StrokesPlus/HotkeyMapping`: `SendHotKey` and non-media `SendVKey`), the App's `Components/Steps/Hotkey/` form and `Components/HotkeyCapture/` field.

@@ -40,7 +40,7 @@ public static class CommandGalleryPages
 
     public static ScreenDeclaration StepListPage()
     {
-        var steps = FakeSteps().Select(StepItem.From).ToList();
+        var steps = FakeSteps().Select((step, index) => StepItem.From(step, index, Hosting.CommandsModule.CurrentPlatform)).ToList();
         return new FormScreen("StepList",
         [
             new Section("Four steps, the first expanded; drag to reorder, the check box toggles (local, no store)",
@@ -141,7 +141,7 @@ public static class CommandGalleryPages
                     return;
             }
 
-            list.Steps = items.Select(StepItem.From).ToList();
+            list.Steps = items.Select((step, index) => StepItem.From(step, index, Hosting.CommandsModule.CurrentPlatform)).ToList();
         };
         return list;
     }

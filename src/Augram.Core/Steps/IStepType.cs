@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Augram.Core.Abstractions;
 
 namespace Augram.Core.Steps;
 
@@ -34,6 +35,13 @@ public interface IStepType
 
     /// <summary>Writes the step's parameters only (the envelope with the type key and platform is the caller's).</summary>
     JsonObject Write(IStep step);
+
+    /// <summary>
+    /// What <paramref name="step"/>, authored on <paramref name="from"/>, does on <paramref name="to"/> (F8, both ways, best
+    /// effort): <see cref="StepConversion.Same"/> for a platform-neutral type, a converted step, or <see cref="StepConversion.None"/>
+    /// with the reason when there is no sensible guess. Pure; called for display and before every run, never stored.
+    /// </summary>
+    StepConversion Convert(IStep step, HostPlatform from, HostPlatform to);
 
     /// <summary>Runs the step on the executor thread. Must not throw for an expected failure; return it.</summary>
     StepResult Execute(IStep step, StepExecutionContext context);

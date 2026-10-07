@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Augram.Core.Abstractions;
 
 namespace Augram.Core.Steps.Delay;
 
@@ -28,6 +29,9 @@ public sealed class DelayStepType : IStepType
     public StepCategory Category => StepCategory.Timing;
 
     public bool IsPlatformNeutral => true;
+
+    /// <summary>The same on every platform: nothing to convert.</summary>
+    public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to) => StepConversion.Same(step);
 
     public IStep CreateDefault() => new DelayStep(DefaultMilliseconds);
 

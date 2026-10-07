@@ -135,6 +135,29 @@ public sealed class CommandExecutionTests
     }
 
     [Fact]
+    public void OnTheOtherPlatform_StepsRunConverted_AndOneWithNoGuessIsSkippedWithItsReason()
+    {
+        var noGuess = new FakeStepType(StepCategory.System) { Converts = _ => StepConversion.None("Win+D needs a macOS version") };
+        var replacement = new FakeStepType(StepCategory.System);
+        var converted = new FakeStepType(StepCategory.System) { Converts = _ => StepConversion.To(replacement.Step) };
+        var mapping = Mappings.Global(Mappings.Command("Authored on Windows", Trigger.ForGesture(Right.Id), noGuess.Step, converted.Step));
+        using var harness = new EngineHarness(gestures: [Right], mapping: mapping);
+        harness.WindowOperations.Platform = HostPlatform.MacOS;
+
+        harness.Stroke(200, 0);
+        harness.WaitForLog(LogSources.Execution, "Command fired");
+
+        Assert.Empty(noGuess.Runs);
+        Assert.Empty(converted.Runs);
+        Assert.Single(replacement.Runs);
+        var skipped = harness.Log.Single(LogSources.Execution, "Step skipped");
+        Assert.Contains(skipped.Properties!, p => p.Key == "reason" && (string)p.Value! == "Win+D needs a macOS version");
+        var fired = harness.Log.Single(LogSources.Execution, "Command fired");
+        Assert.Contains(fired.Properties!, p => p.Key == "stepsRun" && (int)p.Value! == 1);
+        Assert.Contains(fired.Properties!, p => p.Key == "stepsSkipped" && (int)p.Value! == 1);
+    }
+
+    [Fact]
     public void InactiveSteps_AreSkipped_AndACommandWithNoneLogsIt()
     {
         var inactive = new FakeStepType(StepCategory.System);

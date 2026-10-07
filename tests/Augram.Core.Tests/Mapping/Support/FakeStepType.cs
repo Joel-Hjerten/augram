@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Augram.Core.Abstractions;
 using Augram.Core.Steps;
 
 namespace Augram.Core.Tests.Mapping.Support;
@@ -26,6 +27,8 @@ internal sealed class FakeStepType : IStepType
     public StepCategory Category => StepCategory.System;
 
     public bool IsPlatformNeutral => false;
+
+    public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to) => StepConversion.Same(step);
 
     public IStep CreateDefault() => new FakeStep("default");
 

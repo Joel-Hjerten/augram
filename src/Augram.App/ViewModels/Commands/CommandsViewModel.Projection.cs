@@ -32,7 +32,7 @@ public sealed partial class CommandsViewModel
 
     private void Project()
     {
-        Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find);
+        Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform);
         CanUndo = _store.CanUndo;
         CanRedo = _store.CanRedo;
         ProjectSelection();
@@ -60,7 +60,7 @@ public sealed partial class CommandsViewModel
         }
 
         SelectedCommand = selected;
-        var steps = selected is null ? [] : _store.FindCommand(selected.Id)!.Value.Command.Steps.Select(StepItem.From).ToList();
+        var steps = selected is null ? [] : _store.FindCommand(selected.Id)!.Value.Command.Steps.Select((step, index) => StepItem.From(step, index, _platform)).ToList();
         Steps = steps;
         if (_stepsOf != SelectedCommandId)
         {

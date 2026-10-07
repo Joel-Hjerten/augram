@@ -8,8 +8,9 @@ using Augram.Engine.Hosting;
 namespace Augram.Engine.Execution;
 
 /// <summary>
-/// Runs one resolved command on the executor thread: plays the active steps in order with the platform
-/// override resolved per step (F8), sharing one <see cref="StepExecutionContext"/>. The target is
+/// Runs one resolved command on the executor thread: plays the active steps in order as each runs on this
+/// platform (F8: its override, the step itself where it was authored, else the best-guess conversion; a step with
+/// no guess is skipped with its reason), sharing one <see cref="StepExecutionContext"/>. The target is
 /// activated lazily, right before the first Keyboard or Text step, because only injected keys need
 /// focus (the adapter applies A20 and says whether focus moved): a window operation acts on the handle
 /// and a media key is global, so a minimize never pays for an activation (2026-10-07: an Alt-tap
@@ -61,7 +62,15 @@ internal sealed class CommandRunner
                 continue;
             }
 
-            var step = commandStep.ResolveFor(_operations.Platform);
+            var planned = commandStep.ForPlatform(_operations.Platform);
+            if (planned.Step is not { } step)
+            {
+                // F8: authored on the other platform with no sensible guess here ("Win+D needs a macOS version").
+                skipped++;
+                _log.Debug(LogSources.Execution, "Step skipped", ("index", index), ("type", commandStep.Step.Type.Key), ("reason", planned.Reason));
+                continue;
+            }
+
             if (!activated && NeedsFocus(step))
             {
                 activated = true;
@@ -82,6 +91,7 @@ internal sealed class CommandRunner
                 ("index", index),
                 ("type", step.Type.Key),
                 ("summary", step.Summary),
+                ("converted", planned.Kind == StepConversionKind.Converted),
                 ("outcome", result.Outcome),
                 ("reason", result.Reason),
                 ("ms", Math.Round(Stopwatch.GetElapsedTime(started).TotalMilliseconds, 2)));

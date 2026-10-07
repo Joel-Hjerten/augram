@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 
@@ -17,12 +18,12 @@ internal static class CommandSections
     /// <summary>The Global tab holds the Global group; the Apps tab every other group.</summary>
     public static bool Includes(CommandsScope scope, AppGroup group) => group.IsGlobal == (scope == CommandsScope.Global);
 
-    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture)
+    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here)
     {
         ArgumentNullException.ThrowIfNull(document);
         return scope == CommandsScope.Global
-            ? GlobalSections(document.Global, expanded, findGesture)
-            : [.. document.Groups.Where(group => !group.IsGlobal).Select(group => GroupSection(group, expanded, findGesture))];
+            ? GlobalSections(document.Global, expanded, findGesture, here)
+            : [.. document.Groups.Where(group => !group.IsGlobal).Select(group => GroupSection(group, expanded, findGesture, here))];
     }
 
     public static SectionId SectionOf(CommandsScope scope, AppGroup group, Command command)
@@ -36,12 +37,12 @@ internal static class CommandSections
             ? [CategoryChoice.Uncategorized, .. Sorted(group).Select(category => new CategoryChoice(category.Id, category.Name))]
             : [];
 
-    private static SectionItem GroupSection(AppGroup group, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture)
+    private static SectionItem GroupSection(AppGroup group, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here)
     {
         var id = SectionId.ForGroup(group.Id);
         var choices = Choices(group);
         var commands = group.Commands
-            .Select(command => Item(group, command, findGesture) with
+            .Select(command => Item(group, command, findGesture, here) with
             {
                 Section = id,
                 CategoryLabel = command.CategoryId is { } category ? group.FindCategory(category)?.Name : null,
@@ -57,11 +58,11 @@ internal static class CommandSections
         };
     }
 
-    private static List<SectionItem> GlobalSections(AppGroup global, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture)
+    private static List<SectionItem> GlobalSections(AppGroup global, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here)
     {
         var choices = Choices(global);
         var items = global.Commands
-            .Select(command => Item(global, command, findGesture) with { Section = SectionOf(CommandsScope.Global, global, command), Categories = choices })
+            .Select(command => Item(global, command, findGesture, here) with { Section = SectionOf(CommandsScope.Global, global, command), Categories = choices })
             .ToList();
         var sections = new List<SectionItem>();
         var uncategorized = items.Where(item => item.Section == SectionId.Uncategorized).ToList();
@@ -85,6 +86,6 @@ internal static class CommandSections
 
     private static IEnumerable<CommandCategory> Sorted(AppGroup group) => group.Categories.OrderBy(category => category.Name, MappingRules.NameComparer);
 
-    private static CommandItem Item(AppGroup group, Command command, Func<GestureId, Gesture?> findGesture)
-        => CommandItem.From(group, command, command.Trigger is Trigger.GestureTrigger gesture ? findGesture(gesture.GestureId) : null);
+    private static CommandItem Item(AppGroup group, Command command, Func<GestureId, Gesture?> findGesture, HostPlatform here)
+        => CommandItem.From(group, command, command.Trigger is Trigger.GestureTrigger gesture ? findGesture(gesture.GestureId) : null, here);
 }

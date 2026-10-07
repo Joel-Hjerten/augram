@@ -5,11 +5,10 @@ namespace Augram.Core.Mapping;
 
 /// <summary>
 /// One step of a command as stored (the F8 envelope): the step as authored, the platform it was
-/// authored on, and an optional hand-made replacement per platform. <see cref="ResolveFor"/> gives the
-/// step to run on a platform: its override when there is one, else the authored step (the executor
-/// then applies the type's auto-conversion when the platforms differ). The original is never edited
-/// by an override, so an export still works on both platforms. Inactive steps stay in the list and
-/// are skipped by the executor.
+/// authored on, and an optional hand-made replacement per platform. <see cref="ForPlatform"/> says what
+/// runs on a platform: its override when there is one, the step itself where it was authored, else the
+/// type's best-guess conversion (or none, with the reason). The original is never edited by an override,
+/// so an export still works on both platforms. Inactive steps stay in the list and are skipped by the executor.
 /// </summary>
 public sealed record CommandStep(
     IStep Step,
@@ -29,6 +28,15 @@ public sealed record CommandStep(
 
     /// <summary>The override for <paramref name="platform"/> when there is one, else <see cref="Step"/>.</summary>
     public IStep ResolveFor(HostPlatform platform) => OverrideFor(platform) ?? Step;
+
+    /// <summary>
+    /// What runs on <paramref name="platform"/> (F8): its override as is, the step itself on the platform it was authored
+    /// on, else the step type's best guess, which may be "none" with a reason. The executor and the step list both ask this.
+    /// </summary>
+    public StepConversion ForPlatform(HostPlatform platform)
+        => OverrideFor(platform) is { } own ? StepConversion.Same(own)
+            : platform == AuthoredOn ? StepConversion.Same(Step)
+            : Step.Type.Convert(Step, AuthoredOn, platform);
 
     /// <summary>A copy with the override for <paramref name="platform"/> replaced (null removes it).</summary>
     public CommandStep WithOverride(HostPlatform platform, IStep? step) => platform switch

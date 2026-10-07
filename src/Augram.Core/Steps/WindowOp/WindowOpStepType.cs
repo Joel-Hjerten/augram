@@ -29,6 +29,9 @@ public sealed class WindowOpStepType : IStepType
 
     public bool IsPlatformNeutral => true;
 
+    /// <summary>The same on every platform: nothing to convert.</summary>
+    public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to) => StepConversion.Same(step);
+
     public IStep CreateDefault() => new WindowOpStep(WindowOperation.Minimize);
 
     public IStep Read(JsonObject parameters)

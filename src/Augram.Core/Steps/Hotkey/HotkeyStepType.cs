@@ -36,6 +36,10 @@ public sealed class HotkeyStepType : IStepType
 
     public bool IsPlatformNeutral => false;
 
+    /// <summary>Ctrl ↔ Cmd, Alt ↔ Option and the exception table (<see cref="HotkeyConversion"/>).</summary>
+    public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to)
+        => HotkeyConversion.Convert(StepParameters.Expect<HotkeyStep>(step, this), from, to);
+
     public IStep CreateDefault() => HotkeyStep.Unset;
 
     public IStep Read(JsonObject parameters)

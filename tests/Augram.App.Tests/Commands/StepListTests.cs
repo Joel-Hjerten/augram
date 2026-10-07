@@ -27,7 +27,7 @@ public sealed class StepListTests
         Assert.Equal(["1.", "2.", "3."], list.Rows.Select(row => row.IndexText));
         Assert.Equal(["Center window", "Wait 50 ms", "Play/pause"], list.Rows.Select(row => row.SummaryText));
         Assert.Equal(["Window", "Delay", "Media key"], list.Rows.Select(row => row.TypeText));
-        Assert.Equal("has macOS override", list.Rows[1].MarkerText);
+        Assert.Equal("has macOS version", list.Rows[1].MarkerText);
         Assert.False(list.Rows[0].HasMarker);
         Assert.Contains(":inactive", list.Rows[2].Classes);
 
@@ -144,7 +144,7 @@ public sealed class StepListTests
         => row.TranslatePoint(new Point(row.Bounds.Width / 2, row.Bounds.Height / 2), window)!.Value;
 
     private static IReadOnlyList<StepItem> Replace(IReadOnlyList<CommandStep> steps, int index, IStep step)
-        => steps.Select((item, i) => StepItem.From(i == index ? item with { Step = step } : item, i)).ToList();
+        => steps.Select((item, i) => StepItem.From(i == index ? item with { Step = step } : item, i, HostPlatform.Windows)).ToList();
 
     private static (StepList List, List<StepListActionEventArgs> Actions, IReadOnlyList<CommandStep> Steps) Show(int selected = -1)
     {
@@ -155,7 +155,7 @@ public sealed class StepListTests
             new(new MediaKeyStep(MediaKeyKind.PlayPause), HostPlatform.Windows, IsActive: false),
         ];
         var actions = new List<StepListActionEventArgs>();
-        var list = new StepList { Steps = steps.Select(StepItem.From).ToList(), SelectedIndex = selected, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
+        var list = new StepList { Steps = steps.Select((step, index) => StepItem.From(step, index, HostPlatform.Windows)).ToList(), SelectedIndex = selected, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
         list.ActionRequested += (_, e) => actions.Add(e);
         var window = new Window { Content = list, Width = 700, Height = 700 };
         window.Show();

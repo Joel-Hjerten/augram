@@ -1,4 +1,5 @@
 using Augram.App.Components.StepList;
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 
@@ -43,9 +44,10 @@ public sealed record CommandItem(
 
     /// <summary>
     /// Projects the command into its group's section, with no tag and no category choices;
-    /// <paramref name="gesture"/> is the one its trigger names, when it is one and the library still has it.
+    /// <paramref name="gesture"/> is the one its trigger names, when it is one and the library still has it; the step summary
+    /// and the marker read as on <paramref name="here"/>.
     /// </summary>
-    public static CommandItem From(AppGroup group, Command command, Gesture? gesture)
+    public static CommandItem From(AppGroup group, Command command, Gesture? gesture, HostPlatform here)
     {
         ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(command);
@@ -60,18 +62,18 @@ public sealed record CommandItem(
             kind,
             triggerText,
             points,
-            Summarise(group, command),
-            StepPlatformMarker.ForCommand(command.Steps))
+            Summarise(group, command, here),
+            StepPlatformMarker.ForCommand(command.Steps, here))
         {
             Section = SectionId.ForGroup(group.Id),
             CategoryId = command.CategoryId,
         };
     }
 
-    private static string Summarise(AppGroup group, Command command) => command.Steps.Count switch
+    private static string Summarise(AppGroup group, Command command, HostPlatform here) => command.Steps.Count switch
     {
         0 => group.IsGlobal ? "No steps" : "Does nothing here",
-        1 => command.Steps[0].Step.Summary,
+        1 => StepPlatformMarker.For(command.Steps[0], here).Summary,
         var n => $"{n} steps",
     };
 }

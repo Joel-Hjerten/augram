@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 
 namespace Augram.App.Components.StepList;
@@ -7,10 +8,11 @@ public sealed record StepItem(int Index, CommandStep Step, string Summary, strin
 {
     public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
 
-    /// <summary>Shaped for <c>Select(StepItem.From)</c>: the step, then its position in the list.</summary>
-    public static StepItem From(CommandStep step, int index)
+    /// <summary>The step at <paramref name="index"/> as it reads on <paramref name="here"/> (F8: converted or from the other platform).</summary>
+    public static StepItem From(CommandStep step, int index, HostPlatform here)
     {
         ArgumentNullException.ThrowIfNull(step);
-        return new StepItem(index, step, step.Step.Summary, step.Step.Type.DisplayName, step.IsActive, StepPlatformMarker.For(step));
+        var text = StepPlatformMarker.For(step, here);
+        return new StepItem(index, step, text.Summary, step.Step.Type.DisplayName, step.IsActive, text.Marker);
     }
 }
