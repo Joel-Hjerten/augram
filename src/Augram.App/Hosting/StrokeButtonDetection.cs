@@ -16,6 +16,7 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
 {
     public const string ListeningText = "Press the button you want to use…";
     public const string TimedOutText = "No button seen in 5 seconds. If you pressed one, its vendor software may consume it before Augram can see it.";
+    public const string EngineOffText = "Detect needs the engine, which is off in this run (--no-engine). Pick the button above.";
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
 
     private readonly EngineHost _host;
@@ -41,10 +42,16 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
     /// <summary>What the Options page shows beside the button: empty, the prompt, the result, or the timeout.</summary>
     public string Status { get; private set => SetProperty(ref field, value); } = string.Empty;
 
-    /// <summary>Writer thread. A second call while listening restarts the timeout.</summary>
+    /// <summary>Writer thread. A second call while listening restarts the timeout. Without a running engine nothing can be seen, so it says so at once.</summary>
     public void Start()
     {
         Stop();
+        if (!_host.IsRunning)
+        {
+            Status = EngineOffText;
+            return;
+        }
+
         IsListening = true;
         Status = ListeningText;
         _capture = _host.CaptureNextButtonPress(button => _marshal(() => Assign(button)));

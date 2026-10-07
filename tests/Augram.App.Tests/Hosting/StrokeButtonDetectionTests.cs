@@ -46,6 +46,19 @@ public sealed class StrokeButtonDetectionTests
     }
 
     [Fact]
+    public void EngineOff_SaysSoAtOnceInsteadOfTimingOut()
+    {
+        using var engine = new EngineFixture(start: false);
+        using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
+
+        detection.Start();
+
+        Assert.False(detection.IsListening);
+        Assert.Equal(StrokeButtonDetection.EngineOffText, detection.Status);
+        Assert.Equal(MouseButton.Right, engine.Settings.Current.General.StrokeButton);
+    }
+
+    [Fact]
     public void PressingTheCurrentButtonIsStillACaptureAndAReplay()
     {
         using var engine = new EngineFixture();
