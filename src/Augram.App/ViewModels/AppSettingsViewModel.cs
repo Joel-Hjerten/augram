@@ -9,8 +9,8 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// What the Options page binds to: a projection over <see cref="SettingsStore"/> (ADR-0002 §5a). Every
-/// getter reads <c>Current</c>; every setter is one undo step through the store; every store change,
-/// undo and redo included, refreshes all bindings at once (an empty property name). Start at login
+/// getter reads <c>Current</c>; every setter is one store change, saved at once (A3: live save, no
+/// undo UI since 2026-10-07); every store change refreshes all bindings at once (an empty property name). Start at login
 /// goes through <see cref="AppState"/>, which also keeps the OS registration in step, and detect-to-assign
 /// through <see cref="StrokeButtonDetection"/>. A rejected value (out of range) leaves the store untouched
 /// and is reported in <see cref="LastError"/>.
@@ -112,20 +112,12 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
         set => Apply(s => s with { Recognition = s.Recognition with { ScoringMode = value } });
     }
 
-    public bool CanUndo => _settings.CanUndo;
-
-    public bool CanRedo => _settings.CanRedo;
-
     public string DetectStatus => _detection.Status;
 
     public bool IsDetecting => _detection.IsListening;
 
     /// <summary>The last validation message from the store, or null; cleared by the next accepted change.</summary>
     public string? LastError { get; private set => SetProperty(ref field, value); }
-
-    public void Undo() => _settings.Undo();
-
-    public void Redo() => _settings.Redo();
 
     public void DetectButton() => _detection.Start();
 

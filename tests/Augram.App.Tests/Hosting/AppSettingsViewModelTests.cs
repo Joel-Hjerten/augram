@@ -9,11 +9,11 @@ using Xunit;
 
 namespace Augram.App.Tests.Hosting;
 
-/// <summary>The Options view model round-trips through <see cref="SettingsStore"/> and follows undo and redo.</summary>
+/// <summary>The Options view model round-trips through <see cref="SettingsStore"/> and follows every store change.</summary>
 public sealed class AppSettingsViewModelTests
 {
     [Fact]
-    public void SettersWriteTheStore_OneUndoStepEach()
+    public void SettersWriteTheStore_OneVersionEach()
     {
         using var engine = new EngineFixture(start: false);
         using var vm = Create(engine);
@@ -29,8 +29,6 @@ public sealed class AppSettingsViewModelTests
         Assert.Equal(new RgbColor(1, 2, 3), current.Trail.Colour);
         Assert.Equal(80, current.Recognition.Threshold);
         Assert.Equal(4, engine.Settings.Version);
-        Assert.True(vm.CanUndo);
-        Assert.False(vm.CanRedo);
     }
 
     [Fact]
@@ -43,11 +41,10 @@ public sealed class AppSettingsViewModelTests
         vm.TrailWidth = vm.TrailWidth;
 
         Assert.Equal(0, engine.Settings.Version);
-        Assert.False(vm.CanUndo);
     }
 
     [Fact]
-    public void UndoRefreshesEveryBinding()
+    public void AStoreChangeFromOutsideRefreshesEveryBinding()
     {
         using var engine = new EngineFixture(start: false);
         using var vm = Create(engine);
@@ -55,14 +52,10 @@ public sealed class AppSettingsViewModelTests
         vm.StrokeButton = MouseButton.X1;
         vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
 
-        vm.Undo();
+        engine.Settings.Undo();
 
         Assert.Equal(MouseButton.Right, vm.StrokeButton);
         Assert.Contains(string.Empty, raised);
-        Assert.True(vm.CanRedo);
-
-        vm.Redo();
-        Assert.Equal(MouseButton.X1, vm.StrokeButton);
     }
 
     [Fact]

@@ -17,10 +17,6 @@ public static class OptionsScreen
         ArgumentNullException.ThrowIfNull(vm);
         return new FormScreen("Options",
         [
-            new Section("Changes",
-            [
-                new CustomField("Undo / redo", () => UndoRedoEditor(vm), vm, "Every change is saved at once; undo and redo step through them."),
-            ]),
             new Section("General",
             [
                 new ButtonRadioField<MouseButton>("Stroke button", Choice.FromEnum<MouseButton>(),
@@ -66,14 +62,6 @@ public static class OptionsScreen
                     "Legacy reproduces StrokesPlus exactly, quirks included."),
             ]),
         ]);
-    }
-
-    /// <summary>Two toolbar buttons bound to the store's undo history; enabled state follows <c>CanUndo</c> / <c>CanRedo</c>.</summary>
-    private static Control UndoRedoEditor(AppSettingsViewModel vm)
-    {
-        var undo = ToolbarButton("Undo", vm.Undo, new DelegateBinding<bool>(() => vm.CanUndo, owner: vm));
-        var redo = ToolbarButton("Redo", vm.Redo, new DelegateBinding<bool>(() => vm.CanRedo, owner: vm));
-        return new StackPanel { Orientation = Orientation.Horizontal, Children = { undo, redo } };
     }
 
     /// <summary>A button that starts detect-to-assign (F1) and a status line beside it.</summary>
