@@ -222,10 +222,7 @@
         <Style Selector="^:inactive /template/ TextBlock#PART_Name">
           <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
         </Style>
-        <!-- A7 outline tiers: close = accent, exact duplicate = danger; a partner of the selected tile gets the strong border. -->
-        <Style Selector="^:close /template/ Border#PART_Frame">
-          <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
-        </Style>
+        <!-- A7: only exact duplicates are outlined (close pairs show up with their score when a tile is selected); a partner of the selected tile gets the strong border. -->
         <Style Selector="^:duplicate /template/ Border#PART_Frame">
           <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
         </Style>
