@@ -65,6 +65,10 @@ Give each agent disjoint folder ownership, the exact docs to read, the verificat
 - The memory folder is a private git repo, `Joel-Hjerten/augram-claude-memory`, synced by `scripts/memory-sync.mjs`: SessionStart pulls memory and reports if this checkout is behind or ahead of origin; Stop commits and pushes memory when it changed. Never hand-commit or force-push memory. An already-open idle chat never re-runs SessionStart; if Joel says he switched machines, pull memory and fetch by hand.
 - Mac, one time: pull Augram, clone the memory repo into that folder (moving aside anything a Mac session wrote), start a new chat.
 
+## 8a. macOS port (started 2026-10-07, on Joel's Mac)
+
+The whole solution builds and tests green on macOS (arm64; .NET SDK installed per user in `~/.dotnet`). `Augram.Platform.MacOS` now has the window system (window under the point from the window server's list, focus and activation through the Accessibility API), window operations Close / Minimize / MaximizeOrRestore, a verified click-through overlay style (`ignoresMouseEvents`) and the cursor probe; `EngineModule` registers them on macOS. The overlay covers the display under the stroke start on macOS (one window cannot span displays while "Displays have separate Spaces" is on) and treats capture coordinates as points. SharpHook's KeyTyped is off on macOS (it would make every key wait for the UI thread). CI runs on windows-latest and macos-latest. Details, coordinates and what is next: [src/Augram.Platform.MacOS/README.md](../src/Augram.Platform.MacOS/README.md). Open: D6 (maximize = fill the visible frame, working choice), the placement operations, an app bundle (Accessibility is granted to VS Code while launched from it), start at login, system events.
+
 ## 9. Open questions for Joel
 
 - May Joel's 105 gestures be copied into the public repo as a test fixture? Not asked yet; do not do it without his yes.

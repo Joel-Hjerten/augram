@@ -9,6 +9,10 @@ using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Engine.Hosting;
 using Augram.Engine.Input;
+using Augram.Platform.MacOS;
+using Augram.Platform.MacOS.Input;
+using Augram.Platform.MacOS.Overlay;
+using Augram.Platform.MacOS.WindowSystem;
 using Augram.Platform.Windows.Input;
 using Augram.Platform.Windows.Overlay;
 using Augram.Platform.Windows.Startup;
@@ -79,11 +83,30 @@ public static class EngineModule
         // A completed stroke that started over an open training canvas belongs to the training popup (F3, A6), not
         // to commands. The host asks through its Intercept port (wired in BuildPorts) before executing anything, so
         // a claimed stroke never fires a command; nothing is subscribed to EventRaised for it any more.
+        if (OperatingSystem.IsMacOS())
+        {
+            LogAccessibility(services.GetRequiredService<IEventLog>());
+        }
+
         var host = services.GetRequiredService<EngineHost>();
         services.GetRequiredService<EngineSettingsLink>();
         services.GetRequiredService<AppState>().SyncStartupRegistration();
         host.Start();
         PublishKeyCapture(services);
+    }
+
+    /// <summary>The hook, injected input and window operations all need the Accessibility permission; without it they fail one by one, so say it once up front.</summary>
+    [SupportedOSPlatform("macos")]
+    private static void LogAccessibility(IEventLog log)
+    {
+        if (MacAccessibility.IsTrusted())
+        {
+            log.Info(LogSources.Engine, "Accessibility permission granted");
+        }
+        else
+        {
+            log.Warning(LogSources.Engine, "Accessibility permission missing; the hook and window operations fail until it is granted", ("settings", "Privacy & Security > Accessibility"));
+        }
     }
 
     /// <summary>
@@ -135,6 +158,12 @@ public static class EngineModule
             return;
         }
 
+        if (adapters && OperatingSystem.IsMacOS())
+        {
+            RegisterMacOS(services);
+            return;
+        }
+
         services.AddSingleton<IOverlayWindowStyle>(NullOverlayWindowStyle.Instance);
         services.AddSingleton<IStartupRegistration, NullStartupRegistration>();
         services.AddSingleton<IWindowSystem>(NullWindowSystem.Instance);
@@ -151,6 +180,20 @@ public static class EngineModule
         // Constructing these touches no window and installs nothing; every call they make runs on the engine worker.
         services.AddSingleton<IWindowSystem>(sp => new Win32WindowSystem(sp.GetRequiredService<IEventLog>()));
         services.AddSingleton<IWindowOperations>(_ => new Win32WindowOperations());
+    }
+
+    /// <summary>
+    /// The macOS adapters: Accessibility-API window system and operations (close, minimize, maximize/restore so far), a
+    /// verified click-through overlay, the cursor probe. Start at login and system events have no Mac adapter yet.
+    /// </summary>
+    [SupportedOSPlatform("macos")]
+    private static void RegisterMacOS(IServiceCollection services)
+    {
+        services.AddSingleton<ICursorProbe, MacCursorProbe>();
+        services.AddSingleton<IOverlayWindowStyle, MacOverlayWindowStyle>();
+        services.AddSingleton<IStartupRegistration, NullStartupRegistration>();
+        services.AddSingleton<IWindowSystem, MacWindowSystem>();
+        services.AddSingleton<IWindowOperations, MacWindowOperations>();
     }
 
     private static ConfigSession CreateSession(IServiceProvider sp, EngineModuleOptions options, Action<Action> marshal)

@@ -10,6 +10,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Augram.Core.Tests/Augram.Core.Tests.csproj" />
     <Project Path="tests/Augram.Engine.Tests/Augram.Engine.Tests.csproj" />
+    <Project Path="tests/Augram.Platform.MacOS.Tests/Augram.Platform.MacOS.Tests.csproj" />
     <Project Path="tests/Augram.Platform.Windows.Tests/Augram.Platform.Windows.Tests.csproj" />
     <Project Path="tests/Augram.App.Tests/Augram.App.Tests.csproj" />
   </Folder>

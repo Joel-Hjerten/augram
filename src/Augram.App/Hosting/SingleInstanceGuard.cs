@@ -1,4 +1,6 @@
 using System.IO.Pipes;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Augram.App.Hosting;
 
@@ -10,6 +12,7 @@ namespace Augram.App.Hosting;
 /// </summary>
 public sealed class SingleInstanceGuard : IDisposable
 {
+    private const int MaxUnixPipeName = 24;
     private readonly Mutex _mutex;
     private readonly string _pipeName;
     private readonly CancellationTokenSource _stopping = new();
@@ -70,7 +73,20 @@ public sealed class SingleInstanceGuard : IDisposable
 
     private static string MutexNameFor(string name) => @"Local\" + name + ".instance";
 
-    private static string PipeNameFor(string name) => name + ".show";
+    /// <summary>
+    /// Off Windows a named pipe is a domain socket at <c>$TMPDIR/CoreFxPipe_&lt;name&gt;</c>, and macOS caps that path at
+    /// 104 characters (<c>$TMPDIR</c> alone is about 50), so a long instance name is shortened to a hash of itself.
+    /// </summary>
+    private static string PipeNameFor(string name)
+    {
+        var pipe = name + ".show";
+        if (OperatingSystem.IsWindows() || pipe.Length <= MaxUnixPipeName)
+        {
+            return pipe;
+        }
+
+        return "augram-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(pipe)).AsSpan(0, 8));
+    }
 
     private void Listen()
     {
@@ -93,6 +109,11 @@ public sealed class SingleInstanceGuard : IDisposable
             }
             catch (ObjectDisposedException)
             {
+                return;
+            }
+            catch (Exception e) when (e is ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException)
+            {
+                // The pipe cannot exist here. A second launch then cannot reach this one, but an exception escaping this thread would end the app.
                 return;
             }
         }

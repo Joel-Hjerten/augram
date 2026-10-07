@@ -6,13 +6,19 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
       - run: dotnet restore
-      - run: dotnet format --verify-no-changes --no-restore
+      # One OS is enough for formatting; the rules do not depend on the platform.
+      - if: runner.os == 'Windows'
+        run: dotnet format --verify-no-changes --no-restore
       - run: dotnet build -c Release --no-restore
       - run: dotnet test -c Release --no-build --logger GitHubActions --logger "console;verbosity=normal"

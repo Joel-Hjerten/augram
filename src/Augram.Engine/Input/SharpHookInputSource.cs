@@ -2,6 +2,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using SharpHook;
 using SharpHook.Data;
+using SharpHook.Providers;
 
 namespace Augram.Engine.Input;
 
@@ -51,6 +52,14 @@ public sealed class SharpHookInputSource : IInputSource
             }
 
             _handler = handler;
+            if (OperatingSystem.IsMacOS())
+            {
+                // libuiohook turns every key press into a typed character with a synchronous trip to the main thread (the
+                // keyboard-layout calls are main-thread only), which would make every key on the machine wait for our UI
+                // thread (invariant 1). Nothing here listens to KeyTyped.
+                ((IGlobalHookProvider)UioHookProvider.Instance).KeyTypedEnabled = false;
+            }
+
             var generation = new Generation(new SimpleGlobalHook(GlobalHookType.All), ++_generation);
             var hook = generation.Hook;
             hook.HookEnabled += (_, _) => Raise(HookHealthKind.Installed, generation, null);

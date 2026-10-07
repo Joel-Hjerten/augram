@@ -1,23 +1,59 @@
 # Augram.Platform.MacOS
 
-macOS implementations of the same Core ports as `Augram.Platform.Windows`. Compiles as stubs until the Mac adapter is written (no Mac available to test on yet; design-for, not test-on).
+macOS implementations of the same Core ports as `Augram.Platform.Windows`, through CoreGraphics, the Accessibility API (`AXUIElement`) and a handful of AppKit calls via the Objective-C runtime. Started 2026-10-07 on Joel's Mac (Apple silicon, built-in Retina display at 2x plus an external display at 1x, "Displays have separate Spaces" on).
 
 **May reference:** `Augram.Core` only. AppKit / Accessibility interop goes here and nowhere else.
 
 **Must never contain:** Avalonia, SharpHook, business rules, or Windows types.
 
-Out of scope for plan 0001. Empty apart from this plan.
+## What is here
 
-## Window operations (plan)
+| Folder / file | Port | What it does |
+|---|---|---|
+| `Interop/MacNative` | | The only P/Invoke surface: CoreFoundation, CoreGraphics, HIServices (Accessibility), libobjc, libproc. `LibraryImport`, blittable types, bools as bytes. |
+| `Interop/Cf`, `Interop/Ax`, `Interop/ObjC` | | Wrappers: constant `CFString`s, reading CF values, AX attribute get/set/press with a 0.5 s messaging timeout per app, `AXError` → log reason, `NSRect` returns (arm64 vs x86-64), autorelease pools. |
+| `WindowSystem/MacWindowSystem` | `IWindowSystem` | `WindowAt` hit-tests the window server's list (`CGWindowListCopyWindowInfo`, front to back; no app is asked). `Foreground` is the focused window of the focused app (AX). `Activate` applies A20, then raises the window and sets the app `AXFrontmost` (works from a background app; `NSRunningApplication.activate` does not since macOS 14). |
+| `WindowSystem/MacWindowOperations` | `IWindowOperations` | Close, Minimize, MaximizeOrRestore. The rest report not supported until built (table below). |
+| `WindowSystem/MacWindowPick`, `MacRect`, `MacMaximize` | | Pure rules, tested on every OS: which window a point hits, desktop and full-screen flags, the Cocoa ↔ top-left flip, what counts as filled, which screen a window is on. |
+| `WindowSystem/MacWindowList`, `MacScreens` | | Native readers: window list, display bounds, process path (`proc_pidpath`); `NSScreen` frames and visible frames flipped to top-left points. |
+| `Overlay/MacOverlayWindowStyle` | `IOverlayWindowStyle` | `ignoresMouseEvents = YES`, read back (invariant 6); status-window level (over the Dock and menu bar); all Spaces and full-screen apps; out of the Cmd-` cycle. `Place` sets the frame in points. |
+| `Input/MacCursorProbe` | `ICursorProbe` | `CGEventGetLocation` of a blank event. |
+| `MacAccessibility` | | `IsTrusted()`; the App logs it once at engine start. |
 
-`WindowOperation` is platform-neutral by decision (Joel, 2026-10-07: anything system-related on both systems maps to each other), so this is written down where the Mac work starts: what the Mac `IWindowOperations` does for each operation, through the Accessibility API (`AXUIElement`), which the gesture hook already needs the Accessibility permission for. `WindowIdentity.RootHandle` will carry the top-level window element (found from the `CGWindowID` under the point via the owning app's `kAXWindowsAttribute`, or `_AXUIElementGetWindow`). `kAXErrorInvalidUIElement` on any call is the "window gone" case. Units are points, not pixels: `WindowSize` is interpreted in points here, and a step authored on the other platform carries its `HostPlatform` so the UI can say so.
+Not built yet: `ISystemEvents` (sleep/wake via `NSWorkspace` notifications), `IStartupRegistration` (`SMAppService`, needs an app bundle), the placement operations and an app bundle.
 
-| `WindowOperation` | Accessibility API equivalent |
-|---|---|
-| `Close` | `AXUIElementPerformAction(closeButton, kAXPressAction)` with `closeButton` = the window's `kAXCloseButtonAttribute`; the app runs its own close handling (save prompts), the counterpart of `SC_CLOSE` on Windows |
-| `Minimize` | `AXUIElementSetAttributeValue(window, kAXMinimizedAttribute, kCFBooleanTrue)` |
-| `MaximizeOrRestore` | `kAXPressAction` on the window's `kAXZoomButtonAttribute`: zoom toggles between the user size and the fitted size. Whether "maximize" should mean zoom, native full screen (`AXFullScreen`) or tiling is D6, still open; the adapter starts with zoom |
-| `ToggleAlwaysOnTop` | **No public API** sets another app's window level (`NSWindow.level` is in-process only). `Supports` returns false, `Perform` returns `NotSupported`, and the UI marks the step |
-| `Center` | read `kAXSizeAttribute`; set `kAXPositionAttribute` to the centre of `NSScreen.visibleFrame` of the screen containing the window. `visibleFrame` excludes the menu bar and the Dock, the work-area equivalent. AX positions are top-left origin and global while `NSScreen` frames are bottom-left origin, so the y axis is flipped first |
-| `SetSize` | set `kAXSizeAttribute`, keep `kAXPositionAttribute`, clamp into `visibleFrame` by the Windows `WindowGeometry` rules ported to points |
-| `SnapLeftHalf` / `SnapRightHalf` | set `kAXPositionAttribute` and `kAXSizeAttribute` to the half of `visibleFrame` (position, then size, then position again, as window-management tools do, because a size the current position cannot hold is clipped). No zoom first: a zoomed Mac window is just a window sized to the visible frame |
+## Coordinates and identity
+
+- **Units are points, origin top-left of the main display, y down** everywhere this project hands a value out: the hook reports the pointer that way, CoreGraphics window bounds and the Accessibility API use it, and so does Avalonia for screens and window positions. Only `NSScreen` is bottom-left based; `MacRect.FromCocoa` flips it by the main screen's height. `WindowSize` is read as points.
+- `WindowIdentity.Handle` and `RootHandle` are both the `CGWindowID` (a macOS window has no child windows to resolve). `ProcessName` is the executable's file name (`Safari`, `Google Chrome`, `Code`), the counterpart of `chrome.exe`; `ProcessPath` is the full path inside the bundle; `ClassChain` is empty; `Title` is null unless the process may record the screen (Screen Recording permission).
+- `IsDesktop`: the hit window is below the normal layer (wallpaper, Finder's desktop icons). Window operations refuse the desktop. A window on a higher layer (Dock, menu bar) wins over the window behind it, so a gesture there never reaches a window the user was not pointing at.
+- A window operation finds the window again by its `CGWindowID` among its app's `AXWindows` (`_AXUIElementGetWindow`, private but what every macOS window manager uses); not found → "window gone".
+
+## Window operations
+
+| `WindowOperation` | macOS | State |
+|---|---|---|
+| `Close` | `AXPress` on the window's `AXCloseButton`: the app runs its own close path ("save changes?"); the process is never killed | built |
+| `Minimize` | `AXMinimized` = true | built |
+| `MaximizeOrRestore` | **Fill**: set `AXPosition` + `AXSize` to the visible frame of the window's screen (menu bar and Dock excluded), remembering the frame from before; when the window already fills it, put the remembered frame back, or press `AXZoomButton` if Augram did not fill it. A window in native full screen leaves it (`AXFullScreen` = false). D6 working choice (2026-10-07), Joel to confirm: zoom is defined per app and often fits content, full screen takes a Space | built |
+| `ToggleAlwaysOnTop` | No public API sets another app's window level. `Supports` is false; the executor skips the step with the reason | never |
+| `Center`, `SetSize`, `SnapLeftHalf`, `SnapRightHalf` | `AXPosition` / `AXSize` against `MacScreens` visible frames, with the Windows `WindowGeometry` rules ported to points | next |
+
+## Threading and permissions
+
+- `MacWindowSystem` and `MacWindowOperations` run on the engine worker / command executor, never on the hook thread: every AX call is IPC to the target app (bounded by the 0.5 s messaging timeout). `MacScreens` reads `NSScreen` from that thread inside an autorelease pool; `MacOverlayWindowStyle` runs on the UI thread, as AppKit requires.
+- Everything that acts (the hook's event tap, injected input, AX calls) needs **Accessibility** (System Settings › Privacy & Security › Accessibility). macOS grants it to the responsible app: Augram once it is an app bundle; during development the terminal or editor that launched it (VS Code here, already granted). Without it the hook fails to install and every window operation fails with "Accessibility permission missing".
+- On macOS SharpHook's `KeyTypedEnabled` is switched off (`Engine/Input/SharpHookInputSource`): libuiohook would otherwise resolve each key press to a character with a synchronous trip to the main thread, making every key on the machine wait for the UI thread.
+
+## Running on a Mac
+
+```
+# once: .NET SDK per global.json into ~/.dotnet
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+~/.dotnet/dotnet build
+~/.dotnet/dotnet src/Augram.App/bin/Debug/net10.0/Augram.App.dll             # engine on: hook + overlay
+~/.dotnet/dotnet src/Augram.App/bin/Debug/net10.0/Augram.App.dll --no-engine # UI only
+pkill -f Augram.App
+```
+
+Config and logs: `~/Library/Application Support/Augram/augram.json` and `logs/augram-yyyyMMdd.log` beside it. The live window-operations test: `AUGRAM_MAC_LIVE=1 dotnet test tests/Augram.Platform.MacOS.Tests` (opens and closes a TextEdit window).

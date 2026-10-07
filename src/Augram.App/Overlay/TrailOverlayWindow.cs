@@ -12,7 +12,7 @@ namespace Augram.App.Overlay;
 
 /// <summary>
 /// The trail overlay (F6): one transparent, click-through, non-activating, topmost window that covers the
-/// virtual screen only while a stroke is in progress. Hidden when idle; shown by the first frame of a
+/// virtual screen (on macOS the display under the stroke start) only while a stroke is in progress. Hidden when idle; shown by the first frame of a
 /// stroke after the native styles were applied and read back (<see cref="OverlayStylePolicy"/>); hidden
 /// again by the stroke's last frame. If the OS ever reports the window as not click-through it is hidden
 /// at once, logged as an error, and the trail becomes a no-op for the rest of the run: a full-screen
@@ -29,6 +29,13 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     private static readonly TimeSpan WatchdogInterval = TimeSpan.FromSeconds(1);
     private static readonly PixelRect FallbackBounds = new(0, 0, 1920, 1080);
 
+    // macOS reports the pointer, Avalonia's screen bounds and window positions in points, which are DIPs; Windows in physical pixels.
+    private static readonly bool CaptureInDips = OperatingSystem.IsMacOS();
+
+    // A macOS window shows on one display only while "Displays have separate Spaces" is on (the default), so the overlay
+    // covers the display under the stroke start there instead of the whole virtual screen.
+    private static readonly bool OneScreenPerStroke = OperatingSystem.IsMacOS();
+
     private readonly Func<TrailSettings> _trail;
     private readonly IOverlayWindowStyle _style;
     private readonly IEventLog _log;
@@ -42,6 +49,8 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     private int _usable = 1;
     private bool _parked;
     private DateTimeOffset _visibleSince;
+    private PixelPoint _strokeStart;
+    private PixelRect _loggedArea;
 
     public TrailOverlayWindow(Func<TrailSettings> trail, IOverlayWindowStyle style, IEventLog log, HealthRegistry? health)
     {
@@ -134,7 +143,7 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
         base.Show();
         if (VerifyOrHide("show"))
         {
-            FitVirtualScreen();
+            FitStrokeArea();
             _parked = false;
         }
     }
@@ -217,7 +226,7 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     private void Unpark()
     {
         _visibleSince = DateTimeOffset.UtcNow;
-        FitVirtualScreen();
+        FitStrokeArea();
         _parked = false;
     }
 
@@ -260,8 +269,10 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
     private void BeginStroke(TrailFrame frame)
     {
         var start = frame.Points[0];
-        var screenScaling = Screens.ScreenFromPoint(new PixelPoint(start.X, start.Y))?.Scaling ?? RenderScaling;
-        var widthDip = frame.Style.WidthPx * screenScaling / RenderScaling;
+        _strokeStart = new PixelPoint(start.X, start.Y);
+        var screenScaling = Screens.ScreenFromPoint(_strokeStart)?.Scaling ?? RenderScaling;
+        // Windows: the setting is pixels at 100 %, scaled by the DPI of the monitor under the stroke. macOS: points, which AppKit scales itself.
+        var widthDip = CaptureInDips ? frame.Style.WidthPx : frame.Style.WidthPx * screenScaling / RenderScaling;
         var colour = frame.Style.Colour;
         var brush = new SolidColorBrush(Color.FromArgb((byte)Math.Round(frame.Style.Opacity * 255), colour.R, colour.G, colour.B));
         _canvas.SetPen(new Pen(brush, widthDip, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
@@ -286,19 +297,36 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
         });
     }
 
-    /// <summary>Covers the virtual screen: DIPs for Avalonia, then physical pixels through the port, because a DIP size is applied at one monitor's scale (observed 3072×1728 for a 3840×2160 monitor at 125 %).</summary>
-    private void FitVirtualScreen()
+    /// <summary>The capture units in one DIP of this window: physical pixels on Windows, points (one each) on macOS.</summary>
+    private double CaptureScale => CaptureInDips ? 1 : RenderScaling;
+
+    /// <summary>
+    /// Covers <see cref="StrokeArea"/>: DIPs for Avalonia, then the platform's screen units through the port. On Windows those are
+    /// physical pixels, because a DIP size is applied at one monitor's scale (observed 3072×1728 for a 3840×2160 monitor at 125 %).
+    /// Each new area is logged once, so a wrong unit shows in the log as a window half or twice the screen's size.
+    /// </summary>
+    private void FitStrokeArea()
     {
-        var bounds = VirtualScreenBounds();
+        var bounds = StrokeArea();
         Position = bounds.Position;
-        Width = bounds.Width / RenderScaling;
-        Height = bounds.Height / RenderScaling;
+        Width = bounds.Width / CaptureScale;
+        Height = bounds.Height / CaptureScale;
         var handle = TryGetPlatformHandle()?.Handle ?? 0;
         if (handle != 0)
         {
             _style.Place(handle, bounds.X, bounds.Y, bounds.Width, bounds.Height);
         }
+
+        if (bounds != _loggedArea)
+        {
+            _loggedArea = bounds;
+            _log.Info(LogSource, "Overlay area", ("bounds", bounds), ("renderScaling", RenderScaling), ("captureInDips", CaptureInDips));
+        }
     }
+
+    private PixelRect StrokeArea() => OneScreenPerStroke
+        ? (Screens.ScreenFromPoint(_strokeStart) ?? Screens.Primary)?.Bounds ?? FallbackBounds
+        : VirtualScreenBounds();
 
     private PixelRect VirtualScreenBounds()
     {
@@ -317,5 +345,5 @@ public sealed class TrailOverlayWindow : Window, IStrokeTrail, IDisposable
         return bounds;
     }
 
-    private Point ToDip(CapturePoint point) => new((point.X - Position.X) / RenderScaling, (point.Y - Position.Y) / RenderScaling);
+    private Point ToDip(CapturePoint point) => new((point.X - Position.X) / CaptureScale, (point.Y - Position.Y) / CaptureScale);
 }

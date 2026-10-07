@@ -16,19 +16,19 @@ Window operations never wait (A8): the settle delay is for keystrokes after a fo
 
 ## Windows ↔ macOS mapping
 
-The Windows column is what `Augram.Platform.Windows` does against the window's root handle (`WindowIdentity.RootHandle`). The macOS column is the design for the future `Augram.Platform.MacOS` adapter through the Accessibility API (`AXUIElement` of the window; needs the Accessibility permission, without which every operation fails with a reason). "Work area" is the monitor's `rcWork` (`MonitorFromWindow` + `GetMonitorInfo`) on Windows and the window's screen's `NSScreen.visibleFrame` on macOS.
+The Windows column is what `Augram.Platform.Windows` does against the window's root handle (`WindowIdentity.RootHandle`). The macOS column is what `Augram.Platform.MacOS` does (or will do; state in its README) through the Accessibility API (`AXUIElement` of the window; needs the Accessibility permission, without which every operation fails with a reason). "Work area" is the monitor's `rcWork` (`MonitorFromWindow` + `GetMonitorInfo`) on Windows and the window's screen's `NSScreen.visibleFrame` on macOS.
 
-| `WindowOperation` | Windows adapter | macOS adapter (future) |
+| `WindowOperation` | Windows adapter | macOS adapter |
 |---|---|---|
 | `Close` | `PostMessage(WM_SYSCOMMAND, SC_CLOSE)`: the app gets its own close path ("save changes?"), the process is never killed | `AXPress` on the window's `AXCloseButton` |
 | `Minimize` | `ShowWindow(SW_MINIMIZE)` | set `AXMinimized` = true |
-| `MaximizeOrRestore` | `IsZoomed ? ShowWindow(SW_RESTORE) : ShowWindow(SW_MAXIMIZE)` | `AXPress` on `AXZoomButton`: **zoom, not full-screen** (D6's working assumption; full-screen would hide the menu bar and take a Space, which is not what "maximize" means in Joel's use) |
+| `MaximizeOrRestore` | `IsZoomed ? ShowWindow(SW_RESTORE) : ShowWindow(SW_MAXIMIZE)` | **Fill**: `AXPosition` + `AXSize` to the screen's `visibleFrame`, remembering the frame before; filled already → the remembered frame back (or `AXPress` on `AXZoomButton` when Augram did not fill it); native full screen → leave it. D6 working choice 2026-10-07, replacing zoom: zoom is per-app and often fits content, full screen takes a Space |
 | `ToggleAlwaysOnTop` | read `WS_EX_TOPMOST`, then `SetWindowPos(HWND_TOPMOST or HWND_NOTOPMOST)` | **not supported**: the Accessibility API cannot change another app's window level. `Supports` returns false, the executor skips the step with "ToggleAlwaysOnTop is not supported on MacOS", the command continues, and the UI marks the step |
 | `Center` | restore first if maximized; `SetWindowPos` to the centre of the work area, size kept | `AXPosition` to the centre of `visibleFrame`, `AXSize` kept |
 | `SetSize` | restore first if maximized; `SetWindowPos` with the new width and height, top-left kept, clamped to the work area | `AXSize`; `AXPosition` kept |
 | `SnapLeftHalf` | restore first if maximized; `SetWindowPos` to the left half of the work area | `AXPosition` + `AXSize` to the left half of `visibleFrame` |
 | `SnapRightHalf` | restore first if maximized; `SetWindowPos` to the right half of the work area | `AXPosition` + `AXSize` to the right half of `visibleFrame` |
 
-Every Windows row targets the root owner so a gesture over a child control acts on the whole window; every macOS row targets the window element the point hit-tests to. Sizes are physical pixels on Windows and points on macOS; the adapter converts, the step does not know.
+Every Windows row targets the root owner so a gesture over a child control acts on the whole window; every macOS row targets the window the point hit-tests to in the window server's list, found again among its app's `AXWindows` by `CGWindowID`. Sizes are physical pixels on Windows and points on macOS; the adapter converts, the step does not know.
 
 **May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn` (one line), the importer (C1: `CloseWindow`, `MinimizeWindow`, `MaximizeOrRestoreWindow`, `ToggleWindowAlwaysOnTop`, `SetWindowSize`, `Center`, and the two snap scripts), the App's `Components/Steps/WindowOp/` form.
