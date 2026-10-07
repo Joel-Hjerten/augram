@@ -48,6 +48,8 @@ internal static class CompositionRoot
         GesturesModule.Register(services);
         // Commands tab slice, after the Gestures one: pickers, navigator, view model and the ICommandLocator the "Used by…" popup jumps through.
         CommandsModule.Register(services);
+        // Sync slice (F8), after the engine's stores: git adapter, coordinator, the sync worker, dialogs, Options › Sync (started in App.StartDesktop).
+        SyncModule.Register(services, new SyncModuleOptions { ConfigFolder = configFolder });
 
         // View models: projections over the stores above (ADR-0002 §5a).
         services.AddSingleton<AppSettingsViewModel>();

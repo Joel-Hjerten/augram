@@ -27,6 +27,7 @@ public static class HealthScreen
             [
                 new NoteField("Uptime", new DelegateBinding<string>(() => vm.Uptime, owner: vm)),
                 new NoteField("Memory (working set)", new DelegateBinding<string>(() => vm.Memory, owner: vm)),
+                new NoteField("Last sync", new DelegateBinding<string>(() => vm.LastSync, owner: vm), "Details on Options › Sync."),
             ], "Refreshes every second while the window is open."),
         ]);
     }

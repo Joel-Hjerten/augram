@@ -43,6 +43,9 @@ public sealed class HealthViewModel : ObservableObject, IDisposable
 
     public string Memory { get; private set => SetProperty(ref field, value); } = Unknown;
 
+    /// <summary>"UpToDate at 14:32:05", "Failed at 14:32:05"; "–" before the first sync or with sync off.</summary>
+    public string LastSync { get; private set => SetProperty(ref field, value); } = Unknown;
+
     public void Refresh()
     {
         var s = _source.Current();
@@ -54,6 +57,9 @@ public sealed class HealthViewModel : ObservableObject, IDisposable
         OverlayFirstFrame = Millis(s.OverlayFirstFrameMs);
         Uptime = s.UptimeSeconds is { } seconds ? TimeSpan.FromSeconds(seconds).ToString(@"d\.hh\:mm\:ss", CultureInfo.InvariantCulture) : Unknown;
         Memory = s.WorkingSetBytes is { } bytes ? (bytes / (1024.0 * 1024.0)).ToString("0.0", CultureInfo.InvariantCulture) + " MB" : Unknown;
+        LastSync = s.LastSyncOutcome is { } outcome
+            ? s.LastSyncAt is { } at ? $"{outcome} at {at.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture)}" : outcome
+            : Unknown;
     }
 
     public void Dispose() => _timer?.Stop();

@@ -110,5 +110,30 @@ public sealed class SyncBaseStoreTests : IDisposable
         Assert.True(Store().IsEmpty);
     }
 
+    [Fact]
+    public void ClearForgetsEveryMachinePublishedRevisionAndThePendingFlag()
+    {
+        var store = Store();
+        var id = Guid.NewGuid();
+        store.Save(new SyncMachineState(id, "PC-WORK") { Conflicts = [new SyncConflict(Command, "Close", "a", "b") { MachineId = id }] });
+        store.Save(new SyncPublished(Guid.NewGuid(), DateTimeOffset.UnixEpoch, new Dictionary<SyncItemKey, string> { [Command] = "a" }, []));
+        store.PublishPending = true;
+        File.WriteAllText(Path.Combine(store.Folder, "machines", "left-over.json.tmp"), "half");
+        var unrelated = Path.Combine(_folder.Path, "sync", "keep.json");
+        File.WriteAllText(unrelated, "outside the state folder");
+
+        Store().Clear();
+
+        var cleared = Store();
+        Assert.True(cleared.IsEmpty);
+        Assert.Empty(cleared.Machines());
+        Assert.Empty(cleared.PendingConflicts());
+        Assert.Null(cleared.LastPublished());
+        Assert.False(cleared.PublishPending);
+        Assert.Empty(Directory.EnumerateFiles(store.Folder, "*", SearchOption.AllDirectories));
+        Assert.True(File.Exists(unrelated), "only the state folder is cleared");
+        new SyncBaseStore(Path.Combine(_folder.Path, "never-synced")).Clear();
+    }
+
     private SyncBaseStore Store() => new(_folder.Path, _notices.Add);
 }

@@ -1,0 +1,87 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sync="using:Augram.App.Components.SyncConflictList"
+                    xmlns:glyph="using:Augram.App.Components.GestureGlyph">
+  <!--
+    Wireframe look of the sync conflict list (F8 sync). Included by Wireframe.axaml next to Tokens.axaml; it merges
+    the tokens itself so it also loads on its own (tests). Tokens only, no literal colours. A row is the shared row
+    frame and line (row rule): Border.row around Grid.row-line, no spacing of its own; the glyphs use row-glyph.
+  -->
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <ControlTheme x:Key="{x:Type sync:SyncConflictList}" TargetType="sync:SyncConflictList">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border BorderBrush="{StaticResource Brush.Border}"
+                BorderThickness="{StaticResource Border.Hairline}"
+                Background="{StaticResource Brush.Surface}">
+          <DockPanel>
+            <Border DockPanel.Dock="Top"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="{StaticResource Border.Bottom}"
+                    Padding="{StaticResource Row.Padding}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SyncConflict.ItemColumn}" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="{StaticResource SyncConflict.ChoiceColumn}" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Classes="column-header" Text="Item" />
+                <TextBlock Grid.Column="1" Classes="column-header" Text="This machine" />
+                <TextBlock Grid.Column="2" Classes="column-header" Text="Other machine" />
+                <TextBlock Grid.Column="3" Classes="column-header" Text="Choice" />
+              </Grid>
+            </Border>
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{TemplateBinding Rows}" />
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+
+  <!-- One conflict: name and detail, both versions side by side (glyphs for a gesture), the choice. -->
+  <ControlTheme x:Key="{x:Type sync:SyncConflictRow}" TargetType="sync:SyncConflictRow">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="PART_Frame" Classes="row">
+          <Grid Classes="row-line">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SyncConflict.ItemColumn}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="{StaticResource SyncConflict.ChoiceColumn}" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+              <TextBlock Classes="row-name" Text="{TemplateBinding NameText}" TextWrapping="Wrap" />
+              <TextBlock Classes="help" Text="{TemplateBinding DetailText}" />
+            </StackPanel>
+            <Grid Grid.Column="1" ColumnDefinitions="Auto,*" VerticalAlignment="Center" Margin="0,0,8,0">
+              <glyph:GestureGlyph Grid.Column="0"
+                                  Name="PART_MineGlyph"
+                                  Classes="row-glyph"
+                                  Margin="0,0,8,0"
+                                  Points="{TemplateBinding MinePoints}"
+                                  IsVisible="{TemplateBinding HasMineGlyph}" />
+              <TextBlock Grid.Column="1" Classes="help" Text="{TemplateBinding MineText}" VerticalAlignment="Center" />
+            </Grid>
+            <Grid Grid.Column="2" ColumnDefinitions="Auto,*" VerticalAlignment="Center" Margin="0,0,8,0">
+              <glyph:GestureGlyph Grid.Column="0"
+                                  Name="PART_TheirsGlyph"
+                                  Classes="row-glyph"
+                                  Margin="0,0,8,0"
+                                  Points="{TemplateBinding TheirsPoints}"
+                                  IsVisible="{TemplateBinding HasTheirsGlyph}" />
+              <TextBlock Grid.Column="1" Classes="help" Text="{TemplateBinding TheirsText}" VerticalAlignment="Center" />
+            </Grid>
+            <ComboBox Grid.Column="3" Name="PART_Choice" Classes="field-editor" VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+</ResourceDictionary>

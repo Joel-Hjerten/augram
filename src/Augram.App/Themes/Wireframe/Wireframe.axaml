@@ -25,6 +25,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
         <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/Hotkey.axaml" />
+        <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/Sync.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <ControlTheme x:Key="{x:Type shell:Shell}" TargetType="shell:Shell">
@@ -695,6 +696,13 @@
     <Setter Property="MinWidth" Value="{StaticResource Editor.MinWidth}" />
     <Setter Property="CornerRadius" Value="0" />
     <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+  </Style>
+  <Style Selector="TextBox.field-editor.wide">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.WideMinWidth}" />
+  </Style>
+  <!-- A button and its status text on one form line (Options › Sync). -->
+  <Style Selector="DockPanel.field-line > Button">
+    <Setter Property="Margin" Value="0,0,8,0" />
   </Style>
   <Style Selector="NumericUpDown.channel">
     <Setter Property="Width" Value="130" />

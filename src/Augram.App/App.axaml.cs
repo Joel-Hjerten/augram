@@ -56,7 +56,9 @@ public sealed class App : Application
 #endif
         desktop.MainWindow = _services.GetRequiredService<MainWindow>();
         EngineModule.Start(_services);
-        _tray = new AppTray(_services.GetRequiredService<AppState>(), ShowMainWindow, () => desktop.Shutdown(), log);
+        // Sync starts also under --no-engine: it never touches input.
+        SyncModule.Start(_services);
+        _tray = new AppTray(_services.GetRequiredService<AppState>(), ShowMainWindow, () => desktop.Shutdown(), log, _services.GetService<SyncService>());
         if (_services.GetService<SingleInstanceGuard>() is { } guard)
         {
             guard.ShowRequested += (_, _) => Dispatcher.UIThread.Post(ShowMainWindow);

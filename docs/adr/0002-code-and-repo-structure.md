@@ -26,7 +26,7 @@ tests/
 docs/                          as today (requirements, adr, reference, plans, learnings)
 ```
 
-Allowed references: `App → Engine, Platform.*, Core` · `Engine → Core` · `Platform.* → Core` · `Import → Core` · `Sync.Git → Core` · `Core → nothing`. An architecture test in `Core.Tests` fails the build if `Augram.Core` ever references Avalonia, SharpHook, `System.Windows.*`, or `System.Drawing`.
+Allowed references: `App → Engine, Platform.*, Core` (plus `Import` and `Sync.Git`, which only the composition root and the import flow touch) · `Engine → Core` · `Platform.* → Core` · `Import → Core` · `Sync.Git → Core` · `Core → nothing`. An architecture test in `Core.Tests` fails the build if `Augram.Core` ever references Avalonia, SharpHook, `System.Windows.*`, or `System.Drawing`.
 
 ### 2. Ports and adapters
 

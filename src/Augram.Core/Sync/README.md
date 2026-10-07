@@ -107,6 +107,6 @@ An unreadable state file is reported and treated as absent (no base: conflicts r
 ## Limits
 
 - Contents are compared as text: a release that changes how an item is written makes items here look changed once (they are kept and published, not lost); a format change needs a schema version and a migration (`../Config/ConfigMigrations`).
-- Changing the repository URL keeps the state of the old one.
+- The state belongs to one repository and Core does not know which. `SyncBaseStore.Clear()` forgets it (every machine's state, the published revisions, the pending-publish flag); the App calls it when the repository URL changes or is cleared, so the next run asks the join question again (`src/Augram.App/README.md`, Sync).
 
 **May reference:** `Abstractions` (`ISyncRepository`, `IClock`, `IEventLog`), `Config` (settings, the sync file, item JSON), `Diagnostics`, `Gestures`, `Mapping`, `Steps`. **Referenced by:** the composition root and the Options › Sync view model.

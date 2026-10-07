@@ -10,7 +10,8 @@ namespace Augram.App.Tray;
 
 /// <summary>
 /// The tray presence (F7): single click toggles <see cref="AppState.Enabled"/> (the persisted setting the engine follows), double click opens the
-/// window, the menu has Open · Enabled · Start at login · Quit. Single versus double is decided by
+/// window, the menu has Open · Enabled · Start at login · Sync now (only while a sync repository is set, F8) · Quit,
+/// and the tooltip ends with the last sync ("synced 14:32"). Single versus double is decided by
 /// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click
 /// takes effect only after the double-click window (250 ms) has passed; Avalonia offers no better signal.
 /// </summary>
@@ -27,8 +28,10 @@ public sealed class AppTray : IDisposable
     private readonly DispatcherTimer _timer;
     private readonly NativeMenuItem _enabledItem;
     private readonly NativeMenuItem _startAtLoginItem;
+    private readonly SyncTrayItem? _sync;
 
-    public AppTray(AppState state, Action open, Action quit, IEventLog log)
+    /// <remarks><c>sync</c> is the sync service, for Sync now and the tooltip; null leaves both out.</remarks>
+    public AppTray(AppState state, Action open, Action quit, IEventLog log, SyncService? sync = null)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(open);
@@ -54,6 +57,11 @@ public sealed class AppTray : IDisposable
         menu.Items.Add(_startAtLoginItem);
         menu.Items.Add(new NativeMenuItemSeparator());
         menu.Items.Add(quitItem);
+        if (sync is not null)
+        {
+            _sync = new SyncTrayItem(sync, menu);
+            _sync.Changed += (_, _) => Sync();
+        }
 
         _icon = new TrayIcon { Menu = menu, IsVisible = true };
         _icon.Clicked += OnClicked;
@@ -69,6 +77,7 @@ public sealed class AppTray : IDisposable
     public void Dispose()
     {
         _timer.Stop();
+        _sync?.Dispose();
         _state.PropertyChanged -= OnStateChanged;
         _icon.Clicked -= OnClicked;
         _icon.Dispose();
@@ -111,7 +120,8 @@ public sealed class AppTray : IDisposable
     private void Sync()
     {
         _icon.Icon = _state.Enabled ? _icons.Enabled : _icons.Disabled;
-        _icon.ToolTipText = _state.Enabled ? "Augram (enabled)" : "Augram (disabled)";
+        var tip = _state.Enabled ? "Augram (enabled)" : "Augram (disabled)";
+        _icon.ToolTipText = _sync?.ShortStatus is { } sync ? $"{tip} · {sync}" : tip;
         _enabledItem.IsChecked = _state.Enabled;
         _startAtLoginItem.IsChecked = _state.StartAtLogin;
     }

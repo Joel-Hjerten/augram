@@ -10,6 +10,7 @@
     <ProjectReference Include="../Augram.Platform.Windows/Augram.Platform.Windows.csproj" />
     <ProjectReference Include="../Augram.Platform.MacOS/Augram.Platform.MacOS.csproj" />
     <ProjectReference Include="../Augram.Import.StrokesPlus/Augram.Import.StrokesPlus.csproj" />
+    <ProjectReference Include="../Augram.Sync.Git/Augram.Sync.Git.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Augram.App.Tests" />

@@ -38,6 +38,21 @@ public sealed class HealthRegistryTests
     }
 
     [Fact]
+    public void TheSyncContributorFillsTheLastSyncFields()
+    {
+        var registry = new HealthRegistry();
+        var finished = new DateTimeOffset(2026, 10, 7, 14, 32, 0, TimeSpan.Zero);
+        registry.Register(s => s with { LastSyncOutcome = "UpToDate", LastSyncAt = finished });
+
+        var snapshot = registry.Current();
+
+        Assert.Equal("UpToDate", snapshot.LastSyncOutcome);
+        Assert.Equal(finished, snapshot.LastSyncAt);
+        Assert.Null(HealthSnapshot.Empty.LastSyncOutcome);
+        Assert.Null(HealthSnapshot.Empty.LastSyncAt);
+    }
+
+    [Fact]
     public void Contributors_ReadLiveStateOnEachCall()
     {
         var registry = new HealthRegistry();

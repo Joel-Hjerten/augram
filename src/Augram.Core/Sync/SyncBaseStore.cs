@@ -105,6 +105,33 @@ public sealed class SyncBaseStore
         }
     }
 
+    /// <summary>
+    /// Forgets everything this machine knew about the repository it synced with: every machine's state, the
+    /// published revisions and the pending-publish flag (leftover temp files too), so <see cref="IsEmpty"/> is
+    /// true and the next run asks the join question again. The App calls it when the repository URL changes or
+    /// is cleared. Deletes files one by one inside <see cref="Folder"/>; the folders themselves stay.
+    /// </summary>
+    public void Clear()
+    {
+        foreach (var folder in new[] { MachinesFolder, PublishedFolder, Folder })
+        {
+            if (!Directory.Exists(folder))
+            {
+                continue;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(folder).Where(IsStateFile).ToArray())
+            {
+                File.Delete(file);
+            }
+        }
+    }
+
+    private static bool IsStateFile(string path)
+        => path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".txt", StringComparison.OrdinalIgnoreCase);
+
     private string MachinePath(Guid machineId) => Path.Combine(MachinesFolder, $"{machineId:D}.json");
 
     private static long Sequence(string path)

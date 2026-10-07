@@ -92,6 +92,33 @@ public sealed class SectionFormTests
         Assert.Equal("Test › Kinds", Region.GetInfo(form.GetVisualDescendants().OfType<SectionView>().Single())?.Path);
     }
 
+    [AvaloniaFact]
+    public void ARowWithAVisibleBindingShowsOnlyWhileItReadsTrue()
+    {
+        var vm = new FakeOptions { Flag = false };
+        var screen = new FormScreen("Test",
+        [
+            new Section("Kinds",
+            [
+                new NoteField("Always", "here"),
+                new NoteField("Sometimes", "now you see me") { Visible = new DelegateBinding<bool>(() => vm.Flag, owner: vm) },
+            ]),
+        ]);
+        var form = new SectionForm { Screen = screen };
+        new Window { Content = form }.Show();
+        var rows = form.GetVisualDescendants().OfType<FieldRow>().ToList();
+        var always = rows.Single(row => row.Label == "Always");
+        var sometimes = rows.Single(row => row.Label == "Sometimes");
+
+        Assert.True(always.IsVisible);
+        Assert.False(sometimes.IsVisible);
+
+        vm.Flag = true;
+        Assert.True(sometimes.IsVisible);
+        vm.Flag = false;
+        Assert.False(sometimes.IsVisible);
+    }
+
     private static (SectionForm Form, Window Window) Show(FakeOptions vm)
     {
         var screen = new FormScreen("Test",

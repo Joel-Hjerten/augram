@@ -9,13 +9,21 @@ using Avalonia.Layout;
 
 namespace Augram.App.Screens;
 
-/// <summary>The Options tab (F6, F7, A10) as a section/field tree. Moving a field is moving a line here.</summary>
+/// <summary>The Options tab (F6, F7, A10, F8 sync) as a section/field tree. Moving a field is moving a line here.</summary>
 public static class OptionsScreen
 {
-    public static ScreenDeclaration Declare(AppSettingsViewModel vm)
+    /// <param name="vm">The settings projection.</param>
+    /// <param name="sync">Options › Sync (<see cref="OptionsSyncSection"/>); null leaves the section out (tests, a root without <c>SyncModule</c>).</param>
+    public static ScreenDeclaration Declare(AppSettingsViewModel vm, SyncViewModel? sync = null)
     {
         ArgumentNullException.ThrowIfNull(vm);
-        return new FormScreen("Options",
+        var sections = Sections(vm);
+        return new FormScreen("Options", sync is null ? sections : [.. sections, OptionsSyncSection.Declare(sync)]);
+    }
+
+    private static IReadOnlyList<Section> Sections(AppSettingsViewModel vm)
+    {
+        return
         [
             new Section("General",
             [
@@ -61,7 +69,7 @@ public static class OptionsScreen
                     new DelegateBinding<ScoringMode>(() => vm.ScoringMode, v => vm.ScoringMode = v, vm),
                     "Legacy reproduces StrokesPlus exactly, quirks included."),
             ]),
-        ]);
+        ];
     }
 
     /// <summary>A button that starts detect-to-assign (F1) and a status line beside it.</summary>

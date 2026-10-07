@@ -75,6 +75,11 @@ public sealed class SectionForm : TemplatedControl
     {
         var row = new FieldRow { Label = field.Label, Help = field.Help, Editor = Renderers.Build(field) };
         Region.Mark(row, field.Label, new RegionInfo($"{sectionPath} › {field.Label}", field.Kind, field.Source, field.Binding?.PropertyName));
+        if (field.Visible is { } visible)
+        {
+            BindingObserver.Attach(row, visible, value => row.IsVisible = value);
+        }
+
         return row;
     }
 }

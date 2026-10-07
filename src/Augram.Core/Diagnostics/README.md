@@ -11,7 +11,7 @@ The data side of N4 (observability): what a log event is, how to emit one cheapl
 | `LogProperty` | `(Key, Value)`; written as a tuple at the call site, `("generation", 2)` |
 | `EventLogExtensions` | `log.Trace/Debug/Info/Warning/Error(source, message, params properties)`; `Error` has an overload taking the exception |
 | `NullEventLog` | `Instance`; never enabled, discards everything; the default for tests |
-| `HealthSnapshot` | `HookAliveSince`, `HookReinstallCount`, `EventsLastMinute`, `LastStrokeLatencyMs`, `LastActivationOutcome`, `OverlayFirstFrameMs`, `UptimeSeconds`, `WorkingSetBytes`; every field nullable, null = unknown |
+| `HealthSnapshot` | `HookAliveSince`, `HookReinstallCount`, `EventsLastMinute`, `LastStrokeLatencyMs`, `LastActivationOutcome`, `OverlayFirstFrameMs`, `UptimeSeconds`, `WorkingSetBytes`, `LastSyncOutcome` + `LastSyncAt` (F8 sync, filled by the App's sync service); every field nullable, null = unknown |
 | `HealthRegistry` | the `IHealthSource`; `Register(Func<HealthSnapshot, HealthSnapshot>)` returns an `IDisposable` to unregister; `Current()` folds contributors over `HealthSnapshot.Empty` |
 | `RingLog<T>` | fixed-capacity ring: `Add`, `Snapshot()` (oldest first), `Count`, `Version`, `Changed`, `Clear()` |
 | `RecognitionCandidate` | `(Name, Score)` |
