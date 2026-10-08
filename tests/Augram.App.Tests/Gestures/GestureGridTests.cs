@@ -165,6 +165,29 @@ public sealed class GestureGridTests
         Assert.True(keep.IsVisible);
     }
 
+    [AvaloniaFact]
+    public void ShownPicturesTakeANewTrailColourAtOnce()
+    {
+        var resources = Avalonia.Application.Current!.Resources;
+        Augram.App.Themes.GlyphColourLink.Apply(resources, new Augram.Core.Config.RgbColor(0, 255, 255));
+        try
+        {
+            var (grid, _) = Show();
+            var stroke = grid.GetVisualDescendants().OfType<GlyphStroke>().First();
+            Assert.Equal(Avalonia.Media.Color.FromRgb(0, 255, 255), ((Avalonia.Media.ISolidColorBrush)stroke.Stroke!).Color);
+
+            Augram.App.Themes.GlyphColourLink.Apply(resources, new Augram.Core.Config.RgbColor(255, 255, 0));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(Avalonia.Media.Color.FromRgb(255, 255, 0), ((Avalonia.Media.ISolidColorBrush)stroke.Stroke!).Color);
+        }
+        finally
+        {
+            resources.Remove(Augram.App.Themes.GlyphColourLink.EndKey);
+            resources.Remove(Augram.App.Themes.GlyphColourLink.StartKey);
+        }
+    }
+
     private static (GestureGrid Grid, List<GestureGridActionEventArgs> Actions) Show(string? inactive = null)
     {
         var tiles = StarterGestures.All()

@@ -149,10 +149,13 @@
         <Setter Property="Template">
           <ControlTemplate>
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
-              <Border Width="24" Height="24"
+              <!-- Click the swatch: the colour picker (ColorEditor attaches it to PART_Swatch). -->
+              <Button Name="PART_Swatch"
+                      Width="24" Height="24" Padding="0" MinWidth="0" MinHeight="0"
                       BorderBrush="{StaticResource Brush.Border}"
                       BorderThickness="{StaticResource Border.Hairline}"
-                      Background="{TemplateBinding Swatch}" />
+                      Background="{TemplateBinding Swatch}"
+                      ToolTip.Tip="Pick a colour" />
               <TextBlock Classes="help" Text="R" VerticalAlignment="Center" />
               <NumericUpDown Name="PART_Red" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
               <TextBlock Classes="help" Text="G" VerticalAlignment="Center" />

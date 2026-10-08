@@ -75,6 +75,49 @@ public sealed class SectionFormTests
     }
 
     [AvaloniaFact]
+    public void AColourFromOutsideIsOneChange_NeverAHalfUpdatedOne()
+    {
+        var vm = new FakeOptions();
+        var seen = new List<RgbColor>();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(FakeOptions.Colour))
+            {
+                seen.Add(vm.Colour);
+            }
+        };
+        var (form, _) = Show(vm);
+        var editor = (ColorEditor)form.GetVisualDescendants().OfType<FieldRow>().ToList()[5].Editor!;
+
+        vm.Colour = new RgbColor(1, 2, 3);
+
+        // Showing the form writes nothing back; the outside change is the only one, and the editor follows it whole.
+        Assert.Equal([new RgbColor(1, 2, 3)], seen);
+        Assert.Equal((1, 2, 3), (editor.Red, editor.Green, editor.Blue));
+    }
+
+    [AvaloniaFact]
+    public void TheSwatchOpensAPicker_WhoseColourIsWrittenAsOneChange()
+    {
+        var vm = new FakeOptions();
+        var (form, _) = Show(vm);
+        var editor = (ColorEditor)form.GetVisualDescendants().OfType<FieldRow>().ToList()[5].Editor!;
+        var swatch = editor.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PART_Swatch");
+        var changes = 0;
+        vm.PropertyChanged += (_, e) => changes += e.PropertyName == nameof(FakeOptions.Colour) ? 1 : 0;
+
+        Assert.IsType<Flyout>(swatch.Flyout);
+        Assert.Same(editor.Picker, ((Flyout)swatch.Flyout!).Content);
+        Assert.Equal(Avalonia.Media.Color.FromRgb(0, 255, 64), editor.Picker!.Color);
+        Assert.False(editor.Picker.IsAlphaEnabled);
+
+        editor.Picker.Color = Avalonia.Media.Color.FromRgb(10, 20, 30);
+
+        Assert.Equal(new RgbColor(10, 20, 30), vm.Colour);
+        Assert.Equal(1, changes);
+    }
+
+    [AvaloniaFact]
     public void MarksRegionsWithDeclarationPathSourceAndBinding()
     {
         var (form, _) = Show(new FakeOptions());

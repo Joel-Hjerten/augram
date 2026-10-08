@@ -12,12 +12,8 @@ public sealed class ColorFieldRenderer : IFieldRenderer
     {
         var colour = (ColorField)field;
         var editor = new ColorEditor { IsEnabled = !colour.Value.IsReadOnly };
-        BindingObserver.Attach(editor, colour.Value, value =>
-        {
-            editor.Red = value.R;
-            editor.Green = value.G;
-            editor.Blue = value.B;
-        });
+        // One change for all three channels: setting them one by one wrote half-updated colours to the settings.
+        BindingObserver.Attach(editor, colour.Value, value => editor.SetRgb(value.R, value.G, value.B));
         editor.ColorChanged += (_, _) =>
         {
             var next = new RgbColor((byte)editor.Red, (byte)editor.Green, (byte)editor.Blue);
