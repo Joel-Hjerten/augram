@@ -16,10 +16,10 @@ public static class GlyphColours
     public const double ShadowHue = 250;
 
     /// <summary>The largest hue rotation, in degrees.</summary>
-    public const double MaxHueShift = 20;
+    public const double MaxHueShift = 12;
 
     /// <summary>The start's brightness as a share of the end's.</summary>
-    public const double Darken = 0.7;
+    public const double Darken = 0.8;
 
     /// <summary>Added saturation, so the dark end does not look muddy.</summary>
     public const double SaturationBoost = 0.1;

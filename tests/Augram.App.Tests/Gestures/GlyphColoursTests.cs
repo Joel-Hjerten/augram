@@ -13,10 +13,10 @@ namespace Augram.App.Tests.Gestures;
 public sealed class GlyphColoursTests
 {
     [Theory]
-    [InlineData(255, 255, 0, 40)] // yellow goes the warm way, through orange: amber
-    [InlineData(0, 255, 0, 140)] // green: a darker, faintly teal green
-    [InlineData(0, 255, 255, 200)] // cyan: a deeper blue
-    [InlineData(255, 0, 0, 340)] // red: crimson
+    [InlineData(255, 255, 0, 48)] // yellow goes the warm way, through orange: amber
+    [InlineData(0, 255, 0, 132)] // green: a darker, faintly teal green
+    [InlineData(0, 255, 255, 192)] // cyan: a deeper blue
+    [InlineData(255, 0, 0, 348)] // red: crimson
     public void ShadingRotatesTowardsBlueVioletTheShorterWay(byte r, byte g, byte b, double expectedHue)
     {
         var end = Color.FromRgb(r, g, b);
@@ -43,7 +43,7 @@ public sealed class GlyphColoursTests
 
         Assert.Equal(start.R, start.G);
         Assert.Equal(start.G, start.B);
-        Assert.Equal(140, start.R);
+        Assert.Equal(160, start.R);
     }
 
     [Theory]
