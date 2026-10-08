@@ -5,7 +5,7 @@
         xmlns:inspector="using:Augram.App.Inspector"
         x:Class="Augram.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="Augram"
+        Title="{Binding Title}"
         Width="960"
         Height="680">
   <!-- The window composes the shell and the F1 inspector overlay; it owns no visuals of its own (ADR-0002 §5). -->

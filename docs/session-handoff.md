@@ -39,6 +39,8 @@ Solution `Augram.slnx`, .NET 10, Avalonia 11.3.22, SharpHook 7.1.3. `dotnet buil
 
 Runtime facts from Joel's machine: hook installs in ~50 ms; hook handler worst case 9–18 µs after JIT; recognition 0.04–0.4 ms over 20 gestures; trail first frame 8–24 ms; config at `%APPDATA%\Augram\augram.json`, logs at `%APPDATA%\Augram\logs\augram-yyyyMMdd.log`. Joel's config now holds his **105 imported StrokesPlus.net gestures** (stroke button Right); the starters are gone. His set contains real shape duplicates under two names (Down and ↕ Down, Up and ↕ Up, Circle and O, …) that he curates by hand on the Gestures tab.
 
+**Version, channel, one Augram (2026-10-08):** version 0.2.0 lives in `Directory.Build.props`; every local and CI build is channel Dev ("Augram (Dev)" in the title and tray tooltip; it never writes or removes start at login), `-p:AugramChannel=Release` builds the installed one; only one Augram runs at a time across both, and a launch of a different build asks "Quit it and start this one?" before anything of it starts (App README "Tray, version and channel, single instance").
+
 ## 3. M1 acceptance: done (Joel, 2026-10-07)
 
 Import of his SP.net gestures, recognition of his daily gestures (checked in Diagnostics › Recognition with the drawn-vs-matched glyphs), training a new gesture, Redraw, Options, Detect and F1 + click all verified by Joel. His feedback produced the 2026-10-07 commits (Recognition glyphs, Redraw replaces, no Toggle active / Import in the tile menu, duplicate outlines at cut-off 90 with partner highlight and "Keep this", no diagnostic text line, no Undo/Redo on Options). Nothing from the pass is open.

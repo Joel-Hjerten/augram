@@ -109,9 +109,11 @@ public sealed class SyncModuleTests : IDisposable
         var form = new SectionForm { Screen = screen };
         new Window { Content = form, Width = 900, Height = 900 }.Show();
 
-        Assert.Equal(OptionsSyncSection.Title, screen.Sections[^1].Title);
+        // Sync is the last settings section; only About (three read-only rows) comes after it.
+        Assert.Equal(OptionsSyncSection.Title, screen.Sections[^2].Title);
+        Assert.Equal(OptionsScreen.AboutTitle, screen.Sections[^1].Title);
         var rows = form.GetVisualDescendants().OfType<FieldRow>().ToList();
-        Assert.Equal(["Repository", "This machine", "Automatic sync", "Status", "Conflicts", "Details"], rows.Skip(rows.Count - 6).Select(row => row.Label));
+        Assert.Equal(["Repository", "This machine", "Automatic sync", "Status", "Conflicts", "Details"], rows.SkipLast(3).TakeLast(6).Select(row => row.Label));
         Assert.Contains("stores no password", rows.Single(row => row.Label == "Repository").Help, StringComparison.Ordinal);
         Assert.False(rows.Single(row => row.Label == "Conflicts").IsVisible);
         Assert.False(rows.Single(row => row.Label == "Details").IsVisible);
@@ -172,6 +174,7 @@ public sealed class SyncModuleTests : IDisposable
         services.AddSingleton<IEventLog>(log);
         services.AddSingleton<HealthRegistry>();
         services.AddSingleton<RecognitionLog>();
+        services.AddSingleton(TestBuilds.Release);
         services.AddSingleton<AppState>();
         EngineModule.Register(services, new EngineModuleOptions
         {

@@ -77,7 +77,7 @@ public sealed class AppSettingsViewModelTests
     {
         using var engine = new EngineFixture(start: false);
         var registration = new NullStartupRegistration();
-        using var state = new AppState(engine.Settings, registration, NullEventLog.Instance);
+        using var state = new AppState(engine.Settings, registration, NullEventLog.Instance, TestBuilds.Release);
         using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         using var vm = new AppSettingsViewModel(engine.Settings, state, detection);
         var raised = new List<string?>();
@@ -101,7 +101,7 @@ public sealed class AppSettingsViewModelTests
 
     private static AppSettingsViewModel Create(EngineFixture engine)
     {
-        var state = new AppState(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance);
+        var state = new AppState(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Release);
         var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         return new AppSettingsViewModel(engine.Settings, state, detection);
     }
