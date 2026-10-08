@@ -1,8 +1,18 @@
-# Agent handoff — Augram: M2 under way, sync live on both machines, release pipeline in progress (updated 2026-10-08 02:30, PC session)
+# Agent handoff — Augram: M2 under way, sync live on both machines, signed Mac installer works (updated 2026-10-08 afternoon, Mac session)
 
 You are picking up a project whose first runnable milestone is built and accepted by Joel. Everything decided is in the docs; this file tells you the state, the order to read things, what to do next, and the rules that came from mistakes. Joel works on his **Windows 11 PC** and his **Mac** (sections 8, 8a–8c); both run Augram and sync through `Joel-Hjerten/augram-sync`.
 
-## 0. Right now (PC session, 2026-10-08)
+## 0. Right now
+
+**Mac session, 2026-10-08 (all on main, CI green):**
+- **Mac packaging works end to end.** `node scripts/package.mjs mac` with Joel's Developer ID builds `Augram.app`, notarized and stapled (`spctl`: "Notarized Developer ID"), and a signed `Augram-osx-Setup.pkg` since the Developer ID Installer certificate exists. Commands and this Mac's values (sign by SHA-1 fingerprint: two Application certificates share one name now; notary profile `eyeris-notary`): [release.md](release.md). The script finds dotnet in `~/.dotnet` and restores vpk itself. **Nothing is published (Joel): each machine builds and installs its own installer;** no tags, no GitHub releases. Joel runs signed builds himself (the agent may not use the keychain or notary credentials).
+- **Single-instance fix on macOS:** the pipe dropped the request after a Hello (domain-socket queue closed with the last server stream); macOS CI had been red since 046c0ea. App README "Tray, version and channel, single instance".
+- **Dock (Joel):** Dock icon only while the window is open; close or minimize hides to the menu bar (`MacDockPresence`, `MacDock`); Windows unchanged. Tried by Joel on the dev build.
+- **Icons:** Joel's gold art and a hand-drawn menu-bar master (`design/app-icon/exports/app-icon-mac-tray.png`); **Options › General › Colour menu-bar icon** (macOS only, per machine, as in Eyeris) switches the template for the colour icon.
+- **Planned (Joel):** gesture shape cleanup, plan 0001 M2 step 10 (keep the original, restorable, opt-in).
+- Not yet confirmed by Joel: the colour menu-bar switch in the running app; the installed `.pkg` (Accessibility grant for the signed bundle).
+
+**PC session, 2026-10-08:**
 
 **Merged 2026-10-08 (main, both below are done):** the next step is building the 0.2.0 Windows installer (`node scripts/package.mjs windows`) and installing it with Joel; any build from before this merge must be quit by hand once (it cannot be asked to quit). The text below describes what was built. **Previously in flight: two worktree agents** (launched by the PC lead; their reports arrive in that session). When they report: merge each branch (`git merge` the `worktree-agent-*` branch), stop the app, build, `dotnet test`, `dotnet format --verify-no-changes`, push, remove the worktree (`dotnet build-server shutdown`, `git worktree remove --force`, `git worktree prune`, `git branch -d`). Both touch `src/Augram.App/Program.cs` (one adds only `VelopackApp.Build().Run();` at the top of `Main`): resolve that by hand.
 1. **Version + Dev label + one instance:** `<Version>0.2.0</Version>` in `Directory.Build.props` with the commit; `AugramChannel` (`Dev` default, `Release` when packaged); `AppInfo`; window title and tray tooltip "Augram (Dev)" for dev builds (Joel: "Dev within parentheses"); About on Options; dev builds never write or remove start-at-login; **one Augram at a time across dev and installed** (Joel: "definitely only one"): a newcomer of another build offers "Quit it and start this one".
@@ -92,7 +102,7 @@ macOS traps found that day (each fixed, with a code comment where it lives):
 - **`Local\` mutexes are per terminal session on Unix**, and every macOS launch is its own session: the single-instance mutex is per user there (`NamedWaitHandleOptions`).
 - Each Bash call from an agent is its own session too, and a process launched from VS Code inherits VS Code's Accessibility grant.
 
-Open: D6 (maximize = fill the visible frame, working choice; Joel has used it), the placement operations, an app bundle (Accessibility is granted to VS Code while launched from it), start at login, system events.
+Open: D6 (maximize = fill the visible frame, working choice; Joel has used it), the placement operations, start at login, system events. The app bundle exists since 2026-10-08 (signed `.pkg`, release.md); a dev build launched from VS Code still uses VS Code's Accessibility grant.
 
 ## 8b. Commands tab changes from Joel's Mac session (2026-10-07)
 
@@ -119,4 +129,5 @@ Decided design: requirements F8 "Cross-platform commands — DECIDED" and "Use o
 - **Tray click on macOS** (asked 2026-10-07, no answer yet): 1) Windows behaviour via a native NSStatusItem (single click toggles, double opens, right-click menu; recommended), 2) Mac convention (click opens the menu, first item toggles), 3) click opens the menu, Option-click toggles. Today Avalonia's tray on macOS opens the menu on every click.
 - **D6** maximize = fill the visible frame and restore (working choice; Joel has used it without objecting).
 - Gestures tab Undo/Redo buttons: keep or drop like the Commands lists? Keyboard undo on the Commands lists: kept; Joel may want it gone.
-- Next Mac slices offered: Center / snap halves / set size, an `Augram.app` bundle (own Accessibility grant, start at login).
+- Next Mac slices offered: Center / snap halves / set size, start at login for the installed bundle.
+- Shape cleanup: on by default ever, or opt-in for good? (opt-in until the replay measurement, requirements F3)

@@ -52,6 +52,7 @@ M1 acceptance: Joel draws his top ten gestures over any app and the log names th
 7. **Hotkey capture field**: engine keyboard suppression while capturing, Accept and click-outside commit, Clear, watchdog, mouse never suppressed.
 8. **Full SP.net import** per the mapping table below, with a report of what was skipped.
 9. **Export/import of Augram JSON** with scopes and merge.
+10. **Gesture shape cleanup** (requirements F3 "Shape cleanup", Joel 2026-10-08), after the remaining step types (TypeText, Run). Core: a pure `Recognition/` (or `Gestures/`) cleanup function, corner finding (ShortStraw-style) → per-piece line / arc / circle / smooth fit → a raw point list in the drawn direction; the gesture keeps its original samples beside the cleaned ones, and Restore swaps back (one undo step each). App: **Clean up shape** checkbox with a preview in the draw area, **Clean up shape** / **Restore original** on the tile menu. Sync: the original travels with the gesture; raise `SyncFile.CurrentFormatVersion`. Before calling it done, replay the Recognition log's drawn strokes against raw vs cleaned templates of Joel's set and write the numbers to `docs/learnings/`.
 
 ## M3: daily driver
 
@@ -84,4 +85,4 @@ Eight flicks (↑ ↓ ← → and the four diagonals), four out-and-backs (↑�
 
 ## Not in this plan
 
-macOS adapter and permissions onboarding; signing and notarization; cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.
+macOS adapter and permissions onboarding; signing and notarization (both started anyway on Joel's Mac, 2026-10-07/08: session handoff §8a, docs/release.md); cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.
