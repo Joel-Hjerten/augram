@@ -9,6 +9,9 @@ internal enum TrayIconKind
     /// <summary>macOS: menu-bar template images.</summary>
     MacTemplate,
 
+    /// <summary>macOS with Colour menu-bar icon on: the app icon in colour, 36 px.</summary>
+    MacColour,
+
     /// <summary>Everything else: the 32 px PNGs.</summary>
     Png,
 }

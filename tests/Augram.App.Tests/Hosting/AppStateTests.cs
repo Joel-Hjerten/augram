@@ -63,6 +63,23 @@ public sealed class AppStateTests
     }
 
     [Fact]
+    public void TheColourMenuBarIconIsSaved_AndRaisedOnUndo()
+    {
+        var settings = new SettingsStore(Settings.Default);
+        using var state = new AppState(settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Release);
+        var changes = new List<string?>();
+        state.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+
+        Assert.False(state.ColourMenuBarIcon);
+        state.ColourMenuBarIcon = true;
+        Assert.True(settings.Current.General.ColourMenuBarIcon);
+
+        settings.Undo();
+        Assert.False(state.ColourMenuBarIcon);
+        Assert.Equal([nameof(AppState.ColourMenuBarIcon), nameof(AppState.ColourMenuBarIcon)], changes);
+    }
+
+    [Fact]
     public void SyncAtStartupRepairsAMissingRegistration()
     {
         var settings = new SettingsStore(Settings.Default with { General = GeneralSettings.Default with { StartAtLogin = true } });

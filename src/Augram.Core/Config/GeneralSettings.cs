@@ -11,11 +11,13 @@ namespace Augram.Core.Config;
 /// <param name="IgnoreKey">Modifiers that make the stroke button pass through.</param>
 /// <param name="StartAtLogin">Register Augram with the OS login items.</param>
 /// <param name="Enabled">The tray toggle: when false the hook passes everything through.</param>
+/// <param name="ColourMenuBarIcon">macOS: the colour app icon in the menu bar instead of the single-colour shape the system tints (Joel, 2026-10-08, as in Eyeris).</param>
 public sealed record GeneralSettings(
     MouseButton StrokeButton = MouseButton.Right,
     IgnoreKeys IgnoreKey = IgnoreKeys.None,
     bool StartAtLogin = false,
-    bool Enabled = true)
+    bool Enabled = true,
+    bool ColourMenuBarIcon = false)
 {
     public static GeneralSettings Default { get; } = new();
 }

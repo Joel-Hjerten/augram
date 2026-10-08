@@ -21,6 +21,8 @@ public sealed class IconAssetsTests
     [InlineData("Assets/tray-disabled.png", 32)]
     [InlineData("Assets/tray-mac-enabled.png", 36)]
     [InlineData("Assets/tray-mac-disabled.png", 36)]
+    [InlineData("Assets/tray-mac-colour-enabled.png", 36)]
+    [InlineData("Assets/tray-mac-colour-disabled.png", 36)]
     public void RuntimeIconsHaveTheirSize(string file, int size)
         => Assert.Equal((size, size), PngSize(File.ReadAllBytes(Path.Combine(App, file))));
 
@@ -79,12 +81,15 @@ public sealed class IconAssetsTests
         var windows = TrayIconSet.Load(TrayIconKind.WindowsIco);
         var png = TrayIconSet.Load(TrayIconKind.Png);
         var mac = TrayIconSet.Load(TrayIconKind.MacTemplate);
+        var macColour = TrayIconSet.Load(TrayIconKind.MacColour);
 
         Assert.False(windows.IsTemplate);
         Assert.False(png.IsTemplate);
         Assert.True(mac.IsTemplate);
+        Assert.False(macColour.IsTemplate);
         Assert.NotSame(windows.Enabled, windows.Disabled);
         Assert.NotSame(mac.Enabled, mac.Disabled);
+        Assert.NotSame(macColour.Enabled, macColour.Disabled);
     }
 
     private static (int Width, int Height) PngSize(byte[] png)

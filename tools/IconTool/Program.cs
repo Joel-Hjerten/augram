@@ -26,6 +26,9 @@ Write(Path.Combine(assets, "tray-enabled.ico"), IconContainers.Ico(IconSizes.Tra
 Write(Path.Combine(assets, "tray-disabled.ico"), IconContainers.Ico(IconSizes.TrayIco.Select(size => (size, IconImages.Render(source, size, IconImages.DisabledOpacity, greyscale: true))).ToList()));
 Write(Path.Combine(assets, "tray-mac-enabled.png"), IconImages.Template(traySource ?? source, IconSizes.MacTray, 1f, traySource is not null));
 Write(Path.Combine(assets, "tray-mac-disabled.png"), IconImages.Template(traySource ?? source, IconSizes.MacTray, IconImages.DisabledOpacity, traySource is not null));
+// Options › General › Colour menu-bar icon (as in Eyeris): the app icon itself in the menu bar, greyed when disabled.
+Write(Path.Combine(assets, "tray-mac-colour-enabled.png"), IconImages.Render(source, IconSizes.MacTray));
+Write(Path.Combine(assets, "tray-mac-colour-disabled.png"), IconImages.Render(source, IconSizes.MacTray, IconImages.DisabledOpacity, greyscale: true));
 Console.WriteLine($"from {master}{(traySource is null ? string.Empty : $" and {macTrayMaster}")}");
 
 static SKBitmap Load(string path) => SKBitmap.Decode(path) ?? throw new InvalidOperationException($"Cannot read {path} as an image.");

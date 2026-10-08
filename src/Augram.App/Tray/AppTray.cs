@@ -23,8 +23,8 @@ public sealed class AppTray : IDisposable
     private readonly AppState _state;
     private readonly Action _open;
     private readonly IEventLog _log;
-    private readonly TrayIconSet _icons;
     private readonly TrayIcon _icon;
+    private TrayIconSet _icons;
     private readonly ClickDiscriminator _clicks = new();
     private readonly DispatcherTimer _timer;
     private readonly NativeMenuItem _enabledItem;
@@ -41,7 +41,7 @@ public sealed class AppTray : IDisposable
         _state = state;
         _open = open;
         _log = log;
-        _icons = TrayIconSet.Load();
+        _icons = TrayIconSet.Load(_state.ColourMenuBarIcon);
 
         _enabledItem = new NativeMenuItem("Enabled") { ToggleType = NativeMenuItemToggleType.CheckBox };
         _enabledItem.Click += (_, _) => _state.Toggle();
@@ -114,6 +114,13 @@ public sealed class AppTray : IDisposable
         if (e.PropertyName == nameof(AppState.Enabled))
         {
             _log.Debug(LogSource, "Tray icon updated", ("enabled", _state.Enabled));
+        }
+
+        if (e.PropertyName == nameof(AppState.ColourMenuBarIcon))
+        {
+            // Template first, then the image: the menu bar reads the flag when the image is set.
+            _icons = TrayIconSet.Load(_state.ColourMenuBarIcon);
+            MacOSProperties.SetIsTemplateIcon(_icon, _icons.IsTemplate);
         }
 
         Sync();

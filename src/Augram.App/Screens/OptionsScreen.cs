@@ -15,6 +15,7 @@ public static class OptionsScreen
     public const string StartAtLoginHelp = "Also in the tray menu.";
     public const string StartAtLoginDevHelp = "Start at login applies to the installed Augram; this is a development build.";
     public const string AboutTitle = "About";
+    public const string MenuBarIconHelp = "The app icon in colour instead of the single-colour shape macOS tints for light and dark menu bars.";
 
     /// <param name="vm">The settings projection.</param>
     /// <param name="sync">Options › Sync (<see cref="OptionsSyncSection"/>); null leaves the section out (tests, a root without <c>SyncModule</c>).</param>
@@ -38,6 +39,11 @@ public static class OptionsScreen
         ? new ToggleField("Start at login", new DelegateBinding<bool>(() => vm.StartAtLogin, v => vm.StartAtLogin = v, vm), StartAtLoginHelp)
         : new ToggleField("Start at login", new DelegateBinding<bool>(() => vm.StartAtLogin, owner: vm), StartAtLoginDevHelp);
 
+    /// <summary>macOS only (<see cref="Hosting.AppState.CanChooseMenuBarIcon"/>): the colour icon or the tinted template, as in Eyeris.</summary>
+    private static Field[] MenuBarIcon(AppSettingsViewModel vm) => Hosting.AppState.CanChooseMenuBarIcon
+        ? [new ToggleField("Colour menu-bar icon", new DelegateBinding<bool>(() => vm.ColourMenuBarIcon, v => vm.ColourMenuBarIcon = v, vm), MenuBarIconHelp)]
+        : [];
+
     private static IReadOnlyList<Section> Sections(AppSettingsViewModel vm)
     {
         return
@@ -53,6 +59,7 @@ public static class OptionsScreen
                     new DelegateBinding<IgnoreKeys>(() => vm.IgnoreKey, v => vm.IgnoreKey = v, vm),
                     "Hold this key to use the stroke button normally."),
                 StartAtLogin(vm),
+                .. MenuBarIcon(vm),
                 new TextField("Config folder",
                     new DelegateBinding<string>(() => vm.ConfigFolder, owner: vm),
                     "Settings, gestures and logs live here; change it via the --config-folder <path> argument."),

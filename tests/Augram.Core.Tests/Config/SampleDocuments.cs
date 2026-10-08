@@ -11,7 +11,7 @@ internal static class SampleDocuments
 {
     public static Settings NonDefaultSettings { get; } = new()
     {
-        General = new GeneralSettings(MouseButton.Middle, IgnoreKeys.Control | IgnoreKeys.Alt, StartAtLogin: true, Enabled: false),
+        General = new GeneralSettings(MouseButton.Middle, IgnoreKeys.Control | IgnoreKeys.Alt, StartAtLogin: true, Enabled: false, ColourMenuBarIcon: true),
         Capture = new CaptureThresholds(StartDistancePx: 12, MinSegmentPx: 3, CancelDelayMs: 1500, ResetCancelDelayOnMovement: false),
         Trail = new TrailSettings { WidthPx = 3.5, Opacity = 0.25, Colour = new RgbColor(10, 20, 30) },
         Recognition = new RecognitionOptions(Precision: 64, Threshold: 80.5, ScoringMode.Corrected, SampleAggregation.Best),

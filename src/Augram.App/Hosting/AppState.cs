@@ -6,7 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Augram.App.Hosting;
 
 /// <summary>
-/// The two flags the tray and the Options page share, projected over the settings store (ADR-0002
+/// The flags the tray and the Options page share (and macOS's <see cref="ColourMenuBarIcon"/>), projected over the settings store (ADR-0002
 /// §5a: no state of its own). <see cref="Enabled"/> is <c>GeneralSettings.Enabled</c>, persisted and
 /// pushed to the engine by <see cref="EngineSettingsLink"/>. <see cref="StartAtLogin"/> is
 /// <c>GeneralSettings.StartAtLogin</c>; whenever it changes (toggle, undo, load) the OS registration
@@ -63,6 +63,16 @@ public sealed class AppState : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>macOS: the colour app icon in the menu bar instead of the tinted template (Options › General, as in Eyeris).</summary>
+    public bool ColourMenuBarIcon
+    {
+        get => _settings.Current.General.ColourMenuBarIcon;
+        set => Change(general => general with { ColourMenuBarIcon = value });
+    }
+
+    /// <summary>Only the macOS menu bar has a template icon to choose against; Windows trays are always in colour.</summary>
+    public static bool CanChooseMenuBarIcon => OperatingSystem.IsMacOS();
+
     public void Toggle() => Enabled = !Enabled;
 
     /// <summary>
@@ -106,6 +116,11 @@ public sealed class AppState : ObservableObject, IDisposable
         {
             ApplyStartup(now.StartAtLogin);
             OnPropertyChanged(nameof(StartAtLogin));
+        }
+
+        if (now.ColourMenuBarIcon != last.ColourMenuBarIcon)
+        {
+            OnPropertyChanged(nameof(ColourMenuBarIcon));
         }
     }
 

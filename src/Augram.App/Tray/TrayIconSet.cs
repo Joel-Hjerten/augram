@@ -8,7 +8,8 @@ namespace Augram.App.Tray;
 /// the full-colour icon when enabled, the same in dimmed grey when disabled, each an .ico with one exact image per display
 /// scaling (16 px at 100 %, 20 at 125 %, …) so the tray is not shrunk from a larger image; the 32 px PNG is the fallback
 /// if a backend cannot read the .ico. Linux: the PNGs. macOS: a menu-bar template image (black and alpha only,
-/// <see cref="IsTemplate"/>) that the system tints for light and dark menu bars, dimmed when disabled.
+/// <see cref="IsTemplate"/>) that the system tints for light and dark menu bars, dimmed when disabled; or, with Options ›
+/// Colour menu-bar icon, the app icon in colour (greyed when disabled).
 /// </summary>
 public sealed class TrayIconSet
 {
@@ -26,11 +27,15 @@ public sealed class TrayIconSet
     /// <summary>True on macOS: the tray must mark the image as a template so the menu bar tints it.</summary>
     public bool IsTemplate { get; }
 
-    public static TrayIconSet Load() => Load(OperatingSystem.IsMacOS() ? TrayIconKind.MacTemplate : OperatingSystem.IsWindows() ? TrayIconKind.WindowsIco : TrayIconKind.Png);
+    /// <param name="colourMenuBarIcon">macOS only: the colour icon instead of the template (<c>GeneralSettings.ColourMenuBarIcon</c>).</param>
+    public static TrayIconSet Load(bool colourMenuBarIcon = false) => Load(
+        OperatingSystem.IsMacOS() ? (colourMenuBarIcon ? TrayIconKind.MacColour : TrayIconKind.MacTemplate)
+        : OperatingSystem.IsWindows() ? TrayIconKind.WindowsIco : TrayIconKind.Png);
 
     internal static TrayIconSet Load(TrayIconKind kind) => kind switch
     {
         TrayIconKind.MacTemplate => new(LoadIcon("tray-mac-enabled.png"), LoadIcon("tray-mac-disabled.png"), isTemplate: true),
+        TrayIconKind.MacColour => new(LoadIcon("tray-mac-colour-enabled.png"), LoadIcon("tray-mac-colour-disabled.png"), isTemplate: false),
         TrayIconKind.WindowsIco => new(LoadIcoOrPng("tray-enabled"), LoadIcoOrPng("tray-disabled"), isTemplate: false),
         _ => new(LoadIcon("tray-enabled.png"), LoadIcon("tray-disabled.png"), isTemplate: false),
     };

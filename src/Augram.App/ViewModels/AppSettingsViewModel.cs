@@ -55,6 +55,13 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
         set => _state.StartAtLogin = value;
     }
 
+    /// <summary>macOS: the colour app icon in the menu bar instead of the tinted template (<see cref="AppState.ColourMenuBarIcon"/>).</summary>
+    public bool ColourMenuBarIcon
+    {
+        get => _state.ColourMenuBarIcon;
+        set => _state.ColourMenuBarIcon = value;
+    }
+
     /// <summary>False in a development build: Options shows the toggle disabled, with why (<see cref="AppState.CanChangeStartAtLogin"/>).</summary>
     public bool CanChangeStartAtLogin => _state.CanChangeStartAtLogin;
 
@@ -158,9 +165,9 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
 
     private void OnStateChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(AppState.StartAtLogin))
+        if (e.PropertyName is nameof(AppState.StartAtLogin) or nameof(AppState.ColourMenuBarIcon))
         {
-            OnPropertyChanged(nameof(StartAtLogin));
+            OnPropertyChanged(e.PropertyName);
         }
     }
 
