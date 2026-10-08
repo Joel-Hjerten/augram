@@ -4,6 +4,7 @@ using Augram.App.Components.GestureGrid;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Components.StepList;
 using Augram.App.Components.Steps;
+using Augram.App.Components.Steps.DisplayMode;
 using Augram.App.Components.StepTypePicker;
 using Augram.App.Declarations;
 using Augram.App.ViewModels.Commands;
@@ -12,6 +13,7 @@ using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.DisplayMode;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.WindowOp;
@@ -63,6 +65,7 @@ public static class CommandGalleryPages
             fields.Add(FormField(type.DisplayName, type.CreateDefault()));
         }
 
+        fields.Add(new CustomField("Display mode, over a 4K TV", () => new DisplayModeStepForm(GalleryDisplayModes.Instance).Build(new DisplayModeStep(new DisplayResolution(3840, 2160), RefreshRate.FromHertz(119.88)), _ => { })));
         fields.Add(FormField("Window, Set size", new WindowOpStep(WindowOperation.SetSize, new WindowSize(1280, 720))));
         fields.Add(FormField("Imported, with parameters", new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w", ["Delay"] = "0" })));
         return new FormScreen("Step forms", [new Section("One form per step type (StepFormRegistry)", fields)]);

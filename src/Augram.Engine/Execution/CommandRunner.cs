@@ -24,6 +24,7 @@ internal sealed class CommandRunner
 {
     private readonly IWindowSystem _windows;
     private readonly IWindowOperations _operations;
+    private readonly IDisplayModes _displays;
     private readonly IInputSimulator _simulator;
     private readonly IEventLog _log;
     private readonly int _settleDelayMs;
@@ -34,6 +35,7 @@ internal sealed class CommandRunner
     {
         _windows = ports.Windows;
         _operations = ports.WindowOperations;
+        _displays = ports.DisplayModes;
         _simulator = ports.Simulator;
         _log = ports.Log;
         _settleDelayMs = settleDelayMs;
@@ -52,7 +54,7 @@ internal sealed class CommandRunner
             return;
         }
 
-        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation);
+        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation) { Displays = _displays };
         var activated = false;
         var run = 0;
         var skipped = 0;

@@ -44,6 +44,8 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 
 One **Info** line per distinct placeholder method per file ("3 Run step(s) imported as placeholders; the Run step arrives in a later version."), never one per step.
 
+**Display Changer commands (helper ready, not wired yet).** Joel runs 12noon Display Changer from `sp.RunProgram("…\dc64cmd.exe", "-refresh=120", …)` scripts (ten commands). `DisplayChangerMapping.FromInvocation(fileName, arguments)` turns such a call into a `DisplayModeStep` and gives null for anything else: the program must be `dc64cmd.exe` or `dccmd.exe` (any path, quoted or not); `-width=N -height=N` (both or neither), `-refresh=N` through Windows' whole-hertz rule (`RefreshRate.FromLegacyHertz`: 23 → 23.976, 120 → 120) and `-quiet` are understood; `max`, `-depth`, `-monitor`, `-force`, `-test`, a repeated switch or a program to run afterwards give null so the command stays a Run step. The target is the step default (display under the gesture). `StepReader` does not call it yet; the lead wires it where the Run step parses `sp.RunProgram`. Rules and sources: `docs/learnings/0002-display-modes.md`.
+
 ## Action mapping
 
 | SP.net | Augram |

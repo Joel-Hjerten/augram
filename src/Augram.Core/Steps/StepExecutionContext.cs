@@ -19,4 +19,7 @@ public sealed record StepExecutionContext(
 {
     /// <summary>True when the executor had to bring <see cref="Target"/> to the foreground; the settle delay (A8) applies before the first keystroke.</summary>
     public bool FocusMoved { get; init; }
+
+    /// <summary>What the Display steps read and change (learnings 0002); the null object knows no displays.</summary>
+    public IDisplayModes Displays { get; init; } = NullDisplayModes.Instance;
 }

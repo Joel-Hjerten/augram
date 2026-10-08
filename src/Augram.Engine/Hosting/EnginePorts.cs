@@ -37,6 +37,9 @@ public sealed record EnginePorts
     /// <summary>What a <c>WindowOp</c> step acts through (M2); the null object declines every operation.</summary>
     public IWindowOperations WindowOperations { get; init; } = NullWindowOperations.Instance;
 
+    /// <summary>What the Display steps read and change (learnings 0002); the null object knows no displays, so they skip.</summary>
+    public IDisplayModes DisplayModes { get; init; } = NullDisplayModes.Instance;
+
     /// <summary>The current mapping, read once per stroke by the executor; null means no executor at all (recognise and report only, as in M1).</summary>
     public Func<MappingDocument>? Mapping { get; init; }
 
