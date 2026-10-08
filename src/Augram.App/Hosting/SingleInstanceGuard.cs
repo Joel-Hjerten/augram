@@ -63,6 +63,15 @@ public sealed class SingleInstanceGuard : IDisposable
     /// </summary>
     private static PipeOptions PipeFlags => PipeOptions.Asynchronous | (OperatingSystem.IsWindows() ? PipeOptions.CurrentUserOnly : PipeOptions.None);
 
+    /// <summary>
+    /// Off Windows a pipe is a domain socket that exists only while a server stream for it does. A client that connects while
+    /// the listener still serves the previous one waits in the socket's queue, and letting go of the last server stream closes
+    /// the socket and drops it: a Show or Quit right after a Hello was lost on macOS (2026-10-08). There the listener makes the
+    /// next server stream before it lets go of the served one, so the socket stays open. On Windows a client waits for a
+    /// listening instance instead, so one instance stays the rule there.
+    /// </summary>
+    private static bool KeepsNextListening => !OperatingSystem.IsWindows();
+
     /// <summary>Null when another instance already owns <paramref name="name"/>.</summary>
     public static SingleInstanceGuard? TryAcquire(string name, InstanceIdentity identity) =>
         AcquireAsync(name, identity, TimeSpan.Zero).GetAwaiter().GetResult();
@@ -190,37 +199,53 @@ public sealed class SingleInstanceGuard : IDisposable
 
     private void Listen()
     {
-        while (!_stopping.IsCancellationRequested)
+        NamedPipeServerStream? next = null;
+        try
         {
-            try
+            while (!_stopping.IsCancellationRequested)
             {
-                using var server = new NamedPipeServerStream(_pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeFlags);
-                server.WaitForConnectionAsync(_stopping.Token).GetAwaiter().GetResult();
-                ServeAsync(server).GetAwaiter().GetResult();
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (IOException)
-            {
-                // A client dropped mid-handshake, or the previous owner's pipe is still closing: listen again after a breath.
-                if (_stopping.Token.WaitHandle.WaitOne(RetryDelay))
+                try
+                {
+                    using var server = next ?? CreateServer();
+                    next = null;
+                    server.WaitForConnectionAsync(_stopping.Token).GetAwaiter().GetResult();
+                    ServeAsync(server).GetAwaiter().GetResult();
+                    if (KeepsNextListening)
+                    {
+                        next = CreateServer();
+                    }
+                }
+                catch (OperationCanceledException)
                 {
                     return;
                 }
-            }
-            catch (ObjectDisposedException)
-            {
-                return;
-            }
-            catch (Exception e) when (e is ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException)
-            {
-                // The pipe cannot exist here. A second launch then cannot reach this one, but an exception escaping this thread would end the app.
-                return;
+                catch (IOException)
+                {
+                    // A client dropped mid-handshake, or the previous owner's pipe is still closing: listen again after a breath.
+                    if (_stopping.Token.WaitHandle.WaitOne(RetryDelay))
+                    {
+                        return;
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    return;
+                }
+                catch (Exception e) when (e is ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException)
+                {
+                    // The pipe cannot exist here. A second launch then cannot reach this one, but an exception escaping this thread would end the app.
+                    return;
+                }
             }
         }
+        finally
+        {
+            next?.Dispose();
+        }
     }
+
+    private NamedPipeServerStream CreateServer() =>
+        new(_pipeName, PipeDirection.InOut, KeepsNextListening ? 2 : 1, PipeTransmissionMode.Byte, PipeFlags);
 
     private async Task ServeAsync(NamedPipeServerStream server)
     {
