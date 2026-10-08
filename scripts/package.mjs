@@ -156,10 +156,20 @@ function macSigning() {
   const checks = [[identity, ["find-identity", "-v", "-p", "codesigning"]]];
   if (installerIdentity) checks.push([installerIdentity, ["find-identity", "-v"]]);
   for (const [name, args] of checks) {
-    if (!(tryCapture("security", args) ?? "").includes(name)) {
+    const matches = (tryCapture("security", args) ?? "").split(/\r?\n/).filter((line) => line.includes(name));
+    if (matches.length === 0) {
       fail(
         `"${name}" is not a valid identity in the keychain (security ${args.join(" ")}). ` +
           "If the certificate is installed but not listed, import the Developer ID G2 intermediate, docs/release.md.",
+      );
+    }
+
+    // Two certificates under one name (a second one made at Apple and imported): codesign refuses an ambiguous name
+    // halfway through vpk, after the publish. Its SHA-1 fingerprint names one.
+    if (matches.length > 1) {
+      fail(
+        `"${name}" names ${matches.length} certificates in the keychain; set the variable to one fingerprint instead:\n` +
+          matches.map((line) => `  ${line.trim()}`).join("\n"),
       );
     }
   }
