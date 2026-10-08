@@ -44,6 +44,31 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 
 One **Info** line per distinct placeholder method per file ("3 Run step(s) imported as placeholders; the Run step arrives in a later version."), never one per step.
 
+## Text methods (`SendKeys`, `SendString`): parsed, not yet wired into `StepReader`
+
+`TextMapping` is the `HotkeyMapping` of the text methods; `StepReader` still imports both as placeholders until it calls it. Pure and stateless.
+
+| Call | Produces |
+|---|---|
+| `TextMapping.FromSendKeys(parameters, textMethod)` | `sendKeysString` through `SendKeysSyntax.Parse`: a `SendKeysResult` (`Steps`, `Warnings`, `IsClean`); null when the parameter is missing or empty. One SP.net step becomes several Augram steps, so the caller splices them in |
+| `TextMapping.FromSendString(parameters, method)` | `characters` as one `TypeTextStep`, exactly as written (SendString is text, not key syntax); null when missing or empty |
+| `TextMapping.TryUpgrade(ImportedStep, textMethod)` | a saved `SendKeys` or `SendString` placeholder as the steps that replace it; null for any other method |
+
+`SendKeysSyntax.Parse(keys, textMethod)` (the state machine is the internal `SendKeysParser`, the token names `SendKeysNames`) reads .NET `SendKeys` syntax plus the classic StrokesPlus extras; it never throws, it reports a part it cannot map in `Warnings` (one sentence each, naming the part; the caller adds the action's name) and goes on:
+
+| Syntax | Steps |
+|---|---|
+| plain characters | one `TypeTextStep` per run, consecutive characters merged (also across a group without modifiers and around escaped literals), by the method asked for (default Unicode) |
+| `^` Ctrl, `+` Shift, `%` Alt, `@` Win (classic) before a key, or before `( … )` for every key inside (nested groups add up) | the key as a `HotkeyStep` with those modifiers; a character under a modifier is its US-layout key (`AsciiKeyLayout`) with Shift added for a shifted character, as .NET does (`^A` is Ctrl+Shift+A, `^{+}` Ctrl+Shift+=) |
+| `~`, `{ENTER}`, `{TAB}`, `{ESC}`/`{ESCAPE}`, `{BS}`/`{BKSP}`/`{BACKSPACE}`, `{DEL}`/`{DELETE}`, `{INS}`/`{INSERT}`, `{HOME}`, `{END}`, `{PGUP}`, `{PGDN}`, arrows, `{F1}`–`{F24}`, `{ADD}`/`{SUBTRACT}`/`{MULTIPLY}`/`{DIVIDE}` (keypad), `{CAPSLOCK}`, `{NUMLOCK}`, `{SCROLLLOCK}`, `{PRTSC}`; classic `{WIN}`, `{LWIN}`, `{RWIN}`, `{APPS}`, `{F_1}`…, `{NUMPAD0}`…, `{DECIMAL}`, browser and media names; `{SPACE}`; names ignore case (`SendKeysNames`) | a `HotkeyStep`, or a `MediaKeyStep` for a media key with no modifier (`{VOLUP}`) |
+| `{KEY n}`, `{x n}` | the key n times (at most `SendKeysSyntax.MaxRepeat`, 100, with a warning above it); a character n times into the text |
+| `{+}`, `{^}`, `{%}`, `{~}`, `{(}`, `{)}`, `{{}`, `{}}`, `{@}`, any `{x}`; classic `{PLUS}`, `{CARET}`, `{PERCENT}`, `{TILDE}`, `{AT}`, `{LPAREN}`, `{RPAREN}`, `{LBRACE}`, `{RBRACE}` | that character, as text |
+| `{DELAY n}` (classic) | `DelayStep(n)`, clamped to 60000 ms with a warning |
+| `{VKEY n}` (classic; decimal Windows virtual-key code, space optional) | that key through `HotkeyMapping.FromVirtualKey`, with any modifiers |
+| an unknown name (`{BREAK}`, `{CLEAR}`, `{HELP}`, `{BEEP …}`), classic `{DELAY=n}`, a modifier that reaches no key, a character a US keyboard lacks under a modifier, an unmatched `(`, `)` or `{` | a warning; unmatched brackets are typed as text, everything else is skipped |
+
+Every `SendKeys` and `SendString` value in the reference config (Joel's, 2026-10-08: game console text such as a backtick or `fov 70`, punctuation-heavy text, and in scripts Ctrl/Shift hotkeys with `{TAB}`, `{PGUP}`, `{ADD}`…) parses with no warning; the tests reproduce those shapes synthetically.
+
 ## Action mapping
 
 | SP.net | Augram |

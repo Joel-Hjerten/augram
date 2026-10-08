@@ -732,6 +732,13 @@
   <Style Selector="TextBox.field-editor.wide">
     <Setter Property="MinWidth" Value="{StaticResource Editor.WideMinWidth}" />
   </Style>
+  <!-- A multi-line text field: grows with its text up to MaxHeight, then scrolls; wrapping and Enter are the renderer's. -->
+  <Style Selector="TextBox.field-editor.multiline">
+    <Setter Property="MinHeight" Value="{StaticResource Editor.MultilineMinHeight}" />
+    <Setter Property="MaxHeight" Value="{StaticResource Editor.MultilineMaxHeight}" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
   <!-- A button and its status text on one form line (Options › Sync). -->
   <Style Selector="DockPanel.field-line > Button">
     <Setter Property="Margin" Value="0,0,8,0" />
