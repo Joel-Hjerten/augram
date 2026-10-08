@@ -2,6 +2,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.DisplayMode;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.Run;
@@ -64,6 +65,18 @@ public sealed class PlaceholderUpgradeTests
         var command = Global(PlaceholderUpgrade.Upgrade(mapping)).Commands.Single();
 
         Assert.Equal(new RunStep("taskkill.exe", "/f /im synthetic.exe", string.Empty, Elevated: true, Hidden: true), command.Steps.Single().Step);
+        Assert.Null(command.Note);
+    }
+
+    [Fact]
+    public void ADisplayChangerScriptBecomesADisplayModeStep_NotARunOfTheProgram()
+    {
+        const string script = "//Method: RunProgram(...)\r\nsp.RunProgram(\"C:\\\\Tools\\\\Display Changer\\\\dc64cmd.exe\", \"-refresh=100\", \"open\", \"normal\", true, false, false);";
+        var mapping = Mapping(Command("Refresh 100", Placeholder("Script", ("script", script))) with { Note = ScriptNote });
+
+        var command = Global(PlaceholderUpgrade.Upgrade(mapping)).Commands.Single();
+
+        Assert.Equal(new DisplayModeStep(Refresh: RefreshRate.FromHertz(100)), command.Steps.Single().Step);
         Assert.Null(command.Note);
     }
 

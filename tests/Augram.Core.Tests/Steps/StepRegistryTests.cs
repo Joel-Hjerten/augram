@@ -1,5 +1,7 @@
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.DisplayMode;
+using Augram.Core.Steps.Hdr;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
@@ -15,11 +17,13 @@ public sealed class StepRegistryTests
     [Fact]
     public void BuiltInListsTheShippedTypesInPickerOrder()
     {
-        string[] expected = ["windowOp", "mediaKey", "hotkey", "typeText", "run", "delay", "imported"];
+        string[] expected = ["windowOp", "mediaKey", "displayMode", "hdr", "hotkey", "typeText", "run", "delay", "imported"];
 
         Assert.Equal(expected, StepRegistry.BuiltIn.All.Select(type => type.Key).ToArray());
         Assert.Same(WindowOpStepType.Instance, StepRegistry.BuiltIn.Find("windowOp"));
         Assert.Same(MediaKeyStepType.Instance, StepRegistry.BuiltIn.Find("mediaKey"));
+        Assert.Same(DisplayModeStepType.Instance, StepRegistry.BuiltIn.Find("displayMode"));
+        Assert.Same(HdrStepType.Instance, StepRegistry.BuiltIn.Find("hdr"));
         Assert.Same(HotkeyStepType.Instance, StepRegistry.BuiltIn.Find("hotkey"));
         Assert.Same(TypeTextStepType.Instance, StepRegistry.BuiltIn.Find("typeText"));
         Assert.Same(RunStepType.Instance, StepRegistry.BuiltIn.Find("run"));

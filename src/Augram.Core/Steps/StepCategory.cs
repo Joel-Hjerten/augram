@@ -6,6 +6,9 @@ public enum StepCategory
     /// <summary>Window operations, volume, media playback: things the OS does.</summary>
     System,
 
+    /// <summary>Display resolution, refresh rate and HDR (learnings 0002).</summary>
+    Display,
+
     /// <summary>Hotkeys and key sequences.</summary>
     Keyboard,
 

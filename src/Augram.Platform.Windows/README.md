@@ -1,16 +1,17 @@
 # Augram.Platform.Windows
 
-Windows implementations of the Core ports that need the OS: `IWindowSystem` (M1 step 5), `ICursorProbe`, `ISystemEvents`, `IStartupRegistration` and `IOverlayWindowStyle` (M1 final wiring), `IWindowOperations` and `IProcessLauncher` (M2), and later the layered-window overlay fallback if the Avalonia overlay fails the B2 decision.
+Windows implementations of the Core ports that need the OS: `IWindowSystem` (M1 step 5), `ICursorProbe`, `ISystemEvents`, `IStartupRegistration` and `IOverlayWindowStyle` (M1 final wiring), `IWindowOperations` (M2), `IProcessLauncher` (M2), `IDisplayModes` (the Display steps), and later the layered-window overlay fallback if the Avalonia overlay fails the B2 decision.
 
-**May reference:** `Augram.Core` and the `Microsoft.Win32.SystemEvents` package (session, power and display notifications; `Microsoft.Win32.Registry` is in the shared framework). Win32 goes through `P/Invoke` in `Interop/NativeMethods.cs` and nowhere else; types that touch it carry `[SupportedOSPlatform("windows")]`. The assembly has `[DisableRuntimeMarshalling]` so `LibraryImport` generates direct calls (blittable structs and `Span<char>` buffers only).
+**May reference:** `Augram.Core` and the `Microsoft.Win32.SystemEvents` package (session, power and display notifications; `Microsoft.Win32.Registry` is in the shared framework). Win32 goes through `P/Invoke` in `Interop/NativeMethods.cs` (and its display part, `NativeMethods.Display.cs`) and nowhere else; types that touch it carry `[SupportedOSPlatform("windows")]`. The assembly has `[DisableRuntimeMarshalling]` so `LibraryImport` generates direct calls (blittable structs and `Span<char>` buffers only).
 
-**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem`, `Win32WindowOperations` as `IWindowOperations`, `Win32ProcessLauncher` as `IProcessLauncher` and the adapters below through `EngineModule`.
+**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem`, `Win32WindowOperations` as `IWindowOperations`, `Win32ProcessLauncher` as `IProcessLauncher`, `Win32DisplayModes` as `IDisplayModes` and the adapters below through `EngineModule`.
 
 ## Layout
 
 | Folder | Holds |
 |---|---|
-| `Interop/` | `NativeMethods` (the P/Invoke surface, no logic) and `Win32Windows` (the real `IWin32Windows` + `IWin32Foreground` + `IWin32WindowControl`, thin wrappers) |
+| `Interop/` | `NativeMethods` (the P/Invoke surface, no logic; `NativeMethods.Display.cs` holds the display settings and CCD calls with blittable structs whose sizes a test pins), `Win32Windows` (the real `IWin32Windows` + `IWin32Foreground` + `IWin32WindowControl`, thin wrappers) and `Win32Displays` (the real `IWin32Displays`) |
+| `Display/` | `Win32DisplayModes` (public adapter for `IDisplayModes`, below), the `IWin32Displays` facade and its records (`Win32DisplayDevice`, `Win32DisplaySetting`, `Win32DisplayTarget`), the pure `Win32HdrInfo` (advanced colour bits → `HdrState` and which switch to use) and `DisplayChangeCode` (`DISP_CHANGE_*` names) |
 | `WindowSystem/` | `Win32WindowSystem` (public adapter) and everything it is made of: `WindowIdentityReader`, `ForegroundActivator`, and the pure rules `ActivationPolicy`, `DesktopRule`, `FullScreenRule`, `UwpHostRule`; `Win32WindowOperations` (public adapter for `IWindowOperations`) with the pure `WindowGeometry` |
 | `Input/` | `Win32CursorProbe` (`GetCursorPos`, physical pixels, for the hook watchdog) and `Win32SystemEvents` (`SystemEvents.SessionSwitch` / `PowerModeChanged` / `DisplaySettingsChanged` / `SessionEnding` mapped to `SystemEventKind`; the static `Map` functions are the tested part) |
 | `Launch/` | `Win32ProcessLauncher` (public adapter for `IProcessLauncher`, the Run step) with the pure `ShellStartInfo` (what ShellExecuteEx is asked for) and `ShellExecuteErrors` (Win32 error → one log line); see "Process launcher" below |
@@ -82,6 +83,14 @@ The `IProcessLauncher` adapter for the Run step (table of both platforms in `Cor
 
 Tests drive `Win32ProcessLauncher` through its internal constructor with a fake start delegate, so no test starts a process.
 
+## Display modes and HDR (`Win32DisplayModes`)
+The `IDisplayModes` adapter for the Display steps; research and the decisions in [docs/learnings/0002-display-modes.md](../../docs/learnings/0002-display-modes.md). Verified read-only on Joel's PC (one Sony TV, RTX 5090): it lists `\\.\DISPLAY1` as "SONY TV *30", 3840×2160 at 120 Hz, HDR off, 169 modes from 4096×2160 down, rates 23.976 … 120.
+| Member | Win32 |
+|---|---|
+| `Displays()` | `EnumDisplayDevices` entries attached to the desktop and not mirroring; `EnumDisplaySettingsEx(ENUM_CURRENT_SETTINGS)` for the bounds (physical pixels, the hook's space) and the current mode; every progressive `EnumDisplaySettingsEx` entry once, whatever its colour depth or fixed-output variant, with Windows' whole hertz turned into the exact rate (`RefreshRate.FromLegacyHertz`: 119 → 119.88, 120 → 120; checked one to one against DXGI on Joel's PC). The name is the monitor's CCD friendly name (`QueryDisplayConfig` active paths, `GET_SOURCE_NAME` to match the device, `GET_TARGET_NAME`), else "DISPLAY2"; main = `DISPLAY_DEVICE_PRIMARY_DEVICE` |
+| `SetMode` | the listed setting that carries the mode, preferring the current colour depth and the default fixed output; `ChangeDisplaySettingsEx(CDS_TEST)`, and only on success `CDS_UPDATEREGISTRY` (applied and stored, as Settings does). A refused test applies nothing; `DISP_CHANGE_RESTART` and every other code are failures named in the reason |
+| HDR | `GET_ADVANCED_COLOR_INFO_2` (Windows 11 24H2+: bit 4 HDR supported, bit 5 HDR user-enabled) first, else `GET_ADVANCED_COLOR_INFO` (bit 0 supported, bit 1 enabled); `SetHdr` uses `SET_HDR_STATE` or `SET_ADVANCED_COLOR_STATE` to match. The 24H2 call matters because there "advanced colour" also means wide colour on SDR displays |
+Everything is called from the command executor thread, except `Displays()`, which the Display mode step form also calls on the UI thread to fill its lists (read-only, tens of milliseconds). Tests (`tests/Augram.Platform.Windows.Tests/Display`) run the adapter against a scripted `IWin32Displays`; **nothing in the tests, and nothing an agent runs, may call `ChangeDisplaySettingsEx` or `DisplayConfigSetDeviceInfo` on a real machine.**
 ## System events thread
 
 `Microsoft.Win32.SystemEvents` creates its broadcast window on the thread that first touches it when that thread is STA (the App's UI thread, which pumps messages, so `ISystemEvents.Occurred` fires there); otherwise on its own hidden-window thread. Either way a listener must return at once; the hook health monitor only stamps a time and, on resume or unlock, posts a reset to the engine worker.

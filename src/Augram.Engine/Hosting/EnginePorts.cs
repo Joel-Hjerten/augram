@@ -39,6 +39,8 @@ public sealed record EnginePorts
 
     /// <summary>What a <c>Run</c> step starts programs through (M2); the null object declines every launch.</summary>
     public IProcessLauncher ProcessLauncher { get; init; } = NullProcessLauncher.Instance;
+    /// <summary>What the Display steps read and change (learnings 0002); the null object knows no displays, so they skip.</summary>
+    public IDisplayModes DisplayModes { get; init; } = NullDisplayModes.Instance;
 
     /// <summary>The current mapping, read once per stroke by the executor; null means no executor at all (recognise and report only, as in M1).</summary>
     public Func<MappingDocument>? Mapping { get; init; }

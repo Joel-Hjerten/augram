@@ -9,6 +9,7 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Engine.Hosting;
+using Augram.Platform.Windows.Display;
 using Augram.Platform.Windows.Launch;
 using Augram.Platform.Windows.WindowSystem;
 using Avalonia.Headless.XUnit;
@@ -100,6 +101,7 @@ public sealed class EngineModuleTests
             Assert.Same(NullWindowSystem.Instance, ports.Windows);
             Assert.Same(NullWindowOperations.Instance, ports.WindowOperations);
             Assert.Same(provider.GetRequiredService<IProcessLauncher>(), ports.ProcessLauncher);
+            Assert.Same(NullDisplayModes.Instance, ports.DisplayModes);
             Assert.Same(mapping.Current, ports.Mapping!());
             mapping.AddCommand(GroupId.Global, MappingFixture.Unbound("Minimize"));
             Assert.Same(mapping.Current, ports.Mapping());
@@ -157,6 +159,7 @@ public sealed class EngineModuleTests
             Assert.IsType<Win32WindowSystem>(provider.GetRequiredService<IWindowSystem>());
             Assert.IsType<Win32WindowOperations>(provider.GetRequiredService<IWindowOperations>());
             Assert.IsType<Win32ProcessLauncher>(provider.GetRequiredService<IProcessLauncher>());
+            Assert.IsType<Win32DisplayModes>(provider.GetRequiredService<IDisplayModes>());
         }
         finally
         {

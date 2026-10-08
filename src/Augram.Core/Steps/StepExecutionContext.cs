@@ -22,4 +22,6 @@ public sealed record StepExecutionContext(
 
     /// <summary>What a Run step starts programs through; the null object declines every launch.</summary>
     public IProcessLauncher Processes { get; init; } = NullProcessLauncher.Instance;
+    /// <summary>What the Display steps read and change (learnings 0002); the null object knows no displays.</summary>
+    public IDisplayModes Displays { get; init; } = NullDisplayModes.Instance;
 }

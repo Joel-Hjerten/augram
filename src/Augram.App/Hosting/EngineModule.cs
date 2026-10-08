@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Steps.DisplayMode;
 using Augram.App.Overlay;
 using Augram.App.Training;
 using Augram.Core.Abstractions;
@@ -11,10 +12,12 @@ using Augram.Engine.Hosting;
 using Augram.Engine.Input;
 using Augram.Import.StrokesPlus;
 using Augram.Platform.MacOS;
+using Augram.Platform.MacOS.Display;
 using Augram.Platform.MacOS.Input;
 using Augram.Platform.MacOS.Launch;
 using Augram.Platform.MacOS.Overlay;
 using Augram.Platform.MacOS.WindowSystem;
+using Augram.Platform.Windows.Display;
 using Augram.Platform.Windows.Input;
 using Augram.Platform.Windows.Launch;
 using Augram.Platform.Windows.Overlay;
@@ -77,6 +80,8 @@ public static class EngineModule
     public static void Start(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        // Reading display modes changes nothing, so the Display mode form gets them under --no-engine too.
+        PublishDisplayModes(services);
         if (EngineKillSwitch.IsSet())
         {
             services.GetRequiredService<IEventLog>().Info(LogSources.Engine, "Engine disabled by flag", ("argument", EngineKillSwitch.Argument), ("variable", EngineKillSwitch.EnvironmentVariable));
@@ -125,6 +130,15 @@ public static class EngineModule
         }
     }
 
+    /// <summary>The display adapter for the Display mode step form, which <c>StepFormRegistry</c> builds without services, like the key capture above.</summary>
+    internal static void PublishDisplayModes(IServiceProvider services)
+    {
+        if (Application.Current is { } app)
+        {
+            app.Resources[DisplayModeStepForm.DisplayModesResourceKey] = services.GetRequiredService<IDisplayModes>();
+        }
+    }
+
     /// <summary>
     /// The host's ports as the composition root resolves them: the input source and simulator, the diagnostics,
     /// the overlay, the platform adapters, the mapping snapshot delegate for the executor and the training
@@ -149,6 +163,7 @@ public static class EngineModule
             Windows = sp.GetRequiredService<IWindowSystem>(),
             WindowOperations = sp.GetRequiredService<IWindowOperations>(),
             ProcessLauncher = sp.GetRequiredService<IProcessLauncher>(),
+            DisplayModes = sp.GetRequiredService<IDisplayModes>(),
             Mapping = () => mapping.Current,
             Intercept = training is null ? null : e => training.TryConsume(e),
         };
@@ -173,6 +188,7 @@ public static class EngineModule
         services.AddSingleton<IWindowSystem>(NullWindowSystem.Instance);
         services.AddSingleton<IWindowOperations>(NullWindowOperations.Instance);
         services.AddSingleton<IProcessLauncher>(NullProcessLauncher.Instance);
+        services.AddSingleton<IDisplayModes>(NullDisplayModes.Instance);
     }
 
     [SupportedOSPlatform("windows")]
@@ -186,6 +202,7 @@ public static class EngineModule
         services.AddSingleton<IWindowSystem>(sp => new Win32WindowSystem(sp.GetRequiredService<IEventLog>()));
         services.AddSingleton<IWindowOperations>(_ => new Win32WindowOperations());
         services.AddSingleton<IProcessLauncher>(sp => new Win32ProcessLauncher(sp.GetRequiredService<IEventLog>()));
+        services.AddSingleton<IDisplayModes>(_ => new Win32DisplayModes());
     }
 
     /// <summary>
@@ -201,6 +218,7 @@ public static class EngineModule
         services.AddSingleton<IWindowSystem, MacWindowSystem>();
         services.AddSingleton<IWindowOperations, MacWindowOperations>();
         services.AddSingleton<IProcessLauncher>(_ => new MacProcessLauncher());
+        services.AddSingleton<IDisplayModes, MacDisplayModes>();
     }
 
     private static ConfigSession CreateSession(IServiceProvider sp, EngineModuleOptions options, Action<Action> marshal)
