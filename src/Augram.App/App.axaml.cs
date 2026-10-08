@@ -100,6 +100,11 @@ public sealed class App : Application
         }
 #endif
         desktop.MainWindow = _services.GetRequiredService<MainWindow>();
+        if (OperatingSystem.IsMacOS())
+        {
+            MacDockPresence.Follow(desktop.MainWindow);
+        }
+
         EngineModule.Start(_services);
         // Sync starts also under --no-engine: it never touches input.
         SyncModule.Start(_services);
