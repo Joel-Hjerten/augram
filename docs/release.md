@@ -9,7 +9,7 @@ CI, the macOS files from Joel's Mac, because signing needs the Developer ID iden
 |---|---|
 | Version | `<Version>` in `Directory.Build.props`, SemVer 2 (`0.2.0`, `0.3.0-beta.1`). Velopack needs every release higher than the last. |
 | Installer hooks | `VelopackApp.Build().Run()`, the first line of `Main` in `src/Augram.App/Program.cs`. It must stay first: Setup, updates and uninstall start `Augram.App.exe` with hook arguments, and it answers them and exits before the single-instance guard or the UI exist. `vpk pack` checks the call is there. |
-| Packaging | `node scripts/package.mjs windows` / `mac` (header comment: what it runs). vpk is a repo-local tool, `.config/dotnet-tools.json`; `dotnet tool restore` once per clone. Package and tool versions move together (`Directory.Packages.props`). |
+| Packaging | `node scripts/package.mjs windows` / `mac` (header comment: what it runs). vpk is a repo-local tool, `.config/dotnet-tools.json`, which the script restores itself; a dotnet missing from PATH is taken from `~/.dotnet` (the Mac). Package and tool versions move together (`Directory.Packages.props`). |
 | Release workflow | `.github/workflows/release.yml`, on a pushed tag `v*.*.*` |
 | Output | `artifacts/publish/<runtime>` (the published app) and `artifacts/releases/<runtime>` (what ships), both emptied by every run, both gitignored |
 
@@ -45,9 +45,8 @@ clashing. `package.mjs` prints what it produced with sizes, and on the Mac the e
 
    ```sh
    git fetch --tags && git checkout v0.2.0
-   dotnet tool restore
-   export AUGRAM_SIGN_IDENTITY="Developer ID Application: <name> (<team id>)"
-   export AUGRAM_NOTARY_PROFILE=<notarytool profile>
+   export AUGRAM_SIGN_IDENTITY="Developer ID Application: Joel Hjertén (MN7V4KZF8M)"
+   export AUGRAM_NOTARY_PROFILE=eyeris-notary
    node scripts/package.mjs mac
    gh release upload v0.2.0 artifacts/releases/osx-arm64/Augram-0.2.0-osx-full.nupkg \
      artifacts/releases/osx-arm64/Augram-osx-Portable.zip artifacts/releases/osx-arm64/releases.osx.json --clobber
@@ -68,6 +67,11 @@ you mean to install Augram there.
 ## The Mac, once
 
 The same identity and notary profile as Eyeris, so on a Mac that already signs Eyeris most of this is done.
+
+**Joel's Mac (2026-10-08):** `Developer ID Application: Joel Hjertén (MN7V4KZF8M)` is listed as valid; the notary profile is
+Eyeris' `eyeris-notary` (a profile belongs to the team, not to an app; `xcrun notarytool history --keychain-profile
+eyeris-notary` lists past submissions when it works); no Developer ID Installer certificate yet, so no `.pkg`; `gh` is not
+installed. An unsigned trial (`node scripts/package.mjs mac`) builds there: `Augram.app` 136 MB, the zip 51 MB.
 
 1. **Developer ID Application certificate** in the login keychain. `security find-identity -v -p codesigning` must list
    it as valid. **If the certificate is installed but the list shows 0 valid identities**, the Developer ID **G2**

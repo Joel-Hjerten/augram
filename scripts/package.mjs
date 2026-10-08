@@ -13,13 +13,15 @@
 //
 // Each run reads the version from the app project (<Version>, Directory.Build.props), publishes self-contained and
 // ReadyToRun into artifacts/publish/<runtime> with -p:AugramChannel=Release, and runs the repo's vpk tool
-// (.config/dotnet-tools.json, `dotnet tool restore` once) over that folder. No trimming: Avalonia's XAML loader and the
+// (.config/dotnet-tools.json, restored first) over that folder. A dotnet missing from PATH is taken from ~/.dotnet, where
+// the Mac has it. No trimming: Avalonia's XAML loader and the
 // DI container reach types by reflection. Both artifact folders are emptied first, so a stale file never ships and vpk
 // never sees an older release beside the new one (no delta packages until auto-update exists). Every process is started
 // with an argument array, never a shell string.
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { delimiter, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -66,6 +68,20 @@ function warn(lines) {
 
 function display(args) {
   return args.map((arg) => (/[\s"]/.test(arg) ? JSON.stringify(arg) : arg)).join(" ");
+}
+
+/**
+ * Puts the per-user .NET SDK on PATH when no dotnet is there: the Mac has it in ~/.dotnet only (CLAUDE.md), and neither
+ * a terminal nor an agent shell finds it. DOTNET_ROOT goes with it so every child, vpk included, finds the runtime.
+ */
+function useHomeDotnetIfNeeded() {
+  const name = process.platform === "win32" ? "dotnet.exe" : "dotnet";
+  const pathDirs = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  if (pathDirs.some((dir) => existsSync(join(dir, name)))) return;
+  const dotnetRoot = process.env.DOTNET_ROOT || join(homedir(), ".dotnet");
+  if (!existsSync(join(dotnetRoot, name))) fail(`dotnet is neither on PATH nor in ${dotnetRoot}: install the .NET SDK (global.json).`);
+  process.env.DOTNET_ROOT = dotnetRoot;
+  process.env.PATH = [dotnetRoot, ...pathDirs].join(delimiter);
 }
 
 /** Runs a process from the repo root; fails the script on a non-zero exit. Returns stdout when captured. */
@@ -221,6 +237,7 @@ const target = targets[mode];
 if (!target) fail("usage: node scripts/package.mjs windows|mac");
 if (process.platform !== target.platform) fail(target.elsewhere);
 
+useHomeDotnetIfNeeded();
 const version = readVersion();
 reportGit(version);
 const signing = mode === "mac" ? macSigning() : [];
@@ -239,6 +256,8 @@ run("dotnet", [
   "-p:PublishReadyToRun=true",
   "-o", relative(root, publishDir),
 ]);
+
+run("dotnet", ["tool", "restore"]);
 
 const pack = [
   "tool", "run", "vpk", "pack",
