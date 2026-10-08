@@ -24,5 +24,6 @@ commit the art and the outputs together. `tests/Augram.App.Tests/Tray/IconAssets
 - Square, transparent, centred, with a small safe margin; full-bleed art at 1024 px, downscaling handles the rest.
 - Test at 16, 32 and 256 px: fine detail disappears at 16, so keep the silhouette bold.
 - The macOS menu bar uses a template image (shape and alpha only; the system tints it). The tool derives it from the master,
-  with the white strokes cut out as holes. A hand-drawn `exports/app-icon-mac-tray.png` (one dark fill, highlights as real
-  holes, square) wins when it exists.
+  with the white strokes cut out as holes. A hand-drawn `exports/app-icon-mac-tray.png` (square, any colour: only its
+  alpha counts, so full opacity is the solid parts and partial opacity a dimmer tint) wins when it exists. Joel's (2026-10-08)
+  is white strokes at full opacity with a translucent outline and ring.
