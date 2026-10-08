@@ -39,14 +39,17 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 | `Delay(milliseconds)` | `DelayStep`, clamped to 0..60000 with a warning when clamped; unparsable → placeholder + warning |
 | `SendVKey(virtualKey)` 173..179 | `MediaKeyStep` (173 VolumeMute, 174 VolumeDown, 175 VolumeUp, 176 NextTrack, 177 PreviousTrack, 178 Stop, 179 PlayPause); any other key → `HotkeyStep` with no modifiers through `HotkeyMapping` (VK → `KeyCode` table), placeholder when the key has no `KeyCode` |
 | `SendHotKey(hotkey{LControl, RControl, LAlt, RAlt, LShift, RShift, LWin, RWin, Key})` | `HotkeyStep` through `HotkeyMapping.FromSendHotKey` (right-side modifiers are kept: `RAlt` alone becomes Alt with `RightHand` Alt, "RAlt+F9"; a modifier set on both sides is the plain one); placeholder when the key has no `KeyCode`. `HotkeyMapping.TryUpgrade(ImportedStep)` converts a placeholder saved before hotkeys existed |
-| `SendKeys`, `SendString`, `Run`, `MouseClick`, `SendAltDown/Up`, `SendWinDown/Up`, `ConsumePhysicalInput`, unknown, null | `ImportedStep(method, step description, parameters as name → value text)`: shows as "not supported yet", runs (skips) now, and gets a real type later |
+| `SendKeys(sendKeysString)` | the steps the key string makes through `TextMapping.FromSendKeys` (text runs → `TypeTextStep`, keys → `HotkeyStep` or `MediaKeyStep`, `{DELAY n}` → `DelayStep`), spliced in place, each with the step's active flag; a string with a part that does not map → placeholder plus a warning per part |
+| `SendString(characters)` | one `TypeTextStep` through `TextMapping.FromSendString`, the text as written; no text → placeholder |
+| `Run(command)` | `RunStep` through `RunMapping.FromRun` (the command line cut into file and arguments); no command → placeholder |
+| `MouseClick`, `SendAltDown/Up`, `SendWinDown/Up`, `ConsumePhysicalInput`, unknown, null | `ImportedStep(method, step description, parameters as name → value text)`: shows as "not supported yet", runs (skips) now, and gets a real type later |
 | a step with `Active == false` | `CommandStep.IsActive = false` |
 
-One **Info** line per distinct placeholder method per file ("3 Run step(s) imported as placeholders; the Run step arrives in a later version."), never one per step.
+One **Info** line per distinct placeholder method per file ("3 MouseClick step(s) imported as placeholders; mouse clicks arrive in a later version."), never one per step.
 
-## Text methods (`SendKeys`, `SendString`): parsed, not yet wired into `StepReader`
+## Text methods (`SendKeys`, `SendString`)
 
-`TextMapping` is the `HotkeyMapping` of the text methods; `StepReader` still imports both as placeholders until it calls it. Pure and stateless.
+`TextMapping` is the `HotkeyMapping` of the text methods; `StepReader` and `PlaceholderUpgrade` call it. Pure and stateless.
 
 | Call | Produces |
 |---|---|
@@ -69,9 +72,9 @@ One **Info** line per distinct placeholder method per file ("3 Run step(s) impor
 
 Every `SendKeys` and `SendString` value in the reference config (Joel's, 2026-10-08: game console text such as a backtick or `fov 70`, punctuation-heavy text, and in scripts Ctrl/Shift hotkeys with `{TAB}`, `{PGUP}`, `{ADD}`…) parses with no warning; the tests reproduce those shapes synthetically.
 
-## Run helpers (built, not wired into `StepReader` yet)
+## Run helpers
 
-Standalone and pure, ready for the step reader and the script-only action path to call; until then `Run` and RunProgram scripts still import as placeholders.
+Pure; `StepReader` (the `Run` step), `ActionReader` (a script-only action) and `PlaceholderUpgrade` call them. A recognised `sp.RunProgram` call goes through `ProgramCallMapping.ToStep`, the one place that decides which step a call becomes.
 
 | Type | Role |
 |---|---|
@@ -81,6 +84,10 @@ Standalone and pure, ready for the step reader and the script-only action path t
 | `ScriptReader` (internal) | the cursor over the script: trivia, words, string literals with their escapes, raw templates |
 
 Against the reference config (read 2026-10-08, never copied): both `Run` steps map (`explorer`; `ms-settings:display`, an inactive action), and 13 of the 14 scripts that mention `RunProgram` are recognised: ten display-changer calls (the Display step's to route), the elevated hidden taskkill, SP.net's `String.raw` example and the `sp.ExpandEnvironmentVariables("%SystemRoot%")+"\\explorer.exe"` script beside the Open Explorer step (SP.net ignores a script beside steps). The one refused is SP.net's "Process.Start" example, which drives .NET's `Process` class and names RunProgram only in a comment.
+
+## Upgrading saved placeholders
+
+`PlaceholderUpgrade.Upgrade(MappingDocument)` turns the placeholders an earlier import saved into the step types that exist now, so a config imported before a type landed starts working without a re-import: `SendHotKey`/`SendVKey` (`HotkeyMapping.TryUpgrade`), `SendKeys`/`SendString` (`TextMapping.TryUpgrade`, only when every part maps), `Run` (`RunMapping.TryUpgrade`), and a `Script` placeholder holding one `sp.RunProgram` call (`ProgramCallMapping`; the command's "script-only action" note line goes with it). Each replacement keeps the placeholder's platform and active flag; what still does not map stays. It returns the same mapping instance and a count of 0 when there is nothing to do, so it is idempotent. The App runs it once per start right after the config loads (`EngineModule.UpgradeImportedSteps`), commits through `MappingStore.ReplaceAll`, clears undo (it is not the user's edit), saves at once and logs `config` "Imported steps upgraded" with the count per method; sync then publishes it like any edit.
 
 ## Action mapping
 
@@ -93,7 +100,8 @@ Against the reference config (read 2026-10-08, never copied): both `Run` steps m
 | a trigger already bound in the group (A7) | the active command keeps it; the other is imported with `Trigger.None` + warning |
 | `Control`, `Alt`, `Shift`, `Left`, `Middle`, `Right`, `X1`, `X2` or `UseSecondaryStrokeButton` | imported **inactive**, `Note` "Imported from StrokesPlus.net: needs modifier/rocker support (deferred)" |
 | `Steps` non-empty | one `CommandStep` per entry (a script beside steps is ignored, as SP.net ignores it) |
-| `Steps` empty, `Script` non-empty | one `ImportedStep("Script", name, { script })` so the script is visible on the step list, plus `Note` "Imported from StrokesPlus.net: script-only action"; `Active` carried over |
+| `Steps` empty, `Script` one `sp.RunProgram(...)` call (`RunProgramScript.TryRecognize`) | the step `ProgramCallMapping.ToStep` makes of the call, no note |
+| `Steps` empty, any other `Script` | one `ImportedStep("Script", name, { script })` so the script is visible on the step list, plus `Note` "Imported from StrokesPlus.net: script-only action"; `Active` carried over |
 | both empty | a command with no steps: the override to nothing, no warning |
 
 ## Category mapping (Joel, 2026-10-07)

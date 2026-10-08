@@ -9,6 +9,7 @@ using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Engine.Hosting;
 using Augram.Engine.Input;
+using Augram.Import.StrokesPlus;
 using Augram.Platform.MacOS;
 using Augram.Platform.MacOS.Input;
 using Augram.Platform.MacOS.Launch;
@@ -221,6 +222,7 @@ public static class EngineModule
         var scheduler = new TimerSaveScheduler(ConfigSession.SaveDelay, marshal);
         var session = new ConfigSession(store, scheduler.Schedule, Notice);
         log.Info(ConfigLogSource, "Configuration loaded", ("file", store.Location), ("gestures", session.Gestures.All.Count));
+        UpgradeImportedSteps(session, log);
         if (!File.Exists(store.Location))
         {
             // First run: write the defaults and starter gestures now, so the file exists to look at and back up before any edit.
@@ -229,6 +231,26 @@ public static class EngineModule
         }
 
         return session;
+    }
+
+    /// <summary>
+    /// The placeholders an earlier StrokesPlus.net import saved, as the step types that exist now (<see cref="PlaceholderUpgrade"/>):
+    /// once per new step type, a no-op on every later start. Committed through the mapping store and written at once, so
+    /// sync publishes it like any edit; not undoable, since it is not the user's edit.
+    /// </summary>
+    private static void UpgradeImportedSteps(ConfigSession session, IEventLog log)
+    {
+        var upgrade = PlaceholderUpgrade.Upgrade(session.Mapping.Current);
+        if (upgrade.Count == 0)
+        {
+            return;
+        }
+
+        session.Mapping.ReplaceAll(upgrade.Mapping);
+        session.Mapping.ClearHistory();
+        session.Flush();
+        var methods = string.Join(", ", upgrade.Methods.Select(method => $"{method.Key} {method.Value}"));
+        log.Info(ConfigLogSource, "Imported steps upgraded", ("steps", upgrade.Count), ("methods", methods));
     }
 
     private static EngineHost CreateHost(IServiceProvider sp)

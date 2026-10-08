@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
@@ -9,8 +10,9 @@ namespace Augram.Import.StrokesPlus;
 /// Reads an application's <c>Actions[]</c> into <see cref="Command"/> records (plan 0001 §C1): the
 /// description as the name (unique within the group), the gesture name resolved to the id of the
 /// gesture imported from the same file, a wheel flag as a wheel trigger, modifier and chord flags as
-/// "inactive with a note" (deferred), steps through <see cref="StepReader"/>, a script-only action as
-/// a placeholder step, and an action with neither as an override to nothing. A trigger bound twice in
+/// "inactive with a note" (deferred), steps through <see cref="StepReader"/>, a script-only action whose
+/// script is one <c>sp.RunProgram</c> call as the step it makes (<see cref="ProgramCallMapping"/>), any
+/// other script-only action as a placeholder step, and an action with neither as an override to nothing. A trigger bound twice in
 /// one group keeps the active command bound (A7) and imports the other without it.
 /// </summary>
 internal sealed class ActionReader
@@ -79,8 +81,15 @@ internal sealed class ActionReader
         var script = JsonRead.Text(action, StrokesPlusJson.Action.Script);
         if (steps.Count == 0 && script.Length > 0)
         {
-            steps.Add(_steps.Script(script, name));
-            notes.Add(ScriptNote);
+            if (RunProgramScript.TryRecognize(script, out var call, out _))
+            {
+                steps.Add(new CommandStep(ProgramCallMapping.ToStep(call), HostPlatform.Windows));
+            }
+            else
+            {
+                steps.Add(_steps.Script(script, name));
+                notes.Add(ScriptNote);
+            }
         }
 
         var note = notes.Count == 0 ? null : string.Join(Environment.NewLine, notes);

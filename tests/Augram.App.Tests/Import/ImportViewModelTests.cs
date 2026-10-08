@@ -113,7 +113,7 @@ public sealed class ImportViewModelTests
         var vm = new ImportViewModel(mine, mapping, log);
 
         vm.Load(FullFixture);
-        Assert.Equal("Found 11 gestures, 4 app groups, 27 commands (8 steps as placeholders until their step types exist), 2 ignored apps.", vm.StatsText);
+        Assert.Equal("Found 11 gestures, 4 app groups, 27 commands (6 steps as placeholders until their step types exist), 2 ignored apps.", vm.StatsText);
         Assert.Empty(vm.Conflicts);
         vm.ApplyCommand.Execute(null);
 
@@ -126,7 +126,7 @@ public sealed class ImportViewModelTests
         Assert.Contains(entry.Properties!, p => p.Key == "groupsAdded" && Equals(p.Value, 4));
         Assert.Contains(entry.Properties!, p => p.Key == "commandsAdded" && Equals(p.Value, 27));
         Assert.Contains(entry.Properties!, p => p.Key == "ignoredAdded" && Equals(p.Value, 2));
-        Assert.Contains(entry.Properties!, p => p.Key == "placeholderSteps" && Equals(p.Value, 8));
+        Assert.Contains(entry.Properties!, p => p.Key == "placeholderSteps" && Equals(p.Value, 6));
     }
 
     [Fact]

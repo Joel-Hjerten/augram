@@ -59,10 +59,42 @@ internal sealed class StepReader
                 continue;
             }
 
+            if (SendKeys(element, commandName) is { } typed)
+            {
+                steps.AddRange(typed);
+                continue;
+            }
+
             steps.Add(Read(element, commandName));
         }
 
         return steps;
+    }
+
+    /// <summary>
+    /// A <c>SendKeys</c> step as the several steps its key string makes (text runs, hotkeys, delays); null for any other
+    /// method, and for a string with a part that does not map, which then imports as a placeholder with a warning per part.
+    /// </summary>
+    private List<CommandStep>? SendKeys(JsonElement step, string commandName)
+    {
+        if (JsonRead.Text(step, StrokesPlusJson.Step.Method) != StrokesPlusJson.Method.SendKeys
+            || TextMapping.FromSendKeys(MethodParameterReader.Read(step)) is not { } result)
+        {
+            return null;
+        }
+
+        if (!result.IsClean || result.Steps.Count == 0)
+        {
+            foreach (var warning in result.Warnings)
+            {
+                _warnings.Add(new ImportWarning(ImportSeverity.Warning, commandName, $"SendKeys: {warning}"));
+            }
+
+            return null;
+        }
+
+        var isActive = JsonRead.Flag(step, StrokesPlusJson.Step.Active, whenAbsent: true);
+        return [.. result.Steps.Select(typed => new CommandStep(typed, HostPlatform.Windows, IsActive: isActive))];
     }
 
     public CommandStep Read(JsonElement step, string commandName)
@@ -103,6 +135,8 @@ internal sealed class StepReader
         StrokesPlusJson.Method.Delay => Delay(description, parameters, commandName),
         StrokesPlusJson.Method.SendVKey => VirtualKey(description, parameters),
         StrokesPlusJson.Method.SendHotKey => (IStep?)HotkeyMapping.FromSendHotKey(parameters) ?? Placeholder(StrokesPlusJson.Method.SendHotKey, description, parameters),
+        StrokesPlusJson.Method.SendString => (IStep?)TextMapping.FromSendString(parameters) ?? Placeholder(StrokesPlusJson.Method.SendString, description, parameters),
+        StrokesPlusJson.Method.Run => (IStep?)RunMapping.FromRun(parameters) ?? Placeholder(StrokesPlusJson.Method.Run, description, parameters),
         _ => Placeholder(method, description, parameters),
     };
 
@@ -168,8 +202,9 @@ internal sealed class StepReader
     private static string PlaceholderReason(string method) => method switch
     {
         StrokesPlusJson.Method.SendHotKey => "their key could not be mapped to an Augram key.",
-        StrokesPlusJson.Method.SendKeys or StrokesPlusJson.Method.SendString => "typed text arrives in a later version.",
-        StrokesPlusJson.Method.Run => "the Run step arrives in a later version.",
+        StrokesPlusJson.Method.SendKeys => "part of their key string has no Augram equivalent (see the warnings).",
+        StrokesPlusJson.Method.SendString => "they have no text.",
+        StrokesPlusJson.Method.Run => "they have no command line.",
         StrokesPlusJson.Method.MouseClick => "mouse clicks arrive in a later version.",
         StrokesPlusJson.Method.SendVKey => "their virtual key has no Augram key.",
         StrokesPlusJson.Method.SendAltDown or StrokesPlusJson.Method.SendAltUp

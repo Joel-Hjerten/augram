@@ -6,6 +6,7 @@ using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.Run;
 using Augram.Core.Steps.WindowOp;
 using Augram.Import.StrokesPlus;
 using Xunit;
@@ -202,9 +203,7 @@ public sealed class FullImportTests
 
     [Theory]
     [InlineData("Script", 1, "no scripting")]
-    [InlineData("Run", 1, "Run step")]
     [InlineData("MouseClick", 1, "mouse clicks")]
-    [InlineData("SendKeys", 1, "typed text")]
     [InlineData("ConsumePhysicalInput", 1, "hold-modifier")]
     [InlineData("SetWindowSize", 1, "no Augram equivalent yet")]
     public void PlaceholdersAreReportedOncePerMethod(string method, int count, string fragment)
@@ -213,8 +212,17 @@ public sealed class FullImportTests
     [Theory]
     [InlineData("SendHotKey")]
     [InlineData("SendVKey")]
-    public void HotkeysAndVirtualKeysAreRealStepsNotPlaceholders(string method)
+    [InlineData("SendKeys")]
+    [InlineData("Run")]
+    public void MappedMethodsAreRealStepsNotPlaceholders(string method)
         => Assert.DoesNotContain(Result.Warnings, warning => warning.Severity == ImportSeverity.Info && warning.Item == method);
+
+    [Fact]
+    public void SendKeysBecomesItsStepsAndRunARunStep()
+    {
+        Assert.Equal(new HotkeyStep(KeyModifiers.Control, KeyCode.T), Assert.Single(Command("Synthetic Browser", "Synthetic Typed").Steps).Step);
+        Assert.Equal(new RunStep("explorer"), Assert.Single(Command("Global", "Synthetic Explorer").Steps).Step);
+    }
 
     private static void AssertPlaceholderReport(string method, int count, string fragment)
     {
@@ -295,7 +303,7 @@ public sealed class FullImportTests
         Assert.Equal(new SourceStats(11, 11, 27, 4, 28, 2), Result.Stats);
         Assert.Equal(4, Result.AppGroupCount);
         Assert.Equal(27, Result.CommandCount);
-        Assert.Equal(8, Result.PlaceholderStepCount); // the two SendHotKey steps and the Browser Back SendVKey are real Hotkey steps now
+        Assert.Equal(6, Result.PlaceholderStepCount); // SendHotKey, the Browser Back SendVKey, SendKeys and Run are real steps now
         Assert.Equal(2, Result.IgnoredAppCount);
     }
 
