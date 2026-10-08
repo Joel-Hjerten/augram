@@ -8,6 +8,8 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Win32.SystemEvents" Version="10.0.3" />
+    <!-- Installer and updater (docs/release.md). Keep in step with the vpk tool in .config/dotnet-tools.json. -->
+    <PackageVersion Include="Velopack" Version="1.2.161" />
   </ItemGroup>
   <ItemGroup Label="Tools">
     <!-- tools/IconTool: the same SkiaSharp Avalonia 11.3 brings in, so nothing new is downloaded. -->
