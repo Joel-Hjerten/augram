@@ -8,8 +8,9 @@ namespace Augram.App.Components.Fields.Color;
 /// <summary>
 /// Lookless RGB editor: three channels in, a <see cref="Swatch"/> out. The template supplies
 /// <c>PART_Red</c>, <c>PART_Green</c> and <c>PART_Blue</c> (<see cref="NumericUpDown"/>) and may bind
-/// <see cref="Swatch"/> to a preview surface. A <c>PART_Swatch</c> button opens Avalonia's colour picker (spectrum, sliders,
-/// hex; no alpha, opacity is a setting of its own) in a flyout (Joel, 2026-10-08). <see cref="ColorChanged"/> fires once
+/// <see cref="Swatch"/> to a preview surface. A <c>PART_Picker</c> (<see cref="ColorView"/>; the Wireframe theme uses
+/// Avalonia's <see cref="ColorPicker"/>, a swatch button whose flyout is laid out by its own theme) picks the colour
+/// with a spectrum, sliders and hex; no alpha, opacity is a setting of its own (Joel, 2026-10-08). <see cref="ColorChanged"/> fires once
 /// per colour change: <see cref="SetRgb"/> moves all three channels as one, so setting a colour from outside or dragging in
 /// the picker never reports a half-updated colour (setting the channels one by one wrote red-with-the-old-green-and-blue
 /// to the settings before the real colour).
@@ -58,7 +59,7 @@ public sealed class ColorEditor : TemplatedControl
         private set => SetValue(SwatchProperty, value);
     }
 
-    /// <summary>The picker behind the swatch, once the template is applied; null without a <c>PART_Swatch</c> button.</summary>
+    /// <summary>The template's picker, once applied; null in a template without <c>PART_Picker</c>.</summary>
     public ColorView? Picker => _picker;
 
     /// <summary>Sets all three channels as one change: <see cref="ColorChanged"/> fires once, and not at all when nothing changed.</summary>
@@ -90,7 +91,7 @@ public sealed class ColorEditor : TemplatedControl
         _red = Wire(e, "PART_Red", () => Red, value => Red = value);
         _green = Wire(e, "PART_Green", () => Green, value => Green = value);
         _blue = Wire(e, "PART_Blue", () => Blue, value => Blue = value);
-        _picker = AttachPicker(e.NameScope.Find<Button>("PART_Swatch"));
+        _picker = WirePicker(e.NameScope.Find<ColorView>("PART_Picker"));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -118,24 +119,15 @@ public sealed class ColorEditor : TemplatedControl
 
     private Avalonia.Media.Color CurrentColor => Avalonia.Media.Color.FromRgb((byte)Red, (byte)Green, (byte)Blue);
 
-    /// <summary>The flyout with the picker, made here rather than in the template so it works with any theme's swatch button.</summary>
-    private ColorView? AttachPicker(Button? swatch)
+    private ColorView? WirePicker(ColorView? picker)
     {
-        if (swatch is null)
+        if (picker is null)
         {
             return null;
         }
 
-        var picker = new ColorView
-        {
-            Color = CurrentColor,
-            IsAlphaEnabled = false,
-            IsAlphaVisible = false,
-            IsColorPaletteVisible = false,
-            Width = 300,
-        };
+        picker.Color = CurrentColor;
         picker.ColorChanged += (_, args) => SetRgb(args.NewColor.R, args.NewColor.G, args.NewColor.B);
-        swatch.Flyout = new Flyout { Content = picker, Placement = PlacementMode.Bottom };
         return picker;
     }
 

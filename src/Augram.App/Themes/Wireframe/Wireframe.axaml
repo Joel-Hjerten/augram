@@ -149,13 +149,12 @@
         <Setter Property="Template">
           <ControlTemplate>
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
-              <!-- Click the swatch: the colour picker (ColorEditor attaches it to PART_Swatch). -->
-              <Button Name="PART_Swatch"
-                      Width="24" Height="24" Padding="0" MinWidth="0" MinHeight="0"
-                      BorderBrush="{StaticResource Brush.Border}"
-                      BorderThickness="{StaticResource Border.Hairline}"
-                      Background="{TemplateBinding Swatch}"
-                      ToolTip.Tip="Pick a colour" />
+              <!-- The swatch is Avalonia's ColorPicker: click it for the picker, laid out by its own theme (ColorEditor wires PART_Picker). -->
+              <ColorPicker Name="PART_Picker"
+                           IsAlphaEnabled="False"
+                           IsAlphaVisible="False"
+                           IsColorPaletteVisible="False"
+                           ToolTip.Tip="Pick a colour" />
               <TextBlock Classes="help" Text="R" VerticalAlignment="Center" />
               <NumericUpDown Name="PART_Red" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
               <TextBlock Classes="help" Text="G" VerticalAlignment="Center" />

@@ -97,17 +97,16 @@ public sealed class SectionFormTests
     }
 
     [AvaloniaFact]
-    public void TheSwatchOpensAPicker_WhoseColourIsWrittenAsOneChange()
+    public void TheSwatchIsAPicker_WhoseColourIsWrittenAsOneChange()
     {
         var vm = new FakeOptions();
         var (form, _) = Show(vm);
         var editor = (ColorEditor)form.GetVisualDescendants().OfType<FieldRow>().ToList()[5].Editor!;
-        var swatch = editor.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PART_Swatch");
+        var picker = editor.GetVisualDescendants().OfType<ColorPicker>().Single(found => found.Name == "PART_Picker");
         var changes = 0;
         vm.PropertyChanged += (_, e) => changes += e.PropertyName == nameof(FakeOptions.Colour) ? 1 : 0;
 
-        Assert.IsType<Flyout>(swatch.Flyout);
-        Assert.Same(editor.Picker, ((Flyout)swatch.Flyout!).Content);
+        Assert.Same(picker, editor.Picker);
         Assert.Equal(Avalonia.Media.Color.FromRgb(0, 255, 64), editor.Picker!.Color);
         Assert.False(editor.Picker.IsAlphaEnabled);
 
