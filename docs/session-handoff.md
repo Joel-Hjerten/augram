@@ -9,7 +9,7 @@ You are picking up a project whose first runnable milestone is built and accepte
 - **Single-instance fix on macOS:** the pipe dropped the request after a Hello (domain-socket queue closed with the last server stream); macOS CI had been red since 046c0ea. App README "Tray, version and channel, single instance".
 - **Dock (Joel):** Dock icon only while the window is open; close or minimize hides to the menu bar (`MacDockPresence`, `MacDock`); Windows unchanged. Tried by Joel on the dev build.
 - **Icons:** Joel's gold art and a hand-drawn menu-bar master (`design/app-icon/exports/app-icon-mac-tray.png`); **Options › General › Colour menu-bar icon** (macOS only, per machine, as in Eyeris) switches the template for the colour icon.
-- **Planned (Joel):** gesture shape cleanup, plan 0001 M2 step 10 (keep the original, restorable, opt-in).
+- **Planned (Joel):** gesture shape cleanup, plan 0001 M2 step 10 (keep the original, restorable; on by default with a Clean up shape checkbox in the draw area).
 - Not yet confirmed by Joel: the colour menu-bar switch in the running app; the installed `.pkg` (Accessibility grant for the signed bundle).
 
 **PC session, 2026-10-08:**
@@ -130,4 +130,3 @@ Decided design: requirements F8 "Cross-platform commands — DECIDED" and "Use o
 - **D6** maximize = fill the visible frame and restore (working choice; Joel has used it without objecting).
 - Gestures tab Undo/Redo buttons: keep or drop like the Commands lists? Keyboard undo on the Commands lists: kept; Joel may want it gone.
 - Next Mac slices offered: Center / snap halves / set size, start at login for the installed bundle.
-- Shape cleanup: on by default ever, or opt-in for good? (opt-in until the replay measurement, requirements F3)
