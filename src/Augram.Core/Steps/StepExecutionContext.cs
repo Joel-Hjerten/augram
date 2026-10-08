@@ -19,4 +19,7 @@ public sealed record StepExecutionContext(
 {
     /// <summary>True when the executor had to bring <see cref="Target"/> to the foreground; the settle delay (A8) applies before the first keystroke.</summary>
     public bool FocusMoved { get; init; }
+
+    /// <summary>What a Run step starts programs through; the null object declines every launch.</summary>
+    public IProcessLauncher Processes { get; init; } = NullProcessLauncher.Instance;
 }

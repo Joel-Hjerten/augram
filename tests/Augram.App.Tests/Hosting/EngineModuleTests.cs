@@ -9,6 +9,7 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Engine.Hosting;
+using Augram.Platform.Windows.Launch;
 using Augram.Platform.Windows.WindowSystem;
 using Avalonia.Headless.XUnit;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,6 +45,7 @@ public sealed class EngineModuleTests
                 Assert.IsType<NullStartupRegistration>(provider.GetRequiredService<IStartupRegistration>());
                 Assert.Same(NullWindowSystem.Instance, provider.GetRequiredService<IWindowSystem>());
                 Assert.Same(NullWindowOperations.Instance, provider.GetRequiredService<IWindowOperations>());
+                Assert.Same(NullProcessLauncher.Instance, provider.GetRequiredService<IProcessLauncher>());
                 Assert.NotNull(provider.GetRequiredService<StrokeButtonDetection>());
                 Assert.True(log.Has(EngineModule.ConfigLogSource, "Configuration loaded"));
 
@@ -97,6 +99,7 @@ public sealed class EngineModuleTests
 
             Assert.Same(NullWindowSystem.Instance, ports.Windows);
             Assert.Same(NullWindowOperations.Instance, ports.WindowOperations);
+            Assert.Same(provider.GetRequiredService<IProcessLauncher>(), ports.ProcessLauncher);
             Assert.Same(mapping.Current, ports.Mapping!());
             mapping.AddCommand(GroupId.Global, MappingFixture.Unbound("Minimize"));
             Assert.Same(mapping.Current, ports.Mapping());
@@ -153,6 +156,7 @@ public sealed class EngineModuleTests
             using var provider = services.BuildServiceProvider();
             Assert.IsType<Win32WindowSystem>(provider.GetRequiredService<IWindowSystem>());
             Assert.IsType<Win32WindowOperations>(provider.GetRequiredService<IWindowOperations>());
+            Assert.IsType<Win32ProcessLauncher>(provider.GetRequiredService<IProcessLauncher>());
         }
         finally
         {

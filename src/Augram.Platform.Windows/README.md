@@ -1,10 +1,10 @@
 # Augram.Platform.Windows
 
-Windows implementations of the Core ports that need the OS: `IWindowSystem` (M1 step 5), `ICursorProbe`, `ISystemEvents`, `IStartupRegistration` and `IOverlayWindowStyle` (M1 final wiring), `IWindowOperations` (M2), later `IProcessLauncher` where Engine cannot, and the layered-window overlay fallback if the Avalonia overlay fails the B2 decision.
+Windows implementations of the Core ports that need the OS: `IWindowSystem` (M1 step 5), `ICursorProbe`, `ISystemEvents`, `IStartupRegistration` and `IOverlayWindowStyle` (M1 final wiring), `IWindowOperations` and `IProcessLauncher` (M2), and later the layered-window overlay fallback if the Avalonia overlay fails the B2 decision.
 
 **May reference:** `Augram.Core` and the `Microsoft.Win32.SystemEvents` package (session, power and display notifications; `Microsoft.Win32.Registry` is in the shared framework). Win32 goes through `P/Invoke` in `Interop/NativeMethods.cs` and nowhere else; types that touch it carry `[SupportedOSPlatform("windows")]`. The assembly has `[DisableRuntimeMarshalling]` so `LibraryImport` generates direct calls (blittable structs and `Span<char>` buffers only).
 
-**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem`, `Win32WindowOperations` as `IWindowOperations` and the adapters below through `EngineModule`.
+**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem`, `Win32WindowOperations` as `IWindowOperations`, `Win32ProcessLauncher` as `IProcessLauncher` and the adapters below through `EngineModule`.
 
 ## Layout
 
@@ -13,6 +13,7 @@ Windows implementations of the Core ports that need the OS: `IWindowSystem` (M1 
 | `Interop/` | `NativeMethods` (the P/Invoke surface, no logic) and `Win32Windows` (the real `IWin32Windows` + `IWin32Foreground` + `IWin32WindowControl`, thin wrappers) |
 | `WindowSystem/` | `Win32WindowSystem` (public adapter) and everything it is made of: `WindowIdentityReader`, `ForegroundActivator`, and the pure rules `ActivationPolicy`, `DesktopRule`, `FullScreenRule`, `UwpHostRule`; `Win32WindowOperations` (public adapter for `IWindowOperations`) with the pure `WindowGeometry` |
 | `Input/` | `Win32CursorProbe` (`GetCursorPos`, physical pixels, for the hook watchdog) and `Win32SystemEvents` (`SystemEvents.SessionSwitch` / `PowerModeChanged` / `DisplaySettingsChanged` / `SessionEnding` mapped to `SystemEventKind`; the static `Map` functions are the tested part) |
+| `Launch/` | `Win32ProcessLauncher` (public adapter for `IProcessLauncher`, the Run step) with the pure `ShellStartInfo` (what ShellExecuteEx is asked for) and `ShellExecuteErrors` (Win32 error → one log line); see "Process launcher" below |
 | `Startup/` | `RunKeyStartupRegistration`: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `Augram` = the quoted executable path; `IsEnabled` is "the value exists", `Set(true)` always rewrites the command so toggling repairs a moved exe. Per-user, no elevation |
 | `Overlay/` | `OverlayWindowStyle`: ORs `WS_EX_LAYERED` + `WS_EX_TRANSPARENT` (the documented click-through pair for a top-level window; alpha set opaque), `WS_EX_NOACTIVATE` and `WS_EX_TOOLWINDOW` into the overlay window, re-asserts topmost without activating, and returns an `OverlayStyleReport` read back from `GWL_EXSTYLE`. Avalonia rewrites the style on every `Show()` (learnings 0001 B2), so the App applies before and after showing and hides the window unless the report says click-through |
 
@@ -70,6 +71,16 @@ The `IWindowOperations` adapter for the F5 window actions (SP.net reference §5 
 **Failures.** Nothing throws. `PostMessage` and `SetWindowPos` failures become `Failed("<call> failed (<Win32 error>)")`, for example `SetWindowPos failed (5)`; `ShowWindow` reports no error (its return value is "was previously visible"), so `Minimize` and `MaximizeOrRestore` succeed once the call is made. A window of a higher-integrity (elevated) process refuses `PostMessage` with error 5 (UIPI) and may refuse `SetWindowPos` too; the reason says which call.
 
 `WindowGeometry` is pure (over `ScreenRect`) and holds all the arithmetic. A window larger than the work area cannot fit; it keeps its top-left inside the work area and overhangs the far edge, so the title bar stays reachable.
+
+## Process launcher (`Win32ProcessLauncher`)
+
+The `IProcessLauncher` adapter for the Run step (table of both platforms in `Core/Steps/Run/README.md`). Always `Process.Start` with `UseShellExecute = true` (ShellExecuteEx), so a bare name on the PATH or in App Paths (`explorer`, `mspaint.exe`), a document, a folder and a URI (`ms-settings:display`) work as from Win+R. `ShellStartInfo` expands `%VAR%` in the file and the Start in folder (never in a URI, never in the arguments), uses the user's profile folder when Start in is empty, sets `Verb = "runas"` when elevated and `WindowStyle = Hidden` when hidden, and turns the shell's error dialog off.
+
+**Bounded wait.** ShellExecuteEx blocks for as long as a UAC prompt is open (or a network path takes to answer), so each start runs on its own background STA thread (`augram-process-start`; STA so .NET does not spin up yet another thread for the shell call) and the executor waits at most 2 s. An answer in time is the result; no answer yet is `Started` with the note "still starting after 2 s …", and the thread logs the late outcome (`steps` / `Run started late` at Info, or `Run did not start` at Warning with outcome and reason). The program itself is never waited for; the returned `Process` (null when a running app took the request, a link in an open browser) is disposed at once.
+
+**Answers.** Win32 error 1223 (ERROR_CANCELLED, the declined UAC prompt) → `Cancelled` "the administrator prompt was declined", which the step turns into Skipped, not Failed. Every other Win32 error → `Failed` naming the file and the code: 2 "was not found", 3 "the path … was not found", 5 "access denied", 267 "the Start in folder is not valid", 1155 "no app is associated with it", anything else the system message. Any other exception from the start thread is caught (an escape would end the process) and becomes `Failed`. No reason ever contains the arguments.
+
+Tests drive `Win32ProcessLauncher` through its internal constructor with a fake start delegate, so no test starts a process.
 
 ## System events thread
 

@@ -10,10 +10,10 @@ A **step** is one executable unit of a command (F5a: app group › command › s
 | `IStepType` | what the rest of Augram knows about a kind of step: `Key` (stable, written to the config, never renamed), `DisplayName` and `Category` (the picker), `IsPlatformNeutral` (F8: no conversion or override needed), `Convert(step, from, to)` (F8: the step on the other platform, a `StepConversion`: unchanged, converted, or none with the reason), `CreateDefault()`, `Read(JsonObject)` / `Write(IStep)` (the parameters only), `Execute(IStep, StepExecutionContext)` |
 | `StepCategory` | `System`, `Keyboard`, `Text`, `Run`, `Timing`, and `Other` (never offered by the picker; placeholders only) |
 | `StepRegistry` | `BuiltIn`: the static registration list, one line per type; `All`, `Find(key)` (null when unknown), `Require(key)` (`StepFormatException` when unknown); duplicate keys are refused at construction |
-| `StepExecutionContext` | what a step may touch while running: `Target` (window under the gesture start, already activated per A20, null when nothing was there), `Start`, `Windows` (`IWindowOperations`), `Input` (`IInputSimulator`), `Log`, `Cancellation`, `FocusMoved` |
+| `StepExecutionContext` | what a step may touch while running: `Target` (window under the gesture start, already activated per A20, null when nothing was there), `Start`, `Windows` (`IWindowOperations`), `Input` (`IInputSimulator`), `Log`, `Cancellation`, `FocusMoved`, `Processes` (`IProcessLauncher`, init-only, the null object by default) |
 | `StepResult` / `StepOutcome` | `Done`, `Skipped(reason)`, `Failed(reason)` |
 | `StepFormatException` | a stored parameter cannot be read; the message names the member and is fit for the config notice |
-| `StepParameters` | the shared reader every `Read` uses: `ReadEnum`, `ReadInt32(min, max)`, `ReadString` return null when the member is absent and throw a `StepFormatException` naming the member otherwise; `Required(name, when)`; `Expect<TStep>` for `Write`/`Execute` handed a foreign step |
+| `StepParameters` | the shared reader every `Read` uses: `ReadEnum`, `ReadInt32(min, max)`, `ReadString`, `ReadBoolean` return null when the member is absent and throw a `StepFormatException` naming the member otherwise; `Required(name, when)`; `Expect<TStep>` for `Write`/`Execute` handed a foreign step |
 
 ## Shipped types
 
@@ -25,10 +25,11 @@ Picker order within a category is `BuiltIn` order.
 | `mediaKey` | `MediaKey/` | Media key | System | yes | "Volume up", "Mute", "Play/pause", "Next track" |
 | `hotkey` | `Hotkey/` | Hotkey | Keyboard | no (F8: Ctrl ↔ Cmd, Alt ↔ Option, exception table) | "Ctrl+Shift+T", "Alt+F4", "Esc", "Hotkey (no key set)" |
 | `typeText` | `TypeText/` | Type text | Text | yes | `Type "fov 67.5⏎"`, `Type "hello" (by keys)`, "Type text (no text set)" |
+| `run` | `Run/` | Run | Run | no (F8: only http/https/mailto/ftp links carry over; a program or path needs its own version) | "Run explorer", "Run taskkill.exe /f /im yuzu.exe (as admin, hidden)", "Open ms-settings:display", "Run (no program set)" |
 | `delay` | `Delay/` | Delay | Timing | yes | "Wait 30 ms" |
 | `imported` | `Imported/` | Imported (not supported yet) | Other | yes (nothing to convert) | "SendAltDown (not supported yet)" |
 
-Still to land in M2 (plan 0001 step 2): `Run` (Run, platform-bound: paths), later `MouseClick`.
+Still to land in M2 (plan 0001 step 2): later `MouseClick`.
 
 ## Adding a type (the recipe)
 
@@ -51,7 +52,7 @@ These belong to the Engine's command executor (M2 step 3); every step is written
 - The **settle delay (A8)** is the executor's: applied once, before the first Keyboard or Text step, only when `FocusMoved` is true because activation per A20 changed the foreground window. Window operations, media keys and delays never wait for it, and no step applies it itself.
 - The **target** (`StepExecutionContext.Target`) is resolved and activated once per command before the first step; a step never looks windows up.
 - **Cancellation** (`StepExecutionContext.Cancellation`) is cooperative: a blocking step must wake on it and report `Skipped("cancelled")`; the executor then stops the chain.
-- Only the executor thread calls `IInputSimulator` and `IWindowOperations` (A19: never the hook thread).
+- Only the executor thread calls `IInputSimulator`, `IWindowOperations` and `IProcessLauncher` (A19: never the hook thread).
 
 ## Where the JSON goes
 

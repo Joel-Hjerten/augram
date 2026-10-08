@@ -6,4 +6,6 @@ xunit tests for `Augram.Platform.MacOS`. The adapter is split like the Windows o
 AUGRAM_MAC_LIVE=1 dotnet test tests/Augram.Platform.MacOS.Tests
 ```
 
+`Launch/` tests the process launcher the same way on every OS: `MacStartInfo` (what would be started for a link, an executable, an app, a document) and `MacProcessLauncher` over a fake runner. No test starts a process, and there is no live launcher test.
+
 **May reference:** `Augram.Platform.MacOS` (internals via `InternalsVisibleTo`), `Augram.Core`, xunit.
