@@ -51,7 +51,7 @@ public sealed class SyncCategoryUseOnTests : TwoMachineTest
     }
 
     [Fact]
-    public void AFileThisBuildWritesIsFormatThree_ABuildThatReadsUpToFormatTwoPausesOnIt()
+    public void AFileThisBuildWritesIsAtLeastFormatThree_ABuildThatReadsUpToFormatTwoPausesOnIt()
     {
         var work = Machine("PC-WORK", SyncSamples.Setup());
         var global = work.Mapping.Global;
@@ -61,12 +61,12 @@ public sealed class SyncCategoryUseOnTests : TwoMachineTest
 
         var header = SyncFileSerializer.ReadHeader(file)!;
 
-        Assert.Equal(3, SyncFile.CurrentFormatVersion);
-        Assert.Contains("\"formatVersion\": 3", file, StringComparison.Ordinal);
+        Assert.True(SyncFile.CurrentFormatVersion >= 3);
+        Assert.Contains($"\"formatVersion\": {SyncFile.CurrentFormatVersion}", file, StringComparison.Ordinal);
         Assert.Contains("\"useOn\": [", file, StringComparison.Ordinal);
-        Assert.Equal(3, header.FormatVersion);
+        Assert.Equal(SyncFile.CurrentFormatVersion, header.FormatVersion);
         Assert.False(header.IsNewer);
         Assert.True(header.IsNewerThan(ConfigDocument.CurrentSchemaVersion, formatVersion: 2));
-        Assert.False(header.IsNewerThan(ConfigDocument.CurrentSchemaVersion, formatVersion: 3));
+        Assert.False(header.IsNewerThan(ConfigDocument.CurrentSchemaVersion, SyncFile.CurrentFormatVersion));
     }
 }
