@@ -71,7 +71,9 @@ The same identity and notary profile as Eyeris, so on a Mac that already signs E
 **Joel's Mac (2026-10-08):** `Developer ID Application: Joel Hjertén (MN7V4KZF8M)` is listed as valid; the notary profile is
 Eyeris' `eyeris-notary` (a profile belongs to the team, not to an app; `xcrun notarytool history --keychain-profile
 eyeris-notary` lists past submissions when it works); no Developer ID Installer certificate yet, so no `.pkg`; `gh` is not
-installed. An unsigned trial (`node scripts/package.mjs mac`) builds there: `Augram.app` 136 MB, the zip 51 MB.
+installed. The first signed and notarized build (0.2.0, from Joel's terminal) passed: Apple accepted it in under a minute,
+the ticket is stapled, `spctl` says "Notarized Developer ID"; `Augram.app` 136 MB, the zip 52 MB. Signing and notarizing
+add about a minute to the run. Expect a keychain prompt for codesign on the first signed run ("Always Allow").
 
 1. **Developer ID Application certificate** in the login keychain. `security find-identity -v -p codesigning` must list
    it as valid. **If the certificate is installed but the list shows 0 valid identities**, the Developer ID **G2**
