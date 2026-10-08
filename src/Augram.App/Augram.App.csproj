@@ -20,6 +20,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Augram.App.Tests" />
   </ItemGroup>
+  <!-- The build channel (Directory.Build.props, AugramChannel) as [AssemblyMetadata("AugramChannel", …)]; Hosting/AppInfo reads it. -->
+  <ItemGroup>
+    <AssemblyMetadata Include="AugramChannel" Value="$(AugramChannel)" />
+  </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
   </ItemGroup>

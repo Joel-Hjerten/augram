@@ -17,10 +17,14 @@ internal static class CompositionRoot
 {
     public static readonly TimeSpan HealthRefreshInterval = TimeSpan.FromSeconds(1);
 
-    /// <param name="guard">The process's single-instance guard; null in tests.</param>
+    /// <param name="app">This build (version, commit, channel); <see cref="AppInfo.Current"/> when null.</param>
     /// <param name="logsFolder">Overrides <see cref="AppPaths.LogsFolder"/>; tests point it at a temp folder.</param>
     /// <param name="configFolder">Overrides <see cref="AppPaths.ConfigFolder"/>; tests point it at a temp folder so they never touch the real config.</param>
-    public static ServiceProvider Build(SingleInstanceGuard? guard = null, string? logsFolder = null, string? configFolder = null)
+    /// <remarks>
+    /// Building creates nothing: services come to life when first resolved. A launch that must first settle with another
+    /// running Augram (<see cref="InstanceStartup"/>) resolves only <see cref="ITakeOverPresenter"/> until it may start.
+    /// </remarks>
+    public static ServiceProvider Build(AppInfo? app = null, string? logsFolder = null, string? configFolder = null)
     {
         var logs = logsFolder ?? AppPaths.LogsFolder;
         var services = new ServiceCollection();
@@ -34,13 +38,11 @@ internal static class CompositionRoot
         services.AddSingleton<RecognitionLog>();
         services.AddSingleton<AppHealthContributor>();
 
-        // App-level state and host services.
+        // App-level state and host services. The single-instance guard is not a service: Program owns it through InstanceStartup.
+        services.AddSingleton(app ?? AppInfo.Current);
         services.AddSingleton<AppState>();
         services.AddSingleton<IClipboardText, AppClipboard>();
-        if (guard is not null)
-        {
-            services.AddSingleton(guard);
-        }
+        services.AddSingleton<ITakeOverPresenter, TakeOverPresenter>();
 
         // Engine slice: config session and stores, Platform adapters, overlay, EngineHost (started in App.StartDesktop).
         EngineModule.Register(services, new EngineModuleOptions { ConfigFolder = configFolder });

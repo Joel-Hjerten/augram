@@ -166,6 +166,7 @@ public sealed class EngineModuleTests
         services.AddSingleton<IEventLog>(log);
         services.AddSingleton<HealthRegistry>();
         services.AddSingleton<RecognitionLog>();
+        services.AddSingleton(TestBuilds.Release);
         services.AddSingleton<AppState>();
         return services;
     }

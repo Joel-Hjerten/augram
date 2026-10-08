@@ -10,8 +10,9 @@ namespace Augram.App.Tray;
 
 /// <summary>
 /// The tray presence (F7): single click toggles <see cref="AppState.Enabled"/> (the persisted setting the engine follows), double click opens the
-/// window, the menu has Open · Enabled · Start at login · Sync now (only while a sync repository is set, F8) · Quit,
-/// and the tooltip ends with the last sync ("synced 14:32"). Single versus double is decided by
+/// window, the menu has Open · Enabled · Start at login (disabled in a development build, <see cref="AppState.CanChangeStartAtLogin"/>)
+/// · Sync now (only while a sync repository is set, F8) · Quit, and the tooltip starts with the build's name and ends with the
+/// last sync ("Augram (Dev) (enabled) · synced 14:32", <see cref="ToolTipFor"/>). Single versus double is decided by
 /// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click
 /// takes effect only after the double-click window (250 ms) has passed; Avalonia offers no better signal.
 /// </summary>
@@ -44,7 +45,7 @@ public sealed class AppTray : IDisposable
 
         _enabledItem = new NativeMenuItem("Enabled") { ToggleType = NativeMenuItemToggleType.CheckBox };
         _enabledItem.Click += (_, _) => _state.Toggle();
-        _startAtLoginItem = new NativeMenuItem("Start at login") { ToggleType = NativeMenuItemToggleType.CheckBox };
+        _startAtLoginItem = new NativeMenuItem("Start at login") { ToggleType = NativeMenuItemToggleType.CheckBox, IsEnabled = _state.CanChangeStartAtLogin };
         _startAtLoginItem.Click += (_, _) => _state.StartAtLogin = !_state.StartAtLogin;
         var openItem = new NativeMenuItem("Open");
         openItem.Click += (_, _) => _open();
@@ -121,9 +122,16 @@ public sealed class AppTray : IDisposable
     private void Sync()
     {
         _icon.Icon = _state.Enabled ? _icons.Enabled : _icons.Disabled;
-        var tip = _state.Enabled ? "Augram (enabled)" : "Augram (disabled)";
-        _icon.ToolTipText = _sync?.ShortStatus is { } sync ? $"{tip} · {sync}" : tip;
+        _icon.ToolTipText = ToolTipFor(_state.App, _state.Enabled, _sync?.ShortStatus);
         _enabledItem.IsChecked = _state.Enabled;
         _startAtLoginItem.IsChecked = _state.StartAtLogin;
+    }
+
+    /// <summary>"Augram (enabled)", "Augram (Dev) (disabled) · synced 14:32": the build's name, the state, the last sync when there is one.</summary>
+    public static string ToolTipFor(AppInfo app, bool enabled, string? syncStatus)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        var tip = $"{app.DisplayName} ({(enabled ? "enabled" : "disabled")})";
+        return syncStatus is { Length: > 0 } sync ? $"{tip} · {sync}" : tip;
     }
 }

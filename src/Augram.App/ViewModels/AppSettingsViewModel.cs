@@ -11,7 +11,7 @@ namespace Augram.App.ViewModels;
 /// What the Options page binds to: a projection over <see cref="SettingsStore"/> (ADR-0002 §5a). Every
 /// getter reads <c>Current</c>; every setter is one store change, saved at once (A3: live save, no
 /// undo UI since 2026-10-07); every store change refreshes all bindings at once (an empty property name). Start at login
-/// goes through <see cref="AppState"/>, which also keeps the OS registration in step, and detect-to-assign
+/// goes through <see cref="AppState"/>, which also keeps the OS registration in step (installed build only), and detect-to-assign
 /// through <see cref="StrokeButtonDetection"/>. A rejected value (out of range) leaves the store untouched
 /// and is reported in <see cref="LastError"/>.
 /// </summary>
@@ -54,6 +54,12 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
         get => _state.StartAtLogin;
         set => _state.StartAtLogin = value;
     }
+
+    /// <summary>False in a development build: Options shows the toggle disabled, with why (<see cref="AppState.CanChangeStartAtLogin"/>).</summary>
+    public bool CanChangeStartAtLogin => _state.CanChangeStartAtLogin;
+
+    /// <summary>This build, for Options › About.</summary>
+    public AppInfo App => _state.App;
 
     /// <summary>Read-only for now: change it with <c>--config-folder &lt;path&gt;</c> (A17).</summary>
     public string ConfigFolder { get; }

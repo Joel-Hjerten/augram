@@ -12,14 +12,31 @@ namespace Augram.App.Screens;
 /// <summary>The Options tab (F6, F7, A10, F8 sync) as a section/field tree. Moving a field is moving a line here.</summary>
 public static class OptionsScreen
 {
+    public const string StartAtLoginHelp = "Also in the tray menu.";
+    public const string StartAtLoginDevHelp = "Start at login applies to the installed Augram; this is a development build.";
+    public const string AboutTitle = "About";
+
     /// <param name="vm">The settings projection.</param>
     /// <param name="sync">Options › Sync (<see cref="OptionsSyncSection"/>); null leaves the section out (tests, a root without <c>SyncModule</c>).</param>
     public static ScreenDeclaration Declare(AppSettingsViewModel vm, SyncViewModel? sync = null)
     {
         ArgumentNullException.ThrowIfNull(vm);
         var sections = Sections(vm);
-        return new FormScreen("Options", sync is null ? sections : [.. sections, OptionsSyncSection.Declare(sync)]);
+        return new FormScreen("Options", sync is null ? [.. sections, About(vm)] : [.. sections, OptionsSyncSection.Declare(sync), About(vm)]);
     }
+
+    /// <summary>Which build this is, read-only: version, commit and channel (<see cref="Hosting.AppInfo"/>).</summary>
+    private static Section About(AppSettingsViewModel vm) => new(AboutTitle,
+    [
+        new NoteField("Version", vm.App.Version),
+        new NoteField("Commit", vm.App.Commit ?? "unknown"),
+        new NoteField("Channel", vm.App.ChannelText),
+    ]);
+
+    /// <summary>Two-way in the installed build; read-only (the renderer disables it) with the reason in a development build.</summary>
+    private static ToggleField StartAtLogin(AppSettingsViewModel vm) => vm.CanChangeStartAtLogin
+        ? new ToggleField("Start at login", new DelegateBinding<bool>(() => vm.StartAtLogin, v => vm.StartAtLogin = v, vm), StartAtLoginHelp)
+        : new ToggleField("Start at login", new DelegateBinding<bool>(() => vm.StartAtLogin, owner: vm), StartAtLoginDevHelp);
 
     private static IReadOnlyList<Section> Sections(AppSettingsViewModel vm)
     {
@@ -35,9 +52,7 @@ public static class OptionsScreen
                 new DropdownField<IgnoreKeys>("Ignore key", Choice.FromEnum<IgnoreKeys>(),
                     new DelegateBinding<IgnoreKeys>(() => vm.IgnoreKey, v => vm.IgnoreKey = v, vm),
                     "Hold this key to use the stroke button normally."),
-                new ToggleField("Start at login",
-                    new DelegateBinding<bool>(() => vm.StartAtLogin, v => vm.StartAtLogin = v, vm),
-                    "Also in the tray menu."),
+                StartAtLogin(vm),
                 new TextField("Config folder",
                     new DelegateBinding<string>(() => vm.ConfigFolder, owner: vm),
                     "Settings, gestures and logs live here; change it via the --config-folder <path> argument."),
