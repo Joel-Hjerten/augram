@@ -85,4 +85,35 @@ public sealed class GlyphGeometryTests
         Assert.NotNull(GlyphGeometry.Build([new GesturePoint(3, 3)], Tile, Padding, 8));
         Assert.NotNull(GlyphGeometry.BuildRaw([], 8));
     }
+
+    [Fact]
+    public void ProgressRunsByArcLengthFromZeroToOne()
+    {
+        // The second point is a third of the way along by length, not halfway by index.
+        Assert.Equal([0, 1.0 / 3, 1], GlyphGeometry.Progress([new Point(0, 0), new Point(1, 0), new Point(3, 0)]));
+        Assert.Equal([0.0], GlyphGeometry.Progress([new Point(5, 5)]));
+        Assert.Empty(GlyphGeometry.Progress([]));
+    }
+
+    [Fact]
+    public void StrokePointsAreNormalisedWithRepeatsDropped()
+    {
+        var points = GlyphGeometry.StrokePoints([new GesturePoint(0, 0), new GesturePoint(0, 0), new GesturePoint(10, 0)], Tile, Padding);
+
+        Assert.Equal(2, points.Length);
+        Assert.Equal(Padding.Left, points[0].X, 6);
+        Assert.Equal(Tile.Width - Padding.Right, points[1].X, 6);
+    }
+
+    [Fact]
+    public void TheGradientRunsFromTheStartColourToTheEndColourInSteps()
+    {
+        var start = Avalonia.Media.Color.FromRgb(0, 0, 0);
+        var end = Avalonia.Media.Color.FromRgb(150, 150, 150);
+
+        Assert.Equal(start, GlyphStroke.ShadeAt(start, end, 0));
+        Assert.Equal(end, GlyphStroke.ShadeAt(start, end, 1));
+        Assert.Equal(GlyphStroke.ShadeAt(start, end, 0.5), GlyphStroke.ShadeAt(start, end, 0.51));
+        Assert.Equal(GlyphStroke.Steps, Enumerable.Range(0, 1001).Select(i => GlyphStroke.ShadeAt(start, end, i / 1000.0)).Distinct().Count());
+    }
 }

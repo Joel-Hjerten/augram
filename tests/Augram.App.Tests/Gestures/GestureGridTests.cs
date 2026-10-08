@@ -26,6 +26,10 @@ public sealed class GestureGridTests
         var glyph = circle.GetVisualDescendants().OfType<GestureGlyph>().Single();
         Assert.False(glyph.IsActive);
         Assert.NotNull(glyph.Geometry);
+        Assert.NotNull(glyph.StrokePoints);
+        var stroke = glyph.GetVisualDescendants().OfType<GlyphStroke>().Single();
+        Assert.Same(glyph.StrokePoints, stroke.Points);
+        Assert.NotEqual(stroke.StartBrush, stroke.Stroke);
         Assert.True(tiles.Single(tile => tile.NameText == "Up").IsActive);
     }
 

@@ -67,6 +67,38 @@ public static class GlyphGeometry
         return FromPoints(points.Select(point => new Point(point.X, point.Y)).ToArray(), arrowLength);
     }
 
+    /// <summary>Normalised points with repeats dropped: what <see cref="GlyphStroke"/> draws, segment by segment.</summary>
+    public static Point[] StrokePoints(IReadOnlyList<GesturePoint> points, Size tile, Thickness padding)
+        => [.. Distinct(Normalise(points, tile, padding))];
+
+    /// <summary>
+    /// How far along the stroke each point lies, 0 at the start to 1 at the end, by arc length: the gradient's position
+    /// (Joel, 2026-10-08), so a slow, dense part of the stroke does not hog the colour range. All zeros for a single point.
+    /// </summary>
+    public static double[] Progress(IReadOnlyList<Point> points)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        var progress = new double[points.Count];
+        var total = 0.0;
+        for (var i = 1; i < points.Count; i++)
+        {
+            var dx = points[i].X - points[i - 1].X;
+            var dy = points[i].Y - points[i - 1].Y;
+            total += Math.Sqrt((dx * dx) + (dy * dy));
+            progress[i] = total;
+        }
+
+        if (total > Epsilon)
+        {
+            for (var i = 1; i < progress.Length; i++)
+            {
+                progress[i] /= total;
+            }
+        }
+
+        return progress;
+    }
+
     /// <summary>The two wing points of an arrowhead at <paramref name="tip"/>, swept back along the direction from <paramref name="from"/>.</summary>
     public static (Point Left, Point Right) ArrowWings(Point from, Point tip, double length)
     {
@@ -122,9 +154,9 @@ public static class GlyphGeometry
         return geometry;
     }
 
-    private static List<Point> Distinct(Point[] points)
+    private static List<Point> Distinct(IReadOnlyList<Point> points)
     {
-        var result = new List<Point>(points.Length);
+        var result = new List<Point>(points.Count);
         foreach (var point in points)
         {
             if (result.Count == 0 || Math.Abs(point.X - result[^1].X) > Epsilon || Math.Abs(point.Y - result[^1].Y) > Epsilon)

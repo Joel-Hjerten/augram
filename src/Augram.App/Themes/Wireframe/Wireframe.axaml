@@ -175,16 +175,18 @@
             <Border Background="{StaticResource Brush.Surface}"
                     BorderBrush="{StaticResource Brush.Border}"
                     BorderThickness="{StaticResource Border.Hairline}">
-              <Path Name="PART_Stroke"
-                    Data="{TemplateBinding Geometry}"
-                    Stroke="{StaticResource Brush.Text}"
-                    StrokeThickness="2"
-                    StrokeLineCap="Round"
-                    StrokeJoin="Round" />
+              <glyph:GlyphStroke Name="PART_Stroke"
+                                 Points="{TemplateBinding StrokePoints}"
+                                 ArrowLength="{TemplateBinding ArrowLength}"
+                                 StartBrush="{StaticResource Brush.GlyphStart}"
+                                 Stroke="{StaticResource Brush.Text}"
+                                 StrokeThickness="2" />
             </Border>
           </ControlTemplate>
         </Setter>
-        <Style Selector="^:inactive /template/ Path#PART_Stroke">
+        <!-- Start to finish, dim to bright (Joel, 2026-10-08): direction reads along the whole stroke. -->
+        <Style Selector="^:inactive /template/ glyph|GlyphStroke#PART_Stroke">
+          <Setter Property="StartBrush" Value="{StaticResource Brush.GlyphStartMuted}" />
           <Setter Property="Stroke" Value="{StaticResource Brush.TextMuted}" />
         </Style>
         <!-- A thumbnail inside a list row (Diagnostics › Recognition, the command tree): smaller, lighter arrow, tight padding. -->
