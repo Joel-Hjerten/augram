@@ -143,5 +143,7 @@ public static class StrokesPlusJson
         public const string MillisecondsParameter = "milliseconds";
         public const string VirtualKeyParameter = "virtualKey";
         public const string ScriptParameter = "script";
+        public const string SendKeysParameter = "sendKeysString";
+        public const string SendStringParameter = "characters";
     }
 }

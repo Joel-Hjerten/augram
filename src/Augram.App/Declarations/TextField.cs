@@ -12,4 +12,10 @@ public sealed record TextField(
     public override string Kind => "Text";
 
     public override IValueBinding Binding => Value;
+
+    /// <summary>
+    /// Several lines (a typed-text step): Enter adds a line break, written as LF on every platform so a value reads the
+    /// same on each; long lines wrap; the editor grows with its text up to the theme's maximum height, then scrolls.
+    /// </summary>
+    public bool Multiline { get; init; }
 }

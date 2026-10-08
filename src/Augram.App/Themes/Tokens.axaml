@@ -75,6 +75,9 @@
   <x:Double x:Key="Editor.MinWidth">180</x:Double>
   <!-- A text editor for long values (a repository address). -->
   <x:Double x:Key="Editor.WideMinWidth">420</x:Double>
+  <!-- A multi-line text editor (a typed-text step): about two lines when short, grows with its text to about eight, then scrolls. -->
+  <x:Double x:Key="Editor.MultilineMinHeight">48</x:Double>
+  <x:Double x:Key="Editor.MultilineMaxHeight">160</x:Double>
   <!-- The command tree's column on the Commands tab; the splitter beside it lets the user change it. -->
   <GridLength x:Key="Workbench.TreeWidth">380</GridLength>
   <!-- The labels of the command header (Trigger, Category), so their dropdowns line up. -->

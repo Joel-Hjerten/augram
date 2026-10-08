@@ -1,12 +1,12 @@
-using Augram.Core.Abstractions;
-
-namespace Augram.Engine.Input;
+namespace Augram.Core.Abstractions;
 
 /// <summary>
-/// Which key, with or without Shift, produces a printable ASCII character on a US layout. Used by
-/// <see cref="IInputSimulator.TypeTextByKeys"/> for apps that read scan codes instead of Unicode
-/// input (learnings 0001, B4). Characters outside ASCII, and control characters other than
-/// newline and tab, have no key.
+/// Which key, with or without Shift, produces a printable ASCII character on a US layout. The one
+/// table behind <see cref="IInputSimulator.TypeTextByKeys"/> for apps that read scan codes instead of
+/// Unicode input (learnings 0001, B4): the Engine's simulator presses what it says, the Type text step
+/// checks a text against it before typing by keys, and the StrokesPlus.net importer uses it to turn a
+/// SendKeys character under a modifier (<c>^c</c>) into a hotkey. Characters outside ASCII, and control
+/// characters other than newline and tab, have no key.
 /// </summary>
 public static class AsciiKeyLayout
 {
@@ -61,5 +61,20 @@ public static class AsciiKeyLayout
 
         key = KeyCode.None;
         return false;
+    }
+
+    /// <summary>The index of the first character in <paramref name="text"/> with no key, or -1 when every one has a key.</summary>
+    public static int IndexOfUntypeable(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (!TryGetKey(text[i], out _, out _))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }
