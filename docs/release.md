@@ -34,6 +34,13 @@ Windows app folder is about 118 MB; the package about 55 MB.
 The file names carry the platform (vpk's channels `win` and `osx`), so both sets sit in one GitHub release without
 clashing. `package.mjs` prints what it produced with sizes, and on the Mac the exact upload command.
 
+## For now: build on each machine, publish nothing (Joel, 2026-10-08)
+
+Augram is for Joel alone for a while, so nothing is published: on the PC, `node scripts/package.mjs windows` and run the
+Setup.exe; on the Mac, the signed `node scripts/package.mjs mac` (commands under "Cutting a release", step 4, without the
+tag checkout and the upload) and install the `.pkg` or the app from the zip. No tags, no GitHub releases, no `gh`. The
+release flow below stays ready for when that changes (and auto-update needs it).
+
 ## Cutting a release
 
 1. Set `<Version>` in `Directory.Build.props` (say `0.2.0`), commit, push, and let CI go green.
