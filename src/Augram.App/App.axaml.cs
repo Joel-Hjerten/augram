@@ -99,6 +99,8 @@ public sealed class App : Application
             _services.GetRequiredService<ViewModels.MainWindowViewModel>().InitialTabKey = DevGallery.GalleryNavigation.Key;
         }
 #endif
+        // Gesture pictures follow the trail colour; set before the first window builds its glyphs.
+        GlyphColourLink.Follow(_services.GetRequiredService<Core.Config.SettingsStore>(), Resources);
         desktop.MainWindow = _services.GetRequiredService<MainWindow>();
         if (OperatingSystem.IsMacOS())
         {

@@ -19,7 +19,9 @@
   <SolidColorBrush x:Key="Brush.Border" Color="#5A5A5A" />
   <SolidColorBrush x:Key="Brush.Text" Color="#E6E6E6" />
   <SolidColorBrush x:Key="Brush.TextMuted" Color="#A0A0A0" />
-  <!-- Gesture pictures: the stroke's colour at its start; it brightens to Brush.Text (TextMuted when inactive) at the arrowhead. -->
+  <!-- Gesture pictures: end and start of the stroke's gradient. The running app replaces both with the trail colour and its
+       shaded start (Themes/GlyphColourLink); these are what a root without it shows. Inactive: GlyphStartMuted to TextMuted. -->
+  <SolidColorBrush x:Key="Brush.Glyph" Color="#E6E6E6" />
   <SolidColorBrush x:Key="Brush.GlyphStart" Color="#4A6A92" />
   <SolidColorBrush x:Key="Brush.GlyphStartMuted" Color="#4A4A4A" />
   <SolidColorBrush x:Key="Brush.Accent" Color="#6CA0DC" />

@@ -178,13 +178,13 @@
               <glyph:GlyphStroke Name="PART_Stroke"
                                  Points="{TemplateBinding StrokePoints}"
                                  ArrowLength="{TemplateBinding ArrowLength}"
-                                 StartBrush="{StaticResource Brush.GlyphStart}"
-                                 Stroke="{StaticResource Brush.Text}"
+                                 StartBrush="{DynamicResource Brush.GlyphStart}"
+                                 Stroke="{DynamicResource Brush.Glyph}"
                                  StrokeThickness="2" />
             </Border>
           </ControlTemplate>
         </Setter>
-        <!-- Start to finish, dim to bright (Joel, 2026-10-08): direction reads along the whole stroke. -->
+        <!-- Start to finish, shaded start to the trail colour (Joel, 2026-10-08; Themes/GlyphColourLink): direction reads along the whole stroke. Inactive: greys. -->
         <Style Selector="^:inactive /template/ glyph|GlyphStroke#PART_Stroke">
           <Setter Property="StartBrush" Value="{StaticResource Brush.GlyphStartMuted}" />
           <Setter Property="Stroke" Value="{StaticResource Brush.TextMuted}" />
