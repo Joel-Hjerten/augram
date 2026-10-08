@@ -2,7 +2,7 @@
 
 The Avalonia desktop app: tray, settings workbench, shared components, dev gallery. MVVM with `CommunityToolkit.Mvvm`; views are XAML plus a near-empty code-behind; view models are disposable projections over Core/Engine stores (ADR-0002 §5, §5a). Screens are *declared* as section/field trees and list specs, rendered by generic lookless components whose look comes from a theme (§5b, §5c).
 
-**May reference:** `Augram.Core`, `Augram.Engine`, `Augram.Platform.Windows`, `Augram.Platform.MacOS`, `Augram.Import.StrokesPlus`, `Augram.Sync.Git` (only `Hosting/SyncModule` names it), and the Avalonia / CommunityToolkit.Mvvm / Microsoft.Extensions.DependencyInjection packages. `CompositionRoot.cs` is the one place services are registered; nothing else calls `new` on a service.
+**May reference:** `Augram.Core`, `Augram.Engine`, `Augram.Platform.Windows`, `Augram.Platform.MacOS`, `Augram.Import.StrokesPlus`, `Augram.Sync.Git` (only `Hosting/SyncModule` names it), and the Avalonia / CommunityToolkit.Mvvm / Microsoft.Extensions.DependencyInjection packages, plus Velopack (only `Program` names it, see "Packaging and releases"). `CompositionRoot.cs` is the one place services are registered; nothing else calls `new` on a service.
 
 **Must never contain:** business rules, application state that outlives a window (stores and the engine own it; `AppState` only projects two settings for the tray), P/Invoke, or SharpHook.
 
@@ -47,6 +47,10 @@ The Avalonia desktop app: tray, settings workbench, shared components, dev galle
 **A tab or sub-tab.** One `NavEntry` in `Navigation/AppNavigation.cs` pointing at the screen's `Declare`. Keys are unique across levels; `Shell.SelectedKey` can select any of them.
 
 **A theme.** Copy `Themes/Wireframe/` to `Themes/<Name>/<Name>.axaml`, override tokens and ControlThemes, add the name to `ThemeSelector.Names`, and set `ThemeSelector.Active`.
+
+## Packaging and releases
+
+`Program.Main` begins with `VelopackApp.Build().Run()`: Velopack's Setup, updater and uninstaller start the exe with hook arguments, and that line answers them and exits before the single-instance guard or any UI exists, so it stays first. `node scripts/package.mjs windows|mac` publishes and packs the installer; cutting a release, where the app installs, signing and the macOS Info.plist: [docs/release.md](../../docs/release.md). Nothing checks for updates yet; when something does, it is a `Hosting/` service registered in `CompositionRoot` around Velopack's `UpdateManager` over the GitHub releases (docs/release.md, "Not built yet").
 
 ## Tray and single instance (F7, A10)
 

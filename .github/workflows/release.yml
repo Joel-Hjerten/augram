@@ -1,0 +1,57 @@
+name: Release
+
+# A pushed tag vX.Y.Z builds the Windows installer and the Velopack files and publishes them as the GitHub release of
+# that tag. The macOS package is built, signed and notarized on Joel's Mac (the Developer ID identity lives in its
+# keychain) and attached to the same release afterwards with `gh release upload`. How to cut a release: docs/release.md.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet tool restore
+      # The tag names the release; <Version> (Directory.Build.props) is what the app and its packages carry.
+      - name: Check the tag against <Version>
+        shell: bash
+        run: |
+          version=$(dotnet msbuild src/Augram.App -getProperty:Version -p:Configuration=Release -p:AugramChannel=Release | tail -n 1 | tr -d '\r')
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match <Version> $version: set <Version> in Directory.Build.props, commit, and tag v$version."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: dotnet test -c Release --logger GitHubActions --logger "console;verbosity=normal"
+      - run: node scripts/package.mjs windows
+      # Everything vpk wrote except assets.win.json (its own upload list). A re-run, or a release the Mac files reached
+      # first, gets the files replaced instead of a second release.
+      - name: Publish the GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files=()
+          for f in artifacts/releases/win-x64/*; do
+            case "$(basename "$f")" in assets.*) ;; *) files+=("$f") ;; esac
+          done
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber
+          else
+            prerelease=()
+            case "$VERSION" in *-*) prerelease=(--prerelease) ;; esac
+            gh release create "$TAG" "${files[@]}" --verify-tag --title "Augram $VERSION" "${prerelease[@]}" \
+              --notes "Windows: run Augram-win-Setup.exe (installs for you only, no admin rights; it is not code-signed yet, so SmartScreen may say \"unknown publisher\": More info, Run anyway). macOS: Augram-osx-Portable.zip holds Augram.app, attached from the Mac. The .nupkg and releases.*.json files are for the updater."
+          fi

@@ -9,6 +9,15 @@
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <ApplicationIcon>Icons\augram.ico</ApplicationIcon>
   </PropertyGroup>
+  <!-- Packaged builds (scripts/package.mjs, docs/release.md): the script publishes self-contained and ReadyToRun for one
+       runtime and Velopack packs the folder. Never trimmed: Avalonia's XAML loader and the DI container reach types by
+       reflection that a trimmer cannot see, and a trimmed build fails at run time, not at build time. The XML doc files
+       exist for IDE0005 at build (Directory.Build.props), not for the installed app. -->
+  <PropertyGroup>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Augram.Core/Augram.Core.csproj" />
     <ProjectReference Include="../Augram.Engine/Augram.Engine.csproj" />
@@ -29,5 +38,6 @@
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Velopack" />
   </ItemGroup>
 </Project>

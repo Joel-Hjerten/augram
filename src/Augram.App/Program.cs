@@ -1,6 +1,7 @@
 using Augram.App.Hosting;
 using Augram.Core.Steps.Hotkey;
 using Avalonia;
+using Velopack;
 
 namespace Augram.App;
 
@@ -17,6 +18,7 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        VelopackApp.Build().Run(); // First, always: answers the installer's hooks and exits for them (docs/release.md).
         using var guard = SingleInstanceGuard.TryAcquire(InstanceName);
         if (guard is null)
         {
