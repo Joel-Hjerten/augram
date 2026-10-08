@@ -43,6 +43,11 @@
       "Write",
       "Glob",
       "Grep",
+      "Read(~/AppData/Roaming/Augram/**)",
+      "Edit(~/AppData/Roaming/Augram/**)",
+      "Read(~/AppData/Local/Augram/**)",
+      "Read(~/Library/Application Support/Augram/**)",
+      "Edit(~/Library/Application Support/Augram/**)",
       "Bash(git:*)",
       "Bash(gh:*)",
       "Bash(dotnet:*)",
@@ -72,6 +77,7 @@
       "Bash(src/Augram.App/bin/*)",
       "Bash(./src/Augram.App/bin/*)",
       "Bash(open src/Augram.App/bin/*)",
+      "Bash(open /Applications/Augram.app)",
       "Bash(pkill -f Augram.App*)",
       "PowerShell(git:*)",
       "PowerShell(gh:*)",
@@ -88,6 +94,8 @@
       "PowerShell(Start-Sleep*)",
       "PowerShell(Start-Process -FilePath src\\Augram.App\\bin\\*)",
       "PowerShell(Start-Process -FilePath .\\src\\Augram.App\\bin\\*)",
+      "PowerShell(Start-Process -FilePath \"$env:LOCALAPPDATA\\Augram\\Augram.exe\")",
+      "PowerShell(Start-Process -FilePath artifacts\\releases\\win-x64\\Augram-win-Setup.exe*)",
       "PowerShell(Stop-Process*)"
     ],
     "ask": [
