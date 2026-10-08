@@ -55,7 +55,10 @@ public sealed class RunStepExecutionTests
 
     private static CommandExecutor Executor(ListEventLog log, RunStep step, FakeProcessLauncher? launcher, FakeWindowSystem windows)
     {
-        var mapping = Mappings.Global(Mappings.Command("Run", Trigger.ForGesture(Gesture), step));
+        // Authored where the executor runs (its platform is the window operations'): a Run step does not carry over to the
+        // other platform (F8), so a Windows-authored one would skip on the macOS runner.
+        var here = NullWindowOperations.Instance.Platform;
+        var mapping = Mappings.Global(new Command(CommandId.New(), "Run", Trigger.ForGesture(Gesture), IsActive: true, [new CommandStep(step, here)]));
         var ports = new EnginePorts { Input = new FakeInputSource(), Simulator = new FakeInputSimulator(), Log = log, Windows = windows, Mapping = () => mapping };
         var executor = new CommandExecutor(launcher is null ? ports : ports with { ProcessLauncher = launcher }, new EngineHostOptions(SettleDelayMs: 0));
         executor.Start();
