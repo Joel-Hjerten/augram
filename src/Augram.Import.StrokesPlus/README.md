@@ -44,6 +44,19 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 
 One **Info** line per distinct placeholder method per file ("3 Run step(s) imported as placeholders; the Run step arrives in a later version."), never one per step.
 
+## Run helpers (built, not wired into `StepReader` yet)
+
+Standalone and pure, ready for the step reader and the script-only action path to call; until then `Run` and RunProgram scripts still import as placeholders.
+
+| Type | Role |
+|---|---|
+| `RunMapping` | `FromRun(parameters)`: the `Run` step's one parameter `command` to a `RunStep` (null when missing or blank); `SplitCommand` cuts a command line into file and arguments the way a person reads it (a quoted first part; a URI whole; the shortest run of words ending in `.exe`, `.com`, `.bat`, `.cmd`, `.lnk`, `.msc` or `.cpl`, so `C:\Program Files\x\x.exe -flag` keeps its path; a rooted path with no such ending whole, for documents and folders with spaces; otherwise the first blank). `FromRunProgram(call)`: verb `runas` → elevated, style `hidden` → hidden; `noWindow`, `waitForExit`, the styles minimized and maximized and verbs other than open/runas have no equivalent and are dropped (`RunProgramCall.HasPlainVerb` says when a verb would be lost). `TryUpgrade(ImportedStep)` for a saved `Run` placeholder |
+| `RunProgramScript` | `TryRecognize(script, out call, out reason)`: true when the script's only statement, comments and blanks aside, is one `sp.RunProgram(fileName, arguments, verb, style, useShellExecute, noWindow, waitForExit)` call with literal strings (quotes, backticks, `String.raw` templates, `+` joins, JavaScript escapes) and `true`/`false` flags; in the file name `sp.ExpandEnvironmentVariables("%X%")` reads as `%X%`, which the Run step expands itself. Anything else is refused with a reason for the report |
+| `RunProgramCall` | the seven arguments; `IsElevated`, `IsHidden`, `HasPlainVerb` |
+| `ScriptReader` (internal) | the cursor over the script: trivia, words, string literals with their escapes, raw templates |
+
+Against the reference config (read 2026-10-08, never copied): both `Run` steps map (`explorer`; `ms-settings:display`, an inactive action), and 13 of the 14 scripts that mention `RunProgram` are recognised: ten display-changer calls (the Display step's to route), the elevated hidden taskkill, SP.net's `String.raw` example and the `sp.ExpandEnvironmentVariables("%SystemRoot%")+"\\explorer.exe"` script beside the Open Explorer step (SP.net ignores a script beside steps). The one refused is SP.net's "Process.Start" example, which drives .NET's `Process` class and names RunProgram only in a comment.
+
 ## Action mapping
 
 | SP.net | Augram |

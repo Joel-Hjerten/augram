@@ -14,6 +14,7 @@ using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.Run;
 using Augram.Core.Steps.WindowOp;
 
 namespace Augram.App.DevGallery;
@@ -64,6 +65,7 @@ public static class CommandGalleryPages
         }
 
         fields.Add(FormField("Window, Set size", new WindowOpStep(WindowOperation.SetSize, new WindowSize(1280, 720))));
+        fields.Add(FormField("Run, as admin and hidden", new RunStep("taskkill.exe", "/f /im yuzu.exe", Elevated: true, Hidden: true)));
         fields.Add(FormField("Imported, with parameters", new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w", ["Delay"] = "0" })));
         return new FormScreen("Step forms", [new Section("One form per step type (StepFormRegistry)", fields)]);
     }

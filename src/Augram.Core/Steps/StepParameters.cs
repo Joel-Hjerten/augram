@@ -74,6 +74,24 @@ public static class StepParameters
         return text;
     }
 
+    /// <summary>The member as a JSON <c>true</c> or <c>false</c>, or null when absent; a string such as "true" is refused.</summary>
+    public static bool? ReadBoolean(JsonObject parameters, string name)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        var node = parameters[name];
+        if (node is null)
+        {
+            return null;
+        }
+
+        if (node is not JsonValue value || !value.TryGetValue(out bool flag))
+        {
+            throw new StepFormatException($"'{name}' must be true or false.");
+        }
+
+        return flag;
+    }
+
     /// <summary>The exception <see cref="IStepType.Read"/> throws for a member the shape demands and the object lacks: "'width' is required when 'operation' is SetSize."</summary>
     public static StepFormatException Required(string name, string when)
         => new($"'{name}' is required when {when}.");
