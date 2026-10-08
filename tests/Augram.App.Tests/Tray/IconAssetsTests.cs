@@ -26,8 +26,11 @@ public sealed class IconAssetsTests
 
     [Fact]
     public void TheExeIconHoldsEverySizeAsPng()
+        => Assert.Equal([16, 20, 24, 32, 40, 48, 64, 128, 256], IcoSizes(File.ReadAllBytes(Path.Combine(App, "Icons", "augram.ico"))));
+
+    /// <summary>The sizes in an .ico's directory, checking each entry is a PNG of that size.</summary>
+    private static List<int> IcoSizes(byte[] bytes)
     {
-        var bytes = File.ReadAllBytes(Path.Combine(App, "Icons", "augram.ico"));
         Assert.Equal(1, BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(2)));
         var count = BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(4));
         var sizes = new List<int>();
@@ -40,7 +43,7 @@ public sealed class IconAssetsTests
             sizes.Add(side);
         }
 
-        Assert.Equal([16, 20, 24, 32, 40, 48, 64, 128, 256], sizes);
+        return sizes;
     }
 
     [Fact]
@@ -64,13 +67,21 @@ public sealed class IconAssetsTests
     public void TheMasterArtIsInTheDesignFolder()
         => Assert.True(File.Exists(Path.Combine(RepositoryPaths.Root, "design", "app-icon", "exports", "app-icon.png")));
 
+    [Theory]
+    [InlineData("tray-enabled.ico")]
+    [InlineData("tray-disabled.ico")]
+    public void TheWindowsTrayIconsHoldOneImagePerScaling(string file)
+        => Assert.Equal([16, 20, 24, 32, 40, 48], IcoSizes(File.ReadAllBytes(Path.Combine(App, "Assets", file))));
+
     [AvaloniaFact]
-    public void TheTrayLoadsBothSetsAndMarksOnlyTheMacOneAsATemplate()
+    public void TheTrayLoadsEverySetAndMarksOnlyTheMacOneAsATemplate()
     {
-        var windows = TrayIconSet.Load(macOS: false);
-        var mac = TrayIconSet.Load(macOS: true);
+        var windows = TrayIconSet.Load(TrayIconKind.WindowsIco);
+        var png = TrayIconSet.Load(TrayIconKind.Png);
+        var mac = TrayIconSet.Load(TrayIconKind.MacTemplate);
 
         Assert.False(windows.IsTemplate);
+        Assert.False(png.IsTemplate);
         Assert.True(mac.IsTemplate);
         Assert.NotSame(windows.Enabled, windows.Disabled);
         Assert.NotSame(mac.Enabled, mac.Disabled);

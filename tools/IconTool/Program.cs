@@ -22,6 +22,8 @@ Write(Path.Combine(packaging, "augram.icns"), IconContainers.Icns(IconSizes.Icns
 Write(Path.Combine(assets, "Icons", "augram-256.png"), IconImages.Render(source, 256));
 Write(Path.Combine(assets, "tray-enabled.png"), IconImages.Render(source, IconSizes.Tray));
 Write(Path.Combine(assets, "tray-disabled.png"), IconImages.Render(source, IconSizes.Tray, IconImages.DisabledOpacity, greyscale: true));
+Write(Path.Combine(assets, "tray-enabled.ico"), IconContainers.Ico(IconSizes.TrayIco.Select(size => (size, IconImages.Render(source, size))).ToList()));
+Write(Path.Combine(assets, "tray-disabled.ico"), IconContainers.Ico(IconSizes.TrayIco.Select(size => (size, IconImages.Render(source, size, IconImages.DisabledOpacity, greyscale: true))).ToList()));
 Write(Path.Combine(assets, "tray-mac-enabled.png"), IconImages.Template(traySource ?? source, IconSizes.MacTray, 1f, traySource is not null));
 Write(Path.Combine(assets, "tray-mac-disabled.png"), IconImages.Template(traySource ?? source, IconSizes.MacTray, IconImages.DisabledOpacity, traySource is not null));
 Console.WriteLine($"from {master}{(traySource is null ? string.Empty : $" and {macTrayMaster}")}");

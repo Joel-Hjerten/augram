@@ -14,8 +14,14 @@ internal static class IconSizes
         ("ic11", 32), ("ic12", 64), ("ic13", 256), ("ic14", 512),
     ];
 
-    /// <summary>The Windows tray asset: drawn at 16 px per 100 % scaling (20 at 125 %, 32 at 200 %), so 32 scales down cleanly.</summary>
+    /// <summary>The Windows tray PNG fallback: drawn at 16 px per 100 % scaling (20 at 125 %, 32 at 200 %), so 32 scales down cleanly.</summary>
     public const int Tray = 32;
+
+    /// <summary>
+    /// The Windows tray .ico: one exact image per scaling step (100 % → 16, 125 % → 20, 150 % → 24, 200 % → 32, 250 % → 40,
+    /// 300 % → 48), so the small-icon size the system asks for is drawn from pixels made for it, not shrunk from 32.
+    /// </summary>
+    public static readonly int[] TrayIco = [16, 20, 24, 32, 40, 48];
 
     /// <summary>The macOS menu-bar template: 18 pt, written at @2x (36 px); Avalonia hands it to the menu bar as one image.</summary>
     public const int MacTray = 36;
