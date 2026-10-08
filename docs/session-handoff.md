@@ -1,6 +1,19 @@
-# Agent handoff — Augram, M1 accepted, M2 under way, macOS port started (updated 2026-10-07 17:00)
+# Agent handoff — Augram: M2 under way, sync live on both machines, release pipeline in progress (updated 2026-10-08 02:30, PC session)
 
-You are picking up a project whose first runnable milestone is built and accepted by Joel. Everything decided is in the docs; this file tells you the state, the order to read things, what to do next, and the rules that came from mistakes. Joel works on his **Windows 11 PC** and, since 2026-10-07, on his **Mac** too (sections 8 and 8a).
+You are picking up a project whose first runnable milestone is built and accepted by Joel. Everything decided is in the docs; this file tells you the state, the order to read things, what to do next, and the rules that came from mistakes. Joel works on his **Windows 11 PC** and his **Mac** (sections 8, 8a–8c); both run Augram and sync through `Joel-Hjerten/augram-sync`.
+
+## 0. Right now (PC session, 2026-10-08)
+
+**In flight: two worktree agents** (launched by the PC lead; their reports arrive in that session). When they report: merge each branch (`git merge` the `worktree-agent-*` branch), stop the app, build, `dotnet test`, `dotnet format --verify-no-changes`, push, remove the worktree (`dotnet build-server shutdown`, `git worktree remove --force`, `git worktree prune`, `git branch -d`). Both touch `src/Augram.App/Program.cs` (one adds only `VelopackApp.Build().Run();` at the top of `Main`): resolve that by hand.
+1. **Version + Dev label + one instance:** `<Version>0.2.0</Version>` in `Directory.Build.props` with the commit; `AugramChannel` (`Dev` default, `Release` when packaged); `AppInfo`; window title and tray tooltip "Augram (Dev)" for dev builds (Joel: "Dev within parentheses"); About on Options; dev builds never write or remove start-at-login; **one Augram at a time across dev and installed** (Joel: "definitely only one"): a newcomer of another build offers "Quit it and start this one".
+2. **Packaging:** Velopack (per-user Windows Setup.exe, macOS .app signed and notarized with Joel's Developer ID from his Keychain, auto-update later), `scripts/package.mjs windows|mac`, `.github/workflows/release.yml` (tag `vX.Y.Z` → Windows installer on a GitHub Release), `docs/release.md`. Modelled on Joel's Eyeris repo.
+**After both merge:** build the Windows installer, install it with Joel on the PC (never install or launch from an agent), make the installed Augram his daily driver; then the Mac half (`node scripts/package.mjs mac` with `AUGRAM_SIGN_IDENTITY` and `AUGRAM_NOTARY_PROFILE`) on the Mac.
+
+**Done 2026-10-07/08 (all on main, CI green):** window ops, Hotkey (with system-wide capture field and right-hand modifiers RAlt/RCtrl kept), MediaKey, Delay, Imported placeholders; Commands tab with Global (categories) and Apps sub-tabs; full SP.net import (categories, hotkeys); **sync between machines** (git, per-machine files, three-way merge with acknowledgements, join and conflict dialogs, format guard); F8 "Use on" per app group, per category and per command, plus best-guess cross-platform step conversion (Mac session); one set of list row metrics (`Row.*` tokens, `RowMetricsTests`); the app icon (`design/app-icon`, `tools/IconTool`, multi-size tray .ico on Windows, template icon on macOS); the resync hook for open chats.
+
+**Next after the release pipeline:** the remaining step types, TypeText and Run (most of Joel's still-"not supported" SP.net commands); then Augram JSON export/import (F8) and the Ignored tab.
+
+**Rules from 2026-10-07/08 (also in section 6):** pull → rebuild → only then let an app sync (Joel; the format guard now pauses a stale build); stop the app before `dotnet build`; agents run in isolated worktrees and commit on their branch, the lead merges; on Windows run `Set-Location C:\_myProjects\augram` (uppercase drive) before launching worktree agents; no `rm -rf`, no long compound shell lines (settings `.claude/settings.json` allow list); settings and hooks are Joel's to paste; Joel's real StrokesPlus.net file never enters the repo (`sources/` is ignored).
 
 ## 1. Read in this order (30 minutes)
 
