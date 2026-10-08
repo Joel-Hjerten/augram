@@ -95,7 +95,7 @@ internal sealed class CommandRunner
                 "Step ran",
                 ("index", index),
                 ("type", step.Type.Key),
-                ("summary", step.Summary),
+                ("summary", step.LogSummary),
                 ("converted", planned.Kind == StepConversionKind.Converted),
                 ("outcome", result.Outcome),
                 ("reason", result.Reason),
@@ -103,7 +103,7 @@ internal sealed class CommandRunner
 
             if (result.Outcome == StepOutcome.Failed)
             {
-                _log.Warning(LogSources.Execution, "Command stopped", ("group", group.Name), ("command", command.Name), ("step", index), ("type", step.Type.Key), ("summary", step.Summary), ("reason", result.Reason));
+                _log.Warning(LogSources.Execution, "Command stopped", ("group", group.Name), ("command", command.Name), ("step", index), ("type", step.Type.Key), ("summary", step.LogSummary), ("reason", result.Reason));
                 return;
             }
 

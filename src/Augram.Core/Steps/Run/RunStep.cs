@@ -32,25 +32,26 @@ public sealed record RunStep(string File, string Arguments = "", string WorkingD
     public string Target => IsUri ? "Open " + File.Trim() : "Run " + ShortName(File.Trim());
 
     /// <summary>"Run explorer", "Run taskkill.exe /f /im yuzu.exe (as admin, hidden)", "Open ms-settings:display"; <see cref="UnsetSummary"/> while no program is set.</summary>
-    public string Summary
-    {
-        get
-        {
-            if (!IsSet)
-            {
-                return UnsetSummary;
-            }
+    public string Summary => Describe(Arguments.Trim());
 
-            var arguments = Arguments.Trim();
-            var text = arguments.Length == 0 ? Target : Target + " " + arguments;
-            return (Elevated, Hidden) switch
-            {
-                (true, true) => text + " (as admin, hidden)",
-                (true, false) => text + " (as admin)",
-                (false, true) => text + " (hidden)",
-                _ => text,
-            };
+    /// <summary>For the log (<see cref="IStep.LogSummary"/>): the program without its arguments, which may hold a secret: "Run taskkill.exe … (as admin, hidden)".</summary>
+    public string LogSummary => Describe(Arguments.Trim().Length == 0 ? string.Empty : "…");
+
+    private string Describe(string arguments)
+    {
+        if (!IsSet)
+        {
+            return UnsetSummary;
         }
+
+        var text = arguments.Length == 0 ? Target : Target + " " + arguments;
+        return (Elevated, Hidden) switch
+        {
+            (true, true) => text + " (as admin, hidden)",
+            (true, false) => text + " (as admin)",
+            (false, true) => text + " (hidden)",
+            _ => text,
+        };
     }
 
     /// <summary>The launcher's request: the step's values with surrounding blanks trimmed.</summary>

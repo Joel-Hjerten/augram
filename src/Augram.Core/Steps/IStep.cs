@@ -18,4 +18,11 @@ public interface IStep
     /// Windows hotkey with the Windows key reads "Win+D" on a Mac too. Only platform-bound types differ from <see cref="Summary"/>.
     /// </summary>
     string SummaryOn(HostPlatform platform) => Summary;
+
+    /// <summary>
+    /// <see cref="Summary"/> fit for the log files: the same line unless the step can hold something private. Type text
+    /// gives its length, never its text; Run gives the program, never its arguments (a typed ID number or a password on a
+    /// command line must not reach a log).
+    /// </summary>
+    string LogSummary => Summary;
 }

@@ -33,6 +33,11 @@ public sealed record TypeTextStep(string Text, TypeTextMethod Method = TypeTextM
         ? $"Type \"{Shorten(string.Join(LineBreakMark, Lines()))}\"" + (Method == TypeTextMethod.Keys ? " (by keys)" : string.Empty)
         : UnsetSummary;
 
+    /// <summary>For the log (<see cref="IStep.LogSummary"/>): "Type text (12 characters)", never the text, which may be private.</summary>
+    public string LogSummary => HasText
+        ? $"Type text ({Text.Length} characters)" + (Method == TypeTextMethod.Keys ? " (by keys)" : string.Empty)
+        : UnsetSummary;
+
     /// <summary>The text split at its line breaks (CR LF counts once); one empty line for an empty text.</summary>
     public IReadOnlyList<string> Lines() => (Text ?? string.Empty).Split(LineBreaks, StringSplitOptions.None);
 

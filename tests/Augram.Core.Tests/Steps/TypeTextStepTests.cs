@@ -46,6 +46,17 @@ public sealed class TypeTextStepTests
         Assert.Equal(expected, new TypeTextStep(text, method).Summary);
     }
 
+    [Theory]
+    [InlineData("19800101-1234", TypeTextMethod.Unicode, "Type text (13 characters)")]
+    [InlineData("fov 70", TypeTextMethod.Keys, "Type text (6 characters) (by keys)")]
+    [InlineData("", TypeTextMethod.Unicode, "Type text (no text set)")]
+    public void LogSummaryGivesTheLengthNeverTheText(string text, TypeTextMethod method, string expected)
+    {
+        IStep step = new TypeTextStep(text, method);
+
+        Assert.Equal(expected, step.LogSummary);
+    }
+
     [Fact]
     public void LinesSplitAtEveryKindOfLineBreak_CrLfOnce()
     {

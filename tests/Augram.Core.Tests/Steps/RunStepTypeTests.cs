@@ -45,6 +45,17 @@ public sealed class RunStepTypeTests
         Assert.Equal(expected, new RunStep(file, arguments, Elevated: elevated, Hidden: hidden).Summary);
     }
 
+    [Theory]
+    [InlineData("taskkill.exe", "/f /im synthetic.exe", true, true, "Run taskkill.exe … (as admin, hidden)")]
+    [InlineData("tool.exe", "--password=secret", false, false, "Run tool.exe …")]
+    [InlineData("explorer", "", false, false, "Run explorer")]
+    public void LogSummaryNamesTheProgramButNeverItsArguments(string file, string arguments, bool elevated, bool hidden, string expected)
+    {
+        IStep step = new RunStep(file, arguments, Elevated: elevated, Hidden: hidden);
+
+        Assert.Equal(expected, step.LogSummary);
+    }
+
     [Fact]
     public void TargetLeavesTheArgumentsOut()
     {
