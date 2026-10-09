@@ -28,8 +28,10 @@ public sealed class SyncConflictWindow : Window
         List.ChoiceChanged += (_, e) => viewModel.Choose(e.Index, e.Choice);
         var title = new TextBlock { Text = viewModel.Summary };
         title.Classes.Add("section-title");
-        var help = new TextBlock { Text = SyncConflictsViewModel.Help };
-        help.Classes.Add("help");
+        // The help is an (i) after the summary, its text in the tooltip (App README, help rule).
+        var help = new TextBlock();
+        help.Classes.Add("help-icon");
+        ToolTip.SetTip(help, SyncConflictsViewModel.Help);
         var cancel = new Button { Content = "Cancel", IsCancel = true };
         cancel.Classes.Add("toolbar");
         cancel.Click += (_, _) => Close();
@@ -43,12 +45,11 @@ public sealed class SyncConflictWindow : Window
 
         var panel = new DockPanel();
         panel.Classes.Add("dialog");
+        var heading = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Children = { title, help } };
         DockPanel.SetDock(buttons, Dock.Bottom);
-        DockPanel.SetDock(title, Dock.Top);
-        DockPanel.SetDock(help, Dock.Top);
+        DockPanel.SetDock(heading, Dock.Top);
         panel.Children.Add(buttons);
-        panel.Children.Add(title);
-        panel.Children.Add(help);
+        panel.Children.Add(heading);
         panel.Children.Add(List);
         Content = panel;
     }

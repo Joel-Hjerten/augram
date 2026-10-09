@@ -269,7 +269,9 @@
                         BorderThickness="{StaticResource Border.Bottom}"
                         Padding="{StaticResource Pad.S}">
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
-                    <TextBlock Classes="section-title" Text="Gestures" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <!-- Help as an (i) after the title (Joel, 2026-10-09: the App README's help rule, for lists too). -->
+                    <TextBlock Classes="section-title" Text="Gestures" VerticalAlignment="Center" />
+                    <TextBlock Classes="help-icon" Margin="0,0,8,0" ToolTip.Tip="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
                     <Button Name="PART_New" Classes="toolbar" Content="Add new gesture…" />
                     <Button Name="PART_Import" Classes="toolbar" Content="Import from StrokesPlus.net…" />
                     <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
@@ -282,7 +284,6 @@
                         Padding="{StaticResource Pad.S}">
                   <StackPanel Spacing="{StaticResource Space.XS}">
                     <TextBlock Classes="note" Text="{TemplateBinding Message}" IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                    <TextBlock Classes="help" Text="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
                   </StackPanel>
                 </Border>
                 <ListBox Name="PART_Tiles"
@@ -394,7 +395,12 @@
                         BorderThickness="{StaticResource Border.Bottom}"
                         Padding="{StaticResource Pad.S}">
                   <StackPanel Spacing="{StaticResource Space.S}">
-                    <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
+                      <TextBlock Classes="help-icon"
+                                 ToolTip.Tip="{TemplateBinding HelpText}"
+                                 IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                       <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
                       <Button Name="PART_NewCommand" Classes="toolbar" Content="New command" />
@@ -404,13 +410,6 @@
                                     IsVisible="{TemplateBinding PlatformFilterLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     </StackPanel>
                   </StackPanel>
-                </Border>
-                <Border DockPanel.Dock="Bottom"
-                        BorderBrush="{StaticResource Brush.Border}"
-                        BorderThickness="0,1,0,0"
-                        Padding="{StaticResource Pad.S}"
-                        IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                  <TextBlock Classes="help" Text="{TemplateBinding HelpText}" />
                 </Border>
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
@@ -543,18 +542,16 @@
                             BorderThickness="{StaticResource Border.Bottom}"
                             Padding="{StaticResource Pad.S}">
                       <StackPanel Spacing="{StaticResource Space.S}">
-                        <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
+                          <TextBlock Classes="help-icon"
+                                     ToolTip.Tip="{TemplateBinding HelpText}"
+                                     IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                           <Button Name="PART_New" Classes="toolbar" Content="{TemplateBinding NewLabel}" />
                         </StackPanel>
                       </StackPanel>
-                    </Border>
-                    <Border DockPanel.Dock="Bottom"
-                            BorderBrush="{StaticResource Brush.Border}"
-                            BorderThickness="0,1,0,0"
-                            Padding="{StaticResource Pad.S}"
-                            IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                      <TextBlock Classes="help" Text="{TemplateBinding HelpText}" />
                     </Border>
                     <ListBox Name="PART_Rows"
                              ItemsSource="{TemplateBinding Rows}"
@@ -708,15 +705,10 @@
                         BorderThickness="{StaticResource Border.Bottom}"
                         Padding="{StaticResource Pad.S}">
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
-                    <TextBlock Classes="section-title" Text="Steps" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Classes="section-title" Text="Steps" VerticalAlignment="Center" />
+                    <TextBlock Classes="help-icon" Margin="0,0,8,0" ToolTip.Tip="Steps run top to bottom; drag one to reorder. Duplicate places the copy below it, Paste adds at the bottom. Delete asks nothing; Undo brings it back." />
                     <Button Name="PART_New" Classes="toolbar" Content="New step…" IsEnabled="{TemplateBinding HasCommand}" />
                   </StackPanel>
-                </Border>
-                <Border DockPanel.Dock="Bottom"
-                        BorderBrush="{StaticResource Brush.Border}"
-                        BorderThickness="0,1,0,0"
-                        Padding="{StaticResource Pad.S}">
-                  <TextBlock Classes="help" Text="Steps run top to bottom; drag one to reorder. Duplicate places the copy below it, Paste adds at the bottom. Delete asks nothing; Undo brings it back." />
                 </Border>
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
@@ -794,8 +786,10 @@
                   <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
                   <Button Name="PART_Ok" Classes="toolbar" Content="OK" IsDefault="True" IsEnabled="{TemplateBinding HasSelection}" />
                 </StackPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="section-title" Text="Select Gesture" />
-                <TextBlock DockPanel.Dock="Top" Classes="help" Text="Pick the gesture that fires this command; double-click also picks. No Gesture leaves the command trigger-less, New Gesture… draws one first." />
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                  <TextBlock Classes="section-title" Text="Select Gesture" />
+                  <TextBlock Classes="help-icon" ToolTip.Tip="Pick the gesture that fires this command; double-click also picks. No Gesture leaves the command trigger-less, New Gesture… draws one first." />
+                </StackPanel>
                 <ListBox Name="PART_Tiles"
                          ItemsSource="{TemplateBinding TileControls}"
                          Background="{StaticResource Brush.Surface}"
