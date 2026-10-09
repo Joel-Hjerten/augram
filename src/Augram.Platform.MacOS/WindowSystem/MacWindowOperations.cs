@@ -9,11 +9,13 @@ namespace Augram.Platform.MacOS.WindowSystem;
 /// The macOS <see cref="IWindowOperations"/> through the Accessibility API (the table in <c>Core/Steps/WindowOp/README.md</c>).
 /// The window is found again by its <c>CGWindowID</c> among its app's <c>AXWindows</c>, so a window closed since the
 /// stroke reports "window gone" instead of acting on another. Close presses the window's close button (the app runs its
-/// own close path, "save changes?" included); Minimize sets <c>AXMinimized</c>; MaximizeOrRestore fills the screen's
-/// visible frame and restores the frame it had (<see cref="MacMaximize"/>), leaves native full screen when the window is
-/// in it, and gives a window something else filled (macOS's zoom or tiling) a default frame
-/// (<see cref="MacMaximize.DefaultRestore"/>): pressing the zoom button, as before 2026-10-09, sent it into native full
-/// screen on current macOS. The placement operations and
+/// own close path, "save changes?" included); Minimize sets <c>AXMinimized</c>; MaximizeOrRestore uses macOS's own window
+/// tiling (Joel, 2026-10-09: the green button's Fill): the app's Window › Move &amp; Resize › Fill, and Return to Previous
+/// Size to restore, pressed through Accessibility after bringing the window forward, so macOS remembers the size and the
+/// app sees what it sees when the user picks Fill. Without those items (an app with no standard Window menu) it fills the
+/// visible frame itself and restores the frame it remembered (<see cref="MacMaximize"/>); a filled window with nothing to
+/// return to gets a default frame (<see cref="MacMaximize.DefaultRestore"/>). Native full screen is left. Pressing the
+/// zoom button, as before 2026-10-09, sent a window into native full screen on current macOS. The placement operations and
 /// always-on-top are not built yet and report not supported. Runs on the command executor thread only; nothing here
 /// throws, a failed call becomes <see cref="WindowOperationResult.Failed"/> with the reason.
 /// </summary>
@@ -24,6 +26,12 @@ public sealed class MacWindowOperations : IWindowOperations
 
     // Frames from before a maximize, by window id; only the command executor thread touches it.
     private readonly Dictionary<uint, MacRect> _restore = [];
+    private const string Source = "window";
+
+    /// <summary>macOS's Fill (fn-Control-F) and Return to Previous Size (fn-Control-R), by key: their titles are localised.</summary>
+    private const string FillKey = "F";
+    private const string ReturnKey = "R";
+
     private readonly IEventLog _log;
 
     public MacWindowOperations(IEventLog? log = null)
@@ -70,7 +78,7 @@ public sealed class MacWindowOperations : IWindowOperations
                 {
                     WindowOperation.Close => Result(Ax.PressButton(element, Ax.CloseButtonAttribute)),
                     WindowOperation.Minimize => Result(Ax.SetBool(element, Ax.MinimizedAttribute, true)),
-                    _ => MaximizeOrRestore(element, id),
+                    _ => MaximizeOrRestore(app, element, id),
                 };
             }
             finally
@@ -89,7 +97,7 @@ public sealed class MacWindowOperations : IWindowOperations
     private static WindowOperationResult Result(int error) =>
         error == MacNative.AXErrorSuccess ? WindowOperationResult.Ok : WindowOperationResult.Failed(Ax.Describe(error));
 
-    private WindowOperationResult MaximizeOrRestore(nint element, uint id)
+    private WindowOperationResult MaximizeOrRestore(nint app, nint element, uint id)
     {
         if (Ax.GetBool(element, Ax.FullScreenAttribute) == true)
         {
@@ -110,16 +118,25 @@ public sealed class MacWindowOperations : IWindowOperations
         var visible = screens[MacMaximize.ScreenFor(frame, [.. screens.Select(screen => screen.Frame)])].Visible;
         if (MacMaximize.Fills(frame, visible))
         {
+            // Augram filled it itself (an app without the tiling items): its remembered frame.
             if (_restore.Remove(id, out var previous))
             {
                 return Result(Ax.SetFrame(element, previous));
             }
 
-            // Not filled by Augram: never the zoom button (native full screen now). What was read goes to the log, to tell
-            // macOS's zoom from its tiling before a better restore is chosen (the Eyeris report, 2026-10-09).
+            if (PressTiling(app, element, ReturnKey, "Return to Previous Size") is { } returned)
+            {
+                return returned;
+            }
+
             var fallback = MacMaximize.DefaultRestore(visible);
-            _log.Info("window", "Restored a window Augram did not maximize", ("frame", Describe(frame)), ("visible", Describe(visible)), ("restoredTo", Describe(fallback)));
+            _log.Info(Source, "Restored a window Augram did not maximize", ("frame", Describe(frame)), ("visible", Describe(visible)), ("restoredTo", Describe(fallback)));
             return Result(Ax.SetFrame(element, fallback));
+        }
+
+        if (PressTiling(app, element, FillKey, "Fill") is { } filled)
+        {
+            return filled;
         }
 
         if (_restore.Count >= MaxRemembered)
@@ -129,5 +146,35 @@ public sealed class MacWindowOperations : IWindowOperations
 
         _restore[id] = frame;
         return Result(Ax.SetFrame(element, visible));
+    }
+
+    /// <summary>
+    /// Brings the window forward (the menu acts on the app's main window) and presses the Window menu item with this
+    /// shortcut; null when the app has no such item, enabled, so the caller falls back. One log line either way.
+    /// </summary>
+    private WindowOperationResult? PressTiling(nint app, nint window, string key, string what)
+    {
+        var seen = new List<string>();
+        var item = Ax.FindWindowMenuItem(app, key, Ax.ControlModifier | Ax.NoCommandModifier, seen);
+        try
+        {
+            if (item == 0)
+            {
+                _log.Info(Source, "No tiling menu item", ("item", what), ("windowMenu", seen.Count == 0 ? "none" : string.Join("; ", seen)));
+                return null;
+            }
+
+            Ax.SetBool(app, Ax.FrontmostAttribute, true);
+            Ax.SetBool(window, Ax.MainAttribute, true);
+            Ax.Perform(window, Ax.RaiseAction);
+            var pressed = Ax.Perform(item, Ax.PressAction);
+            _log.Info(Source, "Pressed the tiling menu item", ("item", what), ("result", Ax.Describe(pressed)));
+            return Result(pressed);
+        }
+        finally
+        {
+            Cf.Release(item);
+            Ax.ReleaseMenuSearch();
+        }
     }
 }

@@ -197,7 +197,7 @@ Instead of one-off probe runs, the app logs its own health and timings continuou
 | D3 | Per-app gesture overrides in v1? | **DECIDED — yes**, incl. ignore-list (2026-07-24, see F5) |
 | D4 | Gesture timeout + modifier/rocker behaviors | LEANING — SP.net thresholds as defaults, wheel-while-holding in v1, rocker/chords deferred (see F1) |
 | D5 | Config format & location | LEANING JSON |
-| D6 | macOS "maximize" semantics (zoom/fullscreen/tile) | OPEN — deferrable until macOS port |
+| D6 | macOS "maximize" semantics (zoom/fullscreen/tile) | DECIDED (Joel, 2026-10-09): macOS's own tiling Fill (Window › Move & Resize › Fill, the green button's Fill) and Return to Previous Size to restore, pressed through Accessibility; Augram's own fill of the visible frame only for an app without those items. Never the zoom button (full screen). |
 | D7 | Distribution ambitions (personal vs public; signing/notarization) | OPEN |
 | D8 | Start-on-login, onboarding | OPEN |
 | D9 | Import from StrokesPlus.net JSON in v1 | LEANING yes (see F8) |
