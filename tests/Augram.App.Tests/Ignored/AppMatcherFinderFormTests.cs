@@ -46,24 +46,30 @@ public sealed class AppMatcherFinderFormTests
         Assert.Empty(FinderLabels(rows));
     }
 
-    /// <summary>A pattern line fills the editor column and stays in it (Joel, 2026-10-09: it spilled over the labels).</summary>
-    [AvaloniaFact]
-    public void APatternLineStaysRightOfTheLabels_AndInsideTheRow()
+    /// <summary>A pattern line fills the editor column and stays in it, also in a narrow window (Joel, 2026-10-09: it spilled over the labels).</summary>
+    [AvaloniaTheory]
+    [InlineData(900, 400)]
+    [InlineData(460, 25)]
+    public void APatternLineStaysRightOfTheLabels_AndInsideTheRow(double width, double minimum)
     {
         var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
         edit.ProcessPath = new string('x', 300);
         var form = new SectionForm { Screen = new FormScreen("Identification", edit.Sections()) };
-        var window = new Window { Width = 900, Height = 3200, Content = form };
+        var window = new Window { Width = width, Height = 3200, Content = form };
         window.Show();
 
         foreach (var label in new[] { "Executable", "Executable path", "Window title", "Control class" })
         {
             var row = form.GetVisualDescendants().OfType<FieldRow>().Single(candidate => candidate.Label == label);
             var line = (Control)row.Editor!;
-            var left = line.TranslatePoint(new Point(0, 0), row)!.Value.X;
-            Assert.True(left >= 220, $"{label} starts at {left}, over the label column");
-            Assert.True(left + line.Bounds.Width <= row.Bounds.Width + 0.5, $"{label} ends past the row");
-            Assert.True(line.Bounds.Width > 400, $"{label} does not fill the column ({line.Bounds.Width})");
+            // The text box and the check box themselves: the line kept its place while its box overflowed left inside it.
+            var box = line.GetVisualDescendants().OfType<TextBox>().First();
+            var regex = line.GetVisualDescendants().OfType<CheckBox>().Single();
+            var left = box.TranslatePoint(new Point(0, 0), row)!.Value.X;
+            var right = regex.TranslatePoint(new Point(regex.Bounds.Width, 0), row)!.Value.X;
+            Assert.True(left >= 220, $"{label}'s box starts at {left}, over the label column");
+            Assert.True(right <= row.Bounds.Width + 0.5, $"{label}'s Use Regex ends past the row");
+            Assert.True(box.Bounds.Width > minimum, $"{label}'s box does not fill the column ({box.Bounds.Width})");
         }
     }
 

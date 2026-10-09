@@ -19,6 +19,7 @@ public sealed class PatternFieldRenderer : IFieldRenderer
 
         var editor = new TextBox { IsReadOnly = pattern.Value.IsReadOnly };
         editor.Classes.Add("field-editor");
+        editor.Classes.Add("pattern-box");
         BindingObserver.Attach(editor, pattern.Value, value =>
         {
             if (editor.Text != value)

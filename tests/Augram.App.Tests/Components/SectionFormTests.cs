@@ -31,6 +31,21 @@ public sealed class SectionFormTests
         Assert.IsType<Button>(rows[7].Editor);
     }
 
+    /// <summary>Help is an (i) after the label and the section title, its text in the tooltip, never a line under it (Joel, 2026-10-09).</summary>
+    [AvaloniaFact]
+    public void HelpIsAnInfoMarkWithItsTextInTheTooltip()
+    {
+        var screen = new FormScreen("Help", [new Section("Section", [new TextField("With help", new DelegateBinding<string>(() => "x"), "What it does."), new TextField("Without", new DelegateBinding<string>(() => "y"))], "About the section.")]);
+        var form = new SectionForm { Screen = screen };
+        var window = new Window { Width = 600, Height = 400, Content = form };
+        window.Show();
+
+        var marks = form.GetVisualDescendants().OfType<TextBlock>().Where(text => text.Classes.Contains("help-icon")).ToList();
+        Assert.Equal(["About the section.", "What it does.", null], marks.Select(mark => mark.IsVisible ? (string?)ToolTip.GetTip(mark) : null));
+        Assert.All(marks, mark => Assert.Equal("ⓘ", mark.Text));
+        Assert.DoesNotContain(form.GetVisualDescendants().OfType<TextBlock>(), text => text.Text is "What it does." or "About the section.");
+    }
+
     [AvaloniaFact]
     public void ViewModelChangesReachTheEditors()
     {

@@ -68,8 +68,11 @@
                     Padding="{StaticResource Pad.M}"
                     Margin="{StaticResource Pad.S}">
               <StackPanel Spacing="{StaticResource Space.S}">
-                <TextBlock Classes="section-title" Text="{TemplateBinding Title}" />
-                <TextBlock Classes="help" Text="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
+                <!-- The description is an (i) after the title, its text in the tooltip (Joel, 2026-10-09). -->
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Classes="section-title" Text="{TemplateBinding Title}" />
+                  <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
+                </StackPanel>
                 <ItemsControl ItemsSource="{TemplateBinding Rows}" />
               </StackPanel>
             </Border>
@@ -84,9 +87,10 @@
                     BorderThickness="{StaticResource Border.Bottom}"
                     Padding="{StaticResource Pad.S}">
               <Grid ColumnDefinitions="220,Auto,*">
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <!-- The help is an (i) after the label, its text in the tooltip (Joel, 2026-10-09: the rows were tall with text). -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                   <TextBlock Classes="field-label" Text="{TemplateBinding Label}" />
-                  <TextBlock Classes="help" Text="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
+                  <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
                 </StackPanel>
                 <!-- The field's accessory (a window finder's magnifier) before the editor; no room taken without one. -->
                 <ContentPresenter Grid.Column="1"
@@ -846,6 +850,16 @@
   <Style Selector="TextBlock.field-label">
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
+  <!-- The (i) that carries a field's or a section's help in its tooltip. -->
+  <Style Selector="TextBlock.help-icon">
+    <Setter Property="Text" Value="ⓘ" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Margin" Value="4,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Help" />
+    <Setter Property="ToolTip.ShowDelay" Value="200" />
+  </Style>
   <Style Selector="TextBlock.help">
     <Setter Property="FontSize" Value="{StaticResource Font.S}" />
     <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
@@ -884,6 +898,10 @@
        The row's editor fills its column, so the text box stretches and never pushes the line over the label. -->
   <Style Selector="form|FieldRow.stretch-editor /template/ ContentPresenter#PART_Editor">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <!-- Its text box gives way in a narrow window instead of pushing the line over the labels. -->
+  <Style Selector="TextBox.field-editor.pattern-box">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.PatternMinWidth}" />
   </Style>
   <Style Selector="Grid.pattern-line > :is(Control).pattern-finder">
     <Setter Property="Margin" Value="{StaticResource Pad.S}" />

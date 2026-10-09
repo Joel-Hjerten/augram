@@ -77,6 +77,7 @@
   <x:Double x:Key="Editor.MinWidth">180</x:Double>
   <!-- A text editor for long values (a repository address). -->
   <x:Double x:Key="Editor.WideMinWidth">420</x:Double>
+  <x:Double x:Key="Editor.PatternMinWidth">30</x:Double>
   <!-- A multi-line text editor (a typed-text step): about two lines when short, grows with its text to about eight, then scrolls. -->
   <x:Double x:Key="Editor.MultilineMinHeight">48</x:Double>
   <x:Double x:Key="Editor.MultilineMaxHeight">160</x:Double>
