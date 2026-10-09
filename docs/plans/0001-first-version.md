@@ -85,4 +85,4 @@ Eight flicks (↑ ↓ ← → and the four diagonals), four out-and-backs (↑�
 
 ## Not in this plan
 
-macOS adapter and permissions onboarding; signing and notarization (both started anyway on Joel's Mac, 2026-10-07/08: session handoff §8a, docs/release.md); cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.
+Hold layers (requirements F9, Joel 2026-10-09; Blender first): its own plan once D12's open points are answered, starting with the macOS drag test; macOS adapter and permissions onboarding; signing and notarization (both started anyway on Joel's Mac, 2026-10-07/08: session handoff §8a, docs/release.md); cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.

@@ -159,6 +159,23 @@ App
   - **When:** at start, on "Sync now", 20 s after a local change, and every 5 minutes while running. Applying a sync is one undo step per store. Options › Sync shows the repo, this machine's name, the last sync and its result, and the pending conflicts.
   - Later, not now: a passphrase that encrypts the file before it leaves the machine (typed-text and Run steps travel with the settings; do not put passwords in them).
 
+### F9. Hold layers — DECIDED (shape, Joel 2026-10-09), OPEN (details)
+Origin: Joel's AutoHotkey script for Blender ([reference/autohotkey-navigation-for-blender/](reference/autohotkey-navigation-for-blender/README.md)), which gives Blender's default keymap Maya-style navigation on a held Space. Built into Augram it drops the AutoHotkey dependency, works on the Mac, and syncs with the rest of the config. Not a gesture feature: a held-key remapper that shares the engine's hook, pairing and per-app machinery.
+- **A layer is a key that, while held, changes what other inputs do.** It belongs to an app group; an app group may have **several layers** (Space, S, …), each a hub of its own. Blender is the first user; nothing in the model is Blender-specific.
+- **A layer has rows: input → action.** Inputs: a mouse button, a wheel direction, or a key. Actions:
+  - **Remap**: the input's press and release become the output's press and release, held for as long as the input is held (Left held → Middle held, so a drag stays a drag). Output is a button, a key or a wheel notch, with modifiers. For a button output the modifiers are pressed around the down only (the script's `+{MButton Down}`: Blender reads them when the drag starts, and nothing stays held through it); for a key output they are held for the whole press, so its repeats keep them.
+  - **Run steps**: the same step list a command has, every step type included, fired on the input's press. This is the "hub for launching other commands" use.
+- **Tap passes the layer key through (Joel, 2026-10-09):** the layer key's own press is swallowed; when it is released and nothing in the layer was used while it was down, the key is sent (down and up) on release. **No time limit:** holding it and doing nothing, then releasing, still sends it; it waits for the release and never sends anything while held. Its key repeats are swallowed.
+- **Typing rollover (Joel has hit this "many times" with the script):** an input that is not in the layer, pressed while the layer key is down and nothing has been used yet, means the user is typing: the layer key is sent first, then that input, and the layer is off until the key is released. "a b" typed fast with Space still down stays "a b", not "ab ". Once a row has been used, other inputs pass through unchanged and the layer key is not sent at release.
+- **Which app:** the layer key belongs to the app in front when it goes down (keyboard input goes to the foreground, as the script's `WinActive`), not the window under the pointer. Inputs pressed while it is held use that decision.
+- **Layers before gestures:** an input that is a row of the held layer belongs to the layer even when it is the stroke button (Joel's stroke button is Middle on both machines, and the Blender layer maps Space + Middle to Ctrl + Middle). Augram's own injected buttons and keys are simulated and already ignored by the hook; an injected wheel notch must be claimed through `OwnWheelInjections` like a Scroll step's, so a wheel trigger cannot see it.
+- **Pairing (A19) per press:** a remapped press gets its remapped release when the input is released, even if the layer key was released first; a layer key whose press was swallowed is never seen by the OS without its release. The layer follows `Enabled`, the ignore key and the ignore list's "disable Augram while this app is focused".
+- **Cross-platform:** remap outputs are **not converted** (Blender's Ctrl + Middle zoom is Ctrl on the Mac too); a row may have a per-platform output. Run-steps rows follow F8's step conversion. Layers sync with their app group.
+- **Engine:** the hook decides from a published answer (the watch publishes the foreground app's layers beside the pointer answer, `InputGate`) and never looks a window up; injection stays on the worker (invariant 1).
+- OPEN: the editor (where layers live on the app group's page, how a row's input is picked: hotkey field for keys, detect-to-assign for buttons); whether Global may have layers too, shadowed per app like commands; a "held at least N ms before a row counts" option for letter layer keys (S) that collide with fast typing, as Karabiner-Elements' `to_if_held_down` does.
+- RISK (macOS, test first): while the physical Left is held and suppressed, macOS still sends left-drag events; with an injected Middle down, Blender must treat those as moves of a Middle drag. Its Cocoa layer appears to treat every drag type as a move and track buttons from down/up events, but this is unverified, and SharpHook can suppress an event but not rewrite its type. Windows has no such question (the script proves it).
+- Reference for semantics: Karabiner-Elements (macOS, free) does all of this today with `to_if_alone`, frontmost-application conditions and `pointing_button` remaps; a stopgap on the Mac until this is built.
+
 ## 3. Non-functional requirements
 
 ### N1. Cross-platform — DECIDED (goal), see ADR-0001 (means)
@@ -201,6 +218,7 @@ Instead of one-off probe runs, the app logs its own health and timings continuou
 | D7 | Distribution ambitions (personal vs public; signing/notarization) | OPEN |
 | D8 | Start-on-login, onboarding | OPEN |
 | D9 | Import from StrokesPlus.net JSON in v1 | LEANING yes (see F8) |
+| D12 | Hold layers (F9): editor placement, Global layers, hold threshold for letter keys | OPEN — shape DECIDED 2026-10-09; Blender is the first user |
 | D11 | Pre-plan checklist (§6) | OPEN — walk through with Joel, then write the plan |
 | D10 | Initial implementation shape (project layout, build order, first milestone) | **DECIDED** — layout in [ADR-0002](adr/0002-code-and-repo-structure.md), build order in [plans/0001-first-version.md](plans/0001-first-version.md). **M1 reached 2026-10-06** (tag `m1`); Joel's acceptance pass pending |
 
