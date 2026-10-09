@@ -1,10 +1,13 @@
+using Augram.App.Declarations;
 using Augram.App.Hosting;
+using Augram.App.Screens;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Diagnostics;
+using Augram.Core.Steps.Hotkey;
 using Xunit;
 
 namespace Augram.App.Tests.Hosting;
@@ -97,6 +100,28 @@ public sealed class AppSettingsViewModelTests
         using var vm = Create(engine);
 
         Assert.Equal(AppPaths.ConfigFolder, vm.ConfigFolder);
+    }
+
+    [Fact]
+    public void TheIgnoreKeysAreFourCheckBoxes_AndSeveralCanBeTicked()
+    {
+        using var engine = new EngineFixture(start: false);
+        using var vm = Create(engine);
+        var general = Assert.IsType<FormScreen>(OptionsScreen.Declare(vm)).Sections.Single(section => section.Title == "General");
+        var keys = Assert.Single(general.Fields.OfType<TogglesField>(), field => field.Label == "Ignore keys");
+
+        Assert.Equal(
+            new[] { IgnoreKeys.Control, IgnoreKeys.Alt, IgnoreKeys.Shift, IgnoreKeys.Win }.Select(key => HotkeyText.Format((KeyModifiers)(int)key, KeyCode.None)),
+            keys.Options.Select(option => option.Caption));
+
+        keys.Options[0].Value.Set(true);
+        keys.Options[3].Value.Set(true);
+        Assert.Equal(IgnoreKeys.Control | IgnoreKeys.Win, engine.Settings.Current.General.IgnoreKey);
+
+        keys.Options[0].Value.Set(false);
+        Assert.Equal(IgnoreKeys.Win, engine.Settings.Current.General.IgnoreKey);
+        Assert.False(keys.Options[0].Value.Get());
+        Assert.True(keys.Options[3].Value.Get());
     }
 
     private static AppSettingsViewModel Create(EngineFixture engine)

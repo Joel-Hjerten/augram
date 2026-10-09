@@ -1,9 +1,11 @@
 using Augram.App.Components.Fields;
 using Augram.App.Declarations;
 using Augram.App.ViewModels;
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Recognition;
+using Augram.Core.Steps.Hotkey;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
@@ -15,6 +17,7 @@ public static class OptionsScreen
     public const string StartAtLoginHelp = "Also in the tray menu.";
     public const string StartAtLoginDevHelp = "Start at login applies to the installed Augram; this is a development build.";
     public const string AboutTitle = "About";
+    public const string IgnoreKeysHelp = "Hold any ticked key when you press the stroke button to use the button normally, with no gesture.";
     public const string MenuBarIconHelp = "The app icon in colour instead of the single-colour shape macOS tints for light and dark menu bars.";
 
     /// <param name="vm">The settings projection.</param>
@@ -44,6 +47,23 @@ public static class OptionsScreen
         ? [new ToggleField("Colour menu-bar icon", new DelegateBinding<bool>(() => vm.ColourMenuBarIcon, v => vm.ColourMenuBarIcon = v, vm), MenuBarIconHelp)]
         : [];
 
+    /// <summary>
+    /// The ignore keys as one row of check boxes (Joel, 2026-10-09: several may be ticked, as in StrokesPlus.net). Holding
+    /// any ticked key when the stroke button goes down passes the button through. Captions are this platform's key names,
+    /// as hotkeys show them (Win on Windows; Opt and Cmd on a Mac); the stored set is the same everywhere.
+    /// </summary>
+    private static TogglesField IgnoreKeyToggles(AppSettingsViewModel vm)
+    {
+        ToggleOption Key(IgnoreKeys key) => new(
+            HotkeyText.Format((KeyModifiers)(int)key, KeyCode.None),
+            new DelegateBinding<bool>(() => vm.IgnoreKey.HasFlag(key), on => vm.IgnoreKey = on ? vm.IgnoreKey | key : vm.IgnoreKey & ~key, vm));
+
+        return new TogglesField(
+            "Ignore keys",
+            [Key(IgnoreKeys.Control), Key(IgnoreKeys.Alt), Key(IgnoreKeys.Shift), Key(IgnoreKeys.Win)],
+            IgnoreKeysHelp);
+    }
+
     private static IReadOnlyList<Section> Sections(AppSettingsViewModel vm)
     {
         return
@@ -55,9 +75,7 @@ public static class OptionsScreen
                     "Hold this button and draw. Right is the fresh-install default; SP.net keeps Middle while it runs."),
                 new CustomField("Detect button", () => DetectButtonEditor(vm), vm,
                     "Press the button you want within 5 seconds. If nothing is seen, its vendor software consumes it before Augram can."),
-                new DropdownField<IgnoreKeys>("Ignore key", Choice.FromEnum<IgnoreKeys>(),
-                    new DelegateBinding<IgnoreKeys>(() => vm.IgnoreKey, v => vm.IgnoreKey = v, vm),
-                    "Hold this key to use the stroke button normally."),
+                IgnoreKeyToggles(vm),
                 StartAtLogin(vm),
                 .. MenuBarIcon(vm),
                 new TextField("Config folder",
