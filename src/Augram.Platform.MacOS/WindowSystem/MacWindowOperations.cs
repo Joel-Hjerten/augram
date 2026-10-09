@@ -151,6 +151,14 @@ public sealed class MacWindowOperations : IWindowOperations
                 return returned;
             }
 
+            // macOS's own zoom (a title-bar double-click, Option-click on green): Zoom again toggles it back to the frame
+            // macOS remembered (Joel, 2026-10-09, VS Code). An app that grew its window itself may count as zoomed already
+            // and not move: then the default below.
+            if (PressMenuItem(app, element, frame, Ax.FindZoomMenuItem(app), "Zoom", []) is { } unzoomed)
+            {
+                return unzoomed;
+            }
+
             var fallback = MacMaximize.DefaultRestore(visible);
             _log.Info(Source, "Restored a window Augram did not maximize", ("frame", Describe(frame)), ("visible", Describe(visible)), ("restoredTo", Describe(fallback)));
             return Result(Ax.SetFrame(element, fallback));
@@ -179,12 +187,17 @@ public sealed class MacWindowOperations : IWindowOperations
     private WindowOperationResult? PressTiling(nint app, nint window, MacRect before, string key, string what)
     {
         var seen = new List<string>();
-        var item = Ax.FindWindowMenuItem(app, key, Ax.ControlModifier | Ax.NoCommandModifier, seen);
+        return PressMenuItem(app, window, before, Ax.FindWindowMenuItem(app, key, Ax.ControlModifier | Ax.NoCommandModifier, seen), what, seen);
+    }
+
+    /// <summary>Presses <paramref name="item"/> (owned, released here; zero = not found) on the window brought forward, and reports whether THIS window moved.</summary>
+    private WindowOperationResult? PressMenuItem(nint app, nint window, MacRect before, nint item, string what, List<string> seen)
+    {
         try
         {
             if (item == 0)
             {
-                _log.Info(Source, "No tiling menu item", ("item", what), ("windowMenu", seen.Count == 0 ? "none" : string.Join("; ", seen)));
+                _log.Info(Source, "No such Window menu item", ("item", what), ("windowMenu", seen.Count == 0 ? "not read" : string.Join("; ", seen)));
                 return null;
             }
 
@@ -193,7 +206,7 @@ public sealed class MacWindowOperations : IWindowOperations
             Ax.Perform(window, Ax.RaiseAction);
             var pressed = Ax.Perform(item, Ax.PressAction);
             var moved = pressed == MacNative.AXErrorSuccess && FrameChanged(window, before);
-            _log.Info(Source, "Pressed the tiling menu item", ("item", what), ("result", Ax.Describe(pressed)), ("windowChanged", moved));
+            _log.Info(Source, "Pressed a Window menu item", ("item", what), ("result", Ax.Describe(pressed)), ("windowChanged", moved));
             return moved ? WindowOperationResult.Ok : null;
         }
         finally
