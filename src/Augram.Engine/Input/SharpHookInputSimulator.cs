@@ -12,7 +12,9 @@ namespace Augram.Engine.Input;
 /// notch per platform (<see cref="Scroll"/> itself is tested over SharpHook's <c>TestGlobalHook</c>, which posts nothing);
 /// everything above it is driven through a fake in tests. Injected events come
 /// back through the hook with <c>IsEventSimulated</c> set and <see cref="SharpHookInputSource"/> drops
-/// them, which is what keeps a replayed click from being captured again.
+/// them, which is what keeps a replayed click from being captured again. Wheel notches are the exception: the hook takes
+/// other programs' simulated wheel events, so <see cref="Scroll"/> announces its vertical notches to
+/// <see cref="OwnWheelInjections"/> first and the hook drops exactly those.
 /// </summary>
 public sealed class SharpHookInputSimulator : IInputSimulator
 {
@@ -25,16 +27,18 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     ];
 
     private readonly IEventSimulator _simulator;
+    private readonly OwnWheelInjections? _ownWheel;
 
-    public SharpHookInputSimulator()
-        : this(new EventSimulator())
+    public SharpHookInputSimulator(OwnWheelInjections? ownWheel = null)
+        : this(new EventSimulator(), ownWheel)
     {
     }
 
-    public SharpHookInputSimulator(IEventSimulator simulator)
+    public SharpHookInputSimulator(IEventSimulator simulator, OwnWheelInjections? ownWheel = null)
     {
         ArgumentNullException.ThrowIfNull(simulator);
         _simulator = simulator;
+        _ownWheel = ownWheel;
     }
 
     public SimulationResult Click(MouseButton button, int x, int y)
@@ -69,6 +73,11 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         }
 
         var (rotation, axis, type) = Notch(direction, OperatingSystem.IsMacOS());
+        if (axis == WheelAxis.Vertical)
+        {
+            _ownWheel?.Expect(notches);
+        }
+
         var result = SimulationResult.Success;
         for (var i = 0; i < notches; i++)
         {

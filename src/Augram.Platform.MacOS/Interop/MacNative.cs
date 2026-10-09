@@ -126,6 +126,10 @@ internal static partial class MacNative
     [LibraryImport(CoreGraphicsLibrary)]
     public static partial CGPoint CGEventGetLocation(nint cgEvent);
 
+    /// <summary>Posts an event at a tap location (0 = <c>kCGHIDEventTap</c>, as if from the hardware).</summary>
+    [LibraryImport(CoreGraphicsLibrary)]
+    public static partial void CGEventPost(uint tap, nint cgEvent);
+
     [LibraryImport(CoreGraphicsLibrary)]
     public static partial nint CGPathCreateMutable();
 
@@ -257,6 +261,21 @@ internal static partial class MacNative
 
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial nint SendPtr(nint receiver, nint selector, CGRect rect);
+
+    /// <summary><c>+[NSEvent otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:]</c>.</summary>
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendSystemDefinedEvent(
+        nint receiver,
+        nint selector,
+        nuint type,
+        CGPoint location,
+        nuint modifierFlags,
+        double timestamp,
+        nint windowNumber,
+        nint context,
+        short subtype,
+        nint data1,
+        nint data2);
 
     /// <summary><c>-[NSWindow initWithContentRect:styleMask:backing:defer:]</c>.</summary>
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]

@@ -79,4 +79,18 @@ public sealed class SharpHookInputSimulatorTests
         Assert.Equal(SimulationResult.Failed, result);
         Assert.Empty(hook.SimulatedEvents);
     }
+
+    [Fact]
+    public void AVerticalScrollAnnouncesItsNotchesSoTheHookDropsThem_AHorizontalOneDoesNot()
+    {
+        using var hook = new TestGlobalHook();
+        var own = new OwnWheelInjections(() => 0);
+        var simulator = new SharpHookInputSimulator(hook, own);
+
+        simulator.Scroll(ScrollDirection.Down, 3, 0, 0);
+        Assert.Equal(3, own.Pending);
+
+        simulator.Scroll(ScrollDirection.Left, 2, 0, 0);
+        Assert.Equal(3, own.Pending);
+    }
 }

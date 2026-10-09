@@ -59,8 +59,10 @@ public static class EngineModule
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Settings);
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Gestures);
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Mapping);
-        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>(), sp.GetRequiredService<IEventLog>()));
-        services.AddSingleton<IInputSimulator>(_ => new SharpHookInputSimulator());
+        // Shared by the hook and the simulator: the hook takes other programs' wheel events but not our own Scroll step's.
+        services.AddSingleton(_ => new OwnWheelInjections());
+        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>(), sp.GetRequiredService<IEventLog>(), sp.GetRequiredService<OwnWheelInjections>()));
+        services.AddSingleton(sp => CreateSimulator(sp.GetRequiredService<OwnWheelInjections>(), options.PlatformAdapters));
         RegisterPlatform(services, options.PlatformAdapters);
 
         services.AddSingleton(sp => new TrailOverlayWindow(
@@ -189,6 +191,13 @@ public static class EngineModule
             Mapping = () => mapping.Current,
             Intercept = training is null ? null : e => training.TryConsume(e),
         };
+    }
+
+    /// <summary>SharpHook's simulator; on macOS wrapped so the volume and playback keys reach the system (<see cref="MacMediaKeySimulator"/>).</summary>
+    private static IInputSimulator CreateSimulator(OwnWheelInjections ownWheel, bool adapters)
+    {
+        var simulator = new SharpHookInputSimulator(ownWheel);
+        return adapters && OperatingSystem.IsMacOS() ? new MacMediaKeySimulator(simulator) : simulator;
     }
 
     private static void RegisterPlatform(IServiceCollection services, bool adapters)

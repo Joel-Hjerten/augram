@@ -10,6 +10,6 @@ The **Media key** step (key `mediaKey`, category System, platform-neutral): tap 
 | `MediaKeyStepType` | `{ "key": "VolumeUp" }`; an unknown name is a `StepFormatException` naming `key` |
 | `MediaKeyExecutor` | `KeyPress(code)` then `KeyRelease(code)` on `IInputSimulator`; a non-success `SimulationResult` is Failed with "`<code> press: Unsupported`" (no release after a failed press). One Debug line per run |
 
-Media keys are the same on both platforms, so there is nothing to convert (F8). Whether the OS honours the synthesized key is the Engine's simulator's business (`SharpHookInputSimulator`), reported through `SimulationResult`.
+Media keys are the same on both platforms, so there is nothing to convert (F8). Whether the OS honours the synthesized key is the simulator's business, reported through `SimulationResult`: `SharpHookInputSimulator` on Windows; on macOS `Platform.MacOS/Input/MacMediaKeySimulator` wraps it and posts the volume and playback keys as the system-defined events the keyboard's media keys send, because macOS ignores them as key codes (Joel, 2026-10-09: Volume Down fired, the volume did not move). Stop has no Mac key and still goes to SharpHook.
 
 **May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn`, the importer (C1: `SendVKey` 166..183 → kind; other keys → Hotkey), the App's `Components/Steps/MediaKey/` form.

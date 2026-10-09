@@ -15,10 +15,15 @@ namespace Augram.Engine.Input;
 /// handler translates the event to a <see cref="RawInput"/>, calls the <see cref="InputHandler"/>, copies
 /// its answer to <c>SuppressEvent</c>, returns; nothing else. Simulated events are dropped before the
 /// handler: <c>IsEventSimulated</c> is true for input injected by any process, so other utilities'
-/// synthetic input is ignored too (learnings 0001, B4). A dropped button press or release (simulated, or a
+/// synthetic input is ignored too (learnings 0001, B4), except wheel events: a vertical simulated wheel event is taken unless
+/// <see cref="OwnWheelInjections"/> claims it as one of Augram's own Scroll step notches, because a vendor tool (Logi Options+)
+/// re-posts every wheel turn of its mouse and wheel triggers would otherwise never fire (2026-10-09). Without an
+/// <see cref="OwnWheelInjections"/> every simulated wheel event is dropped, as before. A dropped button press or release (simulated, or a
 /// button number past 5) is logged as "Button ignored" with the raw number, at most once per
 /// <see cref="IgnoredLogInterval"/> for each button, reason and direction, so a remapped mouse button that
-/// never reaches the engine (a vendor tool injecting it) shows what it arrives as. Key events take the same path; the handler
+/// never reaches the engine (a vendor tool injecting it) shows what it arrives as. A dropped wheel event (one of our own, horizontal,
+/// or no whole-line rotation) is logged the same way as "Wheel ignored", once per interval and reason: a scrolling utility that
+/// re-posts every wheel event (smooth or reversed scrolling) leaves wheel triggers nothing to see. Key events take the same path; the handler
 /// suppresses them only while a hotkey capture is armed (<c>EngineHost.CaptureKeys</c>, decided in
 /// <c>InputGate</c>). Thin and untested on purpose: it needs a desktop, and everything above it is
 /// driven through a fake source in tests.
@@ -34,19 +39,24 @@ public sealed class SharpHookInputSource : IInputSource
 
     private readonly IClock _clock;
     private readonly IEventLog _log;
+    private readonly OwnWheelInjections? _ownWheel;
 
     // Hook thread only: last "Button ignored" time per (button, simulated, pressed); 0 = never.
     private readonly long[] _ignoredLoggedAt = new long[IgnoredButtonSlots * 4];
+
+    // Hook thread only: last "Wheel ignored" time per reason (simulated: ours, or any without an OwnWheelInjections; horizontal; no rotation); 0 = never.
+    private readonly long[] _wheelIgnoredLoggedAt = new long[3];
     private readonly object _gate = new();
     private Generation? _current;
     private InputHandler? _handler;
     private int _generation;
 
-    public SharpHookInputSource(IClock clock, IEventLog? log = null)
+    public SharpHookInputSource(IClock clock, IEventLog? log = null, OwnWheelInjections? ownWheel = null)
     {
         ArgumentNullException.ThrowIfNull(clock);
         _clock = clock;
         _log = log ?? NullEventLog.Instance;
+        _ownWheel = ownWheel;
     }
 
     public event EventHandler<HookHealth>? HookHealthChanged;
@@ -230,8 +240,9 @@ public sealed class SharpHookInputSource : IInputSource
 
     private void OnWheel(object? sender, MouseWheelHookEventArgs e)
     {
-        if (e.IsEventSimulated || e.Data.Direction != MouseWheelScrollDirection.Vertical || e.Data.Rotation == 0)
+        if (e.Data.Direction != MouseWheelScrollDirection.Vertical || e.Data.Rotation == 0 || (e.IsEventSimulated && (_ownWheel is null || _ownWheel.TryClaim())))
         {
+            LogIgnoredWheel(e);
             return;
         }
 
@@ -239,6 +250,29 @@ public sealed class SharpHookInputSource : IInputSource
         var direction = e.Data.Rotation > 0 ? WheelDirection.Up : WheelDirection.Down;
         var raw = RawInput.WheelTick(direction, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask));
         e.SuppressEvent = _handler!(in raw);
+    }
+
+    private void LogIgnoredWheel(MouseWheelHookEventArgs e)
+    {
+        var slot = e.Data.Direction != MouseWheelScrollDirection.Vertical ? 1 : e.Data.Rotation == 0 ? 2 : 0;
+        var now = _clock.MonotonicMs;
+        var last = _wheelIgnoredLoggedAt[slot];
+        if ((last != 0 && now - last < (long)IgnoredLogInterval.TotalMilliseconds) || !_log.IsEnabled(EventLevel.Info))
+        {
+            return;
+        }
+
+        _wheelIgnoredLoggedAt[slot] = now == 0 ? 1 : now;
+        _log.Info(
+            LogSources.Hook,
+            "Wheel ignored",
+            ("reason", slot switch { 0 => _ownWheel is null ? "simulated" : "own scroll", 1 => "horizontal", _ => "no rotation" }),
+            ("simulated", e.IsEventSimulated),
+            ("rotation", e.Data.Rotation),
+            ("delta", e.Data.Delta),
+            ("type", e.Data.Type),
+            ("x", e.Data.X),
+            ("y", e.Data.Y));
     }
 
     private void OnKey(object? sender, KeyboardHookEventArgs e)
