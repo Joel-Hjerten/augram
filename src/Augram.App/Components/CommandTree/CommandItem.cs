@@ -72,6 +72,12 @@ public sealed record CommandItem(
     /// <summary>F8 for the trigger: converted from the other platform, this platform's own, or no counterpart here; null for a trigger authored here.</summary>
     public string? TriggerNote { get; init; }
 
+    /// <summary>
+    /// The header's note on a trigger the rules refused, kept as a draft while the user composes it (Joel, 2026-10-09): what is
+    /// wrong and how to fix it. Null for the stored trigger, and always on a row (<see cref="WithDraft"/>).
+    /// </summary>
+    public string? DraftNote { get; init; }
+
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
 
     public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
@@ -118,6 +124,26 @@ public sealed record CommandItem(
             VersionText = VersionLine(command, here),
             HasOwnVersionHere = command.OwnVersion?.Platform == here,
             IsOwnVersionStale = command.IsOwnVersionStale,
+        };
+    }
+
+    /// <summary>
+    /// The item as the header shows it while <paramref name="draft"/> waits (a trigger the rules refused): its kind, words, glyph
+    /// (<paramref name="gesture"/>, for a gesture), hint and anchor warning, with <paramref name="note"/>. The row keeps the stored item.
+    /// </summary>
+    public CommandItem WithDraft(Trigger draft, Gesture? gesture, AppGroup group, HostPlatform here, string note)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        ArgumentNullException.ThrowIfNull(group);
+        return this with
+        {
+            TriggerKind = TriggerKindExtensions.KindOf(draft),
+            TriggerText = TriggerKindExtensions.Text(draft, gesture?.Name ?? "Missing gesture", here),
+            GlyphPoints = gesture is { Samples.Count: > 0 } ? gesture.Samples[0] : null,
+            Trigger = draft,
+            TriggerHint = TriggerKindExtensions.Hint(draft, here),
+            AnchorWarning = TriggerKindExtensions.AnchorWarning(draft, group),
+            DraftNote = note,
         };
     }
 

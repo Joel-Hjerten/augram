@@ -651,6 +651,10 @@
                     <CheckBox Name="PART_KeyMeta" Classes="toggle-option" />
                     <ComboBox Name="PART_Capture" Classes="field-editor" IsVisible="{TemplateBinding HasHoldMembers}" />
                   </StackPanel>
+                  <!-- A combination the rules refuse waits as a draft (Joel, 2026-10-09): what is wrong and how to fix it. Below the boxes, so they never move under the pointer. -->
+                  <Border Classes="warning-note" IsVisible="{TemplateBinding DraftNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Name="PART_DraftNote" Classes="error" Text="{TemplateBinding DraftNote}" />
+                  </Border>
                   <TextBlock Classes="help"
                              Text="{TemplateBinding AnchorWarning}"
                              TextWrapping="Wrap"
@@ -945,6 +949,12 @@
   <Style Selector="TextBlock.error">
     <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
     <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <!-- A note that something is not saved or not valid yet (the command header's trigger draft); holds a TextBlock.error. -->
+  <Style Selector="Border.warning-note">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
   </Style>
   <Style Selector="DockPanel.dialog">
     <Setter Property="Margin" Value="{StaticResource Pad.L}" />

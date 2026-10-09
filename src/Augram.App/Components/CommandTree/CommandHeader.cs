@@ -13,9 +13,10 @@ namespace Augram.App.Components.CommandTree;
 /// picker, and a Category dropdown (<c>PART_Category</c>) when the item offers categories
 /// (<see cref="CommandItem.Categories"/>: always on the Global tab, only for a group that has some on the
 /// Apps tab). Choosing Gesture in the kind dropdown asks for the picker too. Both dropdowns only ask
-/// (<see cref="AskingDropdown"/>): they are put back to the command's real value after every request, so
-/// a cancelled picker or a refused change leaves them honest. The Use on boxes (<c>PART_UseOnWindows</c>,
-/// <c>PART_UseOnMac</c>, F8) ask the same way; a platform the command's category or app group leaves out shows its box
+/// (<see cref="AskingDropdown"/>): they are put back to the item's value after every request, so a cancelled
+/// picker or a refused category leaves them honest; for the trigger that value is the host's draft while a
+/// combination is not valid yet (<see cref="CommandItem.DraftNote"/>, shown as <c>DraftNote</c>). The Use on
+/// boxes (<c>PART_UseOnWindows</c>, <c>PART_UseOnMac</c>, F8) ask the same way; a platform the command's category or app group leaves out shows its box
 /// unchecked and disabled, with <see cref="UseOnNote"/> saying which one (Joel, 2026-10-08).
 /// </summary>
 public sealed partial class CommandHeader : TemplatedControl
@@ -231,6 +232,7 @@ public sealed partial class CommandHeader : TemplatedControl
             TriggerHint = item?.TriggerHint;
             AnchorWarning = item?.AnchorWarning;
             TriggerNote = item?.TriggerNote;
+            DraftNote = item?.DraftNote;
             HasCategories = item is { Categories.Count: > 0 };
             VersionText = item?.VersionText;
             UseOnNote = item?.UseOnLimitText;

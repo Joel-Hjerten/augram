@@ -39,9 +39,9 @@ internal static class CommandSections
 
     /// <summary>
     /// A trigger naming this machine's stroke button means the stroke button here (<c>HeldButtonsExtensions.ForStrokeButton</c>);
-    /// the header says so in the anchor warning's place, since nothing is held back for it.
+    /// the header says so in the anchor warning's place, since nothing is held back for it. Also said over a draft in the header.
     /// </summary>
-    private static CommandItem WithStrokeButtonNote(CommandItem item, MouseButton strokeButton)
+    public static CommandItem WithStrokeButtonNote(CommandItem item, MouseButton strokeButton)
         => item.Trigger.IsBound && item.Trigger.Hold.Physical.Has(strokeButton)
             ? item with { AnchorWarning = $"{strokeButton} is the stroke button on this machine, so here it means the stroke button." }
             : item;

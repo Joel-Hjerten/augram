@@ -7,7 +7,8 @@ namespace Augram.App.Components.CommandTree;
 /// <summary>
 /// The one place a <see cref="Trigger"/> becomes a <see cref="TriggerKind"/> and the words the header, the row badge and the
 /// summary show for it: "Gesture" / "Wheel" / "No trigger" in the dropdown (Joel's order), "Right + wheel up", "Shift + Undo",
-/// "Shift + click" for a whole trigger, and the hint beside the kind.
+/// "Shift + click" for a whole trigger, the hint beside the kind, and the trigger's words in the header's note on a draft
+/// ("Stroke button + wheel up", "Change the direction, a button or a key.").
 /// </summary>
 public static class TriggerKindExtensions
 {
@@ -63,6 +64,31 @@ public static class TriggerKindExtensions
             _ => held.Length == 0 ? Capitalised(trigger.KindPhrase) : $"{held} + {trigger.KindPhrase}",
         };
     }
+
+    /// <summary>
+    /// The whole trigger inside a sentence (the header's note on a trigger not saved yet): <see cref="Text"/>, except that a wheel
+    /// trigger names the stroke button it holds, since for a wheel that box is a choice ("Stroke button + wheel up", "Stroke
+    /// button + Shift + wheel up"), and a gesture is called one ("Shift + gesture 'Up'").
+    /// </summary>
+    public static string Phrase(Trigger trigger, string gestureName, HostPlatform names)
+    {
+        ArgumentNullException.ThrowIfNull(trigger);
+        if (trigger is not Trigger.WheelTrigger || !trigger.Hold.HoldsStroke)
+        {
+            return Text(trigger, $"gesture '{gestureName}'", names);
+        }
+
+        var held = trigger.Hold.Describe(names, strokeImplied: true);
+        return held.Length == 0 ? $"Stroke button + {trigger.KindPhrase}" : $"Stroke button + {held} + {trigger.KindPhrase}";
+    }
+
+    /// <summary>What the user can change to get past a trigger another command already uses: the gesture or the direction, a button, a key.</summary>
+    public static string FixHint(Trigger trigger) => trigger switch
+    {
+        Trigger.WheelTrigger => "Change the direction, a button or a key.",
+        Trigger.GestureTrigger => "Change the gesture, a button or a key.",
+        _ => "Change a button or a key.",
+    };
 
     /// <summary>
     /// One line on how the trigger fires, for the kinds a user cannot guess from the name: the wheel and the click work only while
