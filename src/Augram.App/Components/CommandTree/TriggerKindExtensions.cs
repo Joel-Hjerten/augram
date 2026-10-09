@@ -16,6 +16,14 @@ public static class TriggerKindExtensions
         _ => "No trigger",
     };
 
+    /// <summary>One line on how the trigger fires, for the kinds a user cannot guess from the name: the wheel works only while the stroke button is held.</summary>
+    public static string? Hint(this TriggerKind kind) => kind switch
+    {
+        TriggerKind.WheelUp => "Hold the stroke button and turn the mouse wheel up; every notch fires.",
+        TriggerKind.WheelDown => "Hold the stroke button and turn the mouse wheel down; every notch fires.",
+        _ => null,
+    };
+
     public static TriggerKind KindOf(Trigger trigger)
     {
         ArgumentNullException.ThrowIfNull(trigger);

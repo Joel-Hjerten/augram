@@ -90,6 +90,19 @@ public sealed class CommandHeaderTests
         Assert.Equal(2, header.CategoryIndex);
     }
 
+    [AvaloniaFact]
+    public void AWheelTriggerSaysHowItFires_AGestureNeedsNoHint()
+    {
+        var (vm, _, _, _) = Create(CommandsScope.Global);
+        var (header, _) = Show(Item(vm, "Close window"));
+        Assert.Null(header.TriggerHint);
+
+        header.Item = Item(vm, "Close window") with { TriggerKind = TriggerKind.WheelUp };
+
+        Assert.Equal(TriggerKind.WheelUp.Hint(), header.TriggerHint);
+        Assert.Contains("stroke button", header.TriggerHint, StringComparison.Ordinal);
+    }
+
     private static (CommandHeader Header, List<CommandTreeActionEventArgs> Actions) Show(CommandItem item)
     {
         var actions = new List<CommandTreeActionEventArgs>();

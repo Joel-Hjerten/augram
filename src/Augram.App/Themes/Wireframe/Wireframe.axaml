@@ -524,6 +524,10 @@
                         <TextBlock Classes="help" Text="Change…" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
+                    <TextBlock Classes="help"
+                               Text="{TemplateBinding TriggerHint}"
+                               VerticalAlignment="Center"
+                               IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
                     <TextBlock Classes="field-label header-label" Text="Category" VerticalAlignment="Center" />

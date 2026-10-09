@@ -36,6 +36,9 @@ public sealed class CommandHeader : TemplatedControl
     public static readonly StyledProperty<IReadOnlyList<GesturePoint>?> PointsProperty =
         AvaloniaProperty.Register<CommandHeader, IReadOnlyList<GesturePoint>?>(nameof(Points));
 
+    public static readonly StyledProperty<string?> TriggerHintProperty =
+        AvaloniaProperty.Register<CommandHeader, string?>(nameof(TriggerHint));
+
     public static readonly StyledProperty<bool> IsGestureKindProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(IsGestureKind));
 
@@ -94,6 +97,13 @@ public sealed class CommandHeader : TemplatedControl
     {
         get => GetValue(PointsProperty);
         private set => SetValue(PointsProperty, value);
+    }
+
+    /// <summary>How the trigger fires, beside it, for the kinds that are not obvious (a wheel trigger); null otherwise.</summary>
+    public string? TriggerHint
+    {
+        get => GetValue(TriggerHintProperty);
+        private set => SetValue(TriggerHintProperty, value);
     }
 
     public bool IsGestureKind
@@ -218,6 +228,7 @@ public sealed class CommandHeader : TemplatedControl
             TriggerText = item?.TriggerText ?? string.Empty;
             Points = item?.GlyphPoints;
             IsGestureKind = item?.TriggerKind == TriggerKind.Gesture;
+            TriggerHint = item?.TriggerKind.Hint();
             HasCategories = item is { Categories.Count: > 0 };
             VersionText = item?.VersionText;
             UseOnNote = item?.UseOnLimitText;
