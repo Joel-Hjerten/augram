@@ -1,17 +1,20 @@
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.Core.Sync;
 
 /// <summary>
 /// The command part of <see cref="SyncDocumentBuilder"/>: puts every merged command into its group (Global
-/// when the group is gone), clears references the merge left dangling, then makes names unique and binds
-/// each trigger once per group (A7), the commands already here first. Every change is a <see cref="SyncRepair"/>.
+/// when the group is gone), clears references the merge left dangling (a gesture, a category, a hold remap), then makes
+/// names unique and binds each trigger once per group (A7; an input once per hold remap), the commands already here first.
+/// Every change is a <see cref="SyncRepair"/>.
 /// </summary>
 internal sealed class CommandPlacement
 {
     private readonly Dictionary<GroupId, string> _groupNames;
     private readonly Dictionary<GroupId, List<CommandCategory>> _categories;
+    private readonly Dictionary<GroupId, List<HoldRemap>> _holdRemaps;
     private readonly HashSet<GestureId> _gestures;
     private readonly SyncItemSet _before;
     private readonly List<SyncRepair> _repairs;
@@ -19,12 +22,14 @@ internal sealed class CommandPlacement
     public CommandPlacement(
         IReadOnlyList<AppGroup> groups,
         Dictionary<GroupId, List<CommandCategory>> categories,
+        Dictionary<GroupId, List<HoldRemap>> holdRemaps,
         HashSet<GestureId> gestures,
         SyncItemSet before,
         List<SyncRepair> repairs)
     {
         _groupNames = groups.ToDictionary(group => group.Id, group => group.Name);
         _categories = categories;
+        _holdRemaps = holdRemaps;
         _gestures = gestures;
         _before = before;
         _repairs = repairs;
@@ -43,7 +48,7 @@ internal sealed class CommandPlacement
         return placed.ToDictionary(pair => pair.Key, pair => Unique(pair.Key, pair.Value));
     }
 
-    /// <summary>The command's group, or Global (uncategorized) when its group is gone; a displaced command counts as incoming.</summary>
+    /// <summary>The command's group, or Global (uncategorized, out of its hold remap) when its group is gone; a displaced command counts as incoming.</summary>
     private (GroupId Group, Command Command, bool Incoming) Located(SyncItem.CommandItem item, bool isIncoming)
     {
         if (_groupNames.ContainsKey(item.GroupId))
@@ -52,12 +57,13 @@ internal sealed class CommandPlacement
         }
 
         _repairs.Add(new(item.Key, SyncRepairKind.MovedToGlobal, $"Command '{item.Command.Name}' moved to Global: its app group is gone."));
-        return (GroupId.Global, item.Command with { CategoryId = null }, true);
+        return (GroupId.Global, HoldRemapRules.Detached(item.Command) with { CategoryId = null }, true);
     }
 
     /// <summary>
     /// Clears a gesture trigger whose gesture is gone (only when the merge removed it or the command is incoming:
-    /// a reference that was already dangling here is not the merge's to touch) and a category that is gone.
+    /// a reference that was already dangling here is not the merge's to touch), a category that is gone, and a hold remap that
+    /// is gone (the command becomes an ordinary one without its input).
     /// </summary>
     private Command Unreferenced(Command command, GroupId groupId, SyncItemKey key, bool isIncoming)
     {
@@ -73,6 +79,12 @@ internal sealed class CommandPlacement
         {
             _repairs.Add(new(key, SyncRepairKind.CategoryCleared, $"Command '{command.Name}' in '{_groupNames[groupId]}' is now uncategorized: its category is gone."));
             command = command with { CategoryId = null };
+        }
+
+        if (command.HoldRemapId is { } holdRemap && !_holdRemaps[groupId].Any(candidate => candidate.Id == holdRemap))
+        {
+            _repairs.Add(new(key, SyncRepairKind.HoldRemapCleared, $"Command '{command.Name}' in '{_groupNames[groupId]}' is now an ordinary command without its input: its hold remap is gone."));
+            command = HoldRemapRules.Detached(command);
         }
 
         return command;

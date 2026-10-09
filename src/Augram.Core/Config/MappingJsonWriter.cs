@@ -11,14 +11,14 @@ namespace Augram.Core.Config;
 /// through <see cref="ConfigJsonContext"/> because a step is polymorphic: its parameters are whatever
 /// its <see cref="IStepType.Write"/> returns, under the envelope F8 names (<c>type</c>, <c>authoredOn</c>,
 /// <c>isActive</c>, <c>params</c>, <c>overrides</c>). Every member is written in full except
-/// <c>overrides</c> (omitted when there are none), <c>note</c> and a command's <c>category</c> (omitted
-/// when null), a group's <c>categories</c> (omitted when empty) and the <c>useOn</c> of a group, a category or a command
-/// (omitted when every platform), so a diff after an edit shows only the
+/// <c>overrides</c> (omitted when there are none), <c>note</c>, a command's <c>category</c> and <c>holdRemap</c> (omitted
+/// when null), a group's <c>categories</c> and <c>holdRemaps</c> (omitted when empty) and the <c>useOn</c> of a group, a
+/// category, a hold remap or a command (omitted when every platform), so a diff after an edit shows only the
 /// edit and a file without categories looks as it did before they existed. An override is always of
 /// the same type as its step and is written as that type's parameters under the platform's camelCase
 /// name (<c>windows</c>, <c>macOS</c>).
 /// </summary>
-internal static class MappingJsonWriter
+internal static partial class MappingJsonWriter
 {
     public const string UseOnWindows = "windows";
     public const string UseOnMacOS = "macos";
@@ -56,6 +56,7 @@ internal static class MappingJsonWriter
         WriteUseOn(writer, group.UseOn);
         WriteMatcher(writer, group.Matcher);
         WriteCategories(writer, group.Categories);
+        WriteHoldRemaps(writer, group.HoldRemaps);
         writer.WriteStartArray("commands");
         foreach (var command in group.Commands)
         {
@@ -77,6 +78,11 @@ internal static class MappingJsonWriter
         if (command.CategoryId is { } category)
         {
             writer.WriteString("category", category.Value);
+        }
+
+        if (command.HoldRemapId is { } holdRemap)
+        {
+            writer.WriteString("holdRemap", holdRemap.Value);
         }
 
         if (command.Note is not null)
@@ -150,8 +156,9 @@ internal static class MappingJsonWriter
     }
 
     /// <summary>
-    /// <c>{ "gesture": id }</c>, <c>{ "wheel": "Up" }</c>, <c>{ "click": true }</c> or null, with a <c>hold</c> (schema 2) only when
-    /// the trigger holds more than the stroke button alone, so a plain trigger reads as it did before combinations.
+    /// <c>{ "gesture": id }</c>, <c>{ "wheel": "Up" }</c>, <c>{ "click": true }</c>, <c>{ "input": { … } }</c> (schema 4, a command
+    /// under a hold remap) or null, with a <c>hold</c> (schema 2) only when the trigger holds more than the stroke button alone,
+    /// so a plain trigger reads as it did before combinations (an input never has one).
     /// </summary>
     private static void WriteTrigger(Utf8JsonWriter writer, Trigger trigger)
     {
@@ -168,6 +175,10 @@ internal static class MappingJsonWriter
             case Trigger.ClickTrigger:
                 writer.WriteStartObject("trigger");
                 writer.WriteBoolean("click", true);
+                break;
+            case Trigger.InputTrigger input:
+                writer.WriteStartObject("trigger");
+                WriteInput(writer, input.Input);
                 break;
             default:
                 writer.WriteNull("trigger");
@@ -211,62 +222,6 @@ internal static class MappingJsonWriter
         writer.WriteEndObject();
     }
 
-    /// <summary>The per-window fields (schema 3) are written only when set, with their toggle only when on, so a matcher without them looks as before.</summary>
-    private static void WriteFieldIfSet(Utf8JsonWriter writer, string name, string? value, bool isRegex)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return;
-        }
-
-        writer.WriteString(name, value);
-        WriteFlagIfSet(writer, name + "IsRegex", isRegex);
-    }
-
-    private static void WriteFlagIfSet(Utf8JsonWriter writer, string name, bool value)
-    {
-        if (value)
-        {
-            writer.WriteBoolean(name, true);
-        }
-    }
-
-    private static void WriteMatcher(Utf8JsonWriter writer, AppMatcher? matcher)
-    {
-        if (matcher is null)
-        {
-            writer.WriteNull("matcher");
-            return;
-        }
-
-        writer.WriteStartObject("matcher");
-        WriteStrings(writer, "processNames", matcher.WindowsProcessNames);
-        WriteFlagIfSet(writer, "processNamesAreRegex", matcher.WindowsProcessNamesAreRegex);
-        if (matcher.MacProcessNames.Count > 0)
-        {
-            WriteStrings(writer, "macProcessNames", matcher.MacProcessNames);
-        }
-
-        WriteFlagIfSet(writer, "macProcessNamesAreRegex", matcher.MacProcessNamesAreRegex);
-
-        writer.WriteString("processPath", matcher.ProcessPath);
-        writer.WriteBoolean("processPathIsRegex", matcher.ProcessPathIsRegex);
-        WriteFieldIfSet(writer, "macProcessPath", matcher.MacProcessPath, matcher.MacProcessPathIsRegex);
-        writer.WriteString("title", matcher.Title);
-        writer.WriteBoolean("titleIsRegex", matcher.TitleIsRegex);
-        WriteFieldIfSet(writer, "macTitle", matcher.MacTitle, matcher.MacTitleIsRegex);
-        WriteFieldIfSet(writer, "rootTitle", matcher.RootTitle, matcher.RootTitleIsRegex);
-        WriteFieldIfSet(writer, "parentTitle", matcher.ParentTitle, matcher.ParentTitleIsRegex);
-        WriteFieldIfSet(writer, "controlTitle", matcher.ControlTitle, matcher.ControlTitleIsRegex);
-        WriteFieldIfSet(writer, "ownerClass", matcher.OwnerClass, matcher.OwnerClassIsRegex);
-        WriteFieldIfSet(writer, "rootClass", matcher.RootClass, matcher.RootClassIsRegex);
-        WriteFieldIfSet(writer, "parentClass", matcher.ParentClass, matcher.ParentClassIsRegex);
-        WriteFieldIfSet(writer, "controlClass", matcher.ControlClass, matcher.ControlClassIsRegex);
-        WriteStrings(writer, "classChain", matcher.ClassChain);
-        writer.WriteBoolean("ignoreWhenFullScreen", matcher.IgnoreWhenFullScreen);
-        writer.WriteEndObject();
-    }
-
     /// <summary>
     /// F8 "Use on" of a group, a category or a command: written only when it is not every platform, so a file (and a sync
     /// item) without the member is unchanged by it; a list of target names, so specific machines can join it later without a
@@ -288,17 +243,6 @@ internal static class MappingJsonWriter
         if (useOn.HasFlag(PlatformSet.MacOS))
         {
             writer.WriteStringValue(UseOnMacOS);
-        }
-
-        writer.WriteEndArray();
-    }
-
-    private static void WriteStrings(Utf8JsonWriter writer, string name, IReadOnlyList<string> values)
-    {
-        writer.WriteStartArray(name);
-        foreach (var value in values)
-        {
-            writer.WriteStringValue(value);
         }
 
         writer.WriteEndArray();

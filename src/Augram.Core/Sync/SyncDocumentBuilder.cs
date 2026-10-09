@@ -11,9 +11,10 @@ namespace Augram.Core.Sync;
 /// group is gone moves into Global; a gesture trigger is cleared when the merge removed the gesture (or the
 /// command is incoming); a category reference is cleared when the category is gone; a category whose group
 /// is gone is dropped; a command's own version (F8) goes back onto its command, and is dropped when the command is gone.
+/// Hold remaps (F9) are repaired like categories, in <c>SyncDocumentBuilder.HoldRemaps.cs</c>.
 /// Gestures keep the order of <c>merged</c>.
 /// </summary>
-internal static class SyncDocumentBuilder
+internal static partial class SyncDocumentBuilder
 {
     public static Built Build(IReadOnlyList<SyncItem> merged, IReadOnlySet<SyncItemKey> incoming, SyncItemSet before)
     {
@@ -21,22 +22,26 @@ internal static class SyncDocumentBuilder
         var gestures = Gestures(merged.OfType<SyncItem.GestureItem>().ToArray(), incoming, repairs);
         var groups = Groups(merged.OfType<SyncItem.GroupItem>().ToArray(), incoming, repairs);
         var categories = Categories(merged.OfType<SyncItem.CategoryItem>().ToArray(), incoming, groups, repairs);
-        var commands = new CommandPlacement(groups, categories, gestures.Select(gesture => gesture.Id).ToHashSet(), before, repairs)
+        var holdRemaps = HoldRemaps(merged.OfType<SyncItem.HoldRemapItem>().ToArray(), incoming, groups, repairs);
+        var commands = new CommandPlacement(groups, categories, holdRemaps, gestures.Select(gesture => gesture.Id).ToHashSet(), before, repairs)
             .Place(merged.OfType<SyncItem.CommandItem>(), incoming);
         var ignored = Ignored(merged.OfType<SyncItem.IgnoredItem>().ToArray(), incoming, repairs);
         var versions = Versions(merged.OfType<SyncItem.VersionItem>().ToArray(), commands, repairs);
         var gestureIds = gestures.Select(gesture => gesture.Id).ToHashSet();
 
         var document = new MappingDocument(
-            groups.Select(group => group with
-            {
-                Categories = categories[group.Id],
-                Commands = OwnTriggersChecked(
-                    [.. commands[group.Id].Select(command => versions.TryGetValue(command.Id, out var own) ? command with { OwnVersion = own } : command)],
-                    group.Name,
-                    gestureIds,
-                    repairs),
-            }).ToArray(),
+            groups.Select(group => WithHoldRemapCommandsChecked(
+                group with
+                {
+                    Categories = categories[group.Id],
+                    HoldRemaps = holdRemaps[group.Id],
+                    Commands = OwnTriggersChecked(
+                        [.. commands[group.Id].Select(command => versions.TryGetValue(command.Id, out var own) ? command with { OwnVersion = own } : command)],
+                        group.Name,
+                        gestureIds,
+                        repairs),
+                },
+                repairs)).ToArray(),
             ignored);
         var validGestures = GestureRules.ValidSet(gestures);
         var validMapping = MappingRules.ValidDocument(document);

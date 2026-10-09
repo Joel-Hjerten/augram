@@ -1,5 +1,6 @@
 using Augram.Core.Config;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 
@@ -7,8 +8,8 @@ namespace Augram.Core.Sync;
 
 /// <summary>
 /// One mergeable unit of the synced data (README: items), a closed set like <c>Trigger</c>: a gesture, an
-/// app group's header, a category with its group, a command with its group (without its own version), a command's own
-/// version (F8), an ignored app. Each carries its
+/// app group's header, a category with its group, a hold remap with its group (F9), a command with its group (without its
+/// own version), a command's own version (F8), an ignored app. Each carries its
 /// model value and its canonical <see cref="Content"/>: the item's JSON as the config file writes it, so two
 /// items are the same exactly when their contents are equal. Compare <see cref="Content"/>, never the
 /// objects. Immutable.
@@ -45,6 +46,7 @@ public abstract class SyncItem
             SyncItemKind.Category => FromPair(SyncItemJson.ReadCategory(content)),
             SyncItemKind.Command => FromPair(SyncItemJson.ReadCommand(content, steps)),
             SyncItemKind.CommandVersion => FromVersion(SyncItemJson.ReadVersion(content, steps)),
+            SyncItemKind.HoldRemap => FromPair(SyncItemJson.ReadHoldRemap(content)),
             _ => new IgnoredItem(SyncItemJson.ReadIgnored(content)),
         };
     }
@@ -52,6 +54,8 @@ public abstract class SyncItem
     private static CategoryItem FromPair((GroupId Group, CommandCategory Category) pair) => new(pair.Group, pair.Category);
 
     private static CommandItem FromPair((GroupId Group, Command Command) pair) => new(pair.Group, pair.Command);
+
+    private static HoldRemapItem FromPair((GroupId Group, HoldRemap HoldRemap) pair) => new(pair.Group, pair.HoldRemap);
 
     private static VersionItem FromVersion((CommandId Command, CommandVersion Version) pair) => new(pair.Command, null, pair.Version);
 
@@ -66,13 +70,13 @@ public abstract class SyncItem
         public Gesture Gesture { get; }
     }
 
-    /// <summary>A group without its commands and categories, which are items of their own.</summary>
+    /// <summary>A group without its commands, categories and hold remaps, which are items of their own.</summary>
     public sealed class GroupItem : SyncItem
     {
         public GroupItem(AppGroup group)
             : base(SyncItemKey.ForGroup(group.Id), group.Name, SyncItemJson.GroupHeader(group))
         {
-            Header = group with { Commands = [], Categories = [] };
+            Header = group with { Commands = [], Categories = [], HoldRemaps = [] };
         }
 
         public AppGroup Header { get; }
@@ -90,6 +94,21 @@ public abstract class SyncItem
         public GroupId GroupId { get; }
 
         public CommandCategory Category { get; }
+    }
+
+    /// <summary>A hold remap's header with its group (F9); the commands under it are <see cref="CommandItem"/>s naming it.</summary>
+    public sealed class HoldRemapItem : SyncItem
+    {
+        public HoldRemapItem(GroupId groupId, HoldRemap holdRemap)
+            : base(SyncItemKey.ForHoldRemap(groupId, holdRemap.Id), holdRemap.Name, SyncItemJson.HoldRemap(groupId, holdRemap))
+        {
+            GroupId = groupId;
+            HoldRemap = holdRemap;
+        }
+
+        public GroupId GroupId { get; }
+
+        public HoldRemap HoldRemap { get; }
     }
 
     /// <summary>A command with its group; its own version, when it has one, is a <see cref="VersionItem"/> of its own.</summary>

@@ -21,7 +21,7 @@ namespace Augram.Core.Config;
 /// <c>category</c> that is not a Guid string reads as null with a notice, and one that names no category of
 /// its group is left for <see cref="CategoryRules"/> to clear silently.
 /// </summary>
-internal sealed class MappingJsonReader
+internal sealed partial class MappingJsonReader
 {
     private readonly CommandStepJsonReader _steps;
     private readonly Action<string>? _notice;
@@ -68,6 +68,7 @@ internal sealed class MappingJsonReader
             categories)
         {
             UseOn = ReadUseOn(group, where),
+            HoldRemaps = ReadHoldRemaps(JsonMembers.OptionalArray(group, "holdRemaps", where), where),
         };
     }
 
@@ -156,6 +157,7 @@ internal sealed class MappingJsonReader
         {
             UseOn = ReadUseOn(command, where),
             OwnVersion = ReadOwnVersion(command, where),
+            HoldRemapId = ReadHoldRemapReference(command, where),
         };
     }
 
@@ -203,7 +205,7 @@ internal sealed class MappingJsonReader
         return null;
     }
 
-    /// <summary>A trigger as <see cref="MappingJsonWriter"/> writes it: null, or a gesture, wheel or click object with an optional <c>hold</c>.</summary>
+    /// <summary>A trigger as <see cref="MappingJsonWriter"/> writes it: null, an input (schema 4), or a gesture, wheel or click object with an optional <c>hold</c>.</summary>
     private static Trigger ReadTrigger(JsonNode? node, string where)
     {
         if (node is null)
@@ -213,6 +215,11 @@ internal sealed class MappingJsonReader
 
         var what = $"'trigger' of {where}";
         var trigger = JsonMembers.RequireObject(node, what);
+        if (trigger["input"] is not null)
+        {
+            return Trigger.ForInput(ReadInput(trigger["input"], what));
+        }
+
         var hold = ReadHold(trigger, what);
         if (trigger["gesture"] is not null)
         {
@@ -229,7 +236,7 @@ internal sealed class MappingJsonReader
             return Trigger.ForClick(hold);
         }
 
-        throw new ConfigFormatException($"{what} must be null, {{ \"gesture\": \"<id>\" }}, {{ \"wheel\": \"Up\" | \"Down\" }} or {{ \"click\": true }}, each with an optional \"hold\".");
+        throw new ConfigFormatException($"{what} must be null, {{ \"gesture\": \"<id>\" }}, {{ \"wheel\": \"Up\" | \"Down\" }} or {{ \"click\": true }}, each with an optional \"hold\", or {{ \"input\": {{ … }} }}.");
     }
 
     /// <summary>F1 combinations (schema 2): the "while holding" set; missing or null is the stroke button alone.</summary>
@@ -246,43 +253,6 @@ internal sealed class MappingJsonReader
             JsonMembers.OptionalFlags(hold, "buttons", HeldButtons.Stroke, where),
             JsonMembers.OptionalFlags(hold, "keys", KeyModifiers.None, where),
             JsonMembers.OptionalEnum(hold, "capture", HoldCapture.Either, where));
-    }
-
-    private static AppMatcher ReadMatcher(JsonNode? node, string where)
-    {
-        var what = $"'matcher' of {where}";
-        var matcher = JsonMembers.RequireObject(node, what);
-        return new AppMatcher
-        {
-            WindowsProcessNames = JsonMembers.OptionalStrings(matcher, "processNames", what),
-            MacProcessNames = JsonMembers.OptionalStrings(matcher, "macProcessNames", what),
-            ProcessPath = JsonMembers.OptionalString(matcher, "processPath", what),
-            ProcessPathIsRegex = JsonMembers.OptionalBool(matcher, "processPathIsRegex", fallback: false, what),
-            MacProcessPath = JsonMembers.OptionalString(matcher, "macProcessPath", what),
-            MacProcessPathIsRegex = JsonMembers.OptionalBool(matcher, "macProcessPathIsRegex", fallback: false, what),
-            Title = JsonMembers.OptionalString(matcher, "title", what),
-            TitleIsRegex = JsonMembers.OptionalBool(matcher, "titleIsRegex", fallback: false, what),
-            MacTitle = JsonMembers.OptionalString(matcher, "macTitle", what),
-            MacTitleIsRegex = JsonMembers.OptionalBool(matcher, "macTitleIsRegex", fallback: false, what),
-            WindowsProcessNamesAreRegex = JsonMembers.OptionalBool(matcher, "processNamesAreRegex", fallback: false, what),
-            MacProcessNamesAreRegex = JsonMembers.OptionalBool(matcher, "macProcessNamesAreRegex", fallback: false, what),
-            RootTitle = JsonMembers.OptionalString(matcher, "rootTitle", what),
-            RootTitleIsRegex = JsonMembers.OptionalBool(matcher, "rootTitleIsRegex", fallback: false, what),
-            ParentTitle = JsonMembers.OptionalString(matcher, "parentTitle", what),
-            ParentTitleIsRegex = JsonMembers.OptionalBool(matcher, "parentTitleIsRegex", fallback: false, what),
-            ControlTitle = JsonMembers.OptionalString(matcher, "controlTitle", what),
-            ControlTitleIsRegex = JsonMembers.OptionalBool(matcher, "controlTitleIsRegex", fallback: false, what),
-            OwnerClass = JsonMembers.OptionalString(matcher, "ownerClass", what),
-            OwnerClassIsRegex = JsonMembers.OptionalBool(matcher, "ownerClassIsRegex", fallback: false, what),
-            RootClass = JsonMembers.OptionalString(matcher, "rootClass", what),
-            RootClassIsRegex = JsonMembers.OptionalBool(matcher, "rootClassIsRegex", fallback: false, what),
-            ParentClass = JsonMembers.OptionalString(matcher, "parentClass", what),
-            ParentClassIsRegex = JsonMembers.OptionalBool(matcher, "parentClassIsRegex", fallback: false, what),
-            ControlClass = JsonMembers.OptionalString(matcher, "controlClass", what),
-            ControlClassIsRegex = JsonMembers.OptionalBool(matcher, "controlClassIsRegex", fallback: false, what),
-            ClassChain = JsonMembers.OptionalStrings(matcher, "classChain", what),
-            IgnoreWhenFullScreen = JsonMembers.OptionalBool(matcher, "ignoreWhenFullScreen", fallback: false, what),
-        };
     }
 
     public static IgnoredApp ReadIgnored(JsonNode? node)

@@ -181,10 +181,14 @@ public sealed class ConfigSession : IDisposable
         }
     }
 
-    /// <summary>The group without its commands and categories first, then each category, then each command: a bad category costs only itself (its commands load Uncategorized).</summary>
+    /// <summary>
+    /// The group without its commands, categories and hold remaps first, then each category, each hold remap, each command: a
+    /// bad category costs only itself (its commands load Uncategorized), and so does a bad hold remap (its commands load as
+    /// ordinary commands without their input).
+    /// </summary>
     private void LoadGroup(MappingStore store, AppGroup group)
     {
-        var shell = group with { Commands = [], Categories = [] };
+        var shell = group with { Commands = [], Categories = [], HoldRemaps = [] };
         if (!Try(() => _ = group.IsGlobal ? store.UpdateGroup(shell) : store.AddGroup(shell), $"App group '{group.Name}' ({group.Id})"))
         {
             return;
@@ -193,6 +197,11 @@ public sealed class ConfigSession : IDisposable
         foreach (var category in group.Categories)
         {
             Try(() => AddCategory(store, group.Id, category), $"Category '{category.Name}' ({category.Id}) in '{group.Name}'");
+        }
+
+        foreach (var holdRemap in group.HoldRemaps)
+        {
+            Try(() => store.AddHoldRemap(group.Id, holdRemap), $"Hold remap '{holdRemap.Name}' ({holdRemap.Id}) in '{group.Name}'");
         }
 
         foreach (var command in group.Commands)

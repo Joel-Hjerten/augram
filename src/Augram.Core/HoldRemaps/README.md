@@ -71,6 +71,10 @@ Events: `HoldDown(entry)` (the hook claimed a hold key's press for that hold rem
 - **Buttons are followed after the hold key, keys and the wheel are not:** after the hold key is up, a newly pressed input button joins the set while one is still owed; keys and the wheel pass.
 - **One hold at a time** (decision 6); a replayed key does not stop a new hold from starting.
 
+## Persistence and sync
+
+Config file (schema 4, `../Config/README.md`): a group's `holdRemaps` (omitted when empty), a command's `holdRemap` (omitted for an ordinary command), the input trigger `{ "input": { "buttons" | "wheel" | "key": … } }`, the Remap step's `params` (`../Steps/Remap/README.md`); an older file reads as no hold remaps, a bad hold remap entry is dropped with a notice. Sync (format 11, `../Sync/README.md`): a hold remap's header is an item of its own, `holdRemap:<groupId>/<id>`, merged like a category; the commands under it are command items carrying `holdRemap`; the merge repairs name and hold key clashes, a hold remap whose group is gone, a command whose hold remap is gone, and a command that breaks these rules across items.
+
 ## Threading
 
 `HoldRemapPlan` and its entries are immutable and safe from any thread; the hook reads them. `HoldRemapMachine` is called from one thread only (the engine worker) and has no locks. Nothing here injects, waits or reads a clock.

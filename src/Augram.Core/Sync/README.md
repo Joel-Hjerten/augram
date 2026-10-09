@@ -8,11 +8,11 @@ Everything in this folder is pure except `SyncBaseStore` (local files) and `Sync
 
 | Type | Role |
 |---|---|
-| `SyncItemKind`, `SyncItemKey` | the five kinds and an item's identity; text form `gesture:<id>`, `group:<id>`, `category:<groupId>/<id>`, `command:<id>`, `ignored:<id>` |
-| `SyncItem` (+ nested `GestureItem`, `GroupItem`, `CategoryItem`, `CommandItem`, `IgnoredItem`) | one item: key, name, model value and canonical `Content` |
+| `SyncItemKind`, `SyncItemKey` | the kinds and an item's identity; text form `gesture:<id>`, `group:<id>`, `category:<groupId>/<id>`, `holdRemap:<groupId>/<id>`, `command:<id>`, `version:<commandId>`, `ignored:<id>` |
+| `SyncItem` (+ nested `GestureItem`, `GroupItem`, `CategoryItem`, `HoldRemapItem`, `CommandItem`, `VersionItem`, `IgnoredItem`) | one item: key, name, model value and canonical `Content` |
 | `SyncItemSet` | a document as items, in document order; `From(gestures, mapping)`, `Contents()`, `SameAs` |
 | `ThreeWayMerge` | `Merge(base, local, remote[, held])` → `SyncMergeResult` (gestures, mapping, conflicts, repairs, counts, items) |
-| `SyncDocumentBuilder`, `CommandPlacement`, `SyncNames` (internal) | rebuild merged items into a valid document, repairing (below) |
+| `SyncDocumentBuilder` (+ `.HoldRemaps.cs`), `CommandPlacement`, `SyncNames` (internal) | rebuild merged items into a valid document, repairing (below) |
 | `SyncConflict`, `SyncRepair` + `SyncRepairKind`, `SyncCounts` + `SyncKindCounts` | what a merge reports |
 | `SyncMachineState`, `SyncPublished`, `SyncBaseStore` (+ internal `SyncStateJson`) | the local state under `<configFolder>/sync/state/` |
 | `SyncPlanner` (internal) | one run's merges, pure |
@@ -27,13 +27,14 @@ A document splits into items keyed by kind + id. Each item's `Content` is its JS
 | Kind | Key | Content |
 |---|---|---|
 | gesture | `GestureId` | the gesture as in `gestures` |
-| group | `GroupId` | the group header: name, active, suppress globals, matcher; no categories, no commands |
+| group | `GroupId` | the group header: name, active, suppress globals, matcher; no categories, hold remaps or commands |
 | category | group id + `CategoryId` (category ids are unique per group only) | `{ "group", "id", "name" }`, plus `useOn` when the category is not on every platform (format 3, 2026-10-08), so a category on every platform has the same content as before |
-| command | `CommandId` | `{ "group": <id>, "command": { … } }`: moving a command to another group is a change of the command; without its own version |
+| hold remap (`holdRemap:`) | group id + `HoldRemapId` (unique per group only, like a category's) | `{ "group", "id", "name", "holdKey", "tapTimeMs", "isActive" }`, plus `useOn` when not every platform (F9, format 11, 2026-10-10): the header only; the commands under it are command items |
+| command | `CommandId` | `{ "group": <id>, "command": { … } }`: moving a command to another group is a change of the command; without its own version; a command under a hold remap carries `holdRemap` and its `input` trigger, so moving it in or out of a hold remap is a change of the command |
 | own steps (`version:`) | the command's `CommandId` | `{ "command": <id>, "version": { "platform", "basedOn", "changedAt", "trigger"?, "steps" } }` (F8, 2026-10-07; the own `trigger` since format 6, 2026-10-09: a trigger changed on that platform is its own, and travels here rather than with the command): a command's own steps for the platform it was not authored on, apart from the command so the original changing on one machine and the own steps on the other merge without a conflict; the rebuild puts them back on their command and drops them, with a repair line (`OwnStepsDropped`), when the command is gone; counted as a command change in the log |
 | ignored app | its id | the ignored app as in `ignored` |
 
-Moving a category to another group is a delete in one group and an add in the other. Gesture order is not synced (it is not an item property).
+Moving a category or a hold remap to another group is a delete in one group and an add in the other. Gesture order is not synced (it is not an item property).
 
 ## The merge table (`ThreeWayMerge`)
 
@@ -68,7 +69,10 @@ The merged items are rebuilt into a document (`SyncDocumentBuilder`) and repaire
 - a command whose group is gone → into Global, uncategorized;
 - a command whose gesture is gone → unbound, when the merge removed that gesture or the command is incoming (a reference that was already dangling here is left alone);
 - a command whose category is gone → uncategorized;
-- a category whose group is gone → dropped.
+- a category whose group is gone → dropped;
+- a hold remap whose group is gone (or is Global) → dropped (`HoldRemapDropped`); an incoming one is renamed on a name clash, and loses its hold key (`HoldKeyCleared`) when another hold remap of its group already holds it, so it does nothing until a key is chosen;
+- a command whose hold remap is gone → an ordinary command of its group without its input (`HoldRemapCleared`); one moved to Global leaves its hold remap the same way; an own version bringing an input back to an ordinary command loses it (`HoldRemapCleared`);
+- a command under a hold remap that breaks the hold remap rules across items (its input is now the hold key, an own version's Remap output no longer suits the input, …) → unbound on every platform (`Unbound`), never a failed merge. Inputs are unique per hold remap (A7 above, `MappingRules.Overlap`), so two hold remaps' commands never clash.
 
 The result then goes through `GestureRules.ValidSet` and `MappingRules.ValidDocument`, so what the stores receive is always valid.
 
@@ -97,7 +101,7 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 
 ## Format version
 
-`SyncFile.CurrentFormatVersion` (the file's `formatVersion`, separate from the config `schemaVersion`) is the sync's own contract. **Raise it with every change to what a sync item holds or to which item kinds exist**, and add a line to its history on the constant. 1: every file before 2026-10-07 (no member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own steps as an item of their own). 3 (2026-10-08): "Use on" on a category (the category item's `useOn`); a format 2 build would read such a category as used everywhere and publish it back that way, so it pauses instead ("Paused: PC-WORK uses a newer Augram…"). 4 (2026-10-08): the step types TypeText, Run and Display (`typeText`, `run`, `displayMode`, `hdr`); a format 3 build cannot read a command holding one and would drop it. 5 (2026-10-09): Display mode's "highest available" refresh (`"refreshHz": "highest"`), which a format 4 build refuses to read. 6 (2026-10-09): trigger combinations (a trigger's `hold`, the click trigger `{ "click": true }`, an own-steps item's `trigger`); a format 5 build would read a combination as the plain trigger and publish it back that way (the config schema went to 2 at the same time, so such a build also refuses the file by its schema). 7 (2026-10-09): the step types Scroll and Clear clipboard (`scroll`, `clearClipboard`); a format 6 build cannot read a command holding one and would drop the step. Why: a build that reads a newer file drops what it cannot see, and its next publish deletes that on every machine (2026-10-07: the PC, still on an old build, had to be stopped by hand before it read the Mac's own steps).
+`SyncFile.CurrentFormatVersion` (the file's `formatVersion`, separate from the config `schemaVersion`) is the sync's own contract. **Raise it with every change to what a sync item holds or to which item kinds exist**, and add a line to its history on the constant. 1: every file before 2026-10-07 (no member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own steps as an item of their own). 3 (2026-10-08): "Use on" on a category (the category item's `useOn`); a format 2 build would read such a category as used everywhere and publish it back that way, so it pauses instead ("Paused: PC-WORK uses a newer Augram…"). 4 (2026-10-08): the step types TypeText, Run and Display (`typeText`, `run`, `displayMode`, `hdr`); a format 3 build cannot read a command holding one and would drop it. 5 (2026-10-09): Display mode's "highest available" refresh (`"refreshHz": "highest"`), which a format 4 build refuses to read. 6 (2026-10-09): trigger combinations (a trigger's `hold`, the click trigger `{ "click": true }`, an own-steps item's `trigger`); a format 5 build would read a combination as the plain trigger and publish it back that way (the config schema went to 2 at the same time, so such a build also refuses the file by its schema). 7 (2026-10-09): the step types Scroll and Clear clipboard (`scroll`, `clearClipboard`); a format 6 build cannot read a command holding one and would drop the step. 8 to 10: see the history on the constant. 11 (2026-10-10): hold remaps (the `holdRemap` item kind, a command item's `holdRemap`, the input trigger, the Remap step); a format 10 build would drop the hold remaps and publish the group without them, could not read an input trigger, and would keep a Remap step only as is (the config schema went to 4 at the same time). Why: a build that reads a newer file drops what it cannot see, and its next publish deletes that on every machine (2026-10-07: the PC, still on an old build, had to be stopped by hand before it read the Mac's own steps).
 
 - `SyncFileSerializer.ReadHeader` reads both versions and the machine name before anything else. A file newer in either goes to `SyncRepositoryFiles.Newer` unread, and the run answers `NeedsUpdate`. `Read` refuses such a file too.
 - **Never downgrade.** The publisher records the format it publishes in `SyncBaseStore.PublishedFormatVersion` (before the push; only ever raised). A build that writes an older format answers `NeedsUpdate` naming this machine, as it does when this machine's own file in the repo is newer.

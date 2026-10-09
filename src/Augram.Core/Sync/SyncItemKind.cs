@@ -23,4 +23,10 @@ public enum SyncItemKind
     /// original changing on one machine and the own steps changing on the other merge without a conflict.
     /// </summary>
     CommandVersion,
+
+    /// <summary>
+    /// One hold remap of one group (F9, sync format 11), by group id and <c>HoldRemapId</c> like a category: its header (name,
+    /// hold key, tap time, active, Use on). The commands under it are command items carrying <c>holdRemap</c>.
+    /// </summary>
+    HoldRemap,
 }

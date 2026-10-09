@@ -6,8 +6,8 @@ namespace Augram.Core.Sync;
 
 /// <summary>
 /// A gesture set and mapping as <see cref="SyncItem"/>s, in document order (gestures in library order, then
-/// each group's header, categories and commands, each command followed by its own version when it has one, then the
-/// ignored apps), one item per key. Immutable.
+/// each group's header, categories, hold remaps and commands, each command followed by its own version when it has one,
+/// then the ignored apps), one item per key. Immutable.
 /// </summary>
 public sealed class SyncItemSet : IReadOnlyCollection<SyncItem>
 {
@@ -45,6 +45,7 @@ public sealed class SyncItemSet : IReadOnlyCollection<SyncItem>
         {
             items.Add(new SyncItem.GroupItem(group));
             items.AddRange(group.Categories.Select(category => new SyncItem.CategoryItem(group.Id, category)));
+            items.AddRange(group.HoldRemaps.Select(holdRemap => new SyncItem.HoldRemapItem(group.Id, holdRemap)));
             foreach (var command in group.Commands)
             {
                 items.Add(new SyncItem.CommandItem(group.Id, command));

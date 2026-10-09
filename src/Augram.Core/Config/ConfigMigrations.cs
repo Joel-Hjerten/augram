@@ -41,6 +41,11 @@ public static class ConfigMigrations
                 // members are optional and absent means not consulted, as in version 2. The bump exists so that a version 2
                 // build refuses a version 3 file instead of ignoring a root title or a class and matching too many windows.
                 break;
+            case 3:
+                // 3 → 4 (hold remaps, F9, 2026-10-10): a group's holdRemaps, a command's holdRemap and the input trigger are
+                // optional and absent means no hold remaps, as in version 3. The bump exists so that a version 3 build refuses a
+                // version 4 file instead of reading the commands under a hold remap as ordinary ones and saving them back so.
+                break;
             default:
                 throw new ConfigFormatException($"No migration from schema version {version} to {version + 1} exists.");
         }

@@ -23,4 +23,13 @@ public enum SyncRepairKind
 
     /// <summary>A command's own steps arrived for a command that is gone, so they were dropped (F8).</summary>
     OwnStepsDropped,
+
+    /// <summary>The hold remap's app group is gone (or is Global, which has none), so the hold remap was dropped (F9).</summary>
+    HoldRemapDropped,
+
+    /// <summary>The command's hold remap is gone, so it is now an ordinary command without its input (F9).</summary>
+    HoldRemapCleared,
+
+    /// <summary>The incoming hold remap's hold key is already another hold remap's in its group, so it has none now (F9).</summary>
+    HoldKeyCleared,
 }

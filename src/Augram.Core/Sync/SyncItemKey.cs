@@ -1,14 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.Core.Sync;
 
 /// <summary>
-/// The identity of a <see cref="SyncItem"/>: its kind and id, plus the group id for a category (category
+/// The identity of a <see cref="SyncItem"/>: its kind and id, plus the group id for a category and a hold remap (their
 /// ids are unique within their group only). Text form, used in the sync file and the state files:
 /// <c>gesture:&lt;id&gt;</c>, <c>group:&lt;id&gt;</c>, <c>category:&lt;groupId&gt;/&lt;id&gt;</c>, <c>command:&lt;id&gt;</c>,
-/// <c>ignored:&lt;id&gt;</c>, <c>version:&lt;commandId&gt;</c>.
+/// <c>ignored:&lt;id&gt;</c>, <c>version:&lt;commandId&gt;</c>, <c>holdRemap:&lt;groupId&gt;/&lt;id&gt;</c>.
 /// </summary>
 public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group = default)
 {
@@ -24,7 +25,9 @@ public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group
 
     public static SyncItemKey ForCommandVersion(CommandId id) => new(SyncItemKind.CommandVersion, id.Value);
 
-    public override string ToString() => Kind == SyncItemKind.Category
+    public static SyncItemKey ForHoldRemap(GroupId groupId, HoldRemapId id) => new(SyncItemKind.HoldRemap, id.Value, groupId.Value);
+
+    public override string ToString() => HasGroup(Kind)
         ? $"{Prefix(Kind)}:{Group:D}/{Id:D}"
         : $"{Prefix(Kind)}:{Id:D}";
 
@@ -46,7 +49,7 @@ public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group
                 continue;
             }
 
-            if (kind != SyncItemKind.Category)
+            if (!HasGroup(kind))
             {
                 bool parsed = Guid.TryParse(rest, out var id);
                 key = new SyncItemKey(kind, id);
@@ -70,6 +73,9 @@ public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group
     public static SyncItemKey Parse(string text)
         => TryParse(text, out var key) ? key : throw new FormatException($"'{text}' is not a sync item key.");
 
+    /// <summary>The kinds whose ids are unique within their group only, so the key carries the group's id too.</summary>
+    private static bool HasGroup(SyncItemKind kind) => kind is SyncItemKind.Category or SyncItemKind.HoldRemap;
+
     private static string Prefix(SyncItemKind kind) => kind switch
     {
         SyncItemKind.Gesture => "gesture",
@@ -77,6 +83,7 @@ public readonly record struct SyncItemKey(SyncItemKind Kind, Guid Id, Guid Group
         SyncItemKind.Category => "category",
         SyncItemKind.Command => "command",
         SyncItemKind.CommandVersion => "version",
+        SyncItemKind.HoldRemap => "holdRemap",
         _ => "ignored",
     };
 }

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 
@@ -15,8 +16,9 @@ namespace Augram.Core.Config;
 /// become an item again (resolving a conflict). One line of compact JSON, except that a gesture's samples keep
 /// the config file's one-sample-per-line layout. A command and a category carry their group's id beside them:
 /// <c>{ "group": "&lt;id&gt;", "command": { … } }</c>, <c>{ "group": "&lt;id&gt;", "id": "…", "name": "…", "useOn": [ … ] }</c>
-/// (<c>useOn</c> only when not every platform).
-/// A group is its header only (no commands, no categories): those are items of their own.
+/// (<c>useOn</c> only when not every platform); a hold remap likewise:
+/// <c>{ "group": "&lt;id&gt;", "id": "…", "name": "…", "holdKey": "Space", "tapTimeMs": 180, "isActive": true }</c>.
+/// A group is its header only (no commands, categories or hold remaps): those are items of their own.
 /// </summary>
 internal static class SyncItemJson
 {
@@ -26,7 +28,7 @@ internal static class SyncItemJson
         => Write(writer => JsonSerializer.Serialize(writer, gesture, ConfigJsonContext.Default.Gesture));
 
     public static string GroupHeader(AppGroup group)
-        => Write(writer => MappingJsonWriter.WriteGroup(writer, group with { Commands = [], Categories = [] }));
+        => Write(writer => MappingJsonWriter.WriteGroup(writer, group with { Commands = [], Categories = [], HoldRemaps = [] }));
 
     /// <summary><c>{ "group", "id", "name" }</c>, plus <c>useOn</c> when the category is not on every platform (sync format 3).</summary>
     public static string Category(GroupId groupId, CommandCategory category)
@@ -35,6 +37,16 @@ internal static class SyncItemJson
             writer.WriteStartObject();
             writer.WriteString("group", groupId.Value);
             MappingJsonWriter.WriteCategoryMembers(writer, category);
+            writer.WriteEndObject();
+        });
+
+    /// <summary>A hold remap with its group's id (sync format 11): <c>{ "group", "id", "name", "holdKey", "tapTimeMs", "isActive" }</c>, plus <c>useOn</c> when set.</summary>
+    public static string HoldRemap(GroupId groupId, HoldRemap holdRemap)
+        => Write(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteString("group", groupId.Value);
+            MappingJsonWriter.WriteHoldRemapMembers(writer, holdRemap);
             writer.WriteEndObject();
         });
 
@@ -97,6 +109,15 @@ internal static class SyncItemJson
             UseOn = MappingJsonReader.ReadUseOn(item, where),
         };
         return (group, category);
+    }
+
+    /// <exception cref="ConfigFormatException">The text is not a hold remap item.</exception>
+    public static (GroupId Group, HoldRemap HoldRemap) ReadHoldRemap(string content)
+    {
+        var item = Parse(content, "A hold remap item");
+        const string where = "a hold remap item";
+        var group = new GroupId(JsonMembers.RequireGuid(item, "group", where));
+        return (group, MappingJsonReader.ReadHoldRemap(item, new HoldRemapId(JsonMembers.RequireGuid(item, "id", where)), where));
     }
 
     /// <summary>A step its type cannot read is dropped (as on load); the caller compares the result with what it expected.</summary>

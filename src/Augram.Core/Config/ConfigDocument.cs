@@ -16,8 +16,12 @@ public sealed record ConfigDocument
     /// The version this build writes and the highest it can read. 1: everything up to 0.4.0. 2 (2026-10-09): trigger
     /// combinations (a trigger's <c>hold</c>, the click trigger, an own version's <c>trigger</c>); a version 1 build would
     /// read a combination as the plain trigger and save it back that way, or refuse a click trigger, so it must refuse the file.
+    /// 3 (2026-10-09): the StrokesPlus.net app definition's matcher fields; a version 2 build would ignore them and match too
+    /// many windows. 4 (2026-10-10): hold remaps (a group's <c>holdRemaps</c>, a command's <c>holdRemap</c>, the input trigger
+    /// <c>{ "input": … }</c>); a version 3 build would read the commands under a hold remap as ordinary ones and save the file
+    /// back without its hold remaps, or refuse the whole file at the first input, so it must refuse the file.
     /// </summary>
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public ConfigDocument(int schemaVersion = CurrentSchemaVersion, Settings? settings = null, IReadOnlyList<Gesture>? gestures = null)
     {

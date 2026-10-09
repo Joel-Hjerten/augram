@@ -36,9 +36,11 @@ public sealed record SyncFile(
     /// build would ignore them, match too many windows and publish the matcher back without them (the config schema went to 3).
     /// 9 (2026-10-09): the Open app step (<c>openApp</c>); a format 8 build keeps it as is but cannot run it. 10
     /// (2026-10-09): a gesture's <c>originalSamples</c> (shape cleanup); a format 9 build would drop them and publish the
-    /// gesture without its original.
+    /// gesture without its original. 11 (2026-10-10): hold remaps (F9: the <c>holdRemap</c> item kind, a command item's
+    /// <c>holdRemap</c>, the input trigger, the Remap step); a format 10 build would drop the hold remaps and publish the group
+    /// without them, could not read an input trigger and would keep a Remap step only as is (the config schema went to 4).
     /// </summary>
-    public const int CurrentFormatVersion = 10;
+    public const int CurrentFormatVersion = 11;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;

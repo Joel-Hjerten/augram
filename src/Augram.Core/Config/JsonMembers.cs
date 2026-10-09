@@ -55,6 +55,18 @@ internal static class JsonMembers
         return node is JsonValue value && value.TryGetValue(out bool flag) ? flag : throw Refuse(name, where, "true or false");
     }
 
+    /// <summary>Missing or null → the fallback; otherwise an integer (a string such as "180" is refused).</summary>
+    public static int OptionalInt32(JsonObject owner, string name, int fallback, string where)
+    {
+        var node = owner[name];
+        if (node is null)
+        {
+            return fallback;
+        }
+
+        return node is JsonValue value && value.TryGetValue(out int number) ? number : throw Refuse(name, where, "an integer");
+    }
+
     public static Guid RequireGuid(JsonObject owner, string name, string where)
     {
         var text = RequireString(owner, name, where);

@@ -10,18 +10,22 @@ public sealed record SyncCounts(
 {
     public static SyncCounts None { get; } = new(SyncKindCounts.None, SyncKindCounts.None, SyncKindCounts.None, SyncKindCounts.None, SyncKindCounts.None);
 
-    public int Total => Gestures.Total + Groups.Total + Categories.Total + Commands.Total + Ignored.Total;
+    /// <summary>Hold remaps' headers (F9); the commands under them count as commands.</summary>
+    public SyncKindCounts HoldRemaps { get; init; } = SyncKindCounts.None;
+
+    public int Total => Gestures.Total + Groups.Total + Categories.Total + HoldRemaps.Total + Commands.Total + Ignored.Total;
 
     public bool IsEmpty => Total == 0;
 
     /// <summary>True when anything but gestures changed: the mapping store needs the result.</summary>
-    public bool MappingChanged => Groups.Total + Categories.Total + Commands.Total + Ignored.Total > 0;
+    public bool MappingChanged => Groups.Total + Categories.Total + HoldRemaps.Total + Commands.Total + Ignored.Total > 0;
 
     public SyncKindCounts For(SyncItemKind kind) => kind switch
     {
         SyncItemKind.Gesture => Gestures,
         SyncItemKind.Group => Groups,
         SyncItemKind.Category => Categories,
+        SyncItemKind.HoldRemap => HoldRemaps,
         SyncItemKind.Command or SyncItemKind.CommandVersion => Commands,
         _ => Ignored,
     };
@@ -58,7 +62,10 @@ public sealed record SyncCounts(
             counts[SyncItemKind.Group],
             counts[SyncItemKind.Category],
             counts[SyncItemKind.Command],
-            counts[SyncItemKind.Ignored]);
+            counts[SyncItemKind.Ignored])
+        {
+            HoldRemaps = counts[SyncItemKind.HoldRemap],
+        };
     }
 
     /// <summary>"gestures +1 ~0 -0, commands +0 ~2 -1": the kinds that moved, for the log.</summary>
@@ -76,6 +83,7 @@ public sealed record SyncCounts(
         SyncItemKind.Gesture => "gestures",
         SyncItemKind.Group => "groups",
         SyncItemKind.Category => "categories",
+        SyncItemKind.HoldRemap => "hold remaps",
         SyncItemKind.Command => "commands",
         _ => "ignored apps",
     };

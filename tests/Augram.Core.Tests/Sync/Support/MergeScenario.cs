@@ -1,4 +1,6 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
 using Augram.Core.Tests.Fixtures;
@@ -9,7 +11,7 @@ namespace Augram.Core.Tests.Sync.Support;
 
 /// <summary>
 /// The documents of the merge-table tests: a fixed anchor (a gesture, the Global group, an app group "Chrome")
-/// plus one item of the kind under test, absent (null) or in a numbered variant: 0 as in the base, 1 and 2
+/// plus one item of the kind under test (a hold remap sits in Chrome), absent (null) or in a numbered variant: 0 as in the base, 1 and 2
 /// two different edits of it (its name). The ids are fixed for the test run, so the variants are the same item.
 /// </summary>
 internal static class MergeScenario
@@ -21,6 +23,7 @@ internal static class MergeScenario
     public static readonly CategoryId ItemCategory = CategoryId.New();
     public static readonly CommandId ItemCommand = CommandId.New();
     public static readonly GroupId ItemIgnored = GroupId.New();
+    public static readonly HoldRemapId ItemHoldRemap = HoldRemapId.New();
 
     public static TheoryData<SyncItemKind> Kinds =>
     [
@@ -29,6 +32,7 @@ internal static class MergeScenario
         SyncItemKind.Category,
         SyncItemKind.Command,
         SyncItemKind.Ignored,
+        SyncItemKind.HoldRemap,
     ];
 
     public static SyncItemKey Key(SyncItemKind kind) => kind switch
@@ -37,6 +41,7 @@ internal static class MergeScenario
         SyncItemKind.Group => SyncItemKey.ForGroup(ItemGroup),
         SyncItemKind.Category => SyncItemKey.ForCategory(GroupId.Global, ItemCategory),
         SyncItemKind.Command => SyncItemKey.ForCommand(ItemCommand),
+        SyncItemKind.HoldRemap => SyncItemKey.ForHoldRemap(Chrome, ItemHoldRemap),
         _ => SyncItemKey.ForIgnored(ItemIgnored),
     };
 
@@ -70,6 +75,9 @@ internal static class MergeScenario
                     break;
                 case SyncItemKind.Command:
                     chrome = chrome with { Commands = [new Command(ItemCommand, name, Trigger.ForGesture(Anchor.Id), IsActive: true, [NewStep(name)])] };
+                    break;
+                case SyncItemKind.HoldRemap:
+                    chrome = chrome with { HoldRemaps = [new HoldRemap(ItemHoldRemap, name, KeyCode.Space)] };
                     break;
                 default:
                     ignored.Add(new IgnoredApp(ItemIgnored, name, IsActive: true, ByProcess("item.exe"), DisableEntirely: false));
