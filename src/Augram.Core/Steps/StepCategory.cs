@@ -12,6 +12,12 @@ public enum StepCategory
     /// <summary>Hotkeys and key sequences.</summary>
     Keyboard,
 
+    /// <summary>
+    /// Pointer input sent into the window under the gesture start (Scroll; later mouse clicks). Like Keyboard and Text,
+    /// it lands in that window, so the executor activates the target and applies the settle delay (A8) before the first one.
+    /// </summary>
+    Mouse,
+
     /// <summary>Typed strings.</summary>
     Text,
 

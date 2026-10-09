@@ -1,6 +1,6 @@
 # Augram.Engine.Tests
 
-xunit tests for `Augram.Engine`. No real global hook is ever installed (CI runners have no interactive desktop): everything is driven through the Core ports with the fakes in `Fakes/`. The two SharpHook adapters (`SharpHookInputSource`, `SharpHookInputSimulator`) are deliberately thin and untested; the maps they rely on are (including the simulator's left/right modifier-key choice).
+xunit tests for `Augram.Engine`. No real global hook is ever installed (CI runners have no interactive desktop): everything is driven through the Core ports with the fakes in `Fakes/`. The two SharpHook adapters (`SharpHookInputSource`, `SharpHookInputSimulator`) are deliberately thin and untested against a desktop; the maps they rely on are (including the simulator's left/right modifier-key choice and its wheel notch).
 
 **May reference:** `Augram.Engine` (and `Augram.Core` through it), xunit. `Augram.Engine` exposes its internals to this assembly.
 
@@ -14,7 +14,7 @@ xunit tests for `Augram.Engine`. No real global hook is ever installed (CI runne
 | `Input/HookHealthMonitorTests` | reinstall on the source's loss signal and on the cursor watchdog, quiet while events flow, retry with backoff when a reinstall throws, system events, health contributor; `Poll()` is called directly, no timer waits |
 | `Input/KeySuppressionShadowTests` | hotkey capture's per-press rule: a press is suppressed iff capture is armed when it starts, its repeats and release follow it across the capture's end; a stale record (missed release) starts fresh |
 | `Input/KeyCodeMapTests` | every `Core.KeyCode` and `MouseButton` has a SharpHook counterpart and round-trips; the US layout table |
-| `Input/SharpHookInputSimulatorTests` | the simulator's one tested piece, `ModifierKeys`: a hotkey holds the left modifier keys in Ctrl, Alt, Shift, Win order, and the right-hand key for each modifier in its right-hand set (F5) |
+| `Input/SharpHookInputSimulatorTests` | the simulator's tested pieces: `ModifierKeys` (a hotkey holds the left modifier keys in Ctrl, Alt, Shift, Win order, and the right-hand key for each modifier in its right-hand set, F5); `Notch` (120 per wheel notch on Windows, one line on macOS, positive up or left); `Scroll` over SharpHook's `TestGlobalHook` (a move to the point, then one wheel event per notch; nothing after a failed move), which records and posts nothing |
 | `Hosting/EngineHostTests`, `EngineHostControlTests` | end to end through `EngineHarness` (a real `EngineHost` over fakes with a real worker thread): stroke → recognition log entry, Info line and `GestureRecognized`; no match reasons; motionless press → one replayed click from the worker; wheel while held → suppressed and raised per tick; `Enabled` false passes through and still consumes an owed release; ignore key; other-button and hold-still cancels; stroke-button and threshold changes applied in order; hook reinstall resets the capture; a random session produces no decision mismatches |
 | `Hosting/KeyCaptureTests` | `EngineHost.CaptureKeys` (F5): keys swallowed and reported only while armed, owed releases swallowed after release, keys held from before pass, the mouse untouched, release by dispose, watchdog, replacement, hook reset and stop, each reported with its reason |
 | `Diagnostics/` | `ChannelEventLog`, sinks and the line formatter (M1 step 4a) |

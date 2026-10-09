@@ -24,4 +24,7 @@ public sealed record StepExecutionContext(
     public IProcessLauncher Processes { get; init; } = NullProcessLauncher.Instance;
     /// <summary>What the Display steps read and change (learnings 0002); the null object knows no displays.</summary>
     public IDisplayModes Displays { get; init; } = NullDisplayModes.Instance;
+
+    /// <summary>What the Clear clipboard step empties; the null object declines, so the step skips.</summary>
+    public IClipboard Clipboard { get; init; } = NullClipboard.Instance;
 }

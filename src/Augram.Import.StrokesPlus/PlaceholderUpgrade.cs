@@ -8,11 +8,12 @@ namespace Augram.Import.StrokesPlus;
 /// Turns the placeholders an earlier import saved into the step types that exist now (plan 0001 §C1), so imported commands
 /// start working without a re-import: <c>SendHotKey</c>/<c>SendVKey</c> through <see cref="HotkeyMapping"/>,
 /// <c>SendKeys</c>/<c>SendString</c> through <see cref="TextMapping"/> (one placeholder can become several steps),
-/// <c>Run</c> through <see cref="RunMapping"/>, and a script-only action whose script is one <c>sp.RunProgram</c> call
-/// through <see cref="ProgramCallMapping"/> (the "script-only action" note goes with the script). A placeholder that still
-/// does not map, and a SendKeys string with a part that does not, stays as it is. Each replacement keeps the placeholder's
-/// platform and active flag. Pure and idempotent: the caller commits the result through the mapping store, and an
-/// upgraded mapping has nothing left to upgrade.
+/// <c>Run</c> through <see cref="RunMapping"/>, and a script-only action's <c>Script</c> placeholder through
+/// <see cref="ScriptMapping"/>, the same routing a fresh import uses (the "script-only action" note goes with the script).
+/// A script of nothing but comments maps to no steps: the placeholder is removed and the command does nothing here, an
+/// override to nothing. A placeholder that still does not map, and a SendKeys string with a part that does not, stays as
+/// it is. Each replacement keeps the placeholder's platform and active flag. Pure and idempotent: the caller commits the
+/// result through the mapping store, and an upgraded mapping has nothing left to upgrade.
 /// </summary>
 public static class PlaceholderUpgrade
 {
@@ -80,14 +81,10 @@ public static class PlaceholderUpgrade
             return [run];
         }
 
-        if (placeholder.SourceMethod == StrokesPlusJson.Method.Script
+        return placeholder.SourceMethod == StrokesPlusJson.Method.Script
             && placeholder.Parameters.TryGetValue(StrokesPlusJson.Method.ScriptParameter, out var script)
-            && RunProgramScript.TryRecognize(script, out var call, out _))
-        {
-            return [ProgramCallMapping.ToStep(call)];
-        }
-
-        return null;
+                ? ScriptMapping.TryMap(script)
+                : null;
     }
 
     /// <summary>The note without the importer's "script-only action" line; null when nothing else was in it.</summary>

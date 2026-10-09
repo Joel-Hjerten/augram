@@ -1,3 +1,4 @@
+using Augram.Core.Steps.ClearClipboard;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.DisplayMode;
 using Augram.Core.Steps.Hdr;
@@ -5,6 +6,7 @@ using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.Run;
+using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
 using Augram.Core.Steps.WindowOp;
 
@@ -39,9 +41,11 @@ public sealed class StepRegistry
     [
         WindowOpStepType.Instance,
         MediaKeyStepType.Instance,
+        ClearClipboardStepType.Instance,
         DisplayModeStepType.Instance,
         HdrStepType.Instance,
         HotkeyStepType.Instance,
+        ScrollStepType.Instance,
         TypeTextStepType.Instance,
         RunStepType.Instance,
         DelayStepType.Instance,

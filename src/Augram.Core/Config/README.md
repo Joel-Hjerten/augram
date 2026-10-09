@@ -82,7 +82,7 @@ The `sync` section (schema version 1, additive): missing, null or partial takes 
 ```json
 {
   "schemaVersion": 2,
-  "formatVersion": 6,
+  "formatVersion": 7,
   "machine": { "id": "<machine id>", "name": "PC-HOME", "writtenAt": "2026-10-07T18:30:00+00:00", "revision": "<new Guid per publish>" },
   "merged": [
     { "machineId": "<other machine>", "revision": "<its revision merged here>", "except": ["command:<id>"], "pending": ["command:<id>"] }
@@ -102,7 +102,9 @@ The `sync` section (schema version 1, additive): missing, null or partial takes 
 
 ### Older builds (2026-10-09, schema 2)
 
-An older build sharing the config folder (Joel's installed 0.4.0 beside a dev build) reads schema 1 only. Had combinations been added under schema 1, it would have read `{ "gesture": …, "hold": … }` as the plain gesture and saved it back without the hold at its next change (silently dropping the combination), and refused the whole file at the first `{ "click": true }`. With schema 2 it refuses the file instead ("written by a newer Augram"), loads the newest backup it can read, and runs on that; it cannot misread a combination. It does save over the newer file at its first change (copying the newer one into `backup/` first): a build already released cannot be changed. So that this never goes unnoticed, `Load` here reports a main file older than the newest backup ("saved by an older Augram (schema 1) over a newer one (schema 2); what only the newer one could hold, such as trigger combinations, is in backup/…"). Nothing is restored automatically, since that would drop what was edited in the older build. Keep every machine's Augram on a build that reads schema 2 once combinations are used; the sync format version (6) pauses an older build's sync the same way.
+An older build sharing the config folder (Joel's installed 0.4.0 beside a dev build) reads schema 1 only. Had combinations been added under schema 1, it would have read `{ "gesture": …, "hold": … }` as the plain gesture and saved it back without the hold at its next change (silently dropping the combination), and refused the whole file at the first `{ "click": true }`. With schema 2 it refuses the file instead ("written by a newer Augram"), loads the newest backup it can read, and runs on that; it cannot misread a combination. It does save over the newer file at its first change (copying the newer one into `backup/` first): a build already released cannot be changed. So that this never goes unnoticed, `Load` here reports a main file older than the newest backup ("saved by an older Augram (schema 1) over a newer one (schema 2); what only the newer one could hold, such as trigger combinations, is in backup/…"). Nothing is restored automatically, since that would drop what was edited in the older build. Keep every machine's Augram on a build that reads schema 2 once combinations are used; the sync format version (6 for combinations, 7 since the Scroll and Clear clipboard steps) pauses an older build's sync the same way.
+
+A **new step type** has so far gone without a schema change (Type text, Run and Display; Scroll and Clear clipboard): an older build reading a config that holds one drops that step with a notice (`Step 1 of command 'Zoom In' in 'Windows Explorer' dropped: unknown step type 'scroll'.`, an Info line from `config`) and loads the rest; the command stays, without the step. That is quiet, not a refusal: if the older build then saves (at its next change), the step is gone from the main file, and only the backups taken before (the newest 20 are kept) still hold it. The sync format version is raised instead (4, then 7), so an older build pauses its sync rather than publish the loss to every machine.
 
 ## Stores, undo, live save
 

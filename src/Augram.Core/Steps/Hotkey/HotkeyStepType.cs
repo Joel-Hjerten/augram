@@ -70,8 +70,11 @@ public sealed class HotkeyStepType : IStepType
         return HotkeyExecutor.Execute(StepParameters.Expect<HotkeyStep>(step, this), context);
     }
 
-    /// <summary>Flag names, case-insensitive, comma-separated; "None" and an empty string mean none; anything else names the member.</summary>
-    private static KeyModifiers ReadModifiers(JsonObject parameters, string member)
+    /// <summary>
+    /// Flag names, case-insensitive, comma-separated; "None", an empty string and an absent member mean none; anything else
+    /// names the member. Shared with the Scroll step's held keys, so a modifier set reads the same in every step.
+    /// </summary>
+    internal static KeyModifiers ReadModifiers(JsonObject parameters, string member)
     {
         var text = StepParameters.ReadString(parameters, member);
         if (text is null)

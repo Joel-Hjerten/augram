@@ -12,8 +12,8 @@ namespace Augram.Engine.Execution;
 /// (F8: the command's own version for it when it has one, else the original with each step itself where it was
 /// authored or its best-guess conversion; a step with no guess is skipped with its reason), sharing one
 /// <see cref="StepExecutionContext"/>. The target is
-/// activated lazily, right before the first Keyboard or Text step, because only injected keys need
-/// focus (the adapter applies A20 and says whether focus moved): a window operation acts on the handle
+/// activated lazily, right before the first Keyboard, Mouse or Text step, because only injected keys and wheel
+/// need focus (the adapter applies A20 and says whether focus moved): a window operation acts on the handle
 /// and a media key is global, so a minimize never pays for an activation (2026-10-07: an Alt-tap
 /// activation cost 310 ms before a minimize over Chrome). The settle delay (A8) follows that activation
 /// only when it moved focus. <c>Failed</c> stops the command, <c>Skipped</c> continues it, and the
@@ -27,6 +27,7 @@ internal sealed class CommandRunner
     private readonly IDisplayModes _displays;
     private readonly IInputSimulator _simulator;
     private readonly IProcessLauncher _processes;
+    private readonly IClipboard _clipboard;
     private readonly IEventLog _log;
     private readonly int _settleDelayMs;
     private readonly CancellationToken _cancellation;
@@ -39,6 +40,7 @@ internal sealed class CommandRunner
         _displays = ports.DisplayModes;
         _simulator = ports.Simulator;
         _processes = ports.ProcessLauncher;
+        _clipboard = ports.Clipboard;
         _log = ports.Log;
         _settleDelayMs = settleDelayMs;
         _cancellation = cancellation;
@@ -56,7 +58,7 @@ internal sealed class CommandRunner
             return;
         }
 
-        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation) { Processes = _processes, Displays = _displays };
+        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation) { Processes = _processes, Displays = _displays, Clipboard = _clipboard };
         var activated = false;
         var run = 0;
         var skipped = 0;
@@ -162,8 +164,11 @@ internal sealed class CommandRunner
         return focusMoved;
     }
 
-    /// <summary>Injected keys land in whatever has focus, so only Keyboard and Text steps need the target in front.</summary>
-    private static bool NeedsFocus(IStep step) => step.Type.Category is StepCategory.Keyboard or StepCategory.Text;
+    /// <summary>
+    /// Injected keys land in whatever has focus, so Keyboard and Text steps need the target in front; so do Mouse steps
+    /// (Scroll), whose held keys go to the foreground window and whose wheel must reach the same one.
+    /// </summary>
+    private static bool NeedsFocus(IStep step) => step.Type.Category is StepCategory.Keyboard or StepCategory.Mouse or StepCategory.Text;
 
     /// <summary>A8: the one wait, cancellation-aware; false when the executor is stopping.</summary>
     private bool Settle()

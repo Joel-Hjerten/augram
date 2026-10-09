@@ -1,6 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
+using Augram.Core.Steps.ClearClipboard;
 using Augram.Core.Steps.WindowOp;
 using Augram.Import.StrokesPlus;
 using Xunit;
@@ -130,6 +131,28 @@ public sealed class ActionMappingTests
         Assert.Equal(KeyModifiers.Alt, command.Trigger.Hold.Keys);
         Assert.Contains("script-only", command.Note, StringComparison.Ordinal);
         Assert.Single(command.Steps);
+    }
+
+    [Fact]
+    public void ACommentOnlyScriptImportsAsAnOverrideToNothing_WithoutNoteOrWarning()
+    {
+        var result = Read("{ \"Description\": \"Synthetic Ignore\", \"GestureName\": \"Synthetic Up\", \"Steps\": [], \"Script\": \"//Do nothing here\\r\\n//on purpose\" }");
+
+        var command = Only(result);
+        Assert.Empty(command.Steps);
+        Assert.Null(command.Note);
+        Assert.True(command.IsActive);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Item == "Script");
+    }
+
+    [Fact]
+    public void AClipClearScriptImportsAsAClearClipboardStep_WithoutTheScriptNote()
+    {
+        var command = Only(Read("{ \"Description\": \"Synthetic Clear\", \"GestureName\": \"Synthetic Up\", \"Steps\": [], \"Script\": \"// Clear it\\r\\nclip.Clear();\" }"));
+
+        Assert.IsType<ClearClipboardStep>(Assert.Single(command.Steps).Step);
+        Assert.Equal(HostPlatform.Windows, command.Steps[0].AuthoredOn);
+        Assert.Null(command.Note);
     }
 
     [Fact]

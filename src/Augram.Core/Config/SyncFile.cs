@@ -29,9 +29,11 @@ public sealed record SyncFile(
     /// a command holding one and would drop it. 5 (2026-10-09): Display mode's "highest available" refresh
     /// (<c>"refreshHz": "highest"</c>), which a format 4 build refuses to read. 6 (2026-10-09): trigger combinations (a
     /// trigger's <c>hold</c>, the click trigger, an own-steps item's <c>trigger</c>); a format 5 build would read a
-    /// combination as the plain trigger and publish it back that way (the config schema went to 2 at the same time).
+    /// combination as the plain trigger and publish it back that way (the config schema went to 2 at the same time). 7
+    /// (2026-10-09): the step types Scroll and Clear clipboard (<c>scroll</c>, <c>clearClipboard</c>); a format 6 build
+    /// cannot read a command holding one and would drop the step.
     /// </summary>
-    public const int CurrentFormatVersion = 6;
+    public const int CurrentFormatVersion = 7;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;
