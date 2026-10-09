@@ -242,7 +242,7 @@ public static class EngineModule
     private static void RegisterMacOS(IServiceCollection services)
     {
         services.AddSingleton<ICursorProbe, MacCursorProbe>();
-        services.AddSingleton<IOverlayWindowStyle, MacOverlayWindowStyle>();
+        // The trail is the panel; no IOverlayWindowStyle, so the Avalonia trail window cannot be built here by mistake.
         services.AddSingleton<ITrailSurface, MacTrailPanel>();
         services.AddSingleton<IStartupRegistration, NullStartupRegistration>();
         services.AddSingleton<IWindowSystem, MacWindowSystem>();
