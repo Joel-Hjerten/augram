@@ -79,6 +79,7 @@
       "Bash(open src/Augram.App/bin/*)",
       "Bash(open /Applications/Augram.app)",
       "Bash(pkill -f Augram.App*)",
+      "Bash(node scripts/package.mjs mac --signed)",
       "PowerShell(git:*)",
       "PowerShell(gh:*)",
       "PowerShell(dotnet:*)",
