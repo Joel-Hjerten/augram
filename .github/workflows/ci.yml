@@ -34,7 +34,8 @@ jobs:
         shell: bash
         run: |
           [ -f test-output.txt ] || exit 0
-          lines=$(grep -E "Test Run Aborted|aborted|crashed|Stack overflow|Unhandled exception|Fatal error|error CS|Failed [A-Za-z]|The following test|Data collector|blame|exited with error" test-output.txt | tail -n 40)
-          [ -n "$lines" ] || lines=$(tail -n 40 test-output.txt)
+          crash=$(grep -E -A 25 "Fatal error|crashed|Stack overflow|Unhandled exception|aborted|The active test run" test-output.txt | head -n 80)
+          failed=$(grep -E "Failed [A-Za-z]|error CS|exited with error" test-output.txt | tail -n 20)
+          if [ -z "$crash$failed" ]; then lines=$(tail -n 40 test-output.txt); else lines="$crash"$'\n'"$failed"; fi
           encoded=$(printf '%s' "$lines" | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
           echo "::error title=dotnet test output (${{ runner.os }})::${encoded}"
