@@ -32,6 +32,10 @@ public sealed class MacWindowOperations : IWindowOperations
     private const string FillKey = "F";
     private const string ReturnKey = "R";
 
+    /// <summary>How long a tiling press may take to move the window (macOS animates it) before it counts as having done nothing.</summary>
+    private static readonly TimeSpan SettleTimeout = TimeSpan.FromMilliseconds(600);
+    private const int SettlePoll = 20;
+
     private readonly IEventLog _log;
 
     public MacWindowOperations(IEventLog? log = null)
@@ -92,6 +96,24 @@ public sealed class MacWindowOperations : IWindowOperations
         }
     }
 
+    /// <summary>Polls the window's frame for up to <see cref="SettleTimeout"/>: true once it differs from <paramref name="before"/> by more than a point.</summary>
+    private static bool FrameChanged(nint window, MacRect before)
+    {
+        var deadline = Environment.TickCount64 + (long)SettleTimeout.TotalMilliseconds;
+        do
+        {
+            if (Ax.Frame(window) is { } now && !now.IsNear(before, 1))
+            {
+                return true;
+            }
+
+            Thread.Sleep(SettlePoll);
+        }
+        while (Environment.TickCount64 < deadline);
+
+        return false;
+    }
+
     private static string Describe(MacRect rect) => $"{rect.X:0},{rect.Y:0} {rect.Width:0}x{rect.Height:0}";
 
     private static WindowOperationResult Result(int error) =>
@@ -124,7 +146,7 @@ public sealed class MacWindowOperations : IWindowOperations
                 return Result(Ax.SetFrame(element, previous));
             }
 
-            if (PressTiling(app, element, ReturnKey, "Return to Previous Size") is { } returned)
+            if (PressTiling(app, element, frame, ReturnKey, "Return to Previous Size") is { } returned)
             {
                 return returned;
             }
@@ -134,7 +156,7 @@ public sealed class MacWindowOperations : IWindowOperations
             return Result(Ax.SetFrame(element, fallback));
         }
 
-        if (PressTiling(app, element, FillKey, "Fill") is { } filled)
+        if (PressTiling(app, element, frame, FillKey, "Fill") is { } filled)
         {
             return filled;
         }
@@ -149,10 +171,12 @@ public sealed class MacWindowOperations : IWindowOperations
     }
 
     /// <summary>
-    /// Brings the window forward (the menu acts on the app's main window) and presses the Window menu item with this
-    /// shortcut; null when the app has no such item, enabled, so the caller falls back. One log line either way.
+    /// Brings the window forward (the menu acts on the app's main window, which need not be the one under the gesture) and
+    /// presses the Window menu item with this shortcut, then waits for THIS window's frame to change (the Eyeris agent's
+    /// check, 2026-10-09). Null when the app has no such enabled item, or the press moved nothing, so the caller falls back.
+    /// One log line either way.
     /// </summary>
-    private WindowOperationResult? PressTiling(nint app, nint window, string key, string what)
+    private WindowOperationResult? PressTiling(nint app, nint window, MacRect before, string key, string what)
     {
         var seen = new List<string>();
         var item = Ax.FindWindowMenuItem(app, key, Ax.ControlModifier | Ax.NoCommandModifier, seen);
@@ -168,8 +192,9 @@ public sealed class MacWindowOperations : IWindowOperations
             Ax.SetBool(window, Ax.MainAttribute, true);
             Ax.Perform(window, Ax.RaiseAction);
             var pressed = Ax.Perform(item, Ax.PressAction);
-            _log.Info(Source, "Pressed the tiling menu item", ("item", what), ("result", Ax.Describe(pressed)));
-            return Result(pressed);
+            var moved = pressed == MacNative.AXErrorSuccess && FrameChanged(window, before);
+            _log.Info(Source, "Pressed the tiling menu item", ("item", what), ("result", Ax.Describe(pressed)), ("windowChanged", moved));
+            return moved ? WindowOperationResult.Ok : null;
         }
         finally
         {
