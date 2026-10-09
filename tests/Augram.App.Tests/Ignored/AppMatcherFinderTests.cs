@@ -25,21 +25,36 @@ public sealed class AppMatcherFinderTests
     };
 
     [Fact]
-    public void IdentifyAddsTheExecutableToThisPlatformsList_OnceInAnyCase()
+    public void TheExecutableJoinsThisPlatformsList_OnceInAnyCase()
     {
         var edit = New(HostPlatform.Windows);
         edit.WindowsNames = "msedge.exe";
 
-        edit.IdentifyWindow(Chrome);
+        Assert.True(edit.TakeExecutable(Chrome));
         Assert.Equal("msedge.exe, chrome.exe", edit.WindowsNames);
         Assert.Equal(string.Empty, edit.MacNames);
-        Assert.Equal("chrome.exe · Google Chrome: added chrome.exe to the Windows executables.", edit.Identified.Summary);
 
         var raised = Raised(edit);
-        edit.IdentifyWindow(Chrome with { ProcessName = "CHROME.EXE" });
+        Assert.False(edit.TakeExecutable(Chrome with { ProcessName = "CHROME.EXE" }));
         Assert.Equal("msedge.exe, chrome.exe", edit.WindowsNames);
         Assert.Empty(raised);
-        Assert.Equal("CHROME.EXE · Google Chrome: CHROME.EXE is already in the Windows executables.", edit.Identified.Summary);
+    }
+
+    /// <summary>On a Mac the path and title magnifiers fill the macOS fields, never the Windows ones.</summary>
+    [Fact]
+    public void OnAMac_PathAndTitleGoToTheMacFields()
+    {
+        var edit = New(HostPlatform.MacOS);
+        edit.ProcessPath = @"C:\keep.exe";
+        var mac = FakeWindowSystem.Window("Google Chrome", "New Tab", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+
+        edit.TakePath(mac);
+        edit.TakeTitle(mac);
+
+        Assert.Equal(("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "New Tab"), (edit.MacProcessPath, edit.MacWindowTitle));
+        Assert.Equal((@"C:\keep.exe", string.Empty), (edit.ProcessPath, edit.WindowTitle));
+        var matcher = edit.ToMatcher();
+        Assert.Equal(("New Tab", false), matcher.TitleFor(HostPlatform.MacOS));
     }
 
     [Fact]
@@ -144,24 +159,18 @@ public sealed class AppMatcherFinderTests
         Assert.Equal(("keep", "keep", "keep"), (edit.ProcessPath, edit.WindowTitle, edit.RootClass));
     }
 
+    /// <summary>The Windows | macOS switch is view state: flipping it raises nothing on the form, so the host applies nothing.</summary>
     [Fact]
-    public void TheIdentifiedWindowOffersItsOtherProperties_AndUseCopiesEachIntoItsField()
+    public void TheFormOpensOnThisMachinesPlatform_AndFlippingIsNoEdit()
     {
-        var edit = New(HostPlatform.Windows);
-        Assert.Equal(IdentifiedWindowViewModel.NothingPicked, edit.Identified.Summary);
-        Assert.False(edit.Identified.HasPath || edit.Identified.HasTitle);
-        edit.UseIdentifiedPath();
-        Assert.Equal(string.Empty, edit.ProcessPath);
+        var edit = New(HostPlatform.MacOS);
+        Assert.Equal(HostPlatform.MacOS, edit.View.Shown);
+        var raised = Raised(edit);
 
-        edit.IdentifyWindow(Chrome);
-        Assert.True(edit.Identified.HasPath && edit.Identified.HasTitle);
-        Assert.Equal((Chrome.ProcessPath, "Google Chrome"), (edit.Identified.PathText, edit.Identified.TitleText));
-        Assert.Equal((string.Empty, string.Empty), (edit.ProcessPath, edit.WindowTitle));
+        edit.View.Shown = HostPlatform.Windows;
 
-        edit.UseIdentifiedPath();
-        edit.UseIdentifiedTitle();
-
-        Assert.Equal((Chrome.ProcessPath, "Google Chrome"), (edit.ProcessPath, edit.WindowTitle));
+        Assert.Empty(raised);
+        Assert.True(edit.View.ShowsWindows);
     }
 
     private static AppMatcherEditViewModel.WindowField Field(AppMatcherEditViewModel edit, string label) => edit.WindowFields.Single(field => field.Label == label);

@@ -54,28 +54,16 @@ public static class IgnoredGalleryPages
     }
 
     /// <summary>
-    /// The window finder: a bare magnifier whose last pick shows beside it, and the identification form after "Identify window"
-    /// named a pretend Chrome (its path, title and classes offered with Use). Drags read the real windows on screen through the
-    /// window system the app publishes; nothing is written anywhere.
+    /// The window finder: a bare magnifier whose last pick shows beside it, and the identification form over a pretend Chrome
+    /// group (a magnifier on each of this machine's rows, Use Regex beside each). Drags read the real windows on screen
+    /// through the window system the app publishes; nothing is written anywhere.
     /// </summary>
     public static ScreenDeclaration WindowFinderPage()
     {
         var last = "Nothing picked yet.";
         var lastBinding = new DelegateBinding<string>(() => last, propertyName: null);
         var edit = new AppMatcherEditViewModel(() => PlatformSet.All, "type its name", "none needed");
-        edit.IdentifyWindow(new WindowIdentity(
-            0x100,
-            0x100,
-            "chrome.exe",
-            @"C:\Program Files\Google\Chrome\Application\chrome.exe",
-            "Google Chrome",
-            ["Chrome_RenderWidgetHostHWND", "Chrome_WidgetWin_1"],
-            ProcessId: 4242,
-            IsFullScreen: false,
-            IsDesktop: false)
-        {
-            Levels = new WindowLevels(null, "Chrome_RenderWidgetHostHWND", "Google Chrome", "Chrome_WidgetWin_1", "Google Chrome", "Chrome_WidgetWin_1", "Google Chrome", "Chrome_WidgetWin_1"),
-        });
+        edit.SyncFrom(new AppMatcher { WindowsProcessNames = ["chrome.exe"], MacProcessNames = ["Google Chrome"], RootClass = "Chrome_WidgetWin_1", ControlClassIsRegex = true, ControlClass = "^Chrome_" });
         return new FormScreen("WindowFinder",
         [
             new Section("Bare: press, drag onto any window, release; Esc or a right-click cancels",

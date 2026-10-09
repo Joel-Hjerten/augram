@@ -262,6 +262,8 @@ internal sealed class MappingJsonReader
             MacProcessPathIsRegex = JsonMembers.OptionalBool(matcher, "macProcessPathIsRegex", fallback: false, what),
             Title = JsonMembers.OptionalString(matcher, "title", what),
             TitleIsRegex = JsonMembers.OptionalBool(matcher, "titleIsRegex", fallback: false, what),
+            MacTitle = JsonMembers.OptionalString(matcher, "macTitle", what),
+            MacTitleIsRegex = JsonMembers.OptionalBool(matcher, "macTitleIsRegex", fallback: false, what),
             WindowsProcessNamesAreRegex = JsonMembers.OptionalBool(matcher, "processNamesAreRegex", fallback: false, what),
             MacProcessNamesAreRegex = JsonMembers.OptionalBool(matcher, "macProcessNamesAreRegex", fallback: false, what),
             RootTitle = JsonMembers.OptionalString(matcher, "rootTitle", what),

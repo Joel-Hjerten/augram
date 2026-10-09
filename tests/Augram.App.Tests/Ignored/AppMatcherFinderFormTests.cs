@@ -14,7 +14,6 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Xunit;
 
@@ -29,43 +28,69 @@ public sealed class AppMatcherFinderFormTests
 {
     private static readonly Point OverChrome = new(2000, 100);
 
+    /// <summary>SP.net's rows (Joel, 2026-10-09): every field a text box, a magnifier on this machine's side, Use Regex; the switch flips the rows.</summary>
     [AvaloniaFact]
-    public void TheMagnifiersSitBeforeIdentifyWindow_ThisPlatformsExecutables_ThePath_TheTitle_AndOnWindowsEachWindowField()
+    public void EachRowHasItsMagnifierAndUseRegex_AndTheSwitchFlipsBetweenPlatforms()
     {
-        var windows = Show(AppMatcherFinderTests.New(HostPlatform.Windows)).Rows;
-        var mac = Show(AppMatcherFinderTests.New(HostPlatform.MacOS)).Rows;
+        var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
+        var rows = Show(edit).Rows;
 
-        Assert.Equal(["Identify window", "Windows executables", "Windows executable path", "Window title", "Root title", "Parent title", "Control title", "Owner class", "Root class", "Parent class", "Control class"], FinderLabels(windows));
-        Assert.Equal(["Identify window", "macOS executables", "macOS executable path", "Window title"], FinderLabels(mac));
-        Assert.Equal(["Its path", "Its title", "Its root title", "Its parent title", "Its control title", "Its owner class", "Its root class", "Its parent class", "Its control class"], windows.Where(row => row.Accessory is Button).Select(row => row.Label));
+        string[] windowsRows = ["Executable", "Executable path", "Window title", "Root title", "Parent title", "Control title", "Owner class", "Root class", "Parent class", "Control class"];
+        Assert.Equal(windowsRows, FinderLabels(rows));
+        Assert.All(windowsRows, label => Assert.Equal(PatternField.UseRegexCaption, RegexBox(rows, label).Content));
+        Assert.False(Row(rows, "Window classes (older)").IsVisible);
+
+        edit.View.Shown = HostPlatform.MacOS;
+
+        Assert.Equal(["Executable", "Executable path", "Window title", "Not when full screen"], rows.Where(row => row.IsVisible).Select(row => row.Label).Skip(1));
+        Assert.Empty(FinderLabels(rows));
     }
 
     [AvaloniaFact]
-    public void EachFieldsMagnifier_FillsItsField_AndIdentifyOffersTheRestWithUse()
+    public void TheSwitchShowsEachPlatformsOwnValues_AndTypingGoesToTheShownOne()
+    {
+        var edit = AppMatcherFinderTests.New(HostPlatform.MacOS);
+        edit.SyncFrom(new AppMatcher { WindowsProcessNames = ["chrome.exe"], ProcessPath = @"C:\chrome.exe", MacProcessNames = ["Google Chrome"], MacProcessNamesAreRegex = true });
+        var rows = Show(edit).Rows;
+
+        Assert.Equal("Google Chrome", Box(rows, "Executable").Text);
+        Assert.True(RegexBox(rows, "Executable").IsChecked);
+        Assert.Equal(string.Empty, Box(rows, "Executable path").Text ?? string.Empty);
+
+        edit.View.Shown = HostPlatform.Windows;
+        Assert.Equal("chrome.exe", Box(rows, "Executable").Text);
+        Assert.False(RegexBox(rows, "Executable").IsChecked);
+        Assert.Equal(@"C:\chrome.exe", Box(rows, "Executable path").Text);
+
+        Box(rows, "Executable path").Text = string.Empty;
+        Assert.Equal((string.Empty, string.Empty), (edit.ProcessPath, edit.MacProcessPath));
+        Assert.Equal("Google Chrome", edit.MacNames);
+    }
+
+    [AvaloniaFact]
+    public void AnEmptyExecutableBoxShowsTheGuess()
+    {
+        var edit = AppMatcherFinderTests.New(HostPlatform.MacOS);
+        edit.WindowsNames = "chrome.exe";
+        var rows = Show(edit).Rows;
+
+        Assert.Equal("Google Chrome (guessed)", Box(rows, "Executable").Watermark);
+    }
+
+    [AvaloniaFact]
+    public void EachFieldsMagnifier_FillsItsField()
     {
         var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
         var (window, rows) = Show(edit);
 
-        Drag(window, Finder(rows, "Windows executables"));
+        Drag(window, Finder(rows, "Executable"));
         Drag(window, Finder(rows, "Window title"));
         Drag(window, Finder(rows, "Control class"));
-        Assert.Equal(("chrome.exe", "Google Chrome", "Chrome_RenderWidgetHostHWND", string.Empty), (edit.WindowsNames, edit.WindowTitle, edit.ControlClass, edit.ProcessPath));
-        Assert.False(Row(rows, "Its root class").IsVisible);
-        Assert.False(Row(rows, "Its path").IsVisible);
+        Drag(window, Finder(rows, "Executable path"));
 
-        Drag(window, Finder(rows, "Identify window"));
-        Assert.Equal("chrome.exe", edit.WindowsNames);
-        Assert.Equal(AppMatcherFinderTests.Chrome.ProcessPath, ((TextBlock)Row(rows, "Its path").Editor!).Text);
-        Assert.True(Row(rows, "Its path").IsVisible);
-        Assert.StartsWith("chrome.exe · Google Chrome: chrome.exe is already", ((TextBlock)Row(rows, "Identify window").Editor!).Text, StringComparison.Ordinal);
-
-        ((Button)Row(rows, "Its path").Accessory!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(("chrome.exe", "Google Chrome", "Chrome_RenderWidgetHostHWND"), (edit.WindowsNames, edit.WindowTitle, edit.ControlClass));
         Assert.Equal(AppMatcherFinderTests.Chrome.ProcessPath, edit.ProcessPath);
-        Assert.True(Row(rows, "Its root class").IsVisible);
-        Assert.False(Row(rows, "Its control title").IsVisible);
-        ((Button)Row(rows, "Its root class").Accessory!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Assert.Equal("Chrome_WidgetWin_1", edit.RootClass);
-        Assert.Equal(AppMatcherFinderTests.Chrome.ProcessPath, ((TextBox)Row(rows, "Windows executable path").Editor!).Text);
+        Assert.Equal(AppMatcherFinderTests.Chrome.ProcessPath, Box(rows, "Executable path").Text);
     }
 
     [AvaloniaFact]
@@ -77,25 +102,22 @@ public sealed class AppMatcherFinderFormTests
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, vm.Items.Single()));
         var (window, rows) = Show(vm.Detail!);
 
-        Drag(window, Finder(rows, "Identify window"));
+        Drag(window, Finder(rows, "Executable"));
         Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
 
-        Drag(window, Finder(rows, PathLabel));
+        Drag(window, Finder(rows, "Executable path"));
         Assert.Equal((AppMatcherFinderTests.Chrome.ProcessPath, false), Stored().PathFor(CommandsModule.CurrentPlatform));
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));
         Assert.Equal(steam.Matcher.PathFor(CommandsModule.CurrentPlatform), Stored().PathFor(CommandsModule.CurrentPlatform));
         Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
-        Assert.Equal(steam.Matcher.PathFor(CommandsModule.CurrentPlatform).Path ?? string.Empty, ((TextBox)Row(rows, PathLabel).Editor!).Text ?? string.Empty);
+        Assert.Equal(steam.Matcher.PathFor(CommandsModule.CurrentPlatform).Path ?? string.Empty, Box(rows, "Executable path").Text ?? string.Empty);
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));
         Assert.Empty(Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
 
         AppMatcher Stored() => store.FindIgnored(steam.Id)!.Matcher;
     }
-
-    /// <summary>This platform's path field: the one the magnifier fills here.</summary>
-    private static string PathLabel => CommandsModule.CurrentPlatform == HostPlatform.MacOS ? "macOS executable path" : "Windows executable path";
 
     private static (Window Window, List<FieldRow> Rows) Show(AppMatcherEditViewModel edit) => Show(new FormScreen("Identification", edit.Sections()));
 
@@ -109,11 +131,17 @@ public sealed class AppMatcherFinderFormTests
         return (window, form.GetVisualDescendants().OfType<FieldRow>().ToList());
     }
 
-    private static IEnumerable<string> FinderLabels(IEnumerable<FieldRow> rows) => rows.Where(row => row.Accessory is WindowFinder).Select(row => row.Label);
+    /// <summary>The visible rows whose magnifier shows.</summary>
+    private static IEnumerable<string> FinderLabels(IEnumerable<FieldRow> rows)
+        => rows.Where(row => row.IsVisible && row.Editor is Control editor && editor.GetVisualDescendants().OfType<WindowFinder>().Any(finder => finder.IsVisible)).Select(row => row.Label);
+
+    private static TextBox Box(IEnumerable<FieldRow> rows, string label) => ((Control)Row(rows, label).Editor!).GetVisualDescendants().OfType<TextBox>().First();
+
+    private static CheckBox RegexBox(IEnumerable<FieldRow> rows, string label) => ((Control)Row(rows, label).Editor!).GetVisualDescendants().OfType<CheckBox>().Single();
 
     private static FieldRow Row(IEnumerable<FieldRow> rows, string label) => rows.Single(row => row.Label == label);
 
-    private static WindowFinder Finder(IEnumerable<FieldRow> rows, string label) => (WindowFinder)Row(rows, label).Accessory!;
+    private static WindowFinder Finder(IEnumerable<FieldRow> rows, string label) => ((Control)Row(rows, label).Editor!).GetVisualDescendants().OfType<WindowFinder>().Single();
 
     /// <summary>Left press on the magnifier, a move onto Chrome outside the window, release there.</summary>
     private static void Drag(Window window, WindowFinder finder)

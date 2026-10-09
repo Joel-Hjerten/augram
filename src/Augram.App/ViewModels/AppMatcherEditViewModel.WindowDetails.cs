@@ -8,15 +8,13 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// The StrokesPlus.net app definition's per-window fields (Joel, 2026-10-09: every field, each with Use Regex; some may go
-/// later): the root's, the parent's and the control's title, and the owner's, root's, parent's and control's class, in a
-/// section of their own because they are Windows-only and rarely needed. Each has a regex toggle and, on Windows, a
-/// magnifier that fills it from the window under it (toggle off). <see cref="WindowField"/> is the one list the section,
-/// the copy to and from the matcher, the magnifiers and the identified window's Use rows walk.
+/// later): the root's, the parent's and the control's title, and the owner's, root's, parent's and control's class, shown
+/// on the Windows side of the form only (a Mac window has none). Each is a pattern row whose magnifier (on Windows) fills it
+/// from the window under it, its toggle off. <see cref="WindowField"/> is the one list the rows, the copy to and from the
+/// matcher and the magnifiers walk.
 /// </summary>
 public sealed partial class AppMatcherEditViewModel
 {
-    public const string WindowDetailsTitle = "Window details (Windows)";
-
     [ObservableProperty]
     public partial string RootTitle { get; set; } = string.Empty;
 
@@ -135,37 +133,29 @@ public sealed partial class AppMatcherEditViewModel
     };
 
     /// <summary>
-    /// Each per-window field with its toggle (and a magnifier on Windows), then the older "Window classes" list, shown only
-    /// while it still holds classes (configs from before 2026-10-09: the Windows Desktop, VMware).
+    /// Each per-window field as a pattern row (with a magnifier when this machine is Windows), then the older "Window classes"
+    /// list while it still holds classes (configs from before 2026-10-09: the Windows Desktop, VMware); all on the Windows
+    /// side of the form only.
     /// </summary>
-    private Section WindowDetailsSection()
+    private IEnumerable<Field> WindowFieldRows()
     {
-        var fields = new List<Field>();
+        // A nameless relay as the owner: the getters are delegates, so no property name could be read from them.
+        var changes = new FormChanges(this, View);
+        var shown = new DelegateBinding<bool>(() => View.ShowsWindows, owner: View);
         foreach (var field in WindowFields)
         {
-            fields.Add(new TextField(field.Label, new DelegateBinding<string>(field.Text, field.SetText, this), field.Help + " Exact, case-insensitive, unless the toggle below makes it a pattern.")
+            yield return new PatternField(field.Label, new DelegateBinding<string>(field.Text, field.SetText, changes), new DelegateBinding<bool>(field.IsRegex, field.SetIsRegex, changes), field.Help)
             {
-                Accessory = Platform == HostPlatform.Windows ? WindowFinderAccessory.Finder(window => DescribeLevel(field, window), window => TakeWindowField(field, window)) : null,
-            });
-            fields.Add(new ToggleField($"{field.Label} is a regular expression", new DelegateBinding<bool>(field.IsRegex, field.SetIsRegex, this)));
+                Visible = shown,
+                Finder = Platform == HostPlatform.Windows ? WindowFinderAccessory.Finder(window => DescribeLevel(field, window), window => TakeWindowField(field, window)) : null,
+            };
         }
 
-        fields.Add(new TextField("Window classes (older)", new DelegateBinding<string>(() => WindowClasses, value => WindowClasses = value, this), "From before the fields above: each class must be somewhere among the window's classes; Progman|WorkerW lists alternatives. Move them to the class fields above, then empty this.")
+        yield return new TextField("Window classes (older)", new DelegateBinding<string>(() => WindowClasses, value => WindowClasses = value, this), "From before the class fields above: each class must be somewhere among the window's classes; Progman|WorkerW lists alternatives. Move them to the fields above, then empty this.")
         {
-            Visible = new DelegateBinding<bool>(() => WindowClasses.Trim().Length > 0, owner: this),
-        });
-        return new Section(WindowDetailsTitle, fields, "StrokesPlus.net's app definition fields. Windows only: on a Mac a group that sets one matches nothing.");
+            Visible = new DelegateBinding<bool>(() => View.ShowsWindows && WindowClasses.Trim().Length > 0, owner: changes),
+        };
     }
-
-    /// <summary>The identified window's value for each per-window field, with Use; a row only while the window has that value.</summary>
-    private IEnumerable<Field> IdentifiedWindowFieldRows() => WindowFields.Select(field => (Field)new NoteField(
-        $"Its {char.ToLowerInvariant(field.Label[0])}{field.Label[1..]}",
-        new DelegateBinding<string>(() => Identified.Window is { } window ? field.Of(window.Levels) ?? string.Empty : string.Empty, owner: Identified),
-        $"Use makes it the {field.Label.ToLowerInvariant()} under {WindowDetailsTitle}.")
-    {
-        Visible = new DelegateBinding<bool>(() => Identified.Window is { } window && !string.IsNullOrEmpty(field.Of(window.Levels)), owner: Identified),
-        Accessory = WindowFinderAccessory.UseButton(() => UseIdentified(window => TakeWindowField(field, window))),
-    });
 
     private static string DescribeLevel(WindowField field, WindowIdentity window)
         => field.Of(window.Levels) is { Length: > 0 } value ? value : $"{window.ProcessName}: no {field.Label.ToLowerInvariant()}";

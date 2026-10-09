@@ -52,12 +52,13 @@ public sealed class PlatformMatchingTests
     }
 
     [Fact]
-    public void WithoutAnyNamesTheOtherFieldsDecideOnEveryPlatform()
+    public void WithoutAnyNamesEachPlatformsOwnFieldsDecide()
     {
-        var byTitle = new AppMatcher { Title = "Inbox" };
+        var byTitle = new AppMatcher { Title = "Inbox", MacTitle = "Inbox" };
 
         Assert.True(byTitle.Matches(Window("anything", title: "Inbox"), Windows));
         Assert.True(byTitle.Matches(Window("anything", title: "Inbox"), Mac));
+        Assert.False((byTitle with { MacTitle = null }).Matches(Window("anything", title: "Inbox"), Mac));
     }
 
     [Fact]

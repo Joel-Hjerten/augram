@@ -202,4 +202,14 @@ public sealed class AppMatcherTests
         var macOnly = new AppMatcher { MacProcessPath = "^/Applications/Steam", MacProcessPathIsRegex = true };
         Assert.False(macOnly.Matches(MappingFixtures.Window("chrome.exe", path: @"C:\chrome.exe"), HostPlatform.Windows));
     }
+
+    [Fact]
+    public void EachPlatformLooksAtItsOwnTitleOnly()
+    {
+        var chimera = new AppMatcher { Title = "Chimera" };
+
+        Assert.True(chimera.Matches(MappingFixtures.Window("chimera.exe", title: "Chimera"), HostPlatform.Windows));
+        Assert.False(chimera.Matches(MappingFixtures.Window("Chimera", title: "Chimera"), HostPlatform.MacOS));
+        Assert.True((chimera with { MacTitle = "^Chim", MacTitleIsRegex = true }).Matches(MappingFixtures.Window("Chimera", title: "Chimera"), HostPlatform.MacOS));
+    }
 }

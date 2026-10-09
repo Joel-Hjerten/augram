@@ -48,22 +48,12 @@ public sealed class FormDialogTests
         Assert.True(dialog.HasScreen);
         Assert.False(dialog.HasMessage);
         Assert.Equal(
-            ["Name", "Active", "Use on", "Suppress global commands", "Identify window", "Windows executables", "Windows names are regular expressions",
-                "macOS executables", "macOS names are regular expressions", "Guess for an empty list",
-                "Its path", "Its title", "Its root title", "Its parent title", "Its control title", "Its owner class", "Its root class", "Its parent class", "Its control class",
-                "Windows executable path", "Windows path is a regular expression", "macOS executable path", "macOS path is a regular expression", "Window title", "Title is a regular expression", "Not when full screen",
-                "Root title", "Root title is a regular expression",
-                "Parent title", "Parent title is a regular expression",
-                "Control title", "Control title is a regular expression",
-                "Owner class", "Owner class is a regular expression",
-                "Root class", "Root class is a regular expression",
-                "Parent class", "Parent class is a regular expression",
-                "Control class", "Control class is a regular expression",
-                "Window classes (older)"],
+            ["Name", "Active", "Use on", "Suppress global commands", "Fields for", "Executable", "Executable path", "Window title",
+                "Root title", "Parent title", "Control title", "Owner class", "Root class", "Parent class", "Control class", "Window classes (older)", "Not when full screen"],
             rows.Select(row => row.Label));
         // The app group gets the window finder through the identification form it shares with ignored apps.
-        Assert.Contains(rows, row => row.Label == "Identify window" && row.Accessory is WindowFinder);
-        Assert.False(rows.Single(row => row.Label == "Its path").IsVisible);
+        Assert.Contains(rows, row => row.Label == "Executable" && row.Editor is Control editor && editor.GetVisualDescendants().OfType<WindowFinder>().Any());
+        Assert.False(rows.Single(row => row.Label == "Window classes (older)").IsVisible);
         ((TextBox)rows[0].Editor!).Text = "Chromium";
         ((CheckBox)rows[3].Editor!).IsChecked = true;
         var useOn = ((StackPanel)rows[2].Editor!).Children.OfType<CheckBox>().ToList();

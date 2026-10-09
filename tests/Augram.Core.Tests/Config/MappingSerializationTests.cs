@@ -231,6 +231,7 @@ public sealed class MappingSerializationTests
                 WindowsProcessNames = [@"PotPlayerMini.*\.exe"],
                 WindowsProcessNamesAreRegex = true,
                 MacProcessNames = ["Finder"],
+                MacTitle = "Desktop",
                 MacProcessPath = "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
                 RootTitle = "Program Manager",
                 ParentTitle = "^$",

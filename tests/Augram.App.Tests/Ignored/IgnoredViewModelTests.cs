@@ -38,7 +38,7 @@ public sealed class IgnoredViewModelTests
         var (vm, _, _, _) = Create(HostPlatform.MacOS);
 
         Assert.Equal(
-            ["Gestures off over this app · Blender (guessed)", "Gestures off over this app · Spine", "Disable while focused · nothing on macOS"],
+            ["Gestures off over this app · Blender (guessed)", "Gestures off over this app · nothing on macOS", "Disable while focused · nothing on macOS"],
             vm.Items.Select(item => item.Summary));
     }
 
@@ -50,12 +50,14 @@ public sealed class IgnoredViewModelTests
         var form = vm.Detail!;
 
         Assert.Equal(Blender.Id.Value, vm.SelectedId);
-        Assert.Equal(["Ignored app", "App identification", "More matching options", Augram.App.ViewModels.AppMatcherEditViewModel.WindowDetailsTitle], form.Sections.Select(section => section.Title));
-        Assert.Equal("blender.exe", Text("Windows executables", form).Get());
-        Assert.Equal("macOS: Blender (guessed)", Text("Guess for an empty list", form).Get());
+        Assert.Equal(["Ignored app", Augram.App.ViewModels.AppMatcherEditViewModel.SectionTitle], form.Sections.Select(section => section.Title));
+        IdentificationForm.On(form, HostPlatform.Windows);
+        Assert.Equal("blender.exe", Text("Executable", form).Get());
+        IdentificationForm.On(form, HostPlatform.MacOS);
+        Assert.Equal("Blender (guessed)", IdentificationForm.Pattern("Executable", form).Placeholder!.Get());
 
         Text("Name", form).Set("Blender 4");
-        Text("macOS executables", form).Set("Blender");
+        Text("Executable", form).Set("Blender");
         Choice("Mode", form).Set(true);
         Toggle("Not when full screen", form).Set(true);
 
@@ -76,8 +78,9 @@ public sealed class IgnoredViewModelTests
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, Item(vm, "Blender")));
         var form = vm.Detail!;
 
+        IdentificationForm.On(form, HostPlatform.Windows);
         Text("Window title", form).Set("(");
-        Toggle("Title is a regular expression", form).Set(true);
+        IdentificationForm.Pattern("Window title", form).IsRegex.Set(true);
 
         Assert.NotNull(vm.Message);
         Assert.Equal("(", Text("Window title", form).Get());
@@ -106,7 +109,8 @@ public sealed class IgnoredViewModelTests
         dialogs.Answer = request =>
         {
             Text("Name", request.Screen!).Set("DaVinci Resolve");
-            Text("Windows executables", request.Screen!).Set("Resolve.exe");
+            IdentificationForm.On(request.Screen!, HostPlatform.Windows);
+            Text("Executable", request.Screen!).Set("Resolve.exe");
             return true;
         };
 

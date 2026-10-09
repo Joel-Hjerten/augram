@@ -3,6 +3,7 @@ using Augram.App.Components.FormDialog;
 using Augram.App.Declarations;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels.Commands;
+using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Avalonia.Headless.XUnit;
 using Xunit;
@@ -143,7 +144,8 @@ public sealed class CommandsViewModelTests
         dialogs.Answer = request =>
         {
             Field("Name", request).Set("Zed");
-            Field("Windows executables", request).Set("zed.exe, zed-preview.exe");
+            IdentificationForm.On(request.Screen!, HostPlatform.Windows);
+            Field("Executable", request).Set("zed.exe, zed-preview.exe");
             return true;
         };
 
@@ -159,8 +161,9 @@ public sealed class CommandsViewModelTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, chrome));
         var form = vm.GroupForm!;
         Field("Name", form).Set("Chromium");
+        IdentificationForm.On(form, HostPlatform.Windows);
         Field("Window title", form).Set("^.*Chromium$");
-        Toggle("Title is a regular expression", form).Set(true);
+        IdentificationForm.Pattern("Window title", form).IsRegex.Set(true);
 
         Assert.Same(form, vm.GroupForm);
         var edited = store.FindGroup(chrome.Id.GroupId)!;
@@ -201,7 +204,8 @@ public sealed class CommandsViewModelTests
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
         Assert.Equal("Chrome", Field("Name", vm.GroupForm!).Get());
-        Assert.Equal("chrome.exe", Field("Windows executables", vm.GroupForm!).Get());
+        IdentificationForm.On(vm.GroupForm!, HostPlatform.Windows);
+        Assert.Equal("chrome.exe", Field("Executable", vm.GroupForm!).Get());
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome"), Item(vm, "Close tab")));
         Assert.Null(vm.GroupForm);
@@ -217,7 +221,8 @@ public sealed class CommandsViewModelTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
         var form = vm.GroupForm!;
 
-        Field("macOS executables", form).Set("Google Chrome, Chromium");
+        IdentificationForm.On(form, HostPlatform.MacOS);
+        Field("Executable", form).Set("Google Chrome, Chromium");
         Assert.Equal(["Google Chrome", "Chromium"], Group(store, "Chrome").Matcher!.MacProcessNames);
         Assert.Equal(["chrome.exe"], Group(store, "Chrome").Matcher!.WindowsProcessNames);
         Assert.True(vm.CanUndo);
@@ -225,7 +230,7 @@ public sealed class CommandsViewModelTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         Assert.Empty(Group(store, "Chrome").Matcher!.MacProcessNames);
         Assert.Same(form, vm.GroupForm);
-        Assert.Equal(string.Empty, Field("macOS executables", form).Get());
+        Assert.Equal(string.Empty, Field("Executable", form).Get());
     }
 
     [AvaloniaFact]

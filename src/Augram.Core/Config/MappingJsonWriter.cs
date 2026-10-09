@@ -254,6 +254,7 @@ internal static class MappingJsonWriter
         WriteFieldIfSet(writer, "macProcessPath", matcher.MacProcessPath, matcher.MacProcessPathIsRegex);
         writer.WriteString("title", matcher.Title);
         writer.WriteBoolean("titleIsRegex", matcher.TitleIsRegex);
+        WriteFieldIfSet(writer, "macTitle", matcher.MacTitle, matcher.MacTitleIsRegex);
         WriteFieldIfSet(writer, "rootTitle", matcher.RootTitle, matcher.RootTitleIsRegex);
         WriteFieldIfSet(writer, "parentTitle", matcher.ParentTitle, matcher.ParentTitleIsRegex);
         WriteFieldIfSet(writer, "controlTitle", matcher.ControlTitle, matcher.ControlTitleIsRegex);

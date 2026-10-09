@@ -247,6 +247,7 @@ public static class MappingRules
         EnsurePattern("path", matcher.ProcessPath, matcher.ProcessPathIsRegex);
         EnsurePattern("macOS path", matcher.MacProcessPath, matcher.MacProcessPathIsRegex);
         EnsurePattern("title", matcher.Title, matcher.TitleIsRegex);
+        EnsurePattern("macOS title", matcher.MacTitle, matcher.MacTitleIsRegex);
         foreach (var (name, pattern, isRegex, _) in matcher.WindowFields)
         {
             EnsurePattern(name, pattern, isRegex);

@@ -13,7 +13,7 @@ namespace Augram.Core.Mapping;
 /// list); a group that has names, but none for this platform and no guess, matches nothing here, never everything.
 /// Every text field is exact (case-insensitive) unless its regex toggle is on; a regex is case-insensitive,
 /// culture-invariant, unanchored, limited to 100 ms, and an invalid pattern is "no match" here and a validation error in
-/// <see cref="MappingRules"/>. Besides this platform's path (<see cref="PathFor"/>) and the title (the root owner's, the window activation targets), the
+/// <see cref="MappingRules"/>. Besides this platform's path (<see cref="PathFor"/>) and title (<see cref="TitleFor"/>) (the root owner's, the window activation targets), the
 /// StrokesPlus.net app definition's per-window fields (2026-10-09): the root's, the parent's and the control's title, and
 /// the owner's, root's, parent's and control's class, read from <see cref="WindowIdentity.Levels"/> (Windows; on macOS
 /// those are unknown, so a matcher that sets one matches nothing there). <see cref="ClassChain"/> is the older Windows
@@ -47,9 +47,15 @@ public sealed record AppMatcher
 
     public bool MacProcessPathIsRegex { get; init; }
 
+    /// <summary>The Windows window's title (the root owner's; SP.net's owner title). The file's key is <c>title</c>: it predates the macOS one.</summary>
     public string? Title { get; init; }
 
     public bool TitleIsRegex { get; init; }
+
+    /// <summary>The macOS window's title (2026-10-09: per platform like the path, so the form flips between Windows and macOS).</summary>
+    public string? MacTitle { get; init; }
+
+    public bool MacTitleIsRegex { get; init; }
 
     public string? RootTitle { get; init; }
 
@@ -89,7 +95,7 @@ public sealed record AppMatcher
     public static AppMatcher Empty { get; } = new();
 
     public bool IsEmpty
-        => !HasProcessNames && !HasText(ProcessPath) && !HasText(MacProcessPath) && !HasText(Title) && !ClassChain.Any(HasText) && !WindowFields.Any(entry => HasText(entry.Pattern));
+        => !HasProcessNames && !HasText(ProcessPath) && !HasText(MacProcessPath) && !HasText(Title) && !HasText(MacTitle) && !ClassChain.Any(HasText) && !WindowFields.Any(entry => HasText(entry.Pattern));
 
     /// <summary>
     /// The per-window fields as (name for messages, pattern, regex, what the window has): the root, parent and control
@@ -112,7 +118,11 @@ public sealed record AppMatcher
     /// since they then match nothing here by themselves.
     /// </summary>
     public bool IsEmptyOn(HostPlatform platform)
-        => !HasProcessNames && !HasText(PathFor(platform).Path) && !HasText(Title) && !ClassChain.Any(HasText) && !WindowFields.Any(entry => HasText(entry.Pattern));
+        => !HasProcessNames && !HasText(PathFor(platform).Path) && !HasText(TitleFor(platform).Title) && !ClassChain.Any(HasText) && !WindowFields.Any(entry => HasText(entry.Pattern));
+
+    /// <summary><paramref name="platform"/>'s window title and whether it is a pattern; only that one is consulted there.</summary>
+    public (string? Title, bool IsRegex) TitleFor(HostPlatform platform)
+        => platform == HostPlatform.MacOS ? (MacTitle, MacTitleIsRegex) : (Title, TitleIsRegex);
 
     /// <summary><paramref name="platform"/>'s executable path and whether it is a pattern; only that one is consulted there.</summary>
     public (string? Path, bool IsRegex) PathFor(HostPlatform platform)
@@ -153,7 +163,7 @@ public sealed record AppMatcher
 
         return MatchesProcessName(window.ProcessName, platform)
             && MatchesText(PathFor(platform).Path, PathFor(platform).IsRegex, window.ProcessPath)
-            && MatchesText(Title, TitleIsRegex, window.Title)
+            && MatchesText(TitleFor(platform).Title, TitleFor(platform).IsRegex, window.Title)
             && WindowFields.All(entry => MatchesText(entry.Pattern, entry.IsRegex, entry.Actual(window.Levels)))
             && MatchesClassChain(window.ClassChain);
     }

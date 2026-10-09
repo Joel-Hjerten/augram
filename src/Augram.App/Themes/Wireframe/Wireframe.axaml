@@ -879,6 +879,15 @@
     <Setter Property="VerticalContentAlignment" Value="Top" />
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
   </Style>
+  <!-- A pattern field (the identification form): text box, magnifier, Use Regex on one line, as SP.net's App Definition. -->
+  <Style Selector="Grid.pattern-line > :is(Control).pattern-finder">
+    <Setter Property="Margin" Value="{StaticResource Pad.S}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Grid.pattern-line > CheckBox.pattern-regex">
+    <Setter Property="Margin" Value="8,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <!-- A button and its status text on one form line (Options › Sync). -->
   <Style Selector="DockPanel.field-line > Button">
     <Setter Property="Margin" Value="0,0,8,0" />

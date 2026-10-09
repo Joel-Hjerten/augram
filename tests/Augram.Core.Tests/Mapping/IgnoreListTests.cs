@@ -60,9 +60,10 @@ public sealed class IgnoreListTests
         Assert.True(IgnoreList.WatchesFocus(Mapping(resolve), HostPlatform.MacOS));
         Assert.Same(resolve, IgnoreList.PausedBy(Mapping(resolve), Window("VMware Fusion"), HostPlatform.MacOS));
 
-        // A guessed name counts, and a matcher on the title alone matches on every platform.
+        // A guessed name counts; a title counts on its own platform only.
         Assert.True(IgnoreList.CanMatchOn(ByProcess("chrome.exe"), HostPlatform.MacOS));
-        Assert.True(IgnoreList.CanMatchOn(new AppMatcher { Title = "Chimera" }, HostPlatform.MacOS));
+        Assert.False(IgnoreList.CanMatchOn(new AppMatcher { Title = "Chimera" }, HostPlatform.MacOS));
+        Assert.True(IgnoreList.CanMatchOn(new AppMatcher { MacTitle = "Chimera" }, HostPlatform.MacOS));
         Assert.False(IgnoreList.CanMatchOn(AppMatcher.Empty, HostPlatform.Windows));
     }
 }
