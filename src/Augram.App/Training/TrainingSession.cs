@@ -1,5 +1,7 @@
 using System.Globalization;
 using Augram.App.Components.GestureDrawArea;
+using Augram.Core.Abstractions;
+using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Recognition;
 using Avalonia.Threading;
@@ -18,15 +20,17 @@ public sealed class TrainingSession : ITrainingSession
     private readonly GestureLibrary _library;
     private readonly Func<RecognitionOptions> _options;
     private readonly GestureMatcher _matcher = new();
+    private readonly IEventLog _log;
     private ScreenArea? _canvas;
     private bool _isOpen;
 
-    public TrainingSession(GestureLibrary library, Func<RecognitionOptions> options)
+    public TrainingSession(GestureLibrary library, Func<RecognitionOptions> options, IEventLog? log = null)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(options);
         _library = library;
         _options = options;
+        _log = log ?? NullEventLog.Instance;
     }
 
     public event EventHandler? Started;
@@ -105,6 +109,8 @@ public sealed class TrainingSession : ITrainingSession
         }
 
         var local = points.Select(canvas.ToLocal).ToArray();
+        // Where a stroke-button stroke landed in the draw area (Joel, 2026-10-09: it showed in the corner): enough to see an offset.
+        _log.Info("training", "Stroke drawn into the draw area", ("start", $"{startX},{startY}"), ("canvas", $"{canvas.Left:0},{canvas.Top:0} {canvas.Width:0}x{canvas.Height:0} ×{canvas.Scale}"), ("firstLocal", local.Length > 0 ? $"{local[0].X:0},{local[0].Y:0}" : "none"));
         if (Dispatcher.UIThread.CheckAccess())
         {
             ReplaceStroke(local);

@@ -71,7 +71,9 @@ public sealed class GestureDrawArea : TemplatedControl
             return null;
         }
 
-        var scale = top.RenderScaling;
+        // The hook's units per DIP: physical pixels on Windows; points on macOS, where the pointer, Avalonia's screen
+        // positions and its DIPs are all points (as the trail overlay has it), so a Retina screen's 2× must not apply.
+        var scale = OperatingSystem.IsMacOS() ? 1 : top.RenderScaling;
         var origin = this.PointToScreen(new Point(0, 0));
         return new ScreenArea(origin.X, origin.Y, Bounds.Width * scale, Bounds.Height * scale, scale);
     }
