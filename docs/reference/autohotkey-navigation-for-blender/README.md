@@ -1,6 +1,6 @@
 # Joel's AutoHotkey script: Space navigation in Blender
 
-**Source:** `Blender_Spacebar_Navigation (AHK 2.0).ahk` in this folder, Joel's own (Windows, AutoHotkey v2). The origin of requirements F9 "Hold layers": Augram is to do what this does, on both platforms, without AutoHotkey.
+**Source:** `Blender_Spacebar_Navigation (AHK 2.0).ahk` in this folder, Joel's own (Windows, AutoHotkey v2). The origin of requirements F9 "Hold remaps": Augram is to do what this does, on both platforms, without AutoHotkey.
 
 ## Why it exists
 
@@ -25,7 +25,7 @@ Only while `blender.exe` is the foreground window (`#HotIf WinActive`):
 
 ## Quirks Augram fixes (F9)
 
-- **Typing rollover:** Space is only sent at its release, after any key typed while it was still down, so "a b" typed fast in a Blender text field becomes "ab ". Joel hits this often. Augram sends the pending Space before the first key that is not in the layer.
-- **Tap means "under 180 ms", not "nothing else used":** a short Space with a click in it also sends a Space; a long hold with nothing in it sends nothing. Augram sends the key at release if and only if no row of the layer was used, with no time limit (Joel, 2026-10-09).
+- **Typing rollover:** Space is only sent at its release, after any key typed while it was still down, so "a b" typed fast in a Blender text field becomes "ab ". Joel hits this often. Augram sends the pending Space before the first key that is not one of the rows.
+- **Tap means "under 180 ms", not "nothing else used":** a short Space with a click in it also sends a Space; a long hold with nothing in it sends nothing. Augram sends the key at release if and only if none of the hold remap's rows was used, with no time limit (Joel, 2026-10-09).
 - Runs elevated (`*RunAs`) for no reason Blender needs; Augram does not.
 - Windows only, and a separate program to keep running.
