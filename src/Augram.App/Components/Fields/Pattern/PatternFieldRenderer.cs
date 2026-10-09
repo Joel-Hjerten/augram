@@ -54,7 +54,6 @@ public sealed class PatternFieldRenderer : IFieldRenderer
         }
 
         var regex = new CheckBox { Content = PatternField.UseRegexCaption, IsEnabled = !pattern.IsRegex.IsReadOnly };
-        regex.Classes.Add("toggle-option");
         regex.Classes.Add("pattern-regex");
         BindingObserver.Attach(regex, pattern.IsRegex, value => regex.IsChecked = value);
         regex.IsCheckedChanged += (_, _) => pattern.IsRegex.Set(regex.IsChecked == true);

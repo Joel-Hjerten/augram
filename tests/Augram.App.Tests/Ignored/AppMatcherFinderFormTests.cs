@@ -48,11 +48,14 @@ public sealed class AppMatcherFinderFormTests
 
     /// <summary>A pattern line fills the editor column and stays in it, also in a narrow window (Joel, 2026-10-09: it spilled over the labels).</summary>
     [AvaloniaTheory]
-    [InlineData(900, 400)]
-    [InlineData(460, 25)]
-    public void APatternLineStaysRightOfTheLabels_AndInsideTheRow(double width, double minimum)
+    [InlineData(900, 400, HostPlatform.Windows)]
+    [InlineData(460, 25, HostPlatform.Windows)]
+    [InlineData(900, 400, HostPlatform.MacOS)]
+    public void APatternLineStaysRightOfTheLabels_AndInsideTheRow(double width, double minimum, HostPlatform machine)
     {
-        var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
+        // On a Mac the Windows side has no magnifiers: Use Regex then sits right after the box (Joel, 2026-10-09: it touched it).
+        var edit = AppMatcherFinderTests.New(machine);
+        edit.View.Shown = HostPlatform.Windows;
         edit.ProcessPath = new string('x', 300);
         var form = new SectionForm { Screen = new FormScreen("Identification", edit.Sections()) };
         var window = new Window { Width = width, Height = 3200, Content = form };
@@ -69,6 +72,9 @@ public sealed class AppMatcherFinderFormTests
             var right = regex.TranslatePoint(new Point(regex.Bounds.Width, 0), row)!.Value.X;
             Assert.True(left >= 220, $"{label}'s box starts at {left}, over the label column");
             Assert.True(right <= row.Bounds.Width + 0.5, $"{label}'s Use Regex ends past the row");
+            var boxRight = box.TranslatePoint(new Point(box.Bounds.Width, 0), row)!.Value.X;
+            var regexLeft = regex.TranslatePoint(new Point(0, 0), row)!.Value.X;
+            Assert.True(regexLeft - boxRight >= 4, $"{label}'s Use Regex touches its box ({regexLeft - boxRight})");
             Assert.True(box.Bounds.Width > minimum, $"{label}'s box does not fill the column ({box.Bounds.Width})");
         }
     }
