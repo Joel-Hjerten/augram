@@ -21,6 +21,16 @@ public sealed class MacWindowPickTests
         Assert.Same(back, MacWindowPick.At([front, back], 50, 50, Own, Displays));
     }
 
+    /// <summary>macOS 26 draws the pointer as a small window server window under the point: never the target (Joel, 2026-10-09: the window finder named WindowServer).</summary>
+    [Fact]
+    public void At_SkipsThePointersOwnWindow()
+    {
+        var cursor = Window(1, pid: 300, new MacRect(1028, 755, 28, 40), layer: MacWindowPick.CursorLayer);
+        var chrome = Window(2, pid: 1, new MacRect(0, 30, 1920, 992));
+
+        Assert.Same(chrome, MacWindowPick.At([cursor, chrome], 1030, 760, Own, Displays));
+    }
+
     [Fact]
     public void At_SkipsOwnOverlay_SoTheTrailIsNeverTheTarget()
     {

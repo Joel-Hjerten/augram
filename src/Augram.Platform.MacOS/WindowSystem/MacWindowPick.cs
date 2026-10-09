@@ -8,8 +8,11 @@ internal static class MacWindowPick
 {
     public const int NormalLayer = 0;
 
+    /// <summary>kCGCursorWindowLevel: the pointer itself, a 28 × 40 "Cursor" window of the window server under the point (measured 2026-10-09 on macOS 26 while the window finder showed its crosshair: every drop named WindowServer).</summary>
+    public const int CursorLayer = 2147483630;
+
     /// <summary>
-    /// The frontmost window containing the point, skipping fully transparent windows, this process's windows above the
+    /// The frontmost window containing the point, skipping the pointer's own window (<see cref="CursorLayer"/>), fully transparent windows, this process's windows above the
     /// normal layer (the trail overlay; Augram's own settings window stays a target, as on Windows) and display-sized
     /// windows above the normal layer: the Dock draws itself in a transparent window as large as its display (2026-10-07,
     /// every stroke on that display resolved to Dock), and screen-overlay utilities do the same; the window server's list
@@ -21,7 +24,8 @@ internal static class MacWindowPick
         ArgumentNullException.ThrowIfNull(frontToBack);
         ArgumentNullException.ThrowIfNull(displays);
         return frontToBack.FirstOrDefault(window =>
-            !(window.Layer > NormalLayer && (window.ProcessId == ownProcessId || CoversADisplay(window, displays)))
+            window.Layer < CursorLayer
+            && !(window.Layer > NormalLayer && (window.ProcessId == ownProcessId || CoversADisplay(window, displays)))
             && window.Alpha > 0
             && !window.Bounds.IsEmpty
             && window.Bounds.Contains(x, y));
