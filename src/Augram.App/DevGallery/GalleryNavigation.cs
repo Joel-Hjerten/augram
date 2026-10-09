@@ -36,6 +36,8 @@ public static class GalleryNavigation
         new("StepTypePicker", Key + ".steptypepicker", CommandGalleryPages.StepTypePickerPage),
         new("GesturePicker", Key + ".gesturepicker", CommandGalleryPages.GesturePickerPage),
         new("FormDialog", Key + ".formdialog", CommandGalleryPages.FormDialogPage),
+        new("Ignored", Key + ".ignored", IgnoredGalleryPages.IgnoredPage),
+        new("MasterDetail", Key + ".masterdetail", IgnoredGalleryPages.MasterDetailPage),
         new("Sync join", Key + ".syncjoin", SyncGalleryPages.JoinPage),
         new("Sync conflicts", Key + ".syncconflicts", SyncGalleryPages.ConflictsPage),
     ]);

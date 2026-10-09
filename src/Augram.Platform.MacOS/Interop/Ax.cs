@@ -12,7 +12,7 @@ namespace Augram.Platform.MacOS.Interop;
 /// into the reason the log shows. Calls on Augram's own elements go through <see cref="MainThread"/> (see <see cref="IsOwn"/>).
 /// </summary>
 [SupportedOSPlatform("macos")]
-internal static class Ax
+internal static partial class Ax
 {
     public const string WindowsAttribute = "AXWindows";
     public const string FocusedApplicationAttribute = "AXFocusedApplication";
@@ -210,40 +210,6 @@ internal static class Ax
         finally
         {
             Cf.Release(windows);
-        }
-    }
-
-    /// <summary>The focused window of the focused application, system-wide. Owned; zero when there is none.</summary>
-    public static nint FocusedWindow(out int pid)
-    {
-        pid = 0;
-        var system = MacNative.AXUIElementCreateSystemWide();
-        if (system == 0)
-        {
-            return 0;
-        }
-
-        try
-        {
-            MacNative.AXUIElementSetMessagingTimeout(system, MessagingTimeoutSeconds);
-            if (Copy(system, Cf.Constant(FocusedApplicationAttribute), out var app) != MacNative.AXErrorSuccess)
-            {
-                return 0;
-            }
-
-            try
-            {
-                MacNative.AXUIElementGetPid(app, out pid);
-                return Copy(app, Cf.Constant(FocusedWindowAttribute), out var window) == MacNative.AXErrorSuccess ? window : 0;
-            }
-            finally
-            {
-                Cf.Release(app);
-            }
-        }
-        finally
-        {
-            Cf.Release(system);
         }
     }
 

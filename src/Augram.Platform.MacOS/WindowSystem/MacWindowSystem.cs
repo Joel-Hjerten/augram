@@ -19,6 +19,28 @@ public sealed class MacWindowSystem : IWindowSystem
 {
     private const string UnknownProcess = "unknown";
 
+    private readonly MacWindowKeys _keys = new(() => (MacWindowList.OnScreen(), MacWindowList.Displays()), () => Environment.TickCount64, Environment.ProcessId);
+    private int _frontmostPid = -1;
+
+    /// <summary>The <c>CGWindowID</c> under the point from a copy of the window list at most 250 ms old (<see cref="MacWindowKeys"/>); the ignore list's watch only.</summary>
+    public nint? WindowKeyAt(int x, int y) => (nint)_keys.KeyAt(x, y);
+
+    /// <summary>
+    /// The frontmost app's pid (the system-wide focused application, an AX call that asks no app anything), not the focused
+    /// window: an ignored app is matched by its executable. A new frontmost app drops the window-list copy behind
+    /// <see cref="WindowKeyAt"/>, since its windows usually came to the front with it.
+    /// </summary>
+    public nint? ForegroundKey()
+    {
+        var pid = Ax.FocusedApplicationPid();
+        if (Interlocked.Exchange(ref _frontmostPid, pid) != pid)
+        {
+            _keys.Invalidate();
+        }
+
+        return pid;
+    }
+
     public WindowIdentity? WindowAt(int x, int y)
     {
         var displays = MacWindowList.Displays();

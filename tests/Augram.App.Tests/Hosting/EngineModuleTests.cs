@@ -69,6 +69,12 @@ public sealed class EngineModuleTests
                 Assert.False(state.Enabled);
                 state.Toggle();
                 Assert.True(host.Enabled);
+
+                // A mapping edit reaches the ignore list's watch at once; the tray's pause state follows the engine (nothing focused here).
+                var mapping = provider.GetRequiredService<MappingStore>();
+                mapping.AddIgnored(new IgnoredApp(GroupId.New(), "Blender", IsActive: true, new AppMatcher { WindowsProcessNames = ["blender.exe"] }, DisableEntirely: false));
+                EngineFixture.WaitFor(() => log.Has(LogSources.Ignore, "Ignore list watched"), "the ignore list to be watched");
+                Assert.Null(provider.GetRequiredService<EnginePauseState>().PausedBy);
             }
 
             Assert.Equal(1, source.StopCount);

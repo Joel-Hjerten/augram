@@ -13,5 +13,9 @@ public sealed class NullWindowSystem : IWindowSystem
 
     public WindowIdentity? Foreground() => null;
 
+    public nint? WindowKeyAt(int x, int y) => 0;
+
+    public nint? ForegroundKey() => 0;
+
     public ActivationResult Activate(WindowIdentity target) => ActivationResult.NotNeeded;
 }

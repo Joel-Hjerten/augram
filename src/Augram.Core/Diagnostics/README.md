@@ -20,7 +20,7 @@ The data side of N4 (observability): what a log event is, how to emit one cheapl
 
 ## Contract
 
-- **Sources** are short lowercase component names the Diagnostics tab filters on: `hook`, `capture`, `recognition`, `exec` (command resolution, activation and the per-command summary), `steps` (one line per step execution), `config`, `overlay`, `import`, `app`, `window`, `log` (the log's own drop reports). Add to this list when a component gains a source; do not invent per-call variants.
+- **Sources** are short lowercase component names the Diagnostics tab filters on: `hook`, `capture`, `recognition`, `exec` (command resolution, activation and the per-command summary), `ignore` (the ignore list's watch: pointer over an ignored app, pauses while a "disable while focused" app has focus), `steps` (one line per step execution), `config`, `overlay`, `import`, `app`, `window`, `log` (the log's own drop reports). Add to this list when a component gains a source; do not invent per-call variants.
 - **Properties carry the numbers, the message carries the sentence.** `log.Info("hook", "Hook installed", ("generation", 2), ("firstEventMs", 3.2))`, not string interpolation. The sinks render `key=value` invariantly, so an agent can grep for `firstEventMs=`.
 - **`Error(source, message, exception, props...)`** for anything caught; the sinks print the exception on indented lines after the event line.
 - **`RecognitionLog` is the store for the A15 panel; the same facts also go to `IEventLog` at Info** so the file and the panel agree. The Engine worker writes both; nothing else adds entries.

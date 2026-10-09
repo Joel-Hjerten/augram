@@ -8,7 +8,7 @@ The suppress-then-replay loop (handoff §5, F1) as a pure object. `CaptureStateM
 |---|---|
 | `CapturePoint` | `(X, Y, TimestampMs)`; timestamps are ms on one monotonic clock the Engine stamps |
 | `MouseButton`, `WheelDirection` | Core's own enums; the Engine maps SharpHook's numbering at the boundary |
-| `CaptureEvent` | closed set: `ButtonDown(button, x, y, t, captureAllowed, ignoreKeyHeld)`, `ButtonUp`, `Move`, `Wheel`, `Tick(t)` |
+| `CaptureEvent` | closed set: `ButtonDown(button, x, y, t, captureAllowed, ignoreKeyHeld)`, `ButtonUp`, `Move`, `Wheel`, `Tick(t)`. The Engine sets `captureAllowed` false when Augram is disabled, paused by a focused "disable while focused" app, or the pointer is over an ignored app (F5): the press passes through like one with the ignore key held |
 | `CaptureOutcome` | closed set: `Suppress`, `PassThrough` (the synchronous input decision), `BeginStroke`, `StrokeProgress`, `EndStroke` (trail), `ReplayClick`, `StrokeComplete`, `WheelTrigger`, `Cancelled(reason)` (worker) |
 | `CaptureThresholds` | `StartDistancePx 30`, `MinSegmentPx 6`, `CancelDelayMs 1000`, `ResetCancelDelayOnMovement true`; swappable at any time |
 | `CaptureState` | `Idle`, `Held`, `Drawing`, `WheelFiring`, `Cancelled` |

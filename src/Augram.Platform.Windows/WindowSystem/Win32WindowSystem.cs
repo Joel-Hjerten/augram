@@ -39,6 +39,12 @@ public sealed class Win32WindowSystem : IWindowSystem
 
     public WindowIdentity? Foreground() => _reader.Read(_foreground.ForegroundWindow());
 
+    /// <summary><c>WindowFromPoint</c> alone: the handle is the key, so moving across one control asks nothing more.</summary>
+    public nint? WindowKeyAt(int x, int y) => _win.WindowFromPoint(x, y);
+
+    /// <summary><c>GetForegroundWindow</c> alone.</summary>
+    public nint? ForegroundKey() => _foreground.ForegroundWindow();
+
     public ActivationResult Activate(WindowIdentity target)
     {
         var foreground = _foreground.ForegroundWindow();

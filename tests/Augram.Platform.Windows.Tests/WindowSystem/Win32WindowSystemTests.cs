@@ -50,6 +50,24 @@ public sealed class Win32WindowSystemTests
     }
 
     [Fact]
+    public void Keys_AreTheHandlesAlone_WithNoIdentityRead()
+    {
+        var win = new FakeWin32 { Foreground = 0x20, UnderPoint = 0x11 }
+            .AddWindow(0x10, "App", pid: 1)
+            .AddWindow(0x11, "Child", parent: 0x10, root: 0x10, pid: 1)
+            .AddWindow(0x20, "Other", pid: 2);
+        var system = new Win32WindowSystem(win, win, NullEventLog.Instance, _ => { });
+
+        Assert.Equal((nint)0x11, system.WindowKeyAt(5, 5));
+        Assert.Equal((nint)0x20, system.ForegroundKey());
+        win.UnderPoint = 0;
+        win.Foreground = 0;
+        Assert.Equal((nint)0, system.WindowKeyAt(5, 5));
+        Assert.Equal((nint)0, system.ForegroundKey());
+        Assert.Empty(win.Calls);
+    }
+
+    [Fact]
     public void WindowAt_Cursor_ReturnsSaneIdentityOrNull()
     {
         // Needs a real interactive desktop; GitHub-hosted runners report UserInteractive but have no usable session.

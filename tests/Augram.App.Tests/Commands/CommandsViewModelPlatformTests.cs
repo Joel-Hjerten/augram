@@ -81,14 +81,14 @@ public sealed class CommandsViewModelPlatformTests
         var (_, store, _, _) = Create();
 
         var chrome = GroupEditViewModel.From(Group(store, "Chrome"));
-        Assert.Equal("macOS: Google Chrome (guessed)", chrome.GuessText);
+        Assert.Equal("macOS: Google Chrome (guessed)", chrome.Identification.GuessText);
         chrome.UseOnMac = false;
-        Assert.StartsWith("None needed", chrome.GuessText, StringComparison.Ordinal);
+        Assert.StartsWith("None needed", chrome.Identification.GuessText, StringComparison.Ordinal);
 
         var apple = GroupEditViewModel.From(Group(store, "Apple"));
-        Assert.Equal("macOS: no guess; type its name, or stop using the group there", apple.GuessText);
-        apple.MacNames = "Apple";
-        Assert.StartsWith("None needed", apple.GuessText, StringComparison.Ordinal);
+        Assert.Equal("macOS: no guess; type its name, or stop using the group there", apple.Identification.GuessText);
+        apple.Identification.MacNames = "Apple";
+        Assert.StartsWith("None needed", apple.Identification.GuessText, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]
