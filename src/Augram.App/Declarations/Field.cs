@@ -21,6 +21,12 @@ public abstract record Field(string Label, string? Help, string File, int Line)
     /// <summary>Shows the row only while this reads true; null (the default) always shows it.</summary>
     public IValueBinding<bool>? Visible { get; init; }
 
+    /// <summary>
+    /// The editor takes the row's whole editor column instead of its own width (a pattern row: its text box stretches and the
+    /// magnifier and Use Regex sit at the right edge). The row gets the <c>stretch-editor</c> class; the theme does the rest.
+    /// </summary>
+    public virtual bool StretchesEditor => false;
+
     /// <summary>Builds the small control shown before the editor, once per rendered row (like <see cref="CustomField.Build"/>); null (the default) for none.</summary>
     public Func<Control>? Accessory { get; init; }
 

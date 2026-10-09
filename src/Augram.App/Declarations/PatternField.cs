@@ -22,6 +22,8 @@ public sealed record PatternField(
 
     public override IValueBinding Binding => Value;
 
+    public override bool StretchesEditor => true;
+
     public Func<Control>? Finder { get; init; }
 
     /// <summary>Whether the magnifier shows now (only on the side of the form for this machine's platform); always when null.</summary>

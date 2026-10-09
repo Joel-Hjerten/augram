@@ -95,6 +95,7 @@
                                   Margin="0,0,8,0"
                                   VerticalAlignment="Center" />
                 <ContentPresenter Grid.Column="2"
+                                  Name="PART_Editor"
                                   Content="{TemplateBinding Editor}"
                                   HorizontalAlignment="Left"
                                   VerticalAlignment="Center" />
@@ -879,7 +880,11 @@
     <Setter Property="VerticalContentAlignment" Value="Top" />
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
   </Style>
-  <!-- A pattern field (the identification form): text box, magnifier, Use Regex on one line, as SP.net's App Definition. -->
+  <!-- A pattern field (the identification form): text box, magnifier, Use Regex on one line, as SP.net's App Definition.
+       The row's editor fills its column, so the text box stretches and never pushes the line over the label. -->
+  <Style Selector="form|FieldRow.stretch-editor /template/ ContentPresenter#PART_Editor">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
   <Style Selector="Grid.pattern-line > :is(Control).pattern-finder">
     <Setter Property="Margin" Value="{StaticResource Pad.S}" />
     <Setter Property="VerticalAlignment" Value="Center" />

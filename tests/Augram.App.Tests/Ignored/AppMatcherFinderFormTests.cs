@@ -46,6 +46,27 @@ public sealed class AppMatcherFinderFormTests
         Assert.Empty(FinderLabels(rows));
     }
 
+    /// <summary>A pattern line fills the editor column and stays in it (Joel, 2026-10-09: it spilled over the labels).</summary>
+    [AvaloniaFact]
+    public void APatternLineStaysRightOfTheLabels_AndInsideTheRow()
+    {
+        var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
+        edit.ProcessPath = new string('x', 300);
+        var form = new SectionForm { Screen = new FormScreen("Identification", edit.Sections()) };
+        var window = new Window { Width = 900, Height = 3200, Content = form };
+        window.Show();
+
+        foreach (var label in new[] { "Executable", "Executable path", "Window title", "Control class" })
+        {
+            var row = form.GetVisualDescendants().OfType<FieldRow>().Single(candidate => candidate.Label == label);
+            var line = (Control)row.Editor!;
+            var left = line.TranslatePoint(new Point(0, 0), row)!.Value.X;
+            Assert.True(left >= 220, $"{label} starts at {left}, over the label column");
+            Assert.True(left + line.Bounds.Width <= row.Bounds.Width + 0.5, $"{label} ends past the row");
+            Assert.True(line.Bounds.Width > 400, $"{label} does not fill the column ({line.Bounds.Width})");
+        }
+    }
+
     [AvaloniaFact]
     public void TheSwitchShowsEachPlatformsOwnValues_AndTypingGoesToTheShownOne()
     {
