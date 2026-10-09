@@ -22,11 +22,14 @@ jobs:
         run: dotnet format --verify-no-changes --no-restore
       - run: dotnet build -c Release --no-restore
       # --blame names the test that was running when a test host crashes; the output is kept for the next step.
+      # The console logger stays at minimal (failures and crashes only): at normal it wrote a line per passed test, and on
+      # windows-latest the runner itself died writing one (0xC0000005 in ConsoleLogger.TestResultHandler, 5 of 8 runs
+      # after the pipe and --blame came in on 2026-10-09; no test of ours failed).
       - name: Test
         shell: bash
         run: |
           set -o pipefail
-          dotnet test -c Release --no-build --blame --logger GitHubActions --logger "console;verbosity=normal" 2>&1 | tee test-output.txt
+          dotnet test -c Release --no-build --blame --logger GitHubActions --logger "console;verbosity=minimal" 2>&1 | tee test-output.txt
       # A crashed or aborted test run reports no failing test, and job logs need a login to read. This puts the telling
       # lines into an annotation, which scripts/ci-status.mjs reads without one.
       - name: Summarise a failed test run
