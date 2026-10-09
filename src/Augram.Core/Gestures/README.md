@@ -13,6 +13,7 @@ The gesture model and its store. Templates are **raw point lists** (CLAUDE.md in
 | `GestureLibrary` | the store: the single mutable owner of the list for the running app |
 | `GestureRules` | the business rules, called by the store (and nothing else re-implements them) |
 | `GestureValidationException` | a rule was broken; the message is fit to show the user |
+| `Cleanup/ShapeCleanup` | shape cleanup (F3, plan M2 step 10): corners by ShortStraw plus a 35° turn test on a smoothed copy, each piece fitted as Line / Arc / Circle / Smooth, a raw point list again in the drawn direction and angle; pure. Measurements: `docs/learnings/0004-shape-cleanup.md`. Not wired into the app yet (Gallery preview first) |
 | `StarterGestures` | the fresh-install set (plan 0001 C3): 8 flicks, 4 out-and-backs, 4 L-shapes, C, S, Z, Circle at 100 px scale; ids derived from the names (SHA-256) so two installs agree |
 
 ## Store contract (`GestureLibrary`)
