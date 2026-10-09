@@ -60,6 +60,18 @@ public sealed record CommandItem(
     /// <summary>F8: the own version was made before the original last changed.</summary>
     public bool IsOwnVersionStale { get; init; }
 
+    /// <summary>The trigger as it reads on this platform (its own, the original, or the original converted); what the header's boxes show.</summary>
+    public Trigger Trigger { get; init; } = Trigger.None;
+
+    /// <summary>How the trigger fires, for a wheel or a click trigger; null otherwise.</summary>
+    public string? TriggerHint { get; init; }
+
+    /// <summary>The anchors other than the stroke button and where their clicks wait (Joel, 2026-10-09); null when there are none.</summary>
+    public string? AnchorWarning { get; init; }
+
+    /// <summary>F8 for the trigger: converted from the other platform, this platform's own, or no counterpart here; null for a trigger authored here.</summary>
+    public string? TriggerNote { get; init; }
+
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
 
     public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
@@ -68,17 +80,20 @@ public sealed record CommandItem(
 
     /// <summary>
     /// Projects the command into its group's section, with no tag and no category choices;
-    /// <paramref name="gesture"/> is the one its trigger names, when it is one and the library still has it; the step summary
-    /// and the marker read as on <paramref name="here"/>.
+    /// <paramref name="gesture"/> is the one its trigger on <paramref name="here"/> names (<see cref="Command.TriggerFor"/>),
+    /// when it is one and the library still has it; the trigger, the step summary and the marker read as on <paramref name="here"/>.
+    /// A trigger holding more than the stroke button leads the summary ("Shift + Undo · Minimize window").
     /// </summary>
     public static CommandItem From(AppGroup group, Command command, Gesture? gesture, HostPlatform here)
     {
         ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(command);
-        var kind = TriggerKindExtensions.KindOf(command.Trigger);
-        var triggerText = kind == TriggerKind.Gesture ? gesture?.Name ?? "Missing gesture" : kind.Label();
+        var trigger = command.TriggerFor(here);
+        var kind = TriggerKindExtensions.KindOf(trigger);
+        var triggerText = TriggerKindExtensions.Text(trigger, gesture?.Name ?? "Missing gesture", here);
         var points = gesture is { Samples.Count: > 0 } ? gesture.Samples[0] : null;
         var usedHere = group.IsCommandUsedOn(command, here);
+        var steps = Summarise(group, command, here);
         return new CommandItem(
             command.Id,
             group.Id,
@@ -87,9 +102,13 @@ public sealed record CommandItem(
             kind,
             triggerText,
             points,
-            Summarise(group, command, here),
+            trigger.IsBound && !trigger.Hold.IsDefault ? $"{triggerText} · {steps}" : steps,
             usedHere ? StepPlatformMarker.ForCommand(command, here) : StepPlatformMarker.Only(group.EffectiveUseOn(command)))
         {
+            Trigger = trigger,
+            TriggerHint = TriggerKindExtensions.Hint(trigger, here),
+            AnchorWarning = TriggerKindExtensions.AnchorWarning(trigger, group),
+            TriggerNote = TriggerLine(command, here),
             Section = SectionId.ForGroup(group.Id),
             CategoryId = command.CategoryId,
             UseOn = command.UseOn,
@@ -152,6 +171,34 @@ public sealed record CommandItem(
 
         return command.Origin is { } authored && authored != here
             ? $"{StepPlatformMarker.Name(authored)} original, converted for {name}. Editing a step here makes own {name} steps; {StepPlatformMarker.Name(authored)} keeps the original."
+            : null;
+    }
+
+    /// <summary>
+    /// The header's line about this platform's trigger (F8, Joel 2026-10-09: keys convert like hotkeys, an edit here makes it
+    /// this platform's own); null for a trigger authored here, or one whose keys need no conversion.
+    /// </summary>
+    private static string? TriggerLine(Command command, HostPlatform here)
+    {
+        var name = StepPlatformMarker.Name(here);
+        if (command.HasOwnTriggerOn(here))
+        {
+            return $"Own {name} trigger; the original keeps its own on {StepPlatformMarker.Name(Other(here))}.";
+        }
+
+        if (command.Origin is not { } origin || origin == here)
+        {
+            return null;
+        }
+
+        var plan = command.TriggerPlanFor(here);
+        if (plan.Trigger is null)
+        {
+            return $"{plan.Reason}. A trigger chosen here is {name}'s own.";
+        }
+
+        return plan.IsConverted
+            ? $"{StepPlatformMarker.Name(origin)} trigger {command.Trigger.Describe(origin)}, converted for {name}: {plan.Trigger.Describe(here)}. Changing it here makes it {name}'s own."
             : null;
     }
 

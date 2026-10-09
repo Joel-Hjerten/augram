@@ -1,4 +1,5 @@
 using System.Globalization;
+using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.App.Components.SyncConflictList;
 using Augram.App.Declarations;
@@ -8,6 +9,7 @@ using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Sync;
 
 namespace Augram.App.ViewModels;
@@ -157,22 +159,25 @@ public sealed class SyncConflictsViewModel
     private string CommandText(GroupId groupId, Command command)
     {
         var group = _mapping.Groups.FirstOrDefault(candidate => candidate.Id == groupId)?.Name ?? "another group";
-        var trigger = command.Trigger switch
-        {
-            Trigger.GestureTrigger gesture => _gestures.FirstOrDefault(candidate => candidate.Id == gesture.GestureId) is { } known
-                ? $"gesture {known.Name}"
-                : "a gesture not on this machine",
-            _ => command.Trigger.Describe(),
-        };
+        var trigger = TriggerText(command.Trigger);
         var steps = command.Steps.Count == 0 ? "no steps" : string.Join(", ", command.Steps.Select(step => step.Step.Summary));
         return $"{command.Name} in {group}: {trigger} → {steps}{(command.IsActive ? string.Empty : " (inactive)")}";
     }
 
-    private static string VersionText(CommandVersion version)
+    /// <summary>"gesture Undo", "Shift + gesture Undo", "Right + wheel up", "a gesture not on this machine".</summary>
+    private string TriggerText(Trigger trigger)
+        => trigger is Trigger.GestureTrigger gesture
+            ? TriggerKindExtensions.Text(
+                trigger,
+                _gestures.FirstOrDefault(candidate => candidate.Id == gesture.GestureId) is { } known ? $"gesture {known.Name}" : "a gesture not on this machine",
+                HotkeyText.Names)
+            : trigger.Describe();
+
+    private string VersionText(CommandVersion version)
     {
         var platform = version.Platform == HostPlatform.MacOS ? "macOS" : "Windows";
         var steps = version.Steps.Count == 0 ? "no steps (does nothing there)" : string.Join(", ", version.Steps.Select(step => step.Step.SummaryOn(step.AuthoredOn)));
-        return $"{platform} steps: {steps}";
+        return version.Trigger is { } own ? $"{platform} trigger: {TriggerText(own)}; {platform} steps: {steps}" : $"{platform} steps: {steps}";
     }
 
     private static string GroupText(AppGroup group)

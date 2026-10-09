@@ -1,3 +1,4 @@
+using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.Mapping;
 
@@ -20,6 +21,9 @@ public sealed partial class EngineHost
 
     /// <summary>The ignored app under the pointer as of the watch's last pass, or null: the next stroke-button press passes through over it.</summary>
     public IgnoredApp? IgnoredUnderPointer => _ignoreWatch?.Over;
+
+    /// <summary>For tests: the anchor plan the hook reads for the window under the pointer, as the watch last published it.</summary>
+    internal AnchorPlan AnchorPlanUnderPointer => _gate.Plan;
 
     /// <summary>The mapping changed (an edit, undo, a sync): the ignore list's answer is worked out again without waiting for the pointer. Any thread; never blocks.</summary>
     public void MappingChanged()

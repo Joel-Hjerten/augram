@@ -22,6 +22,12 @@ internal sealed class FakeInputSimulator : IInputSimulator
 
     public SimulationResult Click(MouseButton button, int x, int y) => Record($"click {button}@{x},{y}", OtherResult);
 
+    public SimulationResult Press(MouseButton button, int x, int y) => Record($"down {button}@{x},{y}", OtherResult);
+
+    public SimulationResult Release(MouseButton button) => Record($"up {button}", OtherResult);
+
+    public SimulationResult MoveTo(int x, int y) => Record($"move {x},{y}", OtherResult);
+
     public SimulationResult KeyPress(KeyCode key) => Record($"press {key}", PressResult);
 
     public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}", ReleaseResult);

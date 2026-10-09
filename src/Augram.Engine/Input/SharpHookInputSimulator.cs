@@ -37,10 +37,24 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     public SimulationResult Click(MouseButton button, int x, int y)
     {
         var hookButton = MouseButtonMap.ToHook(button);
-        var (sx, sy) = ((short)Math.Clamp(x, short.MinValue, short.MaxValue), (short)Math.Clamp(y, short.MinValue, short.MaxValue));
+        var (sx, sy) = Point(x, y);
         var press = _simulator.SimulateMousePress(sx, sy, hookButton);
         var release = _simulator.SimulateMouseRelease(sx, sy, hookButton);
         return Combine(press, release);
+    }
+
+    public SimulationResult Press(MouseButton button, int x, int y)
+    {
+        var (sx, sy) = Point(x, y);
+        return Translate(_simulator.SimulateMousePress(sx, sy, MouseButtonMap.ToHook(button)));
+    }
+
+    public SimulationResult Release(MouseButton button) => Translate(_simulator.SimulateMouseRelease(MouseButtonMap.ToHook(button)));
+
+    public SimulationResult MoveTo(int x, int y)
+    {
+        var (sx, sy) = Point(x, y);
+        return Translate(_simulator.SimulateMouseMovement(sx, sy));
     }
 
     public SimulationResult KeyPress(KeyCode key) => WithKey(key, _simulator.SimulateKeyPress);
@@ -107,6 +121,9 @@ public sealed class SharpHookInputSimulator : IInputSimulator
 
         return keys;
     }
+
+    private static (short X, short Y) Point(int x, int y)
+        => ((short)Math.Clamp(x, short.MinValue, short.MaxValue), (short)Math.Clamp(y, short.MinValue, short.MaxValue));
 
     private static SimulationResult WithKey(KeyCode key, Func<SharpHook.Data.KeyCode, SharpHook.Data.UioHookResult> simulate)
     {

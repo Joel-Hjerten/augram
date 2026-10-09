@@ -1,6 +1,7 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 
@@ -25,13 +26,25 @@ internal static class CommandSections
     /// <see cref="AppGroup.IsCommandUsedOn"/>) is left out unless <paramref name="showOtherPlatforms"/>, and is then marked
     /// "Windows only" and greyed; a category's commands follow it.
     /// </summary>
-    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms = false)
+    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms = false, MouseButton? strokeButton = null)
     {
         ArgumentNullException.ThrowIfNull(document);
-        return scope == CommandsScope.Global
+        IReadOnlyList<SectionItem> sections = scope == CommandsScope.Global
             ? GlobalSections(document.Global, expanded, findGesture, here, showOtherPlatforms)
             : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).Select(group => GroupSection(group, expanded, findGesture, here, showOtherPlatforms))];
+        return strokeButton is { } stroke
+            ? [.. sections.Select(section => section with { Commands = [.. section.Commands.Select(item => WithStrokeButtonNote(item, stroke))] })]
+            : sections;
     }
+
+    /// <summary>
+    /// A trigger naming this machine's stroke button means the stroke button here (<c>HeldButtonsExtensions.ForStrokeButton</c>);
+    /// the header says so in the anchor warning's place, since nothing is held back for it.
+    /// </summary>
+    private static CommandItem WithStrokeButtonNote(CommandItem item, MouseButton strokeButton)
+        => item.Trigger.IsBound && item.Trigger.Hold.Physical.Has(strokeButton)
+            ? item with { AnchorWarning = $"{strokeButton} is the stroke button on this machine, so here it means the stroke button." }
+            : item;
 
     public static SectionId SectionOf(CommandsScope scope, AppGroup group, Command command)
         => scope == CommandsScope.Apps ? SectionId.ForGroup(group.Id)
@@ -122,5 +135,5 @@ internal static class CommandSections
     private static IEnumerable<CommandCategory> Sorted(AppGroup group) => group.Categories.OrderBy(category => category.Name, MappingRules.NameComparer);
 
     private static CommandItem Item(AppGroup group, Command command, Func<GestureId, Gesture?> findGesture, HostPlatform here)
-        => CommandItem.From(group, command, command.Trigger is Trigger.GestureTrigger gesture ? findGesture(gesture.GestureId) : null, here);
+        => CommandItem.From(group, command, command.TriggerFor(here) is Trigger.GestureTrigger gesture ? findGesture(gesture.GestureId) : null, here);
 }

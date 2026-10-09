@@ -1,35 +1,32 @@
 using System.Text.Json;
 using Augram.Core.Abstractions;
-using Augram.Core.Capture;
-using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 
 namespace Augram.Import.StrokesPlus;
 
 /// <summary>
 /// Reads an application's <c>Actions[]</c> into <see cref="Command"/> records (plan 0001 §C1): the
-/// description as the name (unique within the group), the gesture name resolved to the id of the
-/// gesture imported from the same file, a wheel flag as a wheel trigger, modifier and chord flags as
-/// "inactive with a note" (deferred), steps through <see cref="StepReader"/>, a script-only action whose
-/// script is one <c>sp.RunProgram</c> call as the step it makes (<see cref="ProgramCallMapping"/>), any
-/// other script-only action as a placeholder step, and an action with neither as an override to nothing. A trigger bound twice in
-/// one group keeps the active command bound (A7) and imports the other without it.
+/// description as the name (unique within the group), the trigger through <see cref="TriggerReader"/> (the gesture by name,
+/// a wheel flag, a click, each with the keys and buttons held and the capture mode; learnings 0003 §3.8), steps through
+/// <see cref="StepReader"/>, a script-only action whose script is one <c>sp.RunProgram</c> call as the step it makes
+/// (<see cref="ProgramCallMapping"/>), any other script-only action as a placeholder step, and an action with neither as an
+/// override to nothing. A trigger bound twice in one group (overlapping, as A7 has it) keeps the active command bound and
+/// imports the other without it.
 /// </summary>
 internal sealed class ActionReader
 {
-    public const string ModifierNote = "Imported from StrokesPlus.net: needs modifier/rocker support (deferred)";
     public const string ScriptNote = "Imported from StrokesPlus.net: script-only action";
     private const string FallbackName = "Action";
 
     private readonly List<ImportWarning> _warnings;
-    private readonly IReadOnlyDictionary<string, GestureId> _gestures;
     private readonly StepReader _steps;
+    private readonly TriggerReader _triggers;
 
-    /// <summary><paramref name="gesturesByName"/> is source gesture name → imported id, compared case-insensitively.</summary>
-    public ActionReader(List<ImportWarning> warnings, IReadOnlyDictionary<string, GestureId> gesturesByName, StepReader steps)
+    /// <summary><paramref name="triggers"/> resolves gesture names and the secondary stroke button of the same file.</summary>
+    public ActionReader(List<ImportWarning> warnings, TriggerReader triggers, StepReader steps)
     {
         _warnings = warnings;
-        _gestures = gesturesByName;
+        _triggers = triggers;
         _steps = steps;
     }
 
@@ -47,7 +44,6 @@ internal sealed class ActionReader
         }
 
         var names = new HashSet<string>(MappingRules.NameComparer);
-        var bound = new Dictionary<Trigger, int>();
         var index = 0;
         foreach (var element in actions.EnumerateArray())
         {
@@ -58,7 +54,7 @@ internal sealed class ActionReader
                 continue;
             }
 
-            commands.Add(Bound(ReadAction(element, index, names), element, groupName, commands, bound));
+            commands.Add(Bound(ReadAction(element, index, names), element, groupName, commands));
             categories.Add(JsonRead.Text(element, StrokesPlusJson.Action.Category));
         }
 
@@ -71,11 +67,6 @@ internal sealed class ActionReader
         var name = UniqueName(description.Length == 0 ? FallbackName + " " + index : description, names);
         var isActive = JsonRead.Flag(action, StrokesPlusJson.Action.Active, whenAbsent: true);
         var notes = new List<string>();
-        if (StrokesPlusJson.Action.ModifierFlags.Any(flag => JsonRead.Flag(action, flag)))
-        {
-            isActive = false;
-            notes.Add(ModifierNote);
-        }
 
         var steps = _steps.ReadAll(action, name);
         var script = JsonRead.Text(action, StrokesPlusJson.Action.Script);
@@ -92,60 +83,36 @@ internal sealed class ActionReader
             }
         }
 
+        var (trigger, inactiveNote) = _triggers.Read(action, name, steps);
+        if (inactiveNote is not null)
+        {
+            isActive = false;
+            notes.Insert(0, inactiveNote);
+        }
+
         var note = notes.Count == 0 ? null : string.Join(Environment.NewLine, notes);
-        return new Command(CommandId.New(), name, ReadTrigger(action, name), isActive, steps, note);
+        return new Command(CommandId.New(), name, trigger, isActive, steps, note);
     }
 
-    private Trigger ReadTrigger(JsonElement action, string commandName)
-    {
-        var gestureName = JsonRead.Text(action, StrokesPlusJson.Action.GestureName);
-        if (gestureName.Length > 0)
-        {
-            if (_gestures.TryGetValue(gestureName, out var id))
-            {
-                return Trigger.ForGesture(id);
-            }
-
-            _warnings.Add(new ImportWarning(ImportSeverity.Warning, commandName, $"gesture '{gestureName}' not found; command imported without a gesture"));
-            return Trigger.None;
-        }
-
-        var up = JsonRead.Flag(action, StrokesPlusJson.Action.WheelUp);
-        var down = JsonRead.Flag(action, StrokesPlusJson.Action.WheelDown);
-        if (up && down)
-        {
-            _warnings.Add(new ImportWarning(ImportSeverity.Warning, commandName, "Both wheel directions are set; imported as wheel up."));
-        }
-
-        if (up || down)
-        {
-            return Trigger.ForWheel(up ? WheelDirection.Up : WheelDirection.Down);
-        }
-
-        _warnings.Add(new ImportWarning(ImportSeverity.Warning, commandName, "No gesture or wheel trigger; command imported without a trigger."));
-        return Trigger.None;
-    }
-
-    /// <summary>A7: one command per trigger per group. When two actions share a trigger the active one stays bound.</summary>
-    private Command Bound(Command command, JsonElement action, string groupName, List<Command> commands, Dictionary<Trigger, int> bound)
+    /// <summary>A7: one command per trigger per group. When two actions' triggers overlap the active one stays bound.</summary>
+    private Command Bound(Command command, JsonElement action, string groupName, List<Command> commands)
     {
         if (!command.Trigger.IsBound)
         {
             return command;
         }
 
-        if (!bound.TryGetValue(command.Trigger, out var position))
+        var position = commands.FindIndex(other => other.Trigger.Overlaps(command.Trigger));
+        if (position < 0)
         {
-            bound[command.Trigger] = commands.Count;
             return command;
         }
 
-        var phrase = TriggerPhrase(action);
+        var phrase = TriggerPhrase(command.Trigger, action);
         var other = commands[position];
         if (command.IsActive && !other.IsActive)
         {
             commands[position] = other with { Trigger = Trigger.None };
-            bound[command.Trigger] = commands.Count;
             _warnings.Add(new ImportWarning(ImportSeverity.Warning, other.Name, $"'{other.Name}' and '{command.Name}' in '{groupName}' both use {phrase}; the inactive '{other.Name}' is imported without it."));
             return command;
         }
@@ -154,15 +121,13 @@ internal sealed class ActionReader
         return command with { Trigger = Trigger.None };
     }
 
-    private static string TriggerPhrase(JsonElement action)
+    /// <summary>"gesture 'Up'", "wheel down", "Shift + gesture 'Up'", "Shift + click": the trigger as SP.net users name it.</summary>
+    private static string TriggerPhrase(Trigger trigger, JsonElement action)
     {
-        var gesture = JsonRead.Text(action, StrokesPlusJson.Action.GestureName);
-        if (gesture.Length > 0)
-        {
-            return $"gesture '{gesture}'";
-        }
-
-        return JsonRead.Flag(action, StrokesPlusJson.Action.WheelUp) ? "wheel up" : "wheel down";
+        var text = trigger.Describe(HostPlatform.Windows);
+        return trigger is Trigger.GestureTrigger
+            ? text.Replace(trigger.KindPhrase, $"gesture '{JsonRead.Text(action, StrokesPlusJson.Action.GestureName)}'", StringComparison.Ordinal)
+            : text;
     }
 
     private string UniqueName(string name, HashSet<string> names)

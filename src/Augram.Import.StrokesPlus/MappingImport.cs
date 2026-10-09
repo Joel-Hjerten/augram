@@ -114,10 +114,11 @@ public static class MappingImport
 
     private static bool IsTaken(Command command, List<Command> commands)
         => commands.Any(other => MappingRules.NameComparer.Equals(other.Name, command.Name)
-            || (command.Trigger.IsBound && other.Trigger == command.Trigger));
+            || command.Trigger.Overlaps(other.Trigger));
 
+    /// <summary>The command bound to the gesture its source gesture was merged into, keeping what its trigger holds.</summary>
     private static Command Rebound(Command command, IReadOnlyDictionary<GestureId, GestureId> idMap)
         => command.Trigger is Trigger.GestureTrigger gesture && idMap.TryGetValue(gesture.GestureId, out var final) && final != gesture.GestureId
-            ? command with { Trigger = Trigger.ForGesture(final) }
+            ? command with { Trigger = gesture with { GestureId = final } }
             : command;
 }

@@ -7,6 +7,12 @@ namespace Augram.Import.StrokesPlus;
 public static class StrokesPlusJson
 {
     public const string Gestures = "Gestures";
+
+    /// <summary>
+    /// The secondary stroke button setting, a WinForms <c>MouseButtons</c> value (<see cref="MouseButtons"/>; 0 = none): the
+    /// button a <c>UseSecondaryStrokeButton</c> action holds instead of the stroke button.
+    /// </summary>
+    public const string SecondaryStrokeButton = "SecondaryStrokeButton";
     public const string GlobalApplication = "GlobalApplication";
     public const string Applications = "Applications";
     public const string IgnoredApplications = "IgnoredApplications";
@@ -88,11 +94,22 @@ public static class StrokesPlusJson
         public const string WheelUp = "WheelUp";
         public const string WheelDown = "WheelDown";
         public const string UseSecondaryStrokeButton = "UseSecondaryStrokeButton";
+
+        /// <summary>When the keys and buttons must have gone down: 0 Before, 1 After, 2 Either (learnings 0003 §1, SP.net's order).</summary>
+        public const string Capture = "Capture";
+
         public const string Steps = "Steps";
         public const string Script = "Script";
+    }
 
-        /// <summary>The modifier and chord flags that make an action a deferred feature (plan 0001 §C1).</summary>
-        public static readonly string[] ModifierFlags = [Control, Alt, Shift, Left, Middle, Right, X1, X2, UseSecondaryStrokeButton];
+    /// <summary>WinForms <c>MouseButtons</c> values, as SP.net stores its stroke buttons (reference §2).</summary>
+    public static class MouseButtons
+    {
+        public const long Left = 0x100000;
+        public const long Right = 0x200000;
+        public const long Middle = 0x400000;
+        public const long X1 = 0x800000;
+        public const long X2 = 0x1000000;
     }
 
     /// <summary>Members of a <c>Steps[]</c> element.</summary>

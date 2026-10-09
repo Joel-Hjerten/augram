@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
+using Augram.Core.Capture;
 using Augram.Core.Mapping;
 using Avalonia.Threading;
 
@@ -12,6 +13,8 @@ namespace Augram.App.ViewModels.Commands;
 /// </summary>
 public sealed partial class CommandsViewModel
 {
+    private MouseButton? _strokeButton;
+
     private void Select(SectionId? section, CommandId? command)
     {
         SelectedSectionId = section;
@@ -30,9 +33,26 @@ public sealed partial class CommandsViewModel
         }
     }
 
+    /// <summary>
+    /// This machine's stroke button (Options › General), set by the composition root: a trigger naming it means the stroke
+    /// button here, and its header says so. Null (no such note) in tests and the gallery.
+    /// </summary>
+    public MouseButton? StrokeButton
+    {
+        get => _strokeButton;
+        set
+        {
+            if (_strokeButton != value)
+            {
+                _strokeButton = value;
+                OnStoreChanged(this, EventArgs.Empty);
+            }
+        }
+    }
+
     private void Project()
     {
-        Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform, ShowOtherPlatforms);
+        Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform, ShowOtherPlatforms, StrokeButton);
         CanUndo = _store.CanUndo;
         CanRedo = _store.CanRedo;
         ProjectSelection();

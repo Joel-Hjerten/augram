@@ -1,37 +1,31 @@
+using Augram.Core.Abstractions;
+
 namespace Augram.Core.Capture;
 
 /// <summary>
 /// The suppress-then-replay loop as a pure object (ADR-0002 §3, handoff §5): feed it
 /// <see cref="CaptureEvent"/>s, it returns <see cref="CaptureOutcome"/>s. No hook, no timer, no
 /// thread, no clock: time arrives on the events, and the Engine calls <see cref="Handle"/> from
-/// exactly one thread (the hook thread). Each call is O(1) apart from appending one point.
-/// <para>Contract (F1 with Joel's decisions A12, A13, A19; classic-source reference §2):</para>
-/// <list type="table">
-/// <item><term>ButtonDown, stroke button, Idle</term><description>
-/// IgnoreKeyHeld or !CaptureAllowed: PassThrough, stay Idle. Else Suppress, remember start, go Held, deadline = t + CancelDelayMs.</description></item>
-/// <item><term>Move, Held</term><description>
-/// Record if at least MinSegmentPx from the last recorded point (pushes the deadline when ResetCancelDelayOnMovement).
-/// If now at least StartDistancePx from start: BeginStroke(start) + StrokeProgress for every recorded point after start, go Drawing. Else nothing.</description></item>
-/// <item><term>Move, Drawing</term><description>Same decimation; a recorded point emits StrokeProgress. Nothing otherwise.</description></item>
-/// <item><term>Tick, Held or Drawing</term><description>t at or past the deadline: (EndStroke if Drawing) + Cancelled(HoldStill), go Cancelled. Else nothing.</description></item>
-/// <item><term>ButtonUp, stroke button, Held</term><description>Suppress + ReplayClick at the release position, go Idle. The replay is the clean down+up pair.</description></item>
-/// <item><term>ButtonUp, stroke button, Drawing</term><description>Suppress + EndStroke + StrokeComplete(start .. release), go Idle. Recognition is the Engine's job.</description></item>
-/// <item><term>ButtonUp, stroke button, WheelFiring or Cancelled</term><description>Suppress (the down was consumed, so the up must be: A19), go Idle.</description></item>
-/// <item><term>ButtonUp, stroke button, Idle</term><description>PassThrough (its down was passed through or never seen).</description></item>
-/// <item><term>Wheel, Held or Drawing</term><description>Suppress + (EndStroke if Drawing) + WheelTrigger, go WheelFiring. The cancel deadline is abandoned.</description></item>
-/// <item><term>Wheel, WheelFiring</term><description>Suppress + WheelTrigger again (every tick fires). Moves and Ticks are ignored in this state.</description></item>
-/// <item><term>ButtonDown, other button, Held/Drawing/WheelFiring</term><description>PassThrough (the user's click must work) + (EndStroke if Drawing) + Cancelled(OtherButton), go Cancelled.</description></item>
-/// <item><term>Other button Up; any other-button event while Idle or Cancelled</term><description>PassThrough. Other buttons are never consumed.</description></item>
-/// <item><term>Wheel, Idle or Cancelled</term><description>PassThrough.</description></item>
-/// <item><term>Move, Idle</term><description>PassThrough; the Engine need not forward these. Move while WheelFiring or Cancelled: nothing.</description></item>
-/// <item><term>ButtonDown, stroke button, not Idle</term><description>The release was missed (hook reinstall, sleep). Abandon: (EndStroke if Drawing), then as from Idle.</description></item>
+/// exactly one thread (the engine worker). Each call is O(1) apart from appending one point.
+/// <para>A press is owned by its <em>anchor</em>: the stroke button, or a button the press's <see cref="AnchorPlan"/> holds
+/// back (a command holds it without the stroke button, "Right + wheel up"; learnings 0003 §4). The full contract, event by
+/// event, is the table in <c>Capture/README.md</c>; the short version:</para>
+/// <list type="bullet">
+/// <item>An anchor down while Idle is suppressed unless capture is not allowed or the ignore key is held; Before keys and
+/// buttons are what was held then. Another button down while Held or Drawing is suppressed and joins the press (After) when
+/// the plan claims it for this anchor, else it passes and cancels a stroke press (A12) or hands a held-back anchor back.</item>
+/// <item>Release, Held: nothing held → ReplayClick; stroke button with something held → ClickTrigger (resolved, relayed when
+/// nothing fires); another anchor → ReplayClick with the After keys, or nothing when an After button took part.</item>
+/// <item>A stroke button past the start distance draws; any other anchor is handed back (HandBack) and its release is
+/// consumed and re-injected (ReleaseHandedBack), as it is after the hold-still time or another button.</item>
+/// <item>Wheel while Held or Drawing: WheelFiring, the sets freeze; each tick is a WheelTrigger (marked AfterDrawing when the
+/// stroke had started).</item>
+/// <item>Every button's up is suppressed exactly when its down was (A19), whatever happened in between.</item>
 /// </list>
-/// <para>Invariant (A19): every stroke-button down that returned Suppress is followed by a stroke-button up that
-/// returns Suppress, never PassThrough. Changing <see cref="StrokeButton"/> mid-capture therefore cancels the
-/// capture but keeps consuming the old button until its release; <see cref="Reset"/> is the hard reset for when
-/// the OS state is unknown anyway (hook reinstalled).</para>
+/// <para>Changing <see cref="StrokeButton"/> mid-capture cancels a stroke press but keeps consuming the old button until
+/// its release; <see cref="Reset"/> is the hard reset for when the OS state is unknown anyway (hook reinstalled).</para>
 /// </summary>
-public sealed class CaptureStateMachine
+public sealed partial class CaptureStateMachine
 {
     private const int InitialPointCapacity = 256;
 
@@ -45,17 +39,27 @@ public sealed class CaptureStateMachine
     private static readonly CaptureOutcome[] OtherButtonCancelDrawing = [CaptureOutcome.PassThrough.Instance, CaptureOutcome.EndStroke.Instance, new CaptureOutcome.Cancelled(CancelReason.OtherButton)];
 
     private MouseButton _strokeButton;
-    private MouseButton _activeButton;
+    private MouseButton _owner;
+    private bool _ownerIsStroke;
+    private MouseButton _pressStrokeButton;
+    private AnchorPlan _plan;
+    private HeldButtons _down;
+    private HeldButtons _owed;
+    private HeldButtons _before;
+    private HeldButtons _after;
+    private KeyModifiers _beforeKeys;
+    private KeyModifiers _afterKeys;
     private CapturePoint _start;
     private CapturePoint _lastRecorded;
+    private (int X, int Y) _pointer;
+    private bool _wheelAfterDrawing;
     private long _deadlineMs;
     private List<CapturePoint> _points = [];
-    private int _otherButtonsDown;
 
     public CaptureStateMachine(MouseButton strokeButton, CaptureThresholds? thresholds = null)
     {
         _strokeButton = strokeButton;
-        _activeButton = strokeButton;
+        _owner = strokeButton;
         Thresholds = thresholds ?? CaptureThresholds.Default;
     }
 
@@ -65,9 +69,9 @@ public sealed class CaptureStateMachine
     public CaptureThresholds Thresholds { get; set; }
 
     /// <summary>
-    /// The button that starts a capture. Setting it while not Idle cancels the capture in progress
-    /// (state Cancelled) but keeps owning the old button until its release is consumed.
-    /// The caller ends any trail it is showing; this setter cannot return outcomes.
+    /// The button that starts a capture. Setting it while a stroke press is held cancels it (state Cancelled) but keeps
+    /// owning the old button until its release is consumed; a press owned by another anchor goes on. The caller ends any
+    /// trail it is showing; this setter cannot return outcomes.
     /// </summary>
     public MouseButton StrokeButton
     {
@@ -75,26 +79,33 @@ public sealed class CaptureStateMachine
         set
         {
             _strokeButton = value;
-            if (State == CaptureState.Idle)
-            {
-                _activeButton = value;
-            }
-            else if (value != _activeButton)
+            if (State != CaptureState.Idle && _ownerIsStroke && value != _owner)
             {
                 State = CaptureState.Cancelled;
             }
         }
     }
 
-    /// <summary>True while a button other than the stroke button is physically down, as far as this machine has seen.</summary>
-    public bool IsOtherButtonDown(MouseButton button) => (_otherButtonsDown & Bit(button)) != 0;
+    /// <summary>The button that owns the press in progress, or the stroke button while Idle.</summary>
+    public MouseButton ActiveButton => State == CaptureState.Idle ? _strokeButton : _owner;
 
-    /// <summary>Hard reset to Idle, forgetting any consumed down. Only for when the hook itself was reset.</summary>
+    /// <summary>The handed-back anchor whose injected down still waits for its release, or null: a hard reset must release it.</summary>
+    public MouseButton? HandedBackButton => State == CaptureState.HandedBack ? _owner : null;
+
+    /// <summary>True while a button other than the active one is physically down, as far as this machine has seen.</summary>
+    public bool IsOtherButtonDown(MouseButton button) => button != ActiveButton && _down.Has(button);
+
+    /// <summary>Buttons whose down was suppressed and whose up is still owed (A19), the owner included.</summary>
+    public HeldButtons OwedButtons => _owed;
+
+    /// <summary>Hard reset to Idle, forgetting every consumed down. Only for when the hook itself was reset; the caller releases <see cref="HandedBackButton"/> first.</summary>
     public void Reset()
     {
         State = CaptureState.Idle;
-        _activeButton = _strokeButton;
-        _otherButtonsDown = 0;
+        _owner = _strokeButton;
+        _ownerIsStroke = false;
+        _down = HeldButtons.None;
+        _owed = HeldButtons.None;
         _points = [];
     }
 
@@ -105,57 +116,95 @@ public sealed class CaptureStateMachine
         CaptureEvent.Move move => OnMove(move),
         CaptureEvent.Wheel wheel => OnWheel(wheel),
         CaptureEvent.Tick tick => OnTick(tick),
+        CaptureEvent.Key key => OnKey(key),
         _ => throw new ArgumentOutOfRangeException(nameof(e), e, "Unknown capture event."),
     };
-
-    private static int Bit(MouseButton button) => 1 << (int)button;
 
     private static long Squared(int value) => (long)value * value;
 
     private IReadOnlyList<CaptureOutcome> OnButtonDown(CaptureEvent.ButtonDown down)
     {
-        if (down.Button != _activeButton)
+        var flag = down.Button.Flag();
+        _down |= flag;
+        if (State == CaptureState.Idle || down.Button == _owner)
         {
-            _otherButtonsDown |= Bit(down.Button);
-            return State switch
-            {
-                CaptureState.Idle or CaptureState.Cancelled => PassThroughOnly,
-                CaptureState.Drawing => Cancel(OtherButtonCancelDrawing),
-                _ => Cancel(OtherButtonCancelHeld),
-            };
+            return OnAnchorDown(down, flag);
         }
 
-        var abandonedDrawing = State == CaptureState.Drawing;
-        if (!down.CaptureAllowed || down.IgnoreKeyHeld)
+        if (State is CaptureState.Held or CaptureState.Drawing && _plan.Claims(_owner, _ownerIsStroke, down.Button))
         {
+            // An After button: it joins the press, its click never reaches the app (A19: its up will be consumed too).
+            _owed |= flag;
+            _after |= flag;
+            Push(down.TimestampMs);
+            return SuppressOnly;
+        }
+
+        _owed &= ~flag;
+        return State switch
+        {
+            CaptureState.Held when !_ownerIsStroke => HandBackNow(down.X, down.Y, CaptureOutcome.PassThrough.Instance),
+            CaptureState.Drawing => Cancel(OtherButtonCancelDrawing),
+            CaptureState.Held or CaptureState.WheelFiring => Cancel(OtherButtonCancelHeld),
+            _ => PassThroughOnly,
+        };
+    }
+
+    /// <summary>A press with no press in progress, or the owner pressed again (its release was missed: hook reinstall, sleep).</summary>
+    private IReadOnlyList<CaptureOutcome> OnAnchorDown(CaptureEvent.ButtonDown down, HeldButtons flag)
+    {
+        var prior = State;
+        var isAnchor = down.Button == _strokeButton || down.Plan.IsAnchor(down.Button);
+        CaptureOutcome? release = prior == CaptureState.HandedBack ? new CaptureOutcome.ReleaseHandedBack(_owner, down.X, down.Y) : null;
+        if (!isAnchor || !down.CaptureAllowed || down.IgnoreKeyHeld)
+        {
+            _owed &= ~flag;
             ToIdle();
-            return PassThroughOnly;
+            return release is null ? PassThroughOnly : [release, CaptureOutcome.PassThrough.Instance];
         }
 
+        _owner = down.Button;
+        _ownerIsStroke = down.Button == _strokeButton;
+        _pressStrokeButton = _strokeButton;
+        _plan = down.Plan;
+        _owed |= flag;
+        _before = _down & ~flag;
+        _beforeKeys = down.Modifiers & PressHold.TrackedKeys;
+        _after = HeldButtons.None;
+        _afterKeys = KeyModifiers.None;
         _start = new CapturePoint(down.X, down.Y, down.TimestampMs);
         _lastRecorded = _start;
+        _pointer = (down.X, down.Y);
         _points = new List<CapturePoint>(InitialPointCapacity) { _start };
         _deadlineMs = down.TimestampMs + Thresholds.CancelDelayMs;
         State = CaptureState.Held;
-        return abandonedDrawing ? AbandonDrawing : SuppressOnly;
+        return prior switch
+        {
+            CaptureState.Drawing => AbandonDrawing,
+            CaptureState.HandedBack => [release!, CaptureOutcome.Suppress.Instance],
+            _ => SuppressOnly,
+        };
     }
 
     private IReadOnlyList<CaptureOutcome> OnButtonUp(CaptureEvent.ButtonUp up)
     {
-        if (up.Button != _activeButton)
+        var flag = up.Button.Flag();
+        _down &= ~flag;
+        var owed = (_owed & flag) != 0;
+        _owed &= ~flag;
+        if (State == CaptureState.Idle || up.Button != _owner)
         {
-            _otherButtonsDown &= ~Bit(up.Button);
-            return PassThroughOnly;
+            return owed ? SuppressOnly : PassThroughOnly;
         }
 
         var state = State;
+        var hold = Hold();
+        var ownerIsStroke = _ownerIsStroke;
         ToIdle();
         switch (state)
         {
-            case CaptureState.Idle:
-                return PassThroughOnly;
             case CaptureState.Held:
-                return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReplayClick(up.Button, up.X, up.Y)];
+                return Released(up, hold, ownerIsStroke);
             case CaptureState.Drawing:
                 var release = new CapturePoint(up.X, up.Y, up.TimestampMs);
                 if (!release.IsSamePositionAs(_lastRecorded))
@@ -163,95 +212,45 @@ public sealed class CaptureStateMachine
                     _points.Add(release);
                 }
 
-                return [CaptureOutcome.Suppress.Instance, CaptureOutcome.EndStroke.Instance, new CaptureOutcome.StrokeComplete(_points, _start, up.Button)];
+                return [CaptureOutcome.Suppress.Instance, CaptureOutcome.EndStroke.Instance, new CaptureOutcome.StrokeComplete(_points, _start, up.Button) { Hold = hold }];
+            case CaptureState.HandedBack:
+                return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReleaseHandedBack(up.Button, up.X, up.Y)];
             default:
                 return SuppressOnly;
         }
     }
 
-    private IReadOnlyList<CaptureOutcome> OnMove(CaptureEvent.Move move)
+    /// <summary>The owner released inside the start distance with no tick: a click, a click trigger, or nothing (an After button took part).</summary>
+    private CaptureOutcome[] Released(CaptureEvent.ButtonUp up, PressHold hold, bool ownerIsStroke)
     {
-        switch (State)
+        if (hold.IsEmpty)
         {
-            case CaptureState.Idle:
-                return PassThroughOnly;
-            case CaptureState.Held:
-                var point = new CapturePoint(move.X, move.Y, move.TimestampMs);
-                TryRecord(point);
-                if (point.DistanceSquaredTo(_start) < Squared(Thresholds.StartDistancePx))
-                {
-                    return None;
-                }
-
-                State = CaptureState.Drawing;
-                var outcomes = new CaptureOutcome[_points.Count];
-                outcomes[0] = new CaptureOutcome.BeginStroke(_start);
-                for (var i = 1; i < _points.Count; i++)
-                {
-                    outcomes[i] = new CaptureOutcome.StrokeProgress(_points[i]);
-                }
-
-                return outcomes;
-            case CaptureState.Drawing:
-                var next = new CapturePoint(move.X, move.Y, move.TimestampMs);
-                return TryRecord(next) ? [new CaptureOutcome.StrokeProgress(next)] : None;
-            default:
-                return None;
-        }
-    }
-
-    private IReadOnlyList<CaptureOutcome> OnWheel(CaptureEvent.Wheel wheel)
-    {
-        var state = State;
-        if (state is CaptureState.Idle or CaptureState.Cancelled)
-        {
-            return PassThroughOnly;
+            return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReplayClick(up.Button, up.X, up.Y)];
         }
 
-        State = CaptureState.WheelFiring;
-        var trigger = new CaptureOutcome.WheelTrigger(wheel.Direction, _start);
-        return state == CaptureState.Drawing
-            ? [CaptureOutcome.Suppress.Instance, CaptureOutcome.EndStroke.Instance, trigger]
-            : [CaptureOutcome.Suppress.Instance, trigger];
-    }
-
-    private IReadOnlyList<CaptureOutcome> OnTick(CaptureEvent.Tick tick)
-    {
-        if (State is not (CaptureState.Held or CaptureState.Drawing) || tick.TimestampMs < _deadlineMs)
+        if (ownerIsStroke)
         {
-            return None;
+            return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ClickTrigger(up.Button, up.X, up.Y, _start, hold)];
         }
 
-        return Cancel(State == CaptureState.Drawing ? CancelDrawing : CancelHeld);
+        // Another anchor serves wheel triggers only: its click goes to the app, with any After keys, unless a button joined it.
+        return hold.After != HeldButtons.None
+            ? SuppressOnly
+            : [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReplayClick(up.Button, up.X, up.Y) { AfterKeys = hold.AfterKeys }];
     }
 
-    /// <summary>Decimation: keep the point only if it is at least MinSegmentPx from the last kept one.</summary>
-    private bool TryRecord(CapturePoint point)
-    {
-        if (point.DistanceSquaredTo(_lastRecorded) < Squared(Thresholds.MinSegmentPx))
-        {
-            return false;
-        }
-
-        _points.Add(point);
-        _lastRecorded = point;
-        if (Thresholds.ResetCancelDelayOnMovement)
-        {
-            _deadlineMs = point.TimestampMs + Thresholds.CancelDelayMs;
-        }
-
-        return true;
-    }
-
-    private IReadOnlyList<CaptureOutcome> Cancel(CaptureOutcome[] outcomes)
-    {
-        State = CaptureState.Cancelled;
-        return outcomes;
-    }
+    private PressHold Hold() => new(
+        _ownerIsStroke ? HeldButtons.Stroke : _owner.Flag(),
+        _ownerIsStroke ? _owner : _pressStrokeButton,
+        _before,
+        _beforeKeys,
+        _after,
+        _afterKeys);
 
     private void ToIdle()
     {
         State = CaptureState.Idle;
-        _activeButton = _strokeButton;
+        _owner = _strokeButton;
+        _ownerIsStroke = false;
     }
 }

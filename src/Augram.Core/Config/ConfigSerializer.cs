@@ -123,6 +123,19 @@ public static class ConfigSerializer
         return version;
     }
 
+    /// <summary>The <c>schemaVersion</c> of a file without reading the rest, or null when it is not a JSON object with an integer one.</summary>
+    internal static int? PeekSchemaVersion(string json)
+    {
+        try
+        {
+            return ParseObject(json)["schemaVersion"] is JsonValue value && value.TryGetValue(out int version) ? version : null;
+        }
+        catch (ConfigFormatException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>A gesture read from JSON must have a name and samples; the serializer itself does not insist.</summary>
     internal static void EnsureComplete(IReadOnlyList<Gesture> gestures)
     {

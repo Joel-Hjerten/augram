@@ -20,7 +20,7 @@ public sealed class DisplayPortTests
         var runner = new CommandRunner(ports, settleDelayMs: 0, CancellationToken.None);
         var command = Mappings.Command("Film", Trigger.None, new DisplayModeStep(Refresh: RefreshRate.FromHertz(24)));
 
-        runner.Run(new ExecutionRequest(Trigger.None, new CapturePoint(10, 10, 0), null), AppGroup.EmptyGlobal, command, target: null);
+        runner.Run(new ExecutionRequest(PressedTrigger.Of(Trigger.None), new CapturePoint(10, 10, 0), null), AppGroup.EmptyGlobal, command, target: null);
 
         Assert.Equal(["3840×2160 at 24 Hz"], displays.Applied);
     }

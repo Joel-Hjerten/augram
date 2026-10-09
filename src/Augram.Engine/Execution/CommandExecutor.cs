@@ -31,6 +31,7 @@ internal sealed class CommandExecutor : IDisposable
     private readonly HostPlatform _platform;
     private readonly RecognitionLog _recognitionLog;
     private readonly IEventLog _log;
+    private readonly IInputSimulator _simulator;
     private readonly CommandRunner _runner;
     private readonly IDisposable? _healthRegistration;
     private int _started;
@@ -45,6 +46,7 @@ internal sealed class CommandExecutor : IDisposable
         _platform = ports.WindowOperations.Platform;
         _recognitionLog = ports.RecognitionLog;
         _log = ports.Log;
+        _simulator = ports.Simulator;
         _runner = new CommandRunner(ports, options.SettleDelayMs, _stopping.Token);
         _queue = Channel.CreateBounded<ExecutionRequest>(
             new BoundedChannelOptions(QueueCapacity)
@@ -154,6 +156,12 @@ internal sealed class CommandExecutor : IDisposable
         if (resolution.Fires)
         {
             _runner.Run(request, resolution.Group!, resolution.Command!, target);
+        }
+        else if (request.Relay is { } relay)
+        {
+            // A click trigger that fires nothing here goes to the app with its keys held (Joel, 2026-10-09; SP.net swallowed it).
+            var result = relay.Run(_simulator);
+            _log.Debug(LogSources.Execution, "Click relayed", ("button", relay.Button), ("keys", relay.AfterKeys), ("result", result));
         }
     }
 }

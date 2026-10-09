@@ -53,6 +53,12 @@ public enum CommandTreeAction
     /// <summary>Change the command's trigger kind (the header dropdown); Gesture opens the picker.</summary>
     SetTriggerKind,
 
+    /// <summary>Change what the trigger holds (the header's "While holding" boxes and capture choice; <see cref="CommandTreeActionEventArgs.Hold"/>).</summary>
+    SetTriggerHold,
+
+    /// <summary>Change a wheel trigger's direction (the Up / Down choice beside the kind; <see cref="CommandTreeActionEventArgs.Wheel"/>).</summary>
+    SetWheelDirection,
+
     /// <summary>Move the command into another category of its group (the header's Category dropdown); Uncategorized clears it.</summary>
     SetCategory,
 

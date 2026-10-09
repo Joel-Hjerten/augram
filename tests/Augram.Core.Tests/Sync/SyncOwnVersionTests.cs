@@ -82,6 +82,25 @@ public sealed class SyncOwnVersionTests
         Assert.Equal(SyncItemKey.ForCommandVersion(shared.Id), repair.Key);
     }
 
+    /// <summary>Joel, 2026-10-09: a trigger changed on the Mac is the Mac's own, carried by the own-steps item (format 6).</summary>
+    [Fact]
+    public void AnOwnTriggerTravelsWithTheOwnStepsItem_AndMergesWithoutAConflict()
+    {
+        var original = DeleteWord() with { Trigger = Trigger.ForWheel(Augram.Core.Capture.WheelDirection.Up, TriggerHold.WithStroke(KeyModifiers.Control)) };
+        var macTrigger = Trigger.ForWheel(Augram.Core.Capture.WheelDirection.Up, TriggerHold.WithStroke(KeyModifiers.Alt));
+        var onMac = original.WithTriggerFor(HostPlatform.MacOS, macTrigger, Then);
+
+        var versionItem = Assert.IsType<SyncItem.VersionItem>(Items(onMac).Find(SyncItemKey.ForCommandVersion(onMac.Id)));
+        var parsed = Assert.IsType<SyncItem.VersionItem>(SyncItem.Parse(versionItem.Key, versionItem.Content, StepRegistry.BuiltIn));
+        Assert.Equal(macTrigger, parsed.Version.Trigger);
+        Assert.Equal(KeyModifiers.Control, Assert.IsType<SyncItem.CommandItem>(Items(onMac).Find(SyncItemKey.ForCommand(onMac.Id))).Command.Trigger.Hold.Keys);
+
+        var result = ThreeWayMerge.Merge(Items(original), Items(original with { Name = "Delete word" }), Items(onMac));
+
+        Assert.Empty(result.Conflicts);
+        Assert.Equal(macTrigger, Assert.Single(result.Mapping.Global.Commands).TriggerFor(HostPlatform.MacOS));
+    }
+
     private static Command DeleteWord() => new(CommandId.New(), "Delete word", Trigger.None, IsActive: true, [CtrlBackspace]);
 
     private static MappingDocument Document(Command command) => MappingRules.ValidDocument(new MappingDocument([NewGlobal(command)], []));

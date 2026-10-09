@@ -1,17 +1,19 @@
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.Mapping;
 
 namespace Augram.Engine.Hosting;
 
 /// <summary>
-/// Keeps the ignore list's answer current for the hook (F5; SP.net's Ignore List), on its own thread
-/// (<c>augram-ignore-watch</c>), so the hook reads one volatile at button-down and never looks a window up (CLAUDE.md
-/// invariant 1). The hook hands it each move's position (<see cref="PointerAt"/>: one volatile write, and one wake per batch
-/// of moves); it also wakes on <see cref="Wake"/> (the mapping changed), on resume, unlock and display changes (every key is
-/// dropped), and every <see cref="FocusPollInterval"/> while anything is watched, to see focus move (focus is asked at that
-/// pace only, however busy the pointer). Each pass (at most one per <see cref="PassInterval"/>, so a busy pointer costs a
-/// bounded number of passes) is an <see cref="IgnoreLookup"/>; its answer goes to <see cref="InputGate.PublishIgnore"/>. The pointer entering and leaving an ignored app is logged at Debug, a pause
+/// Keeps the pointer's answer current for the hook, on its own thread (<c>augram-ignore-watch</c>): the ignore list's (F5;
+/// SP.net's Ignore List) and the anchor plan for the window under the pointer (trigger combinations, per app: Joel
+/// 2026-10-09), so the hook reads one volatile at button-down and never looks a window up (CLAUDE.md invariant 1). The hook
+/// hands it each move's position (<see cref="PointerAt"/>: one volatile write, and one wake per batch of moves); it also
+/// wakes on <see cref="Wake"/> (the mapping or the stroke button changed), on resume, unlock and display changes (every key
+/// is dropped), and every <see cref="FocusPollInterval"/> while anything is watched, to see focus move (focus is asked at
+/// that pace only, however busy the pointer). Each pass (at most one per <see cref="PassInterval"/>, so a busy pointer costs
+/// a bounded number of passes) is an <see cref="IgnoreLookup"/>; its answer goes to <see cref="InputGate.PublishPointer"/>. The pointer entering and leaving an ignored app is logged at Debug, a pause
 /// starting and stopping at Info, and a pause (or its app's name) changing raises the callback the host turns into
 /// <c>EngineHost.PauseChanged</c>. Present only when the engine has a mapping.
 /// </summary>
@@ -129,7 +131,7 @@ internal sealed class IgnoreListWatch : IDisposable
             _thread.Join(StopTimeout);
         }
 
-        _gate.PublishIgnore(0);
+        _gate.PublishPointer(0, AnchorPlan.None);
         Volatile.Write(ref _over, null);
         if (Interlocked.Exchange(ref _pausedBy, null) is not null)
         {
@@ -193,7 +195,7 @@ internal sealed class IgnoreListWatch : IDisposable
         var watched = _lookup.WatchesPointer;
         try
         {
-            _lookup.Pass(_mapping(), pointer, Interlocked.Exchange(ref _forget, 0) != 0, focusDue);
+            _lookup.Pass(_mapping(), pointer, Interlocked.Exchange(ref _forget, 0) != 0, focusDue, _gate.StrokeButton);
             if (_lookup.FocusChecked)
             {
                 _focusCheckedAt = now;
@@ -215,15 +217,15 @@ internal sealed class IgnoreListWatch : IDisposable
         if (watched != _lookup.WatchesPointer)
         {
             Volatile.Write(ref _watchesPointer, _lookup.WatchesPointer ? 1 : 0);
-            _log.Info(LogSources.Ignore, _lookup.WatchesPointer ? "Ignore list watched" : "Ignore list not watched", ("focus", _lookup.WatchesFocus));
+            _log.Info(LogSources.Ignore, _lookup.WatchesPointer ? "Ignore list watched" : "Ignore list not watched", ("focus", _lookup.WatchesFocus), ("anchors", _lookup.WatchesAnchors));
         }
 
-        Publish(_lookup.Over, _lookup.PausedBy);
+        Publish(_lookup.Over, _lookup.PausedBy, _lookup.Plan);
     }
 
-    private void Publish(IgnoredApp? over, IgnoredApp? pausedBy)
+    private void Publish(IgnoredApp? over, IgnoredApp? pausedBy, AnchorPlan plan)
     {
-        _gate.PublishIgnore((over is null ? 0 : InputGate.OverIgnoredApp) | (pausedBy is null ? 0 : InputGate.PausedByFocus));
+        _gate.PublishPointer((over is null ? 0 : InputGate.OverIgnoredApp) | (pausedBy is null ? 0 : InputGate.PausedByFocus), plan);
 
         var lastOver = Volatile.Read(ref _over);
         Volatile.Write(ref _over, over);

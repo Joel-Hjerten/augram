@@ -16,13 +16,14 @@ public sealed class WheelTests
         var outcomes = new EventScript().Down(Stroke, 100, 100).Move(110, 100).Wheel(WheelDirection.Up).RunOnForLast(machine);
 
         Assert.Equal(
-            [CaptureOutcome.Suppress.Instance, new CaptureOutcome.WheelTrigger(WheelDirection.Up, new CapturePoint(100, 100, 0))],
+            [CaptureOutcome.Suppress.Instance, new CaptureOutcome.WheelTrigger(WheelDirection.Up, new CapturePoint(100, 100, 0)) { Hold = PressHold.OfStroke(Stroke) }],
             outcomes);
         Assert.Equal(CaptureState.WheelFiring, machine.State);
     }
 
+    /// <summary>Decision 6 (Joel, 2026-10-09; SP.net): a tick after the stroke started is "gesture + wheel", marked so the engine fires no wheel command.</summary>
     [Fact]
-    public void WheelWhileDrawing_EndsTheTrail_ThenFires()
+    public void WheelWhileDrawing_EndsTheTrail_AndMarksTheTickAfterDrawing()
     {
         var machine = new CaptureStateMachine(Stroke);
 
@@ -32,7 +33,7 @@ public sealed class WheelTests
             [
                 CaptureOutcome.Suppress.Instance,
                 CaptureOutcome.EndStroke.Instance,
-                new CaptureOutcome.WheelTrigger(WheelDirection.Down, new CapturePoint(100, 100, 0)),
+                new CaptureOutcome.WheelTrigger(WheelDirection.Down, new CapturePoint(100, 100, 0)) { Hold = PressHold.OfStroke(Stroke), AfterDrawing = true },
             ],
             outcomes);
     }

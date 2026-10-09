@@ -285,6 +285,12 @@ public sealed class TypeTextStepTests
 
         public SimulationResult Click(MouseButton button, int x, int y) => Record($"click {button}");
 
+        public SimulationResult Press(MouseButton button, int x, int y) => Record($"down {button}");
+
+        public SimulationResult Release(MouseButton button) => Record($"up {button}");
+
+        public SimulationResult MoveTo(int x, int y) => Record($"move {x},{y}");
+
         public SimulationResult KeyPress(KeyCode key) => Record($"press {key}");
 
         public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}");

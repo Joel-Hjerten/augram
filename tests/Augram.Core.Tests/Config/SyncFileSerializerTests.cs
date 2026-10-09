@@ -43,7 +43,7 @@ public sealed class SyncFileSerializerTests
 
         Assert.True(JsonNode.DeepEquals(config["gestures"], sync["gestures"]));
         Assert.True(JsonNode.DeepEquals(config["mapping"], sync["mapping"]));
-        Assert.Equal(1, (int)sync["schemaVersion"]!);
+        Assert.Equal(ConfigDocument.CurrentSchemaVersion, (int)sync["schemaVersion"]!);
         Assert.Equal("PC-WORK", (string)sync["machine"]!["name"]!);
     }
 

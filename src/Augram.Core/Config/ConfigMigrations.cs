@@ -24,14 +24,18 @@ public static class ConfigMigrations
     }
 
     /// <summary>
-    /// Upgrades the tree from <paramref name="version"/> to <paramref name="version"/> + 1.
-    /// When schema 2 exists, its step goes here as <c>case 1:</c> and edits the nodes that
+    /// Upgrades the tree from <paramref name="version"/> to <paramref name="version"/> + 1, editing the nodes that
     /// changed (rename a property, move a section, fill a new member) and nothing else.
     /// </summary>
     private static void Step(JsonObject root, int version)
     {
         switch (version)
         {
+            case 1:
+                // 1 → 2 (trigger combinations): every new member is optional and absent means what version 1 meant (the stroke
+                // button alone, the converted original trigger), so a version 1 tree is already a valid version 2 tree. The bump
+                // exists so that a version 1 build refuses a version 2 file instead of dropping its combinations.
+                break;
             default:
                 throw new ConfigFormatException($"No migration from schema version {version} to {version + 1} exists.");
         }

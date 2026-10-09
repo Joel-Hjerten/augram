@@ -50,12 +50,26 @@ public sealed class CommandsViewModelSharedTests
         var window = Section(vm, "Window");
         var close = Item(vm, "Close window");
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, window, close, kind: TriggerKind.WheelDown));
+        // Wheel up is the volume's here, so choosing Wheel takes the free direction.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, window, close, kind: TriggerKind.Wheel));
         Assert.Equal(Trigger.ForWheel(WheelDirection.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, window, close, kind: TriggerKind.WheelUp));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetWheelDirection, window, Item(vm, "Close window"), wheel: WheelDirection.Up));
         Assert.Matches("^'(Volume up|Close window)' in 'Global' already uses wheel up\\.$", vm.Message);
         Assert.Equal(Trigger.ForWheel(WheelDirection.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
+
+        // A combination is another trigger: Right + wheel up sits beside the plain wheel up.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerHold, window, Item(vm, "Close window"), hold: new TriggerHold(HeldButtons.Right)));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetWheelDirection, window, Item(vm, "Close window"), wheel: WheelDirection.Up));
+        Assert.Equal(Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right)), store.FindCommand(close.Id)!.Value.Command.Trigger);
+        Assert.Equal("Right + wheel up", Item(vm, "Close window").TriggerText);
+        Assert.Equal("Right clicks in every app wait until you release or move.", Item(vm, "Close window").AnchorWarning);
+
+        // Where Right is this machine's stroke button, the trigger means the stroke button, and the header says so.
+        vm.StrokeButton = MouseButton.Right;
+        Assert.Equal("Right is the stroke button on this machine, so here it means the stroke button.", Item(vm, "Close window").AnchorWarning);
+        vm.StrokeButton = MouseButton.Middle;
+        Assert.Equal("Right clicks in every app wait until you release or move.", Item(vm, "Close window").AnchorWarning);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, window, close, kind: TriggerKind.None));
         Assert.Equal(Trigger.None, store.FindCommand(close.Id)!.Value.Command.Trigger);

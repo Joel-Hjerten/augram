@@ -25,7 +25,7 @@ public sealed class GestureBindings
         var rows = UsedByRow.For(_mapping, gestureId);
         foreach (var row in rows)
         {
-            Unbind(row);
+            Unbind(row, gestureId);
         }
 
         return rows.Count;
@@ -42,13 +42,13 @@ public sealed class GestureBindings
         var unbound = 0;
         foreach (var row in UsedByRow.For(_mapping, from))
         {
-            if (TryRetarget(row, to))
+            if (TryRetarget(row, from, to))
             {
                 retargeted++;
             }
             else
             {
-                Unbind(row);
+                Unbind(row, from);
                 unbound++;
             }
         }
@@ -56,7 +56,8 @@ public sealed class GestureBindings
         return (retargeted, unbound);
     }
 
-    private bool TryRetarget(UsedByRow row, GestureId to)
+    /// <summary>The command's triggers on <paramref name="from"/> (its own version's too) move to <paramref name="to"/>, keeping the keys and buttons they hold.</summary>
+    private bool TryRetarget(UsedByRow row, GestureId from, GestureId to)
     {
         if (_mapping.FindCommand(row.CommandId) is not { } pair)
         {
@@ -65,7 +66,7 @@ public sealed class GestureBindings
 
         try
         {
-            _mapping.UpdateCommand(pair.Group.Id, pair.Command with { Trigger = Trigger.ForGesture(to) });
+            _mapping.UpdateCommand(pair.Group.Id, pair.Command.WithGestureReplaced(from, to));
             return true;
         }
         catch (MappingValidationException)
@@ -74,11 +75,11 @@ public sealed class GestureBindings
         }
     }
 
-    private void Unbind(UsedByRow row)
+    private void Unbind(UsedByRow row, GestureId gestureId)
     {
         if (_mapping.FindCommand(row.CommandId) is { } pair)
         {
-            _mapping.UpdateCommand(pair.Group.Id, pair.Command with { Trigger = Trigger.None });
+            _mapping.UpdateCommand(pair.Group.Id, pair.Command.WithGestureReplaced(gestureId, null));
         }
     }
 }

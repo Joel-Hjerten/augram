@@ -211,6 +211,12 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
             case CommandTreeAction.SetTriggerKind when e.Command is { } command && e.Kind is { } kind:
                 SetTriggerKind(command, kind);
                 break;
+            case CommandTreeAction.SetTriggerHold when e.Command is { } command && e.Hold is { } hold:
+                SetTrigger(command.Id, current => current.WithHold(hold));
+                break;
+            case CommandTreeAction.SetWheelDirection when e.Command is { } command && e.Wheel is { } direction:
+                SetTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
+                break;
             case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
                 UpdateCommand(command.Id, stored => stored with { UseOn = useOn });
                 break;

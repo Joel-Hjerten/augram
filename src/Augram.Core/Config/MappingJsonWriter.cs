@@ -102,6 +102,12 @@ internal static class MappingJsonWriter
         writer.WriteString("platform", own.Platform.ToString());
         writer.WriteString("basedOn", own.BasedOn);
         writer.WriteString("changedAt", own.ChangedAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture));
+        if (own.Trigger is { } trigger)
+        {
+            // Omitted while the platform uses the original's trigger, converted; null when its own is unbound.
+            WriteTrigger(writer, trigger);
+        }
+
         WriteSteps(writer, own.Steps);
         writer.WriteEndObject();
     }
@@ -143,6 +149,10 @@ internal static class MappingJsonWriter
         WriteUseOn(writer, category.UseOn);
     }
 
+    /// <summary>
+    /// <c>{ "gesture": id }</c>, <c>{ "wheel": "Up" }</c>, <c>{ "click": true }</c> or null, with a <c>hold</c> (schema 2) only when
+    /// the trigger holds more than the stroke button alone, so a plain trigger reads as it did before combinations.
+    /// </summary>
     private static void WriteTrigger(Utf8JsonWriter writer, Trigger trigger)
     {
         switch (trigger)
@@ -150,17 +160,44 @@ internal static class MappingJsonWriter
             case Trigger.GestureTrigger gesture:
                 writer.WriteStartObject("trigger");
                 writer.WriteString("gesture", gesture.GestureId.Value);
-                writer.WriteEndObject();
                 break;
             case Trigger.WheelTrigger wheel:
                 writer.WriteStartObject("trigger");
                 writer.WriteString("wheel", wheel.Direction.ToString());
-                writer.WriteEndObject();
+                break;
+            case Trigger.ClickTrigger:
+                writer.WriteStartObject("trigger");
+                writer.WriteBoolean("click", true);
                 break;
             default:
                 writer.WriteNull("trigger");
-                break;
+                return;
         }
+
+        WriteHold(writer, trigger.Hold);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteHold(Utf8JsonWriter writer, TriggerHold hold)
+    {
+        if (hold.IsDefault)
+        {
+            return;
+        }
+
+        writer.WriteStartObject("hold");
+        writer.WriteString("buttons", hold.Buttons.ToString());
+        if (hold.Keys != KeyModifiers.None)
+        {
+            writer.WriteString("keys", hold.Keys.ToString());
+        }
+
+        if (hold.Capture != HoldCapture.Either)
+        {
+            writer.WriteString("capture", hold.Capture.ToString());
+        }
+
+        writer.WriteEndObject();
     }
 
     private static void WriteStep(Utf8JsonWriter writer, CommandStep step)
