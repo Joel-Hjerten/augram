@@ -72,7 +72,10 @@ public static class IgnoredGalleryPages
             ["Chrome_RenderWidgetHostHWND", "Chrome_WidgetWin_1"],
             ProcessId: 4242,
             IsFullScreen: false,
-            IsDesktop: false));
+            IsDesktop: false)
+        {
+            Levels = new WindowLevels(null, "Chrome_RenderWidgetHostHWND", "Google Chrome", "Chrome_WidgetWin_1", "Google Chrome", "Chrome_WidgetWin_1", "Google Chrome", "Chrome_WidgetWin_1"),
+        });
         return new FormScreen("WindowFinder",
         [
             new Section("Bare: press, drag onto any window, release; Esc or a right-click cancels",

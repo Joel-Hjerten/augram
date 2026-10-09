@@ -30,14 +30,14 @@ public sealed class AppMatcherFinderFormTests
     private static readonly Point OverChrome = new(2000, 100);
 
     [AvaloniaFact]
-    public void TheMagnifiersSitBeforeIdentifyWindow_ThisPlatformsExecutables_ThePath_TheTitle_AndOnWindowsTheClasses()
+    public void TheMagnifiersSitBeforeIdentifyWindow_ThisPlatformsExecutables_ThePath_TheTitle_AndOnWindowsEachWindowField()
     {
         var windows = Show(AppMatcherFinderTests.New(HostPlatform.Windows)).Rows;
         var mac = Show(AppMatcherFinderTests.New(HostPlatform.MacOS)).Rows;
 
-        Assert.Equal(["Identify window", "Windows executables", "Executable path", "Window title", "Window classes"], FinderLabels(windows));
-        Assert.Equal(["Identify window", "macOS executables", "Executable path", "Window title"], FinderLabels(mac));
-        Assert.Equal(["Its path", "Its title", "Its classes"], windows.Where(row => row.Accessory is Button).Select(row => row.Label));
+        Assert.Equal(["Identify window", "Windows executables", "Windows executable path", "Window title", "Root title", "Parent title", "Control title", "Owner class", "Root class", "Parent class", "Control class"], FinderLabels(windows));
+        Assert.Equal(["Identify window", "macOS executables", "macOS executable path", "Window title"], FinderLabels(mac));
+        Assert.Equal(["Its path", "Its title", "Its root title", "Its parent title", "Its control title", "Its owner class", "Its root class", "Its parent class", "Its control class"], windows.Where(row => row.Accessory is Button).Select(row => row.Label));
     }
 
     [AvaloniaFact]
@@ -48,8 +48,9 @@ public sealed class AppMatcherFinderFormTests
 
         Drag(window, Finder(rows, "Windows executables"));
         Drag(window, Finder(rows, "Window title"));
-        Drag(window, Finder(rows, "Window classes"));
-        Assert.Equal(("chrome.exe", "Google Chrome", "Chrome_RenderWidgetHostHWND, Chrome_WidgetWin_1", string.Empty), (edit.WindowsNames, edit.WindowTitle, edit.WindowClasses, edit.ProcessPath));
+        Drag(window, Finder(rows, "Control class"));
+        Assert.Equal(("chrome.exe", "Google Chrome", "Chrome_RenderWidgetHostHWND", string.Empty), (edit.WindowsNames, edit.WindowTitle, edit.ControlClass, edit.ProcessPath));
+        Assert.False(Row(rows, "Its root class").IsVisible);
         Assert.False(Row(rows, "Its path").IsVisible);
 
         Drag(window, Finder(rows, "Identify window"));
@@ -60,13 +61,17 @@ public sealed class AppMatcherFinderFormTests
 
         ((Button)Row(rows, "Its path").Accessory!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Assert.Equal(AppMatcherFinderTests.Chrome.ProcessPath, edit.ProcessPath);
-        Assert.Equal(AppMatcherFinderTests.Chrome.ProcessPath, ((TextBox)Row(rows, "Executable path").Editor!).Text);
+        Assert.True(Row(rows, "Its root class").IsVisible);
+        Assert.False(Row(rows, "Its control title").IsVisible);
+        ((Button)Row(rows, "Its root class").Accessory!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal("Chrome_WidgetWin_1", edit.RootClass);
+        Assert.Equal(AppMatcherFinderTests.Chrome.ProcessPath, ((TextBox)Row(rows, "Windows executable path").Editor!).Text);
     }
 
     [AvaloniaFact]
     public void OnTheIgnoredTab_EachPickIsOneEditOfTheStore_AndUndoTakesItBack()
     {
-        var steam = new IgnoredApp(GroupId.New(), "Steam games", IsActive: true, new AppMatcher { ProcessPath = @"^C:\\Steam\\.+$", ProcessPathIsRegex = true }, DisableEntirely: false);
+        var steam = new IgnoredApp(GroupId.New(), "Steam games", IsActive: true, new AppMatcher { ProcessPath = @"^C:\\Steam\\.+$", ProcessPathIsRegex = true, MacProcessPath = "^/Games/", MacProcessPathIsRegex = true }, DisableEntirely: false);
         var store = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal], [steam]));
         var vm = new IgnoredViewModel(store, new FakeFormDialogPresenter(), new FakeConfirmPresenter(), CommandsModule.CurrentPlatform);
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, vm.Items.Single()));
@@ -75,13 +80,13 @@ public sealed class AppMatcherFinderFormTests
         Drag(window, Finder(rows, "Identify window"));
         Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
 
-        Drag(window, Finder(rows, "Executable path"));
-        Assert.Equal((AppMatcherFinderTests.Chrome.ProcessPath, false), (Stored().ProcessPath, Stored().ProcessPathIsRegex));
+        Drag(window, Finder(rows, PathLabel));
+        Assert.Equal((AppMatcherFinderTests.Chrome.ProcessPath, false), Stored().PathFor(CommandsModule.CurrentPlatform));
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));
-        Assert.Equal((steam.Matcher.ProcessPath, true), (Stored().ProcessPath, Stored().ProcessPathIsRegex));
+        Assert.Equal(steam.Matcher.PathFor(CommandsModule.CurrentPlatform), Stored().PathFor(CommandsModule.CurrentPlatform));
         Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
-        Assert.Equal(steam.Matcher.ProcessPath, ((TextBox)Row(rows, "Executable path").Editor!).Text);
+        Assert.Equal(steam.Matcher.PathFor(CommandsModule.CurrentPlatform).Path ?? string.Empty, ((TextBox)Row(rows, PathLabel).Editor!).Text ?? string.Empty);
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));
         Assert.Empty(Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
@@ -89,12 +94,15 @@ public sealed class AppMatcherFinderFormTests
         AppMatcher Stored() => store.FindIgnored(steam.Id)!.Matcher;
     }
 
+    /// <summary>This platform's path field: the one the magnifier fills here.</summary>
+    private static string PathLabel => CommandsModule.CurrentPlatform == HostPlatform.MacOS ? "macOS executable path" : "Windows executable path";
+
     private static (Window Window, List<FieldRow> Rows) Show(AppMatcherEditViewModel edit) => Show(new FormScreen("Identification", edit.Sections()));
 
     private static (Window Window, List<FieldRow> Rows) Show(FormScreen screen)
     {
         var form = new SectionForm { Screen = screen };
-        var window = new Window { Width = 900, Height = 1600, Content = form };
+        var window = new Window { Width = 900, Height = 3200, Content = form };
         window.Show();
         var at = window.PointToScreen(OverChrome);
         window.Resources[WindowFinder.WindowSystemResourceKey] = new FakeWindowSystem().Around(at.X, at.Y, AppMatcherFinderTests.Chrome);

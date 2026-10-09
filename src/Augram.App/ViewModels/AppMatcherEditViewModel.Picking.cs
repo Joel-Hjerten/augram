@@ -11,7 +11,7 @@ namespace Augram.App.ViewModels;
 /// the rest (<see cref="Identified"/>) with a Use button each; the magnifier beside a field fills that field alone. Every fill
 /// is a property change like typing, so the host applies it and its undo takes it back; a fill that sets two properties (the
 /// path or title and its regex toggle) is one change (<see cref="Edit"/>), so one undo step. A window without the value (a
-/// protected process's path, an untitled window, a Mac window's classes) fills nothing.
+/// protected process's path, an untitled window, a Mac window's per-window fields) fills nothing.
 /// </summary>
 public sealed partial class AppMatcherEditViewModel
 {
@@ -58,18 +58,28 @@ public sealed partial class AppMatcherEditViewModel
         return true;
     }
 
-    /// <summary>The executable's full path, matched exactly (the regex toggle off).</summary>
+    /// <summary>The executable's full path, into this platform's path field, matched exactly (the regex toggle off).</summary>
     public void TakePath(WindowIdentity window)
     {
         ArgumentNullException.ThrowIfNull(window);
-        if (window.ProcessPath is { Length: > 0 } path)
+        if (window.ProcessPath is not { Length: > 0 } path)
         {
-            Edit(() =>
+            return;
+        }
+
+        Edit(() =>
+        {
+            if (Platform == HostPlatform.MacOS)
+            {
+                MacPathIsRegex = false;
+                MacProcessPath = path;
+            }
+            else
             {
                 PathIsRegex = false;
                 ProcessPath = path;
-            });
-        }
+            }
+        });
     }
 
     /// <summary>The window's title, matched exactly (the regex toggle off).</summary>
@@ -86,21 +96,9 @@ public sealed partial class AppMatcherEditViewModel
         }
     }
 
-    /// <summary>The window's class chain (own, parent, root, owner), replacing the field's classes.</summary>
-    public void TakeClasses(WindowIdentity window)
-    {
-        ArgumentNullException.ThrowIfNull(window);
-        if (window.ClassChain.Count > 0)
-        {
-            WindowClasses = string.Join(", ", window.ClassChain);
-        }
-    }
-
     public void UseIdentifiedPath() => UseIdentified(TakePath);
 
     public void UseIdentifiedTitle() => UseIdentified(TakeTitle);
-
-    public void UseIdentifiedClasses() => UseIdentified(TakeClasses);
 
     /// <summary>While <see cref="Edit"/> runs, changes are held back and raised once afterwards.</summary>
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -118,9 +116,6 @@ public sealed partial class AppMatcherEditViewModel
     private static string PathOf(WindowIdentity window) => window.ProcessPath ?? $"{window.ProcessName}: path not readable";
 
     private static string TitleOf(WindowIdentity window) => string.IsNullOrEmpty(window.Title) ? $"{window.ProcessName}: no title" : window.Title;
-
-    private static string ClassesOf(WindowIdentity window)
-        => window.ClassChain.Count > 0 ? string.Join(", ", window.ClassChain) : $"{window.ProcessName}: no window classes";
 
     /// <summary>The magnifier beside <paramref name="platform"/>'s executables: only this platform's, since only its windows are on screen.</summary>
     private Func<Avalonia.Controls.Control>? ExecutableFinder(HostPlatform platform)

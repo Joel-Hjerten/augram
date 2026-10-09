@@ -94,13 +94,13 @@ public sealed class TriggerSerializationTests : IDisposable
 
         var migrated = ConfigMigrations.Migrate(root, 1);
 
-        Assert.Equal(2, (int)migrated["schemaVersion"]!);
+        Assert.Equal(ConfigDocument.CurrentSchemaVersion, (int)migrated["schemaVersion"]!);
         Assert.NotNull(migrated["mapping"]);
     }
 
     /// <summary>
-    /// An older build (schema 1) cannot read a schema 2 file: it loads the newest backup it can read and saves over the newer
-    /// file at its first change. The newer build then says where the newer file went instead of quietly losing combinations.
+    /// An older build (schema 2) cannot read a schema 3 file: it loads the newest backup it can read and saves over the newer
+    /// file at its first change. The newer build then says where the newer file went instead of quietly losing what it held.
     /// </summary>
     [Fact]
     public void AFileAnOlderBuildSavedOverANewerOne_IsReportedWithWhereTheNewerOneIs()
@@ -108,15 +108,15 @@ public sealed class TriggerSerializationTests : IDisposable
         var store = new FileConfigStore(_folder.Path, _notices.Add, clock: () => new DateTime(2026, 10, 9, 12, 0, 0));
         store.Save(new ConfigDocument());
         store.Save(new ConfigDocument());
-        var schemaTwo = File.ReadAllText(store.Location);
-        var older = schemaTwo.Replace("\"schemaVersion\": 2", "\"schemaVersion\": 1", StringComparison.Ordinal);
+        var current = File.ReadAllText(store.Location);
+        var older = current.Replace("\"schemaVersion\": 3", "\"schemaVersion\": 2", StringComparison.Ordinal);
         File.Copy(store.Location, Path.Combine(store.Backups.Folder, "augram-20261009-130000.json"));
         File.WriteAllText(store.Location, older);
 
         store.Load();
 
         var notice = Assert.Single(_notices);
-        Assert.Contains("saved by an older Augram (schema 1) over a newer one (schema 2)", notice, StringComparison.Ordinal);
+        Assert.Contains("saved by an older Augram (schema 2) over a newer one (schema 3)", notice, StringComparison.Ordinal);
         Assert.Contains("augram-20261009-130000.json", notice, StringComparison.Ordinal);
     }
 }

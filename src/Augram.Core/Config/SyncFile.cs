@@ -31,9 +31,11 @@ public sealed record SyncFile(
     /// trigger's <c>hold</c>, the click trigger, an own-steps item's <c>trigger</c>); a format 5 build would read a
     /// combination as the plain trigger and publish it back that way (the config schema went to 2 at the same time). 7
     /// (2026-10-09): the step types Scroll and Clear clipboard (<c>scroll</c>, <c>clearClipboard</c>); a format 6 build
-    /// cannot read a command holding one and would drop the step.
+    /// cannot read a command holding one and would drop the step. 8 (2026-10-09): the StrokesPlus.net app definition's
+    /// fields (regex executable names; a macOS executable path; root, parent and control titles; owner, root, parent and control classes); a format 7
+    /// build would ignore them, match too many windows and publish the matcher back without them (the config schema went to 3).
     /// </summary>
-    public const int CurrentFormatVersion = 7;
+    public const int CurrentFormatVersion = 8;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;

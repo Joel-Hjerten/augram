@@ -16,8 +16,9 @@ internal static class MappingFixtures
         string? path = null,
         string? title = null,
         IReadOnlyList<string>? classChain = null,
-        bool fullScreen = false)
-        => new(Handle: 1, RootHandle: 1, processName, path, title, classChain ?? [], ProcessId: 42, fullScreen, IsDesktop: false);
+        bool fullScreen = false,
+        WindowLevels? levels = null)
+        => new(Handle: 1, RootHandle: 1, processName, path, title, classChain ?? [], ProcessId: 42, fullScreen, IsDesktop: false) { Levels = levels ?? WindowLevels.None };
 
     public static AppMatcher ByProcess(params string[] names) => new() { WindowsProcessNames = names };
 

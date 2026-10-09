@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Platform.Windows.WindowSystem;
 using Xunit;
 
@@ -29,6 +30,9 @@ public sealed class WindowIdentityReaderTests
         Assert.Equal(42, id.ProcessId);
         Assert.False(id.IsFullScreen);
         Assert.False(id.IsDesktop);
+        Assert.Equal(
+            new WindowLevels(null, "Chrome_RenderWidgetHostHWND", "Augram - Google Chrome", "Chrome_WidgetWin_1", "Augram - Google Chrome", "Chrome_WidgetWin_1", "Augram - Google Chrome", "Chrome_WidgetWin_1"),
+            id.Levels);
     }
 
     [Fact]
@@ -48,6 +52,7 @@ public sealed class WindowIdentityReaderTests
         Assert.False(id.IsFullScreen);
         Assert.Equal(["SysListView32", "SHELLDLL_DefView", "WorkerW"], id.ClassChain);
         Assert.Equal("explorer.exe", id.ProcessName);
+        Assert.Equal((("SysListView32", "SHELLDLL_DefView"), ("WorkerW", "WorkerW")), ((id.Levels.ControlClass, id.Levels.ParentClass), (id.Levels.RootClass, id.Levels.OwnerClass)));
     }
 
     [Fact]

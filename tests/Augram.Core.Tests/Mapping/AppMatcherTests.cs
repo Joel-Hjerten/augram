@@ -107,4 +107,84 @@ public sealed class AppMatcherTests
         Assert.Equal(new AppMatcher { Title = "x", TitleIsRegex = true }, new AppMatcher { Title = "x", TitleIsRegex = true });
         Assert.NotEqual(new AppMatcher { Title = "x" }, new AppMatcher { Title = "y" });
     }
+
+    /// <summary>Regex executable names (Joel, 2026-10-09): SP.net's <c>Spine(?:-1)?\.exe</c> and <c>PotPlayerMini.*.exe</c>.</summary>
+    [Theory]
+    [InlineData("Spine.exe", true)]
+    [InlineData("spine-1.exe", true)]
+    [InlineData("PotPlayerMini64.exe", true)]
+    [InlineData("Spine-2.exe", false)]
+    [InlineData("chrome.exe", false)]
+    public void ProcessNamesArePatternsWhenTheirToggleIsOn(string processName, bool expected)
+    {
+        var matcher = new AppMatcher { WindowsProcessNames = [@"^Spine(?:-1)?\.exe$", "PotPlayerMini.*.exe"], WindowsProcessNamesAreRegex = true };
+
+        Assert.Equal(expected, matcher.Matches(MappingFixtures.Window(processName), HostPlatform.Windows));
+        Assert.False(new AppMatcher { WindowsProcessNames = ["PotPlayerMini.*.exe"] }.Matches(MappingFixtures.Window("PotPlayerMini64.exe"), HostPlatform.Windows));
+    }
+
+    [Fact]
+    public void APatternListGivesTheOtherPlatformNoGuess()
+    {
+        var plain = new AppMatcher { WindowsProcessNames = ["chrome.exe"] };
+        var patterns = plain with { WindowsProcessNamesAreRegex = true };
+
+        Assert.NotEmpty(plain.EffectiveProcessNames(HostPlatform.MacOS));
+        Assert.Empty(patterns.EffectiveProcessNames(HostPlatform.MacOS));
+        Assert.False(patterns.Matches(MappingFixtures.Window("Google Chrome"), HostPlatform.MacOS));
+    }
+
+    [Fact]
+    public void TheMacListsToggleAppliesOnlyToTheMacList()
+    {
+        var matcher = new AppMatcher { MacProcessNames = ["^Adobe Photoshop"], MacProcessNamesAreRegex = true };
+
+        Assert.True(matcher.Matches(MappingFixtures.Window("Adobe Photoshop 2026"), HostPlatform.MacOS));
+        Assert.False((matcher with { MacProcessNamesAreRegex = false }).Matches(MappingFixtures.Window("Adobe Photoshop 2026"), HostPlatform.MacOS));
+    }
+
+    /// <summary>Each SP.net per-window field reads its own window's caption or class, exact unless its toggle is on.</summary>
+    [Fact]
+    public void EachWindowFieldMatchesItsOwnWindow()
+    {
+        var levels = new WindowLevels("FolderView", "SysListView32", null, "SHELLDLL_DefView", "Program Manager", "Progman", "Program Manager", "Progman");
+        var desktop = MappingFixtures.Window("explorer.exe", levels: levels);
+
+        Assert.True(new AppMatcher { ControlClass = "syslistview32", ParentClass = "SHELLDLL_DefView", RootClass = "Progman" }.Matches(desktop, HostPlatform.Windows));
+        Assert.True(new AppMatcher { OwnerClass = "^(Progman|WorkerW)$", OwnerClassIsRegex = true }.Matches(desktop, HostPlatform.Windows));
+        Assert.True(new AppMatcher { RootTitle = "Program Manager", ControlTitle = "folderview" }.Matches(desktop, HostPlatform.Windows));
+        Assert.False(new AppMatcher { RootClass = "SysListView32" }.Matches(desktop, HostPlatform.Windows));
+        Assert.False(new AppMatcher { ControlClass = "SysList" }.Matches(desktop, HostPlatform.Windows));
+        Assert.True(new AppMatcher { ControlClass = "SysList", ControlClassIsRegex = true }.Matches(desktop, HostPlatform.Windows));
+
+        // A window without the value (no parent title here, or any field on macOS) does not match a field that asks for one.
+        Assert.False(new AppMatcher { ParentTitle = "x" }.Matches(desktop, HostPlatform.Windows));
+        Assert.False(new AppMatcher { RootClass = "Progman" }.Matches(MappingFixtures.Window("Finder"), HostPlatform.MacOS));
+    }
+
+    [Fact]
+    public void AWindowFieldAloneIsNotEmpty()
+    {
+        Assert.False(new AppMatcher { ControlClass = "Edit" }.IsEmpty);
+        Assert.True(new AppMatcher { ControlClass = " ", RootTitle = "" }.IsEmpty);
+    }
+
+    /// <summary>Each platform matches on its own path only (2026-10-09: a Windows path synced to the Mac made Chrome match nothing there).</summary>
+    [Fact]
+    public void EachPlatformLooksAtItsOwnPathOnly()
+    {
+        var chrome = new AppMatcher
+        {
+            WindowsProcessNames = ["chrome.exe"],
+            MacProcessNames = ["Google Chrome"],
+            ProcessPath = @"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        };
+        var mac = MappingFixtures.Window("Google Chrome", path: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+
+        Assert.True(chrome.Matches(mac, HostPlatform.MacOS));
+        Assert.False((chrome with { MacProcessPath = "/Applications/Other.app/Contents/MacOS/Other" }).Matches(mac, HostPlatform.MacOS));
+        Assert.True((chrome with { MacProcessPath = "^/Applications/Google Chrome", MacProcessPathIsRegex = true }).Matches(mac, HostPlatform.MacOS));
+        Assert.False(chrome.Matches(MappingFixtures.Window("chrome.exe", path: @"D:\chrome.exe"), HostPlatform.Windows));
+        Assert.False(new AppMatcher { MacProcessPath = "/x" }.IsEmpty);
+    }
 }

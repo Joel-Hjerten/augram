@@ -34,7 +34,7 @@ public sealed class ConfigSerializerTests
     {
         var json = ConfigSerializer.Write(SampleDocuments.Full());
 
-        Assert.StartsWith("{\n  \"schemaVersion\": 2,", json.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.StartsWith("{\n  \"schemaVersion\": 3,", json.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
         Assert.Contains("\"strokeButton\": \"Middle\"", json, StringComparison.Ordinal);
         Assert.Contains("\"ignoreKey\": \"Control, Alt\"", json, StringComparison.Ordinal);
         Assert.Contains("\"noMatch\": \"ReplayClick\"", json, StringComparison.Ordinal);
@@ -47,11 +47,11 @@ public sealed class ConfigSerializerTests
     {
         var json = ConfigSerializer.Write(new ConfigDocument { SchemaVersion = 0 });
 
-        Assert.Contains("\"schemaVersion\": 2", json, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\": 3", json, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("{ \"schemaVersion\": 3 }", "newer")]
+    [InlineData("{ \"schemaVersion\": 4 }", "newer")]
     [InlineData("{ \"schemaVersion\": 99, \"gestures\": [] }", "newer")]
     [InlineData("{ \"schemaVersion\": 0 }", "not valid")]
     [InlineData("{ \"schemaVersion\": \"one\" }", "integer")]

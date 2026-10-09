@@ -247,16 +247,19 @@ public sealed class FullImportTests
     }
 
     [Fact]
-    public void PlayersMatcherSplitsTheAlternationAndBuildsTheClassChain()
+    public void PlayersMatcherSplitsTheAlternationAndKeepsEachField()
     {
         var group = Group("Synthetic Players");
 
         Assert.True(group.SuppressGlobals);
         Assert.Equal(["alpha.exe", "beta.exe"], group.Matcher!.WindowsProcessNames);
-        Assert.Equal(["Progman|WorkerW", "SHELLDLL_DefView"], group.Matcher.ClassChain);
-        Assert.Equal("^Synthetic.*", group.Matcher.Title);
-        Assert.True(group.Matcher.TitleIsRegex);
-        Assert.True(HasWarning("Synthetic Players", "RootWindowText is used as the title; OwnerWindowText, ControlWindowText differ"));
+        Assert.False(group.Matcher.WindowsProcessNamesAreRegex);
+        Assert.Equal(("Progman|WorkerW", true), (group.Matcher.RootClass, group.Matcher.RootClassIsRegex));
+        Assert.Equal(("SHELLDLL_DefView", false), (group.Matcher.ParentClass, group.Matcher.ParentClassIsRegex));
+        Assert.Equal(("Synthetic Player", false), (group.Matcher.Title, group.Matcher.TitleIsRegex));
+        Assert.Equal(("^Synthetic.*", true), (group.Matcher.RootTitle, group.Matcher.RootTitleIsRegex));
+        Assert.Equal("Synthetic Player", group.Matcher.ControlTitle);
+        Assert.Empty(group.Matcher.ClassChain);
     }
 
     [Fact]
@@ -266,10 +269,10 @@ public sealed class FullImportTests
 
         Assert.Equal("^C:\\\\Games\\\\.+$", group.Matcher!.ProcessPath);
         Assert.True(group.Matcher.ProcessPathIsRegex);
-        Assert.Empty(group.Matcher.WindowsProcessNames);
+        Assert.Equal([@"Game.*\.exe"], group.Matcher.WindowsProcessNames);
+        Assert.True(group.Matcher.WindowsProcessNamesAreRegex);
         Assert.True(group.IsActive);
         Assert.Empty(group.Commands);
-        Assert.True(HasWarning("Synthetic Steam Games", "FileName pattern 'Game.*\\.exe' is not a plain list of names"));
         Assert.True(HasWarning("Synthetic Steam Games", "ControlID"));
     }
 

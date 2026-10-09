@@ -5,128 +5,72 @@ namespace Augram.Import.StrokesPlus;
 
 /// <summary>
 /// Reads the matcher fields an <c>Application</c> and an <c>IgnoredApplication</c> share into an
-/// <see cref="AppMatcher"/> (plan 0001 §C1, F5): <c>FileName</c> to process names (a plain regex
-/// alternation becomes the list), <c>FilePath</c> to the path with its regex flag, the window texts
-/// to the title (Root first, then Owner, Parent, Control), the class names to the class chain, and
-/// <c>IgnoreFullScreen</c> to A21. <c>ControlID</c> has no Augram equivalent and is reported. A regex
-/// the engine refuses is dropped with a warning rather than failing the group.
+/// <see cref="AppMatcher"/> (plan 0001 §C1, F5), one SP.net field to one Augram field with its Use Regex flag
+/// (Joel, 2026-10-09): <c>FileName</c> to the Windows executable names (a plain regex alternation of names becomes the
+/// list, so the known-app guess still works on a Mac; any other pattern stays a pattern), <c>FilePath</c> to the path, the
+/// owner's, root's, parent's and control's window text to the title (the root owner's) and the root, parent and control
+/// titles, the four class names to the owner, root, parent and control classes, and <c>IgnoreFullScreen</c> to A21.
+/// <c>ControlID</c> has no Augram equivalent and is reported. A regex the engine refuses leaves its field empty, with a
+/// warning, rather than failing the group.
 /// </summary>
 internal static class MatcherReader
 {
-    private static readonly string[] WindowTextFields =
-    [
-        StrokesPlusJson.Application.RootWindowText,
-        StrokesPlusJson.Application.OwnerWindowText,
-        StrokesPlusJson.Application.ParentWindowText,
-        StrokesPlusJson.Application.ControlWindowText,
-    ];
-
-    private static readonly string[] ClassNameFields =
-    [
-        StrokesPlusJson.Application.OwnerClassName,
-        StrokesPlusJson.Application.RootClassName,
-        StrokesPlusJson.Application.ParentClassName,
-        StrokesPlusJson.Application.ControlClassName,
-    ];
-
     public static AppMatcher Read(JsonElement application, string item, List<ImportWarning> warnings)
     {
-        var path = ReadField(application, StrokesPlusJson.Application.FilePath);
-        var title = ReadTitle(application, item, warnings);
         ReportControlId(application, item, warnings);
-        var matcher = new AppMatcher
+        MatcherField? Field(string name) => ReadValidField(application, name, item, warnings);
+
+        var names = Field(StrokesPlusJson.Application.FileName);
+        var path = Field(StrokesPlusJson.Application.FilePath);
+        var title = Field(StrokesPlusJson.Application.OwnerWindowText);
+        var rootTitle = Field(StrokesPlusJson.Application.RootWindowText);
+        var parentTitle = Field(StrokesPlusJson.Application.ParentWindowText);
+        var controlTitle = Field(StrokesPlusJson.Application.ControlWindowText);
+        var ownerClass = Field(StrokesPlusJson.Application.OwnerClassName);
+        var rootClass = Field(StrokesPlusJson.Application.RootClassName);
+        var parentClass = Field(StrokesPlusJson.Application.ParentClassName);
+        var controlClass = Field(StrokesPlusJson.Application.ControlClassName);
+        var (processNames, namesAreRegex) = ProcessNames(names);
+        return new AppMatcher
         {
-            WindowsProcessNames = ReadProcessNames(application, item, warnings),
+            WindowsProcessNames = processNames,
+            WindowsProcessNamesAreRegex = namesAreRegex,
             ProcessPath = path?.Value,
             ProcessPathIsRegex = path?.IsRegex ?? false,
             Title = title?.Value,
             TitleIsRegex = title?.IsRegex ?? false,
-            ClassChain = ReadClassChain(application, item, warnings),
+            RootTitle = rootTitle?.Value,
+            RootTitleIsRegex = rootTitle?.IsRegex ?? false,
+            ParentTitle = parentTitle?.Value,
+            ParentTitleIsRegex = parentTitle?.IsRegex ?? false,
+            ControlTitle = controlTitle?.Value,
+            ControlTitleIsRegex = controlTitle?.IsRegex ?? false,
+            OwnerClass = ownerClass?.Value,
+            OwnerClassIsRegex = ownerClass?.IsRegex ?? false,
+            RootClass = rootClass?.Value,
+            RootClassIsRegex = rootClass?.IsRegex ?? false,
+            ParentClass = parentClass?.Value,
+            ParentClassIsRegex = parentClass?.IsRegex ?? false,
+            ControlClass = controlClass?.Value,
+            ControlClassIsRegex = controlClass?.IsRegex ?? false,
             IgnoreWhenFullScreen = JsonRead.Flag(application, StrokesPlusJson.Application.IgnoreFullScreen),
         };
-        return WithValidPatterns(matcher, item, warnings);
     }
 
-    private static IReadOnlyList<string> ReadProcessNames(JsonElement application, string item, List<ImportWarning> warnings)
+    /// <summary>A plain name, a plain list of names from an alternation (<c>^(chrome|msedge)\.exe$</c>), or the pattern itself.</summary>
+    private static (IReadOnlyList<string> Names, bool AreRegex) ProcessNames(MatcherField? field)
     {
-        var field = ReadField(application, StrokesPlusJson.Application.FileName);
         if (field is null)
         {
-            return [];
+            return ([], false);
         }
 
         if (!field.IsRegex)
         {
-            return [field.Value];
+            return ([field.Value], false);
         }
 
-        if (RegexAlternation.TryReadLiterals(field.Value, out var names))
-        {
-            return names;
-        }
-
-        warnings.Add(new ImportWarning(ImportSeverity.Warning, item, $"FileName pattern '{field.Value}' is not a plain list of names; the process name is left empty. Fill in the app definition by hand."));
-        return [];
-    }
-
-    private static MatcherField? ReadTitle(JsonElement application, string item, List<ImportWarning> warnings)
-    {
-        MatcherField? chosen = null;
-        string? chosenField = null;
-        var differing = new List<string>();
-        foreach (var name in WindowTextFields)
-        {
-            var field = ReadField(application, name);
-            if (field is null)
-            {
-                continue;
-            }
-
-            if (chosen is null)
-            {
-                chosen = field;
-                chosenField = name;
-            }
-            else if (field != chosen)
-            {
-                differing.Add(name);
-            }
-        }
-
-        if (differing.Count > 0)
-        {
-            warnings.Add(new ImportWarning(ImportSeverity.Warning, item, $"{chosenField} is used as the title; {string.Join(", ", differing)} differ and are not imported."));
-        }
-
-        return chosen;
-    }
-
-    private static IReadOnlyList<string> ReadClassChain(JsonElement application, string item, List<ImportWarning> warnings)
-    {
-        var chain = new List<string>();
-        foreach (var name in ClassNameFields)
-        {
-            var field = ReadField(application, name);
-            if (field is null)
-            {
-                continue;
-            }
-
-            if (!field.IsRegex)
-            {
-                chain.Add(field.Value);
-            }
-            else if (RegexAlternation.TryReadLiterals(field.Value, out var alternatives))
-            {
-                chain.Add(string.Join('|', alternatives));
-            }
-            else
-            {
-                warnings.Add(new ImportWarning(ImportSeverity.Warning, item, $"{name} pattern '{field.Value}' is not a plain list of class names; skipped."));
-            }
-        }
-
-        return chain;
+        return RegexAlternation.TryReadLiterals(field.Value, out var names) ? (names, false) : ([field.Value], true);
     }
 
     private static void ReportControlId(JsonElement application, string item, List<ImportWarning> warnings)
@@ -145,26 +89,17 @@ internal static class MatcherReader
         }
     }
 
-    /// <summary>Drops a regex the engine refuses (path first, then title) so the group still imports; each drop is reported.</summary>
-    private static AppMatcher WithValidPatterns(AppMatcher matcher, string item, List<ImportWarning> warnings)
+    /// <summary>A field as <see cref="ReadField"/> reads it, or null with a warning when it is a regex the engine refuses.</summary>
+    private static MatcherField? ReadValidField(JsonElement application, string name, string item, List<ImportWarning> warnings)
     {
-        for (var attempt = 0; attempt < 3; attempt++)
+        var field = ReadField(application, name);
+        if (field is null || !field.IsRegex || MappingRules.PatternProblem(field.Value) is not { } problem)
         {
-            try
-            {
-                MappingRules.EnsureValid(matcher);
-                return matcher;
-            }
-            catch (MappingValidationException exception)
-            {
-                warnings.Add(new ImportWarning(ImportSeverity.Warning, item, exception.Message + " The field is left empty."));
-                matcher = matcher.ProcessPathIsRegex && matcher.ProcessPath is not null
-                    ? matcher with { ProcessPath = null, ProcessPathIsRegex = false }
-                    : matcher with { Title = null, TitleIsRegex = false };
-            }
+            return field;
         }
 
-        return matcher;
+        warnings.Add(new ImportWarning(ImportSeverity.Warning, item, $"{name} pattern '{field.Value}' is not a valid regular expression: {problem} The field is left empty."));
+        return null;
     }
 
     /// <summary>A <c>{ Value, IsRegex }</c> field; null when absent or its value is blank.</summary>

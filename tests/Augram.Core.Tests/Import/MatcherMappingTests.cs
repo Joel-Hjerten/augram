@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Augram.Core.Tests.Import;
 
-/// <summary>Inline documents for the matcher rows: regex alternations, title preference, class chains, invalid patterns, naming.</summary>
+/// <summary>Inline documents for the matcher rows: one SP.net field to one Augram field (2026-10-09), regex alternations, invalid patterns, naming.</summary>
 public sealed class MatcherMappingTests
 {
     private static ImportResult Read(string applicationMembers)
@@ -40,41 +40,56 @@ public sealed class MatcherMappingTests
     [InlineData("a\\\\d\\\\.exe")]
     [InlineData("(a|b)|c")]
     [InlineData("a|")]
-    public void OtherPatternsLeaveProcessNamesEmptyWithWarning(string pattern)
+    public void OtherPatternsStayAPattern(string pattern)
     {
         var result = Read("\"Description\": \"Synthetic App\", " + Field("FileName", pattern, true) + ", " + Field("FilePath", "C:\\\\\\\\Apps", false));
 
-        Assert.Empty(App(result).Matcher!.WindowsProcessNames);
-        Assert.Contains(result.Warnings, warning => warning.Item == "Synthetic App" && warning.Message.Contains("not a plain list of names", StringComparison.Ordinal));
+        var matcher = App(result).Matcher!;
+        Assert.Equal([pattern.Replace("\\\\", "\\", StringComparison.Ordinal)], matcher.WindowsProcessNames);
+        Assert.True(matcher.WindowsProcessNamesAreRegex);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Message.Contains("FileName", StringComparison.Ordinal));
         Assert.True(App(result).IsActive);
     }
 
     [Fact]
-    public void OwnerTitleIsUsedWhenRootIsEmpty()
+    public void OwnerTitleIsTheTitle()
     {
         var result = Read("\"Description\": \"Synthetic App\", " + Field("RootWindowText", "", false) + ", " + Field("OwnerWindowText", "Chimera", false));
 
         Assert.Equal("Chimera", App(result).Matcher!.Title);
         Assert.False(App(result).Matcher!.TitleIsRegex);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Message.Contains("is used as the title", StringComparison.Ordinal));
+        Assert.Null(App(result).Matcher!.RootTitle);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Item == "Synthetic App");
     }
 
     [Fact]
-    public void SameTextInSeveralFieldsDoesNotWarn()
+    public void EachWindowTextAndClassGoesToItsOwnField_WithItsRegexFlag()
     {
-        var result = Read("\"Description\": \"Synthetic App\", " + Field("RootWindowText", "Same", false) + ", " + Field("ParentWindowText", "Same", false));
+        var matcher = Matcher("\"Description\": \"Synthetic App\", "
+            + Field("OwnerWindowText", "Owner", false) + ", " + Field("RootWindowText", "^Root", true) + ", "
+            + Field("ParentWindowText", "Parent", false) + ", " + Field("ControlWindowText", "Ctl.*", true) + ", "
+            + Field("OwnerClassName", "Progman.*", true) + ", " + Field("RootClassName", "Progman|WorkerW", true) + ", "
+            + Field("ParentClassName", "SHELLDLL_DefView", false) + ", " + Field("ControlClassName", "SysListView32", false));
 
-        Assert.Equal("Same", App(result).Matcher!.Title);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Message.Contains("differ", StringComparison.Ordinal));
+        Assert.Equal(("Owner", false), (matcher.Title, matcher.TitleIsRegex));
+        Assert.Equal(("^Root", true), (matcher.RootTitle, matcher.RootTitleIsRegex));
+        Assert.Equal(("Parent", false), (matcher.ParentTitle, matcher.ParentTitleIsRegex));
+        Assert.Equal(("Ctl.*", true), (matcher.ControlTitle, matcher.ControlTitleIsRegex));
+        Assert.Equal(("Progman.*", true), (matcher.OwnerClass, matcher.OwnerClassIsRegex));
+        Assert.Equal(("Progman|WorkerW", true), (matcher.RootClass, matcher.RootClassIsRegex));
+        Assert.Equal(("SHELLDLL_DefView", false), (matcher.ParentClass, matcher.ParentClassIsRegex));
+        Assert.Equal(("SysListView32", false), (matcher.ControlClass, matcher.ControlClassIsRegex));
+        Assert.Empty(matcher.ClassChain);
     }
 
     [Fact]
-    public void ClassNameRegexThatIsNotPlainIsSkippedWithWarning()
+    public void AnInvalidPatternInAWindowFieldLeavesThatFieldEmpty()
     {
-        var result = Read("\"Description\": \"Synthetic App\", " + Field("FileName", "x.exe", false) + ", " + Field("OwnerClassName", "Progman.*", true) + ", " + Field("ControlClassName", "SysListView32", false));
+        var result = Read("\"Description\": \"Synthetic App\", " + Field("FileName", "x.exe", false) + ", " + Field("ControlClassName", "(", true) + ", " + Field("RootClassName", "Progman", false));
 
-        Assert.Equal(["SysListView32"], App(result).Matcher!.ClassChain);
-        Assert.Contains(result.Warnings, warning => warning.Message.Contains("OwnerClassName pattern 'Progman.*' is not a plain list of class names", StringComparison.Ordinal));
+        Assert.Null(App(result).Matcher!.ControlClass);
+        Assert.Equal("Progman", App(result).Matcher!.RootClass);
+        Assert.Contains(result.Warnings, warning => warning.Message.Contains("ControlClassName pattern '(' is not a valid regular expression", StringComparison.Ordinal));
     }
 
     [Fact]

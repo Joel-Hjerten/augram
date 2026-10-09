@@ -111,6 +111,27 @@ public sealed class MappingRulesTests
             new MappingDocument([NewGlobal()], [new IgnoredApp(GroupId.New(), "X", true, bad, false)])));
     }
 
+    /// <summary>Every field with a regex toggle is checked (2026-10-09): the executable names one by one, and each per-window field.</summary>
+    [Theory]
+    [InlineData("executable name pattern '['")]
+    [InlineData("macOS executable name pattern '['")]
+    [InlineData("root title pattern '['")]
+    [InlineData("control class pattern '['")]
+    public void AnInvalidPatternInAnyRegexFieldIsRejected(string expected)
+    {
+        var bad = expected switch
+        {
+            "executable name pattern '['" => new AppMatcher { WindowsProcessNames = ["ok.exe", "["], WindowsProcessNamesAreRegex = true },
+            "macOS executable name pattern '['" => new AppMatcher { MacProcessNames = ["["], MacProcessNamesAreRegex = true },
+            "root title pattern '['" => new AppMatcher { RootTitle = "[", RootTitleIsRegex = true },
+            _ => new AppMatcher { ControlClass = "[", ControlClassIsRegex = true },
+        };
+
+        var ex = Assert.Throws<MappingValidationException>(() => MappingRules.ValidDocument(Document(NewGlobal(), NewGroup("X", bad))));
+        Assert.Contains(expected, ex.Message, StringComparison.Ordinal);
+        MappingRules.EnsureValid(new AppMatcher { WindowsProcessNames = ["["], RootTitle = "[" });
+    }
+
     [Fact]
     public void IdsAreUniqueAcrossGroupsCommandsAndIgnoredApps()
     {

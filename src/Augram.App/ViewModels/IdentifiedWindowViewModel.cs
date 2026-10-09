@@ -15,7 +15,7 @@ public sealed partial class IdentifiedWindowViewModel : ObservableObject
     public const string NothingPicked = "Drag the magnifier onto any window.";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PathText), nameof(HasPath), nameof(TitleText), nameof(HasTitle), nameof(ClassesText), nameof(HasClasses))]
+    [NotifyPropertyChangedFor(nameof(PathText), nameof(HasPath), nameof(TitleText), nameof(HasTitle))]
     public partial WindowIdentity? Window { get; private set; }
 
     /// <summary>What the last pick did ("chrome.exe · Google Chrome: added chrome.exe to the Windows executables"), or how to start.</summary>
@@ -29,12 +29,6 @@ public sealed partial class IdentifiedWindowViewModel : ObservableObject
     public string TitleText => Window?.Title ?? string.Empty;
 
     public bool HasTitle => !string.IsNullOrEmpty(Window?.Title);
-
-    /// <summary>The class chain as the Window classes field writes it: "Chrome_RenderWidgetHostHWND, Chrome_WidgetWin_1".</summary>
-    public string ClassesText => Window is null ? string.Empty : string.Join(", ", Window.ClassChain);
-
-    /// <summary>Windows only in practice: a macOS window has no class chain.</summary>
-    public bool HasClasses => Window?.ClassChain.Count > 0;
 
     public void Show(WindowIdentity window, string summary)
     {

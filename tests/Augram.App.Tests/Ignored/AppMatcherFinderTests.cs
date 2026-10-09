@@ -19,7 +19,10 @@ public sealed class AppMatcherFinderTests
         "chrome.exe",
         "Google Chrome",
         @"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        ["Chrome_RenderWidgetHostHWND", "Chrome_WidgetWin_1"]);
+        ["Chrome_RenderWidgetHostHWND", "Chrome_WidgetWin_1"]) with
+    {
+        Levels = new WindowLevels(null, "Chrome_RenderWidgetHostHWND", "Google Chrome", "Chrome_WidgetWin_1", "Google Chrome", "Chrome_WidgetWin_1", "Google Chrome", "Chrome_WidgetWin_1"),
+    };
 
     [Fact]
     public void IdentifyAddsTheExecutableToThisPlatformsList_OnceInAnyCase()
@@ -74,16 +77,53 @@ public sealed class AppMatcherFinderTests
         Assert.Equal((Chrome.ProcessPath, false, "Google Chrome", false), (matcher.ProcessPath, matcher.ProcessPathIsRegex, matcher.Title, matcher.TitleIsRegex));
     }
 
+    /// <summary>A per-window field's magnifier fills that field from its own window, exactly, its toggle off, as one change.</summary>
     [Fact]
-    public void ClassesFillTheChain()
+    public void AWindowFieldFillsFromItsOwnWindow_ItsRegexOff_AsOneChange()
     {
         var edit = New(HostPlatform.Windows);
-        edit.WindowClasses = "Progman|WorkerW";
+        edit.ControlClass = "^Chrome";
+        edit.ControlClassIsRegex = true;
+        var raised = Raised(edit);
 
-        edit.TakeClasses(Chrome);
+        edit.TakeWindowField(Field(edit, "Control class"), Chrome);
+        edit.TakeWindowField(Field(edit, "Root title"), Chrome);
 
-        Assert.Equal("Chrome_RenderWidgetHostHWND, Chrome_WidgetWin_1", edit.WindowClasses);
-        Assert.Equal(Chrome.ClassChain, edit.ToMatcher().ClassChain);
+        Assert.Equal(("Chrome_RenderWidgetHostHWND", false), (edit.ControlClass, edit.ControlClassIsRegex));
+        Assert.Equal("Google Chrome", edit.RootTitle);
+        Assert.Equal([string.Empty, string.Empty], raised);
+        var matcher = edit.ToMatcher();
+        Assert.Equal(("Chrome_RenderWidgetHostHWND", false, "Google Chrome"), (matcher.ControlClass, matcher.ControlClassIsRegex, matcher.RootTitle));
+    }
+
+    [Fact]
+    public void EveryWindowFieldRoundTripsThroughTheForm()
+    {
+        var stored = new AppMatcher
+        {
+            WindowsProcessNames = [@"Spine(?:-1)?\.exe"],
+            WindowsProcessNamesAreRegex = true,
+            MacProcessNames = ["^Spine"],
+            MacProcessNamesAreRegex = true,
+            RootTitle = "r",
+            ParentTitle = "p",
+            ParentTitleIsRegex = true,
+            ControlTitle = "c",
+            OwnerClass = "oc",
+            OwnerClassIsRegex = true,
+            RootClass = "rc",
+            ParentClass = "pc",
+            ControlClass = "cc",
+            ControlClassIsRegex = true,
+        };
+        var edit = New(HostPlatform.Windows);
+
+        edit.SyncFrom(stored);
+        var back = edit.ToMatcher();
+
+        Assert.Equal(stored with { WindowsProcessNames = [], MacProcessNames = [] }, back with { WindowsProcessNames = [], MacProcessNames = [] });
+        Assert.Equal(stored.WindowsProcessNames, back.WindowsProcessNames);
+        Assert.Equal(stored.MacProcessNames, back.MacProcessNames);
     }
 
     [Fact]
@@ -92,16 +132,16 @@ public sealed class AppMatcherFinderTests
         var edit = New(HostPlatform.MacOS);
         edit.ProcessPath = "keep";
         edit.WindowTitle = "keep";
-        edit.WindowClasses = "keep";
+        edit.RootClass = "keep";
         var raised = Raised(edit);
         var bare = FakeWindowSystem.Window("Finder");
 
         edit.TakePath(bare);
         edit.TakeTitle(bare);
-        edit.TakeClasses(bare);
+        edit.TakeWindowField(Field(edit, "Root class"), bare);
 
         Assert.Empty(raised);
-        Assert.Equal(("keep", "keep", "keep"), (edit.ProcessPath, edit.WindowTitle, edit.WindowClasses));
+        Assert.Equal(("keep", "keep", "keep"), (edit.ProcessPath, edit.WindowTitle, edit.RootClass));
     }
 
     [Fact]
@@ -109,21 +149,22 @@ public sealed class AppMatcherFinderTests
     {
         var edit = New(HostPlatform.Windows);
         Assert.Equal(IdentifiedWindowViewModel.NothingPicked, edit.Identified.Summary);
-        Assert.False(edit.Identified.HasPath || edit.Identified.HasTitle || edit.Identified.HasClasses);
+        Assert.False(edit.Identified.HasPath || edit.Identified.HasTitle);
         edit.UseIdentifiedPath();
         Assert.Equal(string.Empty, edit.ProcessPath);
 
         edit.IdentifyWindow(Chrome);
-        Assert.True(edit.Identified.HasPath && edit.Identified.HasTitle && edit.Identified.HasClasses);
-        Assert.Equal((Chrome.ProcessPath, "Google Chrome", "Chrome_RenderWidgetHostHWND, Chrome_WidgetWin_1"), (edit.Identified.PathText, edit.Identified.TitleText, edit.Identified.ClassesText));
-        Assert.Equal((string.Empty, string.Empty, string.Empty), (edit.ProcessPath, edit.WindowTitle, edit.WindowClasses));
+        Assert.True(edit.Identified.HasPath && edit.Identified.HasTitle);
+        Assert.Equal((Chrome.ProcessPath, "Google Chrome"), (edit.Identified.PathText, edit.Identified.TitleText));
+        Assert.Equal((string.Empty, string.Empty), (edit.ProcessPath, edit.WindowTitle));
 
         edit.UseIdentifiedPath();
         edit.UseIdentifiedTitle();
-        edit.UseIdentifiedClasses();
 
-        Assert.Equal((Chrome.ProcessPath, "Google Chrome", "Chrome_RenderWidgetHostHWND, Chrome_WidgetWin_1"), (edit.ProcessPath, edit.WindowTitle, edit.WindowClasses));
+        Assert.Equal((Chrome.ProcessPath, "Google Chrome"), (edit.ProcessPath, edit.WindowTitle));
     }
+
+    private static AppMatcherEditViewModel.WindowField Field(AppMatcherEditViewModel edit, string label) => edit.WindowFields.Single(field => field.Label == label);
 
     internal static AppMatcherEditViewModel New(HostPlatform platform) => new(() => PlatformSet.All, "advice", "none needed") { Platform = platform };
 

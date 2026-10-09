@@ -17,7 +17,7 @@ public sealed record ConfigDocument
     /// combinations (a trigger's <c>hold</c>, the click trigger, an own version's <c>trigger</c>); a version 1 build would
     /// read a combination as the plain trigger and save it back that way, or refuse a click trigger, so it must refuse the file.
     /// </summary>
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public ConfigDocument(int schemaVersion = CurrentSchemaVersion, Settings? settings = null, IReadOnlyList<Gesture>? gestures = null)
     {

@@ -179,7 +179,7 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
             return matcher.IsGuessedOn(_platform) ? names + " (guessed)" : names;
         }
 
-        return matcher.Title ?? matcher.ProcessPath ?? "window classes";
+        return matcher.Title ?? matcher.PathFor(_platform).Path ?? matcher.ProcessPath ?? matcher.MacProcessPath ?? "window details";
     }
 
     private IgnoredApp Require(Guid id) => _store.FindIgnored(new GroupId(id)) ?? throw new KeyNotFoundException("That ignored app no longer exists.");

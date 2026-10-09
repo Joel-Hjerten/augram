@@ -48,9 +48,18 @@ public sealed class FormDialogTests
         Assert.True(dialog.HasScreen);
         Assert.False(dialog.HasMessage);
         Assert.Equal(
-            ["Name", "Active", "Use on", "Suppress global commands", "Identify window", "Windows executables", "macOS executables", "Guess for an empty list",
-                "Its path", "Its title", "Its classes",
-                "Executable path", "Path is a regular expression", "Window title", "Title is a regular expression", "Window classes", "Not when full screen"],
+            ["Name", "Active", "Use on", "Suppress global commands", "Identify window", "Windows executables", "Windows names are regular expressions",
+                "macOS executables", "macOS names are regular expressions", "Guess for an empty list",
+                "Its path", "Its title", "Its root title", "Its parent title", "Its control title", "Its owner class", "Its root class", "Its parent class", "Its control class",
+                "Windows executable path", "Windows path is a regular expression", "macOS executable path", "macOS path is a regular expression", "Window title", "Title is a regular expression", "Not when full screen",
+                "Root title", "Root title is a regular expression",
+                "Parent title", "Parent title is a regular expression",
+                "Control title", "Control title is a regular expression",
+                "Owner class", "Owner class is a regular expression",
+                "Root class", "Root class is a regular expression",
+                "Parent class", "Parent class is a regular expression",
+                "Control class", "Control class is a regular expression",
+                "Window classes (older)"],
             rows.Select(row => row.Label));
         // The app group gets the window finder through the identification form it shares with ignored apps.
         Assert.Contains(rows, row => row.Label == "Identify window" && row.Accessory is WindowFinder);

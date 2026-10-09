@@ -234,8 +234,30 @@ public static class MappingRules
     public static void EnsureValid(AppMatcher matcher)
     {
         ArgumentNullException.ThrowIfNull(matcher);
+        foreach (var name in matcher.WindowsProcessNames)
+        {
+            EnsurePattern("executable name", name, matcher.WindowsProcessNamesAreRegex);
+        }
+
+        foreach (var name in matcher.MacProcessNames)
+        {
+            EnsurePattern("macOS executable name", name, matcher.MacProcessNamesAreRegex);
+        }
+
         EnsurePattern("path", matcher.ProcessPath, matcher.ProcessPathIsRegex);
+        EnsurePattern("macOS path", matcher.MacProcessPath, matcher.MacProcessPathIsRegex);
         EnsurePattern("title", matcher.Title, matcher.TitleIsRegex);
+        foreach (var (name, pattern, isRegex, _) in matcher.WindowFields)
+        {
+            EnsurePattern(name, pattern, isRegex);
+        }
+    }
+
+    /// <summary>The regex engine's complaint about <paramref name="pattern"/>, or null when it is valid (the importer checks each field it reads).</summary>
+    public static string? PatternProblem(string pattern)
+    {
+        ArgumentNullException.ThrowIfNull(pattern);
+        return MatcherRegexCache.Problem(pattern);
     }
 
     private static void EnsurePattern(string field, string? pattern, bool isRegex)

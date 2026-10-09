@@ -54,6 +54,21 @@ public sealed class MappingSerializationTests
         Assert.Equal(1, Occurrences(json, "\"note\""));
     }
 
+    /// <summary>The app definition's fields (schema 3) are written only when set, each toggle only when on.</summary>
+    [Fact]
+    public void MatcherFieldsAreWrittenOnlyWhenSet()
+    {
+        var json = ConfigSerializer.Write(new ConfigDocument { Mapping = FullMapping() }).Replace("\r\n", "\n", StringComparison.Ordinal);
+
+        Assert.Contains("\"processNamesAreRegex\": true", json, StringComparison.Ordinal);
+        Assert.Matches("\"parentTitle\": \"\\^\\$\",\\s+\"parentTitleIsRegex\": true", json);
+        Assert.Matches("\"rootClass\": \"Progman\",\\s+\"parentClass\"", json);
+        Assert.Equal(1, Occurrences(json, "\"rootTitle\""));
+        Assert.Equal(1, Occurrences(json, "\"processNamesAreRegex\""));
+        Assert.Equal(0, Occurrences(json, "\"macProcessNamesAreRegex\""));
+        Assert.Equal(0, Occurrences(json, "\"rootClassIsRegex\""));
+    }
+
     [Fact]
     public void AnUnknownStepTypeIsKeptAsIsWithANotice_AndSavesBackUnchanged()
     {
@@ -210,7 +225,24 @@ public sealed class MappingSerializationTests
                 NewCommand("Type", Trigger.ForWheel(WheelDirection.Down), typed)),
             NewGroup("Steam", new AppMatcher { ProcessPath = @"^C:\\Steam\\.+$", ProcessPathIsRegex = true, IgnoreWhenFullScreen = true },
                 NewCommand("Close", Up)),
-            NewGroup("Desktop", new AppMatcher { ClassChain = ["Progman|WorkerW", "SysListView32"] }) with { SuppressGlobals = true, IsActive = false },
+            NewGroup("Desktop", new AppMatcher
+            {
+                ClassChain = ["Progman|WorkerW", "SysListView32"],
+                WindowsProcessNames = [@"PotPlayerMini.*\.exe"],
+                WindowsProcessNamesAreRegex = true,
+                MacProcessNames = ["Finder"],
+                MacProcessPath = "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
+                RootTitle = "Program Manager",
+                ParentTitle = "^$",
+                ParentTitleIsRegex = true,
+                ControlTitle = "FolderView",
+                OwnerClass = "^(Progman|WorkerW)$",
+                OwnerClassIsRegex = true,
+                RootClass = "Progman",
+                ParentClass = "SHELLDLL_DefView",
+                ControlClass = "SysListView32",
+                ControlClassIsRegex = true,
+            }) with { SuppressGlobals = true, IsActive = false },
         ],
         [
             new IgnoredApp(GroupId.New(), "Game", IsActive: true, ByProcess("game.exe"), DisableEntirely: true),
@@ -266,13 +298,11 @@ public sealed class MappingSerializationTests
                 return x is null && y is null;
             }
 
+            // Every scalar member through the record's own equality, with the lists compared by content.
             return x.WindowsProcessNames.SequenceEqual(y.WindowsProcessNames, StringComparer.Ordinal)
-                && x.ProcessPath == y.ProcessPath
-                && x.ProcessPathIsRegex == y.ProcessPathIsRegex
-                && x.Title == y.Title
-                && x.TitleIsRegex == y.TitleIsRegex
+                && x.MacProcessNames.SequenceEqual(y.MacProcessNames, StringComparer.Ordinal)
                 && x.ClassChain.SequenceEqual(y.ClassChain, StringComparer.Ordinal)
-                && x.IgnoreWhenFullScreen == y.IgnoreWhenFullScreen;
+                && x with { WindowsProcessNames = [], MacProcessNames = [], ClassChain = [] } == y with { WindowsProcessNames = [], MacProcessNames = [], ClassChain = [] };
         }
 
         public int GetHashCode(AppMatcher? obj) => 0;

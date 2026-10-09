@@ -50,7 +50,7 @@ public sealed class IgnoredViewModelTests
         var form = vm.Detail!;
 
         Assert.Equal(Blender.Id.Value, vm.SelectedId);
-        Assert.Equal(["Ignored app", "App identification", "More matching options"], form.Sections.Select(section => section.Title));
+        Assert.Equal(["Ignored app", "App identification", "More matching options", Augram.App.ViewModels.AppMatcherEditViewModel.WindowDetailsTitle], form.Sections.Select(section => section.Title));
         Assert.Equal("blender.exe", Text("Windows executables", form).Get());
         Assert.Equal("macOS: Blender (guessed)", Text("Guess for an empty list", form).Get());
 

@@ -36,6 +36,11 @@ public static class ConfigMigrations
                 // button alone, the converted original trigger), so a version 1 tree is already a valid version 2 tree. The bump
                 // exists so that a version 1 build refuses a version 2 file instead of dropping its combinations.
                 break;
+            case 2:
+                // 2 → 3 (the StrokesPlus.net app definition's fields, each with Use Regex, Joel 2026-10-09): the new matcher
+                // members are optional and absent means not consulted, as in version 2. The bump exists so that a version 2
+                // build refuses a version 3 file instead of ignoring a root title or a class and matching too many windows.
+                break;
             default:
                 throw new ConfigFormatException($"No migration from schema version {version} to {version + 1} exists.");
         }

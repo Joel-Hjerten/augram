@@ -5,7 +5,10 @@ namespace Augram.Platform.Windows.WindowSystem;
 /// <summary>
 /// Builds a <see cref="WindowIdentity"/> from a window handle using only <see cref="IWin32Windows"/> queries:
 /// class chain (own, parent, root, root owner; distinct and non-empty), process identity through the UWP rule,
-/// title and rectangles from the root owner, then the desktop and full-screen flags.
+/// title and rectangles from the root owner, then the desktop and full-screen flags, and each window's caption and class
+/// for the app definition's per-window fields (<see cref="WindowLevels"/>: control, parent, root, root owner). Captions
+/// come from <c>GetWindowText</c>, which reads another process's stored caption without sending it a message, so a hung
+/// app cannot stall the read.
 /// </summary>
 internal sealed class WindowIdentityReader
 {
@@ -48,7 +51,31 @@ internal sealed class WindowIdentityReader
             classChain,
             processId,
             isFullScreen,
-            isDesktop);
+            isDesktop)
+        {
+            Levels = Levels(handle, _win.Parent(handle), root, rootOwner),
+        };
+    }
+
+    private WindowLevels Levels(nint control, nint parent, nint root, nint owner) => new(
+        TextOf(control, _win.Title),
+        TextOf(control, _win.ClassName),
+        TextOf(parent, _win.Title),
+        TextOf(parent, _win.ClassName),
+        TextOf(root, _win.Title),
+        TextOf(root, _win.ClassName),
+        TextOf(owner, _win.Title),
+        TextOf(owner, _win.ClassName));
+
+    private static string? TextOf(nint hwnd, Func<nint, string> read)
+    {
+        if (hwnd == 0)
+        {
+            return null;
+        }
+
+        var text = read(hwnd);
+        return text.Length == 0 ? null : text;
     }
 
     private IReadOnlyList<string> ClassChain(nint handle, nint root, nint rootOwner)

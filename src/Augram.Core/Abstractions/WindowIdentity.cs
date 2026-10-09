@@ -22,4 +22,8 @@ public sealed record WindowIdentity(
     IReadOnlyList<string> ClassChain,
     int ProcessId,
     bool IsFullScreen,
-    bool IsDesktop);
+    bool IsDesktop)
+{
+    /// <summary>Each window's caption and class, for the app definition's per-window fields (Windows; <see cref="WindowLevels.None"/> elsewhere).</summary>
+    public WindowLevels Levels { get; init; } = WindowLevels.None;
+}

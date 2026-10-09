@@ -11,9 +11,10 @@ namespace Augram.App.ViewModels;
 /// group on Commands › Apps (<c>GroupEditViewModel</c>) and an ignored app on the Ignored tab (<c>IgnoredEditViewModel</c>).
 /// "Identify window" (a magnifier dragged onto a window: <c>.Picking</c>), the Windows and the macOS executable names as
 /// comma-separated text with the known-app guess for a platform left empty (<see cref="GuessText"/>, over the platforms the
-/// host says it is used on) and what the identified window offers besides, then, out of the way, the executable path and the
-/// window title with their regex toggles, the window classes (Windows) and the full-screen rule (A21); this platform's
-/// executables, the path, the title and the classes each have a magnifier of their own. <see cref="Sections"/> are its part
+/// host says it is used on), each list with its regex toggle (2026-10-09), and what the identified window offers besides,
+/// then, out of the way, the executable path and the window title with their regex toggles and the full-screen rule (A21),
+/// and StrokesPlus.net's per-window fields (<c>.WindowDetails</c>, Windows); this platform's executables, the path, the
+/// title and each per-window field have a magnifier of their own. <see cref="Sections"/> are its part
 /// of the host's <see cref="FormScreen"/>; <see cref="ToMatcher"/> turns the text back into an <see cref="AppMatcher"/> (every
 /// matcher field is on the form, so nothing is kept aside); <see cref="SyncFrom"/> re-reads a stored one without touching a
 /// list whose names are the same (a trailing comma being typed survives). Nothing is validated here: the store's rules
@@ -46,11 +47,27 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(GuessText))]
     public partial string MacNames { get; set; } = string.Empty;
 
+    /// <summary>Each Windows name is a pattern ("Spine(?:-1)?\.exe").</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GuessText))]
+    public partial bool WindowsNamesAreRegex { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GuessText))]
+    public partial bool MacNamesAreRegex { get; set; }
+
     [ObservableProperty]
     public partial string ProcessPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool PathIsRegex { get; set; }
+
+    /// <summary>The macOS executable's full path; <see cref="ProcessPath"/> is the Windows one.</summary>
+    [ObservableProperty]
+    public partial string MacProcessPath { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool MacPathIsRegex { get; set; }
 
     [ObservableProperty]
     public partial string WindowTitle { get; set; } = string.Empty;
@@ -58,7 +75,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
     [ObservableProperty]
     public partial bool TitleIsRegex { get; set; }
 
-    /// <summary>Window classes, comma-separated; an entry may list alternatives with <c>|</c> ("Progman|WorkerW").</summary>
+    /// <summary>The older window classes list, comma-separated; an entry may list alternatives with <c>|</c> ("Progman|WorkerW").</summary>
     [ObservableProperty]
     public partial string WindowClasses { get; set; } = string.Empty;
 
@@ -120,29 +137,39 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
             WindowClasses = string.Join(", ", matcher.ClassChain);
         }
 
+        WindowsNamesAreRegex = matcher.WindowsProcessNamesAreRegex;
+        MacNamesAreRegex = matcher.MacProcessNamesAreRegex;
         ProcessPath = matcher.ProcessPath ?? string.Empty;
         PathIsRegex = matcher.ProcessPathIsRegex;
+        MacProcessPath = matcher.MacProcessPath ?? string.Empty;
+        MacPathIsRegex = matcher.MacProcessPathIsRegex;
         WindowTitle = matcher.Title ?? string.Empty;
         TitleIsRegex = matcher.TitleIsRegex;
+        SyncWindowFieldsFrom(matcher);
         IgnoreWhenFullScreen = matcher.IgnoreWhenFullScreen;
     }
 
-    public AppMatcher ToMatcher() => new()
+    public AppMatcher ToMatcher() => WithWindowFields(new()
     {
         WindowsProcessNames = Split(WindowsNames),
         MacProcessNames = Split(MacNames),
+        WindowsProcessNamesAreRegex = WindowsNamesAreRegex,
+        MacProcessNamesAreRegex = MacNamesAreRegex,
         ProcessPath = Trimmed(ProcessPath),
         ProcessPathIsRegex = PathIsRegex,
+        MacProcessPath = Trimmed(MacProcessPath),
+        MacProcessPathIsRegex = MacPathIsRegex,
         Title = Trimmed(WindowTitle),
         TitleIsRegex = TitleIsRegex,
         ClassChain = Split(WindowClasses),
         IgnoreWhenFullScreen = IgnoreWhenFullScreen,
-    };
+    });
 
     /// <summary>
-    /// The form's part of the host's screen: the identification first, the rarely needed fields after it. A magnifier sits
-    /// before "Identify window", this platform's executables, the path, the title and (Windows) the classes; the identified
-    /// window's path, title and classes show, each with Use, once a window was identified.
+    /// The form's part of the host's screen: the identification first, the rarely needed fields after it, the per-window
+    /// fields last. A magnifier sits before "Identify window", this platform's executables, the path, the title and (Windows)
+    /// each per-window field; the identified window's path, title and per-window values show, each with Use, once a window
+    /// was identified.
     /// </summary>
     public IReadOnlyList<Section> Sections() =>
     [
@@ -156,12 +183,14 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
             {
                 Accessory = ExecutableFinder(HostPlatform.Windows),
             },
+            new ToggleField("Windows names are regular expressions", new DelegateBinding<bool>(() => WindowsNamesAreRegex, value => WindowsNamesAreRegex = value, this), "Each name is a pattern: Spine(?:-1)?\\.exe. Patterns give the other platform no guess."),
             new TextField("macOS executables", new DelegateBinding<string>(() => MacNames, value => MacNames = value, this), "Comma-separated; any of them matches: Google Chrome, Safari")
             {
                 Accessory = ExecutableFinder(HostPlatform.MacOS),
             },
+            new ToggleField("macOS names are regular expressions", new DelegateBinding<bool>(() => MacNamesAreRegex, value => MacNamesAreRegex = value, this)),
             new TextField("Guess for an empty list", new DelegateBinding<string>(() => GuessText, owner: this), "Well-known apps have a name on each platform; typing names for a platform replaces the guess."),
-            new NoteField("Its path", new DelegateBinding<string>(() => Identified.PathText, owner: Identified), "The identified window's executable; Use makes it the executable path below.")
+            new NoteField("Its path", new DelegateBinding<string>(() => Identified.PathText, owner: Identified), "The identified window's executable; Use makes it this platform's executable path below.")
             {
                 Visible = new DelegateBinding<bool>(() => Identified.HasPath, owner: Identified),
                 Accessory = WindowFinderAccessory.UseButton(UseIdentifiedPath),
@@ -171,30 +200,28 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
                 Visible = new DelegateBinding<bool>(() => Identified.HasTitle, owner: Identified),
                 Accessory = WindowFinderAccessory.UseButton(UseIdentifiedTitle),
             },
-            new NoteField("Its classes", new DelegateBinding<string>(() => Identified.ClassesText, owner: Identified), "Use makes them the window classes below.")
-            {
-                Visible = new DelegateBinding<bool>(() => Identified.HasClasses, owner: Identified),
-                Accessory = WindowFinderAccessory.UseButton(UseIdentifiedClasses),
-            },
+            .. IdentifiedWindowFieldRows(),
         ], "The executable's file name per platform, as the log shows it after process=."),
         new Section("More matching options",
         [
-            new TextField("Executable path", new DelegateBinding<string>(() => ProcessPath, value => ProcessPath = value, this), "The executable's full path; exact, case-insensitive, unless the toggle below makes it a pattern.")
+            new TextField("Windows executable path", new DelegateBinding<string>(() => ProcessPath, value => ProcessPath = value, this), "The executable's full path on Windows; exact, case-insensitive, unless the toggle below makes it a pattern. A Mac never looks at it.")
             {
-                Accessory = WindowFinderAccessory.Finder(PathOf, TakePath),
+                Accessory = Platform == HostPlatform.Windows ? WindowFinderAccessory.Finder(PathOf, TakePath) : null,
             },
-            new ToggleField("Path is a regular expression", new DelegateBinding<bool>(() => PathIsRegex, value => PathIsRegex = value, this)),
-            new TextField("Window title", new DelegateBinding<string>(() => WindowTitle, value => WindowTitle = value, this), "Exact, case-insensitive, unless the toggle below makes it a pattern.")
+            new ToggleField("Windows path is a regular expression", new DelegateBinding<bool>(() => PathIsRegex, value => PathIsRegex = value, this)),
+            new TextField("macOS executable path", new DelegateBinding<string>(() => MacProcessPath, value => MacProcessPath = value, this), "The executable's full path on a Mac: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome. Windows never looks at it.")
+            {
+                Accessory = Platform == HostPlatform.MacOS ? WindowFinderAccessory.Finder(PathOf, TakePath) : null,
+            },
+            new ToggleField("macOS path is a regular expression", new DelegateBinding<bool>(() => MacPathIsRegex, value => MacPathIsRegex = value, this)),
+            new TextField("Window title", new DelegateBinding<string>(() => WindowTitle, value => WindowTitle = value, this), "The main window's title (StrokesPlus.net's owner title). Exact, case-insensitive, unless the toggle below makes it a pattern.")
             {
                 Accessory = WindowFinderAccessory.Finder(TitleOf, TakeTitle),
             },
             new ToggleField("Title is a regular expression", new DelegateBinding<bool>(() => TitleIsRegex, value => TitleIsRegex = value, this)),
-            new TextField("Window classes", new DelegateBinding<string>(() => WindowClasses, value => WindowClasses = value, this), "Windows only. Comma-separated; each must be in the window's class chain; Progman|WorkerW lists alternatives.")
-            {
-                Accessory = Platform == HostPlatform.Windows ? WindowFinderAccessory.Finder(ClassesOf, TakeClasses) : null,
-            },
             new ToggleField("Not when full screen", new DelegateBinding<bool>(() => IgnoreWhenFullScreen, value => IgnoreWhenFullScreen = value, this), "Matches nothing while the window covers its whole screen."),
         ], "Rarely needed. Every filled field must match; empty fields are ignored."),
+        WindowDetailsSection(),
     ];
 
     private static string PlatformName(HostPlatform platform) => platform == HostPlatform.MacOS ? "macOS" : "Windows";
