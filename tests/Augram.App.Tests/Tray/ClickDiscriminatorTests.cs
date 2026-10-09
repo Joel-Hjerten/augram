@@ -59,4 +59,15 @@ public sealed class ClickDiscriminatorTests
     {
         Assert.Equal(TimeSpan.FromMilliseconds(300), ClickDiscriminator.DefaultWindow);
     }
+
+    [Fact]
+    public void AFlushRightAtTheWindow_IsTheSingle()
+    {
+        var clicks = new ClickDiscriminator();
+        var start = DateTimeOffset.UnixEpoch;
+
+        clicks.Click(start);
+
+        Assert.Equal(ClickKind.Single, clicks.Flush(start + ClickDiscriminator.DefaultWindow));
+    }
 }

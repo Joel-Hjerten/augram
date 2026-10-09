@@ -44,7 +44,9 @@ public sealed class ClickDiscriminator
 
     public ClickKind Flush(DateTimeOffset now)
     {
-        if (_pending is { } first && now - first > Window)
+        // At the window, not after it: the tray's timer ticks once the window has passed, and a tick a hair early must not
+        // wait a second full window (a single click then took twice as long).
+        if (_pending is { } first && now - first >= Window)
         {
             _pending = null;
             return ClickKind.Single;

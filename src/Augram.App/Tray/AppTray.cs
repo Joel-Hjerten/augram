@@ -28,6 +28,13 @@ public sealed class AppTray : IDisposable
     private readonly ITrayHost _host;
     private TrayIconSet _icons;
     private readonly ClickDiscriminator _clicks = new();
+
+    /// <summary>
+    /// While a first click waits to become a single or a double: the icon already shows the state the single would give
+    /// (Joel, 2026-10-09: it feels instant), and a double puts it back. Null otherwise. The tooltip and the Enabled
+    /// check box keep showing the real setting.
+    /// </summary>
+    private bool? _preview;
     private readonly DispatcherTimer _timer;
     private readonly NativeMenuItem _enabledItem;
     private readonly NativeMenuItem _startAtLoginItem;
@@ -37,6 +44,12 @@ public sealed class AppTray : IDisposable
     /// <remarks><c>sync</c> is the sync service, for Sync now and the tooltip; null leaves both out. <c>pause</c> is the
     /// ignore list's pause for the tooltip; null leaves it out.</remarks>
     public AppTray(AppState state, Action open, Action quit, IEventLog log, SyncService? sync = null, EnginePauseState? pause = null)
+        : this(state, open, quit, log, sync, pause, ITrayHost.Create)
+    {
+    }
+
+    /// <remarks>The same as the public constructor, with <c>host</c> making the tray or menu-bar item over the menu; tests pass a fake.</remarks>
+    internal AppTray(AppState state, Action open, Action quit, IEventLog log, SyncService? sync, EnginePauseState? pause, Func<NativeMenu, ITrayHost> host)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(open);
@@ -68,7 +81,7 @@ public sealed class AppTray : IDisposable
             _sync.Changed += (_, _) => Sync();
         }
 
-        _host = ITrayHost.Create(menu);
+        _host = host(menu);
         _host.Clicked += OnClicked;
         _timer = new DispatcherTimer { Interval = _clicks.Window };
         _timer.Tick += OnTick;
@@ -107,10 +120,14 @@ public sealed class AppTray : IDisposable
         if (kind == ClickKind.Double)
         {
             _timer.Stop();
+            _preview = null;
+            Sync();
             _open();
             return;
         }
 
+        _preview = !_state.Enabled;
+        Sync();
         _timer.Start();
     }
 
@@ -122,7 +139,9 @@ public sealed class AppTray : IDisposable
         }
 
         _timer.Stop();
+        _preview = null;
         _state.Toggle();
+        Sync();
     }
 
     private void OnStateChanged(object? sender, PropertyChangedEventArgs e)
@@ -146,7 +165,7 @@ public sealed class AppTray : IDisposable
     private void Sync()
     {
         _host.Show(
-            ShowsEnabledIcon(_state.Enabled, _pause?.PausedBy) ? _icons.Enabled : _icons.Disabled,
+            ShowsEnabledIcon(_preview ?? _state.Enabled, _pause?.PausedBy) ? _icons.Enabled : _icons.Disabled,
             _icons.IsTemplate,
             ToolTipFor(_state.App, _state.Enabled, _sync?.ShortStatus, _pause?.PausedBy));
         _enabledItem.IsChecked = _state.Enabled;
