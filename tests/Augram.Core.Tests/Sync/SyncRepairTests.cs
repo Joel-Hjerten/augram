@@ -51,6 +51,19 @@ public sealed class SyncRepairTests
     }
 
     [Fact]
+    public void AnIncomingIgnoredAppWithATakenNameIsRenamed()
+    {
+        var mine = new IgnoredApp(GroupId.New(), "Steam", IsActive: true, new AppMatcher { WindowsProcessNames = ["steam.exe"] }, DisableEntirely: false);
+        var theirs = mine with { Id = GroupId.New(), Name = "steam" };
+
+        var result = Merge(Ignoring(mine), Ignoring(theirs));
+
+        Assert.Equal("Steam", result.Mapping.Ignored.Single(app => app.Id == mine.Id).Name);
+        Assert.Equal("steam (2)", result.Mapping.Ignored.Single(app => app.Id == theirs.Id).Name);
+        AssertRepair(result, SyncRepairKind.Renamed, SyncItemKey.ForIgnored(theirs.Id), "ignored app");
+    }
+
+    [Fact]
     public void AnIncomingCategoryWithANameTakenInItsGroupIsRenamed()
     {
         var mine = NewCategory("Media");
@@ -181,6 +194,8 @@ public sealed class SyncRepairTests
 
     private static SyncItemSet Set(IEnumerable<Gesture> gestures, params AppGroup[] groups)
         => MergeScenario.Set(gestures, new MappingDocument(groups.Any(group => group.IsGlobal) ? groups : [NewGlobal(), .. groups], []));
+
+    private static SyncItemSet Ignoring(IgnoredApp app) => MergeScenario.Set([], new MappingDocument([NewGlobal()], [app]));
 
     private static void AssertRepair(SyncMergeResult result, SyncRepairKind kind, SyncItemKey key, string text)
     {

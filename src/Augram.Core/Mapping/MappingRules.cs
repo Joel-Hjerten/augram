@@ -164,9 +164,18 @@ public static class MappingRules
             throw new MappingValidationException("An ignored app needs a name.");
         }
 
-        if (others.Any(other => other.Id == app.Id))
+        foreach (var other in others)
         {
-            throw new MappingValidationException($"An ignored app with id {app.Id} already exists.");
+            if (other.Id == app.Id)
+            {
+                throw new MappingValidationException($"An ignored app with id {app.Id} already exists.");
+            }
+
+            // Unique like group names (Joel, 2026-10-09).
+            if (NameComparer.Equals(other.Name, app.Name))
+            {
+                throw new MappingValidationException($"An ignored app named '{other.Name}' already exists.");
+            }
         }
 
         EnsureValid(app.Matcher);

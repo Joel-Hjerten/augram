@@ -23,7 +23,7 @@ internal static class SyncDocumentBuilder
         var categories = Categories(merged.OfType<SyncItem.CategoryItem>().ToArray(), incoming, groups, repairs);
         var commands = new CommandPlacement(groups, categories, gestures.Select(gesture => gesture.Id).ToHashSet(), before, repairs)
             .Place(merged.OfType<SyncItem.CommandItem>(), incoming);
-        var ignored = merged.OfType<SyncItem.IgnoredItem>().Select(item => item.App).ToArray();
+        var ignored = Ignored(merged.OfType<SyncItem.IgnoredItem>().ToArray(), incoming, repairs);
         var versions = Versions(merged.OfType<SyncItem.VersionItem>().ToArray(), commands, repairs);
 
         var document = new MappingDocument(
@@ -57,6 +57,24 @@ internal static class SyncDocumentBuilder
         }
 
         return gestures;
+    }
+
+    /// <summary>The ignored apps, an incoming one renamed when its name is taken (names are unique, like group names).</summary>
+    private static IgnoredApp[] Ignored(SyncItem.IgnoredItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
+    {
+        var names = new SyncNames();
+        var apps = items.Select(item => item.App).ToArray();
+        foreach (int index in IncomingLast(items, incoming))
+        {
+            var name = names.Claim(apps[index].Name);
+            if (name != apps[index].Name)
+            {
+                repairs.Add(new(items[index].Key, SyncRepairKind.Renamed, $"Incoming ignored app '{apps[index].Name}' renamed '{name}': the name is taken."));
+                apps[index] = apps[index] with { Name = name };
+            }
+        }
+
+        return apps;
     }
 
     /// <summary>The group headers, Global first (restored if the merge lost it) and never renamed.</summary>

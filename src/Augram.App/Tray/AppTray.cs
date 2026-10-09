@@ -13,7 +13,7 @@ namespace Augram.App.Tray;
 /// window, the menu has Open · Enabled · Start at login (disabled in a development build, <see cref="AppState.CanChangeStartAtLogin"/>)
 /// · Sync now (only while a sync repository is set, F8) · Quit, and the tooltip starts with the build's name and ends with the
 /// last sync ("Augram (Dev) (enabled) · synced 14:32", <see cref="ToolTipFor"/>); while a "disable while focused" app has focus
-/// it says so instead of "enabled" ("Augram (paused: VMware is focused)", <see cref="EnginePauseState"/>; the icon stays). Single versus double is decided by
+/// it says so instead of "enabled" ("Augram (paused: VMware is focused)", <see cref="EnginePauseState"/>) and the icon is the disabled one, while the Enabled check box keeps showing the setting. Single versus double is decided by
 /// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click
 /// takes effect only after the double-click window (250 ms) has passed; Avalonia offers no better signal.
 /// </summary>
@@ -144,7 +144,7 @@ public sealed class AppTray : IDisposable
 
     private void Sync()
     {
-        _icon.Icon = _state.Enabled ? _icons.Enabled : _icons.Disabled;
+        _icon.Icon = ShowsEnabledIcon(_state.Enabled, _pause?.PausedBy) ? _icons.Enabled : _icons.Disabled;
         _icon.ToolTipText = ToolTipFor(_state.App, _state.Enabled, _sync?.ShortStatus, _pause?.PausedBy);
         _enabledItem.IsChecked = _state.Enabled;
         _startAtLoginItem.IsChecked = _state.StartAtLogin;
@@ -155,6 +155,12 @@ public sealed class AppTray : IDisposable
     /// state (paused while enabled and a "disable while focused" app named by <paramref name="pausedBy"/> has focus), the last
     /// sync when there is one.
     /// </summary>
+    /// <summary>
+    /// The enabled icon only while Augram is enabled and not paused for a "disable while focused" app (Joel, 2026-10-09:
+    /// a pause shows the disabled icon too); the Enabled menu check box keeps showing the setting itself.
+    /// </summary>
+    public static bool ShowsEnabledIcon(bool enabled, string? pausedBy) => enabled && pausedBy is null;
+
     public static string ToolTipFor(AppInfo app, bool enabled, string? syncStatus, string? pausedBy = null)
     {
         ArgumentNullException.ThrowIfNull(app);

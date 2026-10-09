@@ -47,6 +47,14 @@ public sealed class BuildLabelTests
     }
 
     [Fact]
+    public void ThePausedTrayShowsTheDisabledIcon()
+    {
+        Assert.True(AppTray.ShowsEnabledIcon(enabled: true, pausedBy: null));
+        Assert.False(AppTray.ShowsEnabledIcon(enabled: true, pausedBy: "VMware"));
+        Assert.False(AppTray.ShowsEnabledIcon(enabled: false, pausedBy: null));
+    }
+
+    [Fact]
     public void TheTrayTooltipSaysWhichFocusedAppPausedAugram()
     {
         Assert.Equal("Augram (paused: VMware is focused)", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, null, "VMware"));

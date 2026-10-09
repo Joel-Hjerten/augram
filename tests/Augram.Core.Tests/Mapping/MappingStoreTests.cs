@@ -211,6 +211,19 @@ public sealed class MappingStoreTests
     }
 
     [Fact]
+    public void IgnoredAppNamesAreUniqueIgnoringCase()
+    {
+        var store = new MappingStore();
+        var game = store.AddIgnored(new IgnoredApp(GroupId.New(), "Game", true, ByProcess("game.exe"), DisableEntirely: false));
+        var other = store.AddIgnored(new IgnoredApp(GroupId.New(), "Other", true, ByProcess("other.exe"), DisableEntirely: false));
+
+        var added = Assert.Throws<MappingValidationException>(() => store.AddIgnored(new IgnoredApp(GroupId.New(), "GAME", true, ByProcess("x.exe"), false)));
+        Assert.Contains("already exists", added.Message, StringComparison.Ordinal);
+        Assert.Throws<MappingValidationException>(() => store.UpdateIgnored(other with { Name = "game" }));
+        Assert.Equal("Game", store.UpdateIgnored(game with { DisableEntirely = true }).Name);
+    }
+
+    [Fact]
     public void ReplaceAllIsOneUndoStepAndValidatesTheWholeDocument()
     {
         var store = new MappingStore(Document(NewGlobal(), NewGroup("Chrome")));

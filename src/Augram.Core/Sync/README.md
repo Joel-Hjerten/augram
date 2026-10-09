@@ -62,7 +62,7 @@ A **held** key (the other machine has a pending conflict on it, below) keeps wha
 
 The merged items are rebuilt into a document (`SyncDocumentBuilder`) and repaired where `GestureRules` / `MappingRules` would refuse it, each repair reported as a `SyncRepair` line. What was already here keeps its name and trigger; the **incoming** item (taken from the other side, or displaced by the merge) gives way:
 
-- name clash among gestures, among groups, among one group's categories, among one group's commands → the incoming one takes the first free " (2)", " (3)"… (Global is never renamed);
+- name clash among gestures, among groups, among ignored apps, among one group's categories, among one group's commands → the incoming one takes the first free " (2)", " (3)"… (Global is never renamed);
 - a trigger bound twice in one group (A7) → the incoming command is unbound (`Trigger.None`);
 - a command whose group is gone → into Global, uncategorized;
 - a command whose gesture is gone → unbound, when the merge removed that gesture or the command is incoming (a reference that was already dangling here is left alone);
