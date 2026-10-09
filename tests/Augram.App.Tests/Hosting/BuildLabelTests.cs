@@ -15,16 +15,16 @@ using Xunit;
 namespace Augram.App.Tests.Hosting;
 
 /// <summary>
-/// "Augram (Dev)" wherever it matters, so there is no mistaking which build runs (Joel, 2026-10-08): the window title, the
+/// "Augram (Dev) 0.2.0" wherever it matters, so there is no mistaking which build runs (Joel, 2026-10-08): the window title, the
 /// tray tooltip, Options › About, and the start-at-login toggle that a development build shows disabled.
 /// </summary>
 public sealed class BuildLabelTests
 {
     [Fact]
-    public void TheWindowTitleIsTheBuildsName()
+    public void TheWindowTitleIsTheBuildsNameAndVersion()
     {
-        Assert.Equal("Augram (Dev)", new MainWindowViewModel(new NavigationRegistry([]), TestBuilds.Dev).Title);
-        Assert.Equal("Augram", new MainWindowViewModel(new NavigationRegistry([]), TestBuilds.Release).Title);
+        Assert.Equal("Augram (Dev) 0.2.0", new MainWindowViewModel(new NavigationRegistry([]), TestBuilds.Dev).Title);
+        Assert.Equal("Augram 0.2.0", new MainWindowViewModel(new NavigationRegistry([]), TestBuilds.Release).Title);
     }
 
     [AvaloniaFact]
@@ -33,17 +33,17 @@ public sealed class BuildLabelTests
         var window = TestAppBuilder.Services.GetRequiredService<MainWindow>();
         window.Show();
 
-        Assert.Equal(AppInfo.Current.DisplayName, window.Title);
+        Assert.Equal(AppInfo.Current.Label, window.Title);
         window.Hide();
     }
 
     [Fact]
-    public void TheTrayTooltipStartsWithTheBuildsName()
+    public void TheTrayTooltipStartsWithTheBuildsNameAndVersion()
     {
-        Assert.Equal("Augram (Dev) (enabled) · synced 14:32", AppTray.ToolTipFor(TestBuilds.Dev, enabled: true, "synced 14:32"));
-        Assert.Equal("Augram (Dev) (disabled)", AppTray.ToolTipFor(TestBuilds.Dev, enabled: false, null));
-        Assert.Equal("Augram (enabled) · synced 14:32", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, "synced 14:32"));
-        Assert.Equal("Augram (disabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: false, string.Empty));
+        Assert.Equal("Augram (Dev) 0.2.0 (enabled) · synced 14:32", AppTray.ToolTipFor(TestBuilds.Dev, enabled: true, "synced 14:32"));
+        Assert.Equal("Augram (Dev) 0.2.0 (disabled)", AppTray.ToolTipFor(TestBuilds.Dev, enabled: false, null));
+        Assert.Equal("Augram 0.2.0 (enabled) · synced 14:32", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, "synced 14:32"));
+        Assert.Equal("Augram 0.2.0 (disabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: false, string.Empty));
     }
 
     [Fact]
@@ -57,11 +57,11 @@ public sealed class BuildLabelTests
     [Fact]
     public void TheTrayTooltipSaysWhichFocusedAppPausedAugram()
     {
-        Assert.Equal("Augram (paused: VMware is focused)", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, null, "VMware"));
-        Assert.Equal("Augram (Dev) (paused: VMware is focused) · synced 14:32", AppTray.ToolTipFor(TestBuilds.Dev, enabled: true, "synced 14:32", "VMware"));
+        Assert.Equal("Augram 0.2.0 (paused: VMware is focused)", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, null, "VMware"));
+        Assert.Equal("Augram (Dev) 0.2.0 (paused: VMware is focused) · synced 14:32", AppTray.ToolTipFor(TestBuilds.Dev, enabled: true, "synced 14:32", "VMware"));
         // Switched off wins: a pause means nothing while Augram is disabled anyway.
-        Assert.Equal("Augram (disabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: false, null, "VMware"));
-        Assert.Equal("Augram (enabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, null, string.Empty));
+        Assert.Equal("Augram 0.2.0 (disabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: false, null, "VMware"));
+        Assert.Equal("Augram 0.2.0 (enabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, null, string.Empty));
     }
 
     [Fact]

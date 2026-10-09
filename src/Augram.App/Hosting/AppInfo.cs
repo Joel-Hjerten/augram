@@ -9,7 +9,7 @@ namespace Augram.App.Hosting;
 /// <c>[AssemblyMetadata("AugramChannel", …)]</c>): <see cref="AppChannel.Dev"/> for every local and CI build,
 /// <see cref="AppChannel.Release"/> for the installed one the release script builds. A missing or unknown channel
 /// reads as Dev, the safe side: a Dev build never touches start at login. The window title and the tray tooltip
-/// start with <see cref="DisplayName"/>, so a development build always says "Augram (Dev)" (Joel, 2026-10-08).
+/// start with <see cref="Label"/>, the name and the version, so a development build always says "Augram (Dev)" (Joel, 2026-10-08).
 /// </summary>
 public sealed record AppInfo(string Version, string? Commit, AppChannel Channel)
 {
@@ -28,6 +28,9 @@ public sealed record AppInfo(string Version, string? Commit, AppChannel Channel)
 
     /// <summary>"Augram (Dev)" for a development build, "Augram" for the installed one: the window title and the start of the tray tooltip.</summary>
     public string DisplayName => DisplayNameOf(Channel);
+
+    /// <summary>"Augram (Dev) 0.5.1" or "Augram 0.5.1": the window title and the start of the tray tooltip, so the version is visible without opening Options › About (Joel, 2026-10-09).</summary>
+    public string Label => $"{DisplayName} {Version}";
 
     /// <summary>The channel as Options › About shows it.</summary>
     public string ChannelText => IsDev ? "Dev (development build)" : "Release (installed)";

@@ -165,7 +165,7 @@ public sealed class AppTray : IDisposable
     {
         ArgumentNullException.ThrowIfNull(app);
         var state = !enabled ? "disabled" : pausedBy is { Length: > 0 } paused ? $"paused: {paused} is focused" : "enabled";
-        var tip = $"{app.DisplayName} ({state})";
+        var tip = $"{app.Label} ({state})";
         return syncStatus is { Length: > 0 } sync ? $"{tip} · {sync}" : tip;
     }
 }

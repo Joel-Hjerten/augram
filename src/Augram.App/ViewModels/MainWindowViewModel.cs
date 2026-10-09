@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Augram.App.ViewModels;
 
-/// <summary>What the main window binds: its title ("Augram (Dev)" for a development build), the tab registry and which tab to open first (<c>--gallery</c>).</summary>
+/// <summary>What the main window binds: its title ("Augram (Dev) 0.5.1" for a development build), the tab registry and which tab to open first (<c>--gallery</c>).</summary>
 public sealed class MainWindowViewModel : ObservableObject
 {
     /// <param name="registry">The tabs.</param>
@@ -13,10 +13,10 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(registry);
         Registry = registry;
-        Title = (app ?? AppInfo.Current).DisplayName;
+        Title = (app ?? AppInfo.Current).Label;
     }
 
-    /// <summary>"Augram" for the installed build, "Augram (Dev)" otherwise, so there is no mistaking which one runs (Joel, 2026-10-08).</summary>
+    /// <summary>"Augram 0.5.1" for the installed build, "Augram (Dev) 0.5.1" otherwise, so there is no mistaking which one runs (Joel, 2026-10-08) or which version it is (2026-10-09).</summary>
     public string Title { get; }
 
     public NavigationRegistry Registry { get; }
