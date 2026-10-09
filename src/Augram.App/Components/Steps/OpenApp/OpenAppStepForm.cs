@@ -26,24 +26,26 @@ public sealed partial class OpenAppStepForm : IStepForm
         ArgumentNullException.ThrowIfNull(changed);
         var state = new FormState(StepParameters.Expect<OpenAppStep>(current, OpenAppStepType.Instance), changed);
         var platform = CommandsModule.CurrentPlatform;
-        var apps = new DelegateBinding<bool>(() => !state.Step.IsAugram, owner: state, propertyName: null);
+        // Every binding names the property the state raises: a null name means "read it from the getter" (here IsAugram,
+        // which never fires), and the app rows hidden by a ticked This app never came back (Joel, 2026-10-09).
+        var apps = new DelegateBinding<bool>(() => !state.Step.IsAugram, owner: state, propertyName: nameof(FormState.Step));
         var fields = new List<Field>
         {
-            new ToggleField(AugramLabel, new DelegateBinding<bool>(() => state.Step.IsAugram, value => state.Emit(state.Step with { IsAugram = value }), state, propertyName: null),
+            new ToggleField(AugramLabel, new DelegateBinding<bool>(() => state.Step.IsAugram, value => state.Emit(state.Step with { IsAugram = value }), state, propertyName: nameof(FormState.Step)),
                 "Opens Augram's own window, as a double click on its tray or menu-bar icon does."),
-            new TextField("Windows app", new DelegateBinding<string>(() => state.Step.WindowsApp, value => state.Emit(state.Step with { WindowsApp = value }), state, propertyName: null),
+            new TextField("Windows app", new DelegateBinding<string>(() => state.Step.WindowsApp, value => state.Emit(state.Step with { WindowsApp = value }), state, propertyName: nameof(FormState.Step)),
                 "The executable's file name: chrome.exe. Brought to the front when it has a window open, started otherwise.")
             {
                 Visible = apps,
                 Accessory = platform == HostPlatform.Windows ? WindowFinderAccessory.Finder(window => window.ProcessName, window => state.Emit(state.Step with { WindowsApp = window.ProcessName })) : null,
             },
-            new TextField("macOS app", new DelegateBinding<string>(() => state.Step.MacApp, value => state.Emit(state.Step with { MacApp = value }), state, propertyName: null),
+            new TextField("macOS app", new DelegateBinding<string>(() => state.Step.MacApp, value => state.Emit(state.Step with { MacApp = value }), state, propertyName: nameof(FormState.Step)),
                 "The app's name: Google Chrome. Brought to the front when it runs, started otherwise.")
             {
                 Visible = apps,
                 Accessory = platform == HostPlatform.MacOS ? WindowFinderAccessory.Finder(window => window.ProcessName, window => state.Emit(state.Step with { MacApp = window.ProcessName })) : null,
             },
-            new NoteField("Here it opens", new DelegateBinding<string>(() => Here(state.Step, platform), owner: state, propertyName: null),
+            new NoteField("Here it opens", new DelegateBinding<string>(() => Here(state.Step, platform), owner: state, propertyName: nameof(FormState.Step)),
                 "An empty platform uses the well-known name of the other platform's app, when there is one."),
         };
         return new SectionForm.SectionForm { Screen = new FormScreen("Open app", [new Section("Open app", fields)]) };

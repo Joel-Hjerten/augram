@@ -90,6 +90,23 @@ public sealed class StepFormRegistryTests
         Assert.Empty(changes);
     }
 
+    /// <summary>Opened with This app ticked, unticking it brings the app rows back (Joel, 2026-10-09: they stayed hidden).</summary>
+    [AvaloniaFact]
+    public void OpenAppFormOpenedOnThisApp_ShowsTheAppRowsWhenItIsUnticked()
+    {
+        var changes = new List<IStep>();
+        var (form, _) = Show(new Augram.Core.Steps.OpenApp.OpenAppStep(true, "chrome.exe", string.Empty), changes.Add);
+        var rows = form.GetVisualDescendants().OfType<FieldRow>().ToList();
+        var app = rows.Single(row => row.Label == "Windows app");
+        Assert.False(app.IsVisible);
+
+        ((CheckBox)rows.Single(row => row.Label == Augram.App.Components.Steps.OpenApp.OpenAppStepForm.AugramLabel).Editor!).IsChecked = false;
+
+        Assert.True(app.IsVisible);
+        Assert.False(Assert.IsType<Augram.Core.Steps.OpenApp.OpenAppStep>(changes[^1]).IsAugram);
+        Assert.Equal("chrome.exe", ((TextBox)app.Editor!).Text);
+    }
+
     private static (Control Form, Window Window) Show(IStep step, Action<IStep> changed)
     {
         var form = StepFormRegistry.Default.Build(step, changed);
