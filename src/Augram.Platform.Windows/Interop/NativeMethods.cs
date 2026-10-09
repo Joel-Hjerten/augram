@@ -35,6 +35,7 @@ internal static partial class NativeMethods
     public const int SwMaximize = 3;
     public const int SwMinimize = 6;
     public const int SwRestore = 9;
+    public const uint GwOwner = 4;
     public const uint WmSysCommand = 0x0112;
     public const nuint ScClose = 0xF060;
 
@@ -157,6 +158,14 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool IsWindowVisible(nint hwnd);
+
+    /// <summary>Every top-level window, front to back in z-order; the callback returns nonzero to go on.</summary>
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static unsafe partial bool EnumWindows(delegate* unmanaged<nint, nint, int> callback, nint state);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetWindow(nint hwnd, uint command);
 
     [LibraryImport("user32.dll")]
     public static partial nint GetShellWindow();

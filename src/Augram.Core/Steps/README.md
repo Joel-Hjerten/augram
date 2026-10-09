@@ -30,6 +30,7 @@ Picker order within a category is `BuiltIn` order.
 | `scroll` | `Scroll/` | Scroll | Mouse | yes (held keys swap Ctrl ↔ Cmd like a hotkey's) | "Scroll up", "Ctrl + scroll down ×3", "Scroll right" |
 | `typeText` | `TypeText/` | Type text | Text | yes | `Type "fov 67.5⏎"`, `Type "hello" (by keys)`, "Type text (no text set)" |
 | `run` | `Run/` | Run | Run | no (F8: only http/https/mailto/ftp links carry over; a program or path needs its own version) | "Run explorer", "Run taskkill.exe /f /im yuzu.exe (as admin, hidden)", "Open ms-settings:display", "Run (no program set)" |
+| `openApp` | `OpenApp/` | Open app | Run | yes (it carries both platforms' app names; an empty one uses the known-app guess) | "Open Augram", "Open chrome.exe", "Open app (no app set)" |
 | `delay` | `Delay/` | Delay | Timing | yes | "Wait 30 ms" |
 | `imported` | `Imported/` | Imported (not supported yet) | Other | yes (nothing to convert) | "SendAltDown (not supported yet)" |
 | `unknown` | `Unknown/` | Needs a newer Augram | Other | yes (nothing to convert) | "'scroll' step (needs a newer Augram)"; never written under this key: the file keeps the original type key and `params` (`IStep.StoredKey`) |

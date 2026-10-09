@@ -19,6 +19,7 @@ using Augram.Platform.MacOS.Input;
 using Augram.Platform.MacOS.Launch;
 using Augram.Platform.MacOS.Overlay;
 using Augram.Platform.MacOS.WindowSystem;
+using Augram.Platform.Windows.Apps;
 using Augram.Platform.Windows.Clipboard;
 using Augram.Platform.Windows.Display;
 using Augram.Platform.Windows.Input;
@@ -175,6 +176,8 @@ public static class EngineModule
             ProcessLauncher = sp.GetRequiredService<IProcessLauncher>(),
             DisplayModes = sp.GetRequiredService<IDisplayModes>(),
             Clipboard = sp.GetRequiredService<IClipboard>(),
+            Apps = sp.GetRequiredService<IAppActivator>(),
+            AppWindow = sp.GetRequiredService<MainWindowOpener>(),
             Mapping = () => mapping.Current,
             Intercept = training is null ? null : e => training.TryConsume(e),
         };
@@ -182,6 +185,8 @@ public static class EngineModule
 
     private static void RegisterPlatform(IServiceCollection services, bool adapters)
     {
+        services.AddSingleton<MainWindowOpener>();
+        services.AddSingleton<IAppWindow>(sp => sp.GetRequiredService<MainWindowOpener>());
         if (adapters && OperatingSystem.IsWindows())
         {
             RegisterWindows(services);
@@ -201,6 +206,7 @@ public static class EngineModule
         services.AddSingleton<IProcessLauncher>(NullProcessLauncher.Instance);
         services.AddSingleton<IDisplayModes>(NullDisplayModes.Instance);
         services.AddSingleton<IClipboard>(NullClipboard.Instance);
+        services.AddSingleton<IAppActivator>(NullAppActivator.Instance);
     }
 
     [SupportedOSPlatform("windows")]
@@ -216,6 +222,7 @@ public static class EngineModule
         services.AddSingleton<IProcessLauncher>(sp => new Win32ProcessLauncher(sp.GetRequiredService<IEventLog>()));
         services.AddSingleton<IDisplayModes>(_ => new Win32DisplayModes());
         services.AddSingleton<IClipboard>(_ => new Win32Clipboard());
+        services.AddSingleton<IAppActivator>(sp => new Win32AppActivator(sp.GetRequiredService<IEventLog>()));
     }
 
     /// <summary>
@@ -233,6 +240,8 @@ public static class EngineModule
         services.AddSingleton<IProcessLauncher>(_ => new MacProcessLauncher());
         services.AddSingleton<IDisplayModes, MacDisplayModes>();
         services.AddSingleton<IClipboard, MacClipboard>();
+        // open -a brings a running app forward by itself (Steps/OpenApp README), so the step always launches on a Mac.
+        services.AddSingleton<IAppActivator>(NullAppActivator.Instance);
     }
 
     private static ConfigSession CreateSession(IServiceProvider sp, EngineModuleOptions options, Action<Action> marshal)

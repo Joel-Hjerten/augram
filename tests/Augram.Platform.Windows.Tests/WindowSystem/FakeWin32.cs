@@ -135,6 +135,18 @@ internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground, IWin32WindowC
 
     public bool IsTopmost(nint hwnd) => StateOf(hwnd)?.Topmost ?? false;
 
+    /// <summary>The added windows that are their own root, in the order added (front to back).</summary>
+    public IReadOnlyList<nint> TopLevelWindows() => [.. _windows.Where(entry => entry.Value.Root == entry.Key).Select(entry => entry.Key)];
+
+    public bool IsVisible(nint hwnd) => Get(hwnd)?.Visible ?? false;
+
+    /// <summary>An owner given to <see cref="AddWindow"/> that is not the window itself.</summary>
+    public nint Owner(nint hwnd) => Get(hwnd) is { } window && window.Owner != hwnd && window.Owner != window.Root ? window.Owner : 0;
+
+    public HashSet<nint> ToolWindows { get; } = [];
+
+    public bool IsToolWindow(nint hwnd) => ToolWindows.Contains(hwnd);
+
     public void ShowWindow(nint hwnd, int command)
     {
         Calls.Add($"show:{hwnd}:{command}");

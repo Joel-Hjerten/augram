@@ -34,8 +34,9 @@ public sealed record SyncFile(
     /// cannot read a command holding one and would drop the step. 8 (2026-10-09): the StrokesPlus.net app definition's
     /// fields (regex executable names; a macOS executable path and window title; root, parent and control titles; owner, root, parent and control classes); a format 7
     /// build would ignore them, match too many windows and publish the matcher back without them (the config schema went to 3).
+    /// 9 (2026-10-09): the Open app step (<c>openApp</c>); a format 8 build keeps it as is but cannot run it.
     /// </summary>
-    public const int CurrentFormatVersion = 8;
+    public const int CurrentFormatVersion = 9;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;

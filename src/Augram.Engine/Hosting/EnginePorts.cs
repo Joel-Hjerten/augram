@@ -45,6 +45,12 @@ public sealed record EnginePorts
     /// <summary>What the Clear clipboard step empties; the null object declines, so the step skips.</summary>
     public IClipboard Clipboard { get; init; } = NullClipboard.Instance;
 
+    /// <summary>What the Open app step brings a running app forward with; the null object leaves it to the launcher.</summary>
+    public IAppActivator Apps { get; init; } = NullAppActivator.Instance;
+
+    /// <summary>Augram's own window, for the Open app step's "This app"; the null object has none.</summary>
+    public IAppWindow AppWindow { get; init; } = NullAppWindow.Instance;
+
     /// <summary>The current mapping, read once per stroke by the executor; null means no executor at all (recognise and report only, as in M1).</summary>
     public Func<MappingDocument>? Mapping { get; init; }
 

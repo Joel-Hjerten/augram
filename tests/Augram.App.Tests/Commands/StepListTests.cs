@@ -68,7 +68,7 @@ public sealed class StepListTests
         var (list, actions, _) = Show();
 
         var offered = list.TypePicker.Offered;
-        Assert.Equal(["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "typeText", "run", "delay"], offered.Select(type => type.Key));
+        Assert.Equal(["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "typeText", "run", "openApp", "delay"], offered.Select(type => type.Key));
         Assert.DoesNotContain(offered, type => type.Category == StepCategory.Other);
         Assert.Equal(["System", "Display", "Keyboard", "Mouse", "Text", "Run", "Timing"], list.TypePicker.Entries.OfType<TextBlock>().Select(text => text.Text));
 

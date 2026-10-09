@@ -109,6 +109,8 @@ App
 - Visible stroke trail over all apps while drawing; transparent, click-through, per-platform native window; points batched per frame (handoff §7).
 - **Stroke colour and width are settings on the Options page (DECIDED — Joel, 2026-10-05)**, with opacity alongside. Defaults are Joel's SP.net look: width 5 px, 50% opacity, green 0/255/64. Pen width scales with the DPI of the monitor the stroke starts on (GestureSign lesson). Needs a `Color` field kind in the declarative form (ADR-0002 §5c) in M1.
 
+- **Open app step (DECIDED — Joel, 2026-10-09):** one general step in the Run category: bring an app to the front (its topmost window, restored when minimized), or start it when it has no window; the app named per platform like an app group's executables (an empty platform uses the known-app guess); "This app (Augram)" opens Augram's own window, which is how a gesture reaches the settings. Augram-only actions (pause, sync now) get a step of their own only when one is needed.
+
 ### F7. Tray presence + settings app — DECIDED
 - Tray icon (menu bar extra on macOS): open settings, enable/disable, quit.
 - **Tray behaviour (DECIDED — Joel, 2026-10-05):** **single click toggles Augram on/off** (icon shows the state unmistakably), **double click opens the app window**, right-click menu has Open, Enable/Disable, Start at login, Quit. macOS menu bar extras open their menu on single click by convention; **on macOS too (Joel, 2026-10-09): click toggles, double click opens, the menu opens on a right click or a Control-click.** The double-click window is the system's double-click time on both platforms.

@@ -119,6 +119,36 @@ internal sealed class Win32Windows : IWin32Windows, IWin32Foreground, IWin32Wind
     public bool IsTopmost(nint hwnd)
         => ((long)NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle) & NativeMethods.WsExTopmost) != 0;
 
+    public unsafe IReadOnlyList<nint> TopLevelWindows()
+    {
+        var windows = new List<nint>();
+        var handle = GCHandle.Alloc(windows);
+        try
+        {
+            NativeMethods.EnumWindows(&CollectWindow, GCHandle.ToIntPtr(handle));
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        return windows;
+    }
+
+    public bool IsVisible(nint hwnd) => NativeMethods.IsWindowVisible(hwnd);
+
+    public nint Owner(nint hwnd) => NativeMethods.GetWindow(hwnd, NativeMethods.GwOwner);
+
+    public bool IsToolWindow(nint hwnd)
+        => ((long)NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle) & NativeMethods.WsExToolWindow) != 0;
+
+    [UnmanagedCallersOnly]
+    private static int CollectWindow(nint hwnd, nint state)
+    {
+        ((List<nint>)GCHandle.FromIntPtr(state).Target!).Add(hwnd);
+        return 1;
+    }
+
     public void ShowWindow(nint hwnd, int command) => NativeMethods.ShowWindow(hwnd, command);
 
     public bool PostSysCommandClose(nint hwnd) => NativeMethods.PostMessage(hwnd, NativeMethods.WmSysCommand, NativeMethods.ScClose, 0);

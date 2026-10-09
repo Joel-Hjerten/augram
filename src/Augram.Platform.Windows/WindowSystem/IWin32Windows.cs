@@ -52,4 +52,16 @@ internal interface IWin32Windows
 
     /// <summary><c>WS_EX_TOPMOST</c> is set in the window's extended style.</summary>
     bool IsTopmost(nint hwnd);
+
+    /// <summary>Every top-level window, front to back (<c>EnumWindows</c>): what the Open app step searches.</summary>
+    IReadOnlyList<nint> TopLevelWindows();
+
+    /// <summary><c>IsWindowVisible</c>: shown (a minimized window counts as visible).</summary>
+    bool IsVisible(nint hwnd);
+
+    /// <summary>The direct owner (<c>GetWindow(GW_OWNER)</c>): a dialog's or a tool palette's main window; zero for an app's own main windows.</summary>
+    nint Owner(nint hwnd);
+
+    /// <summary><c>WS_EX_TOOLWINDOW</c>: a floating palette or a helper window, never in the taskbar or Alt+Tab.</summary>
+    bool IsToolWindow(nint hwnd);
 }

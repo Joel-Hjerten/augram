@@ -20,7 +20,7 @@ public sealed class StepRegistryTests
     [Fact]
     public void BuiltInListsTheShippedTypesInPickerOrder()
     {
-        string[] expected = ["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "typeText", "run", "delay", "imported", "unknown"];
+        string[] expected = ["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "typeText", "run", "openApp", "delay", "imported", "unknown"];
 
         Assert.Equal(expected, StepRegistry.BuiltIn.All.Select(type => type.Key).ToArray());
         Assert.Same(WindowOpStepType.Instance, StepRegistry.BuiltIn.Find("windowOp"));

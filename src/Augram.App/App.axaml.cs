@@ -107,6 +107,12 @@ public sealed class App : Application
             MacDockPresence.Follow(desktop.MainWindow);
         }
 
+        // The Open app step's "This app (Augram)" opens the window as the tray does.
+        if (_services.GetService<MainWindowOpener>() is { } opener)
+        {
+            opener.Requested = ShowMainWindow;
+        }
+
         EngineModule.Start(_services);
         // Sync starts also under --no-engine: it never touches input.
         SyncModule.Start(_services);

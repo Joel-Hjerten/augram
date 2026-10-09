@@ -5,6 +5,7 @@ using Augram.Core.Steps.Hdr;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.OpenApp;
 using Augram.Core.Steps.Run;
 using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
@@ -49,6 +50,7 @@ public sealed class StepRegistry
         ScrollStepType.Instance,
         TypeTextStepType.Instance,
         RunStepType.Instance,
+        OpenAppStepType.Instance,
         DelayStepType.Instance,
         ImportedStepType.Instance,
         UnknownStepType.Instance,
