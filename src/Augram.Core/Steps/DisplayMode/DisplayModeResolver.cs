@@ -8,7 +8,7 @@ namespace Augram.Core.Steps.DisplayMode;
 /// target matches exactly first, then the closest rate within 0.2 % (<see cref="RefreshRate.IsNear"/>: a stored 120
 /// runs at 119.88 on a display that only has that, and the reverse). Auto keeps the current rate when the new size has
 /// it (exact, then near), else takes the offered rate closest to it, the lower on a tie; with no known current rate,
-/// the highest. Anything the display lacks is unsupported with a reason that lists what it has. Pure; the whole mode
+/// the highest. "Highest available" takes the highest rate offered at the size. Anything the display lacks is unsupported with a reason that lists what it has. Pure; the whole mode
 /// is decided before anything is applied, so a step never half-changes a display.
 /// </summary>
 public static class DisplayModeResolver
@@ -16,7 +16,12 @@ public static class DisplayModeResolver
     /// <summary>How many resolutions a reason names before "and N more".</summary>
     public const int ListedResolutions = 8;
 
-    public static DisplayModeResolution Resolve(DisplayInfo display, DisplayResolution? resolution, RefreshRate? refresh)
+    /// <summary>The mode <paramref name="display"/> should switch to, or why it cannot.</summary>
+    /// <param name="display">The display the step targets, as listed now.</param>
+    /// <param name="resolution">The target size; null keeps the current one.</param>
+    /// <param name="refresh">The target rate; null keeps the current one (or the closest the size has).</param>
+    /// <param name="highest">The step's "highest available" refresh: the highest known rate offered at the size (<paramref name="refresh"/> is ignored).</param>
+    public static DisplayModeResolution Resolve(DisplayInfo display, DisplayResolution? resolution, RefreshRate? refresh, bool highest = false)
     {
         ArgumentNullException.ThrowIfNull(display);
         var size = resolution ?? display.Current.Resolution;
@@ -26,7 +31,7 @@ public static class DisplayModeResolver
             return DisplayModeResolution.Unsupported($"{display.Name} has no {size}; it offers {Resolutions(display.Modes)}");
         }
 
-        var rate = refresh is { } wanted ? Matching(rates, wanted) : KeepCurrent(rates, display.Current.Refresh);
+        var rate = highest ? Highest(rates) : refresh is { } wanted ? Matching(rates, wanted) : KeepCurrent(rates, display.Current.Refresh);
         if (rate is not { } chosen)
         {
             return DisplayModeResolution.Unsupported($"{display.Name} has no {refresh} at {size}; {Rates(rates)}");
@@ -55,6 +60,10 @@ public static class DisplayModeResolver
         var near = rates.Where(wanted.IsNear).OrderBy(rate => Distance(rate, wanted)).ToList();
         return near.Count > 0 ? near[0] : null;
     }
+
+    /// <summary>The highest known rate; the display's only (unknown) rate when it reports none.</summary>
+    private static RefreshRate Highest(List<RefreshRate> rates)
+        => rates.Where(rate => rate.IsKnown).DefaultIfEmpty(rates[0]).MaxBy(rate => rate.Millihertz);
 
     private static RefreshRate KeepCurrent(List<RefreshRate> rates, RefreshRate current)
     {

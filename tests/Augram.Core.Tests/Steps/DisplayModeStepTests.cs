@@ -71,7 +71,7 @@ public sealed class DisplayModeStepTests
     [InlineData("""{"height":1080}""", "'width' is required when 'height' is present.")]
     [InlineData("""{"width":0,"height":1080}""", "'width' must be between 1 and 32767; got 0.")]
     [InlineData("""{"width":1920,"height":"1080"}""", "'height' must be an integer.")]
-    [InlineData("""{"refreshHz":"120"}""", "'refreshHz' must be a number of hertz.")]
+    [InlineData("""{"refreshHz":"120"}""", "'refreshHz' must be a number of hertz or \"highest\".")]
     [InlineData("""{"refreshHz":0}""", "'refreshHz' must be above 0 and at most 1000; got 0.")]
     [InlineData("""{"refreshHz":-24}""", "'refreshHz' must be above 0 and at most 1000; got -24.")]
     [InlineData("""{"refreshHz":1001}""", "'refreshHz' must be above 0 and at most 1000; got 1001.")]
@@ -81,6 +81,21 @@ public sealed class DisplayModeStepTests
         var ex = Assert.Throws<StepFormatException>(() => Type.Read(StepJson.Object(json)));
 
         Assert.Equal(message, ex.Message);
+    }
+
+    [Fact]
+    public void HighestAvailableIsStoredAsTheWordHighestAndReadBack()
+    {
+        var step = new DisplayModeStep(new DisplayResolution(3840, 2160), HighestRefresh: true);
+
+        var json = Type.Write(step);
+
+        Assert.Equal("highest", (string?)json["refreshHz"]);
+        Assert.Equal(step, Type.Read(json));
+        Assert.Equal(new DisplayModeStep(HighestRefresh: true), Type.Read(StepJson.Object("""{"refreshHz":"Highest"}""")));
+        Assert.Equal("Display 3840×2160 at the highest refresh", step.Summary);
+        Assert.Equal("Display refresh highest available (main display)", new DisplayModeStep(Target: DisplayTarget.Main, HighestRefresh: true).Summary);
+        Assert.False(step.ChangesNothing);
     }
 
     [Fact]

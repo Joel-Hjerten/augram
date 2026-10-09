@@ -8,8 +8,9 @@ namespace Augram.Core.Steps.DisplayMode;
 /// mean the same on both platforms in each one's own units; the adapter resolves them). Parameters:
 /// <c>{ "width": 1920, "height": 1080, "refreshHz": 119.88, "display": "UnderGesture" }</c>; <c>width</c> and
 /// <c>height</c> (1..32767) come together or not at all (absent = Auto), <c>refreshHz</c> is a number above 0 and at
-/// most 1000, kept to three decimals (absent = Auto), <c>display</c> a <see cref="DisplayTarget"/> name. The default
-/// instance changes nothing until a resolution or a rate is chosen.
+/// most 1000, kept to three decimals, or the string <c>"highest"</c> for the highest rate offered (absent = Auto),
+/// <c>display</c> a <see cref="DisplayTarget"/> name. The default instance changes nothing until a resolution or a rate
+/// is chosen.
 /// </summary>
 public sealed class DisplayModeStepType : IStepType
 {
@@ -20,6 +21,9 @@ public sealed class DisplayModeStepType : IStepType
     public const string RefreshMember = "refreshHz";
 
     public const string DisplayMember = "display";
+
+    /// <summary>The <c>refreshHz</c> value for <see cref="DisplayModeStep.HighestRefresh"/>.</summary>
+    public const string HighestValue = "highest";
 
     private DisplayModeStepType()
     {
@@ -53,7 +57,9 @@ public sealed class DisplayModeStepType : IStepType
             _ => throw StepParameters.Required(HeightMember, $"'{WidthMember}' is present"),
         };
         var target = StepParameters.ReadEnum<DisplayTarget>(parameters, DisplayMember) ?? DisplayTarget.UnderGesture;
-        return new DisplayModeStep(resolution, ReadRefresh(parameters), target);
+        return IsHighest(parameters[RefreshMember])
+            ? new DisplayModeStep(resolution, null, target, HighestRefresh: true)
+            : new DisplayModeStep(resolution, ReadRefresh(parameters), target);
     }
 
     public JsonObject Write(IStep step)
@@ -66,7 +72,11 @@ public sealed class DisplayModeStepType : IStepType
             parameters[HeightMember] = size.Height;
         }
 
-        if (displayMode.Refresh is { } rate)
+        if (displayMode.HighestRefresh)
+        {
+            parameters[RefreshMember] = HighestValue;
+        }
+        else if (displayMode.Refresh is { } rate)
         {
             // A double prints the shortest form (119.88, 120, 23.976); Read rounds back to the same millihertz.
             parameters[RefreshMember] = rate.Millihertz / 1000.0;
@@ -82,7 +92,11 @@ public sealed class DisplayModeStepType : IStepType
         return DisplayModeExecutor.Execute(StepParameters.Expect<DisplayModeStep>(step, this), context);
     }
 
-    /// <summary>A JSON number of hertz, rounded to three decimals; a string, zero, a negative or more than 1000 names the member.</summary>
+    /// <summary>The string <see cref="HighestValue"/>, in any case.</summary>
+    private static bool IsHighest(JsonNode? node)
+        => node is JsonValue value && value.TryGetValue(out string? text) && string.Equals(text, HighestValue, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A JSON number of hertz, rounded to three decimals; another string, zero, a negative or more than 1000 names the member.</summary>
     private static RefreshRate? ReadRefresh(JsonObject parameters)
     {
         var node = parameters[RefreshMember];
@@ -93,7 +107,7 @@ public sealed class DisplayModeStepType : IStepType
 
         if (node is not JsonValue value || !TryGetHertz(value, out var hertz))
         {
-            throw new StepFormatException($"'{RefreshMember}' must be a number of hertz.");
+            throw new StepFormatException($"'{RefreshMember}' must be a number of hertz or \"{HighestValue}\".");
         }
 
         var rate = RefreshRate.FromHertz((double)hertz);

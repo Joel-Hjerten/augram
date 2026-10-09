@@ -6,13 +6,16 @@ namespace Augram.App.Components.Steps.DisplayMode;
 
 /// <summary>
 /// The Display mode form's dropdown lists, from what the connected displays offer now: "Auto (keep current)" first,
-/// then every resolution any display offers, largest first, or every rate offered at the chosen resolution (all
-/// rates when the resolution is Auto), highest first, shown as "119.88 Hz". The step's own value is always listed,
-/// offered now or not (a display that is off, a config from the other machine), so the dropdown never loses it.
+/// then every resolution any display offers, largest first, or "Highest available" and every rate offered at the chosen
+/// resolution (all rates when the resolution is Auto), highest first, whole and fractional alike, shown as "119.88 Hz".
+/// The step's own value is always listed, offered now or not (a display that is off, a config from the other machine),
+/// so the dropdown never loses it.
 /// </summary>
 public static class DisplayModeChoices
 {
     public const string AutoText = "Auto (keep current)";
+
+    public const string HighestText = "Highest available";
 
     public static IReadOnlyList<Choice<DisplayResolution?>> Resolutions(IReadOnlyList<DisplayInfo> displays, DisplayResolution? stored)
     {
@@ -26,7 +29,7 @@ public static class DisplayModeChoices
         return [new Choice<DisplayResolution?>(AutoText, null), .. DisplayModeResolver.LargestFirst(sizes).Select(size => new Choice<DisplayResolution?>(size.ToString(), size))];
     }
 
-    public static IReadOnlyList<Choice<RefreshRate?>> Rates(IReadOnlyList<DisplayInfo> displays, DisplayResolution? size, RefreshRate? stored)
+    public static IReadOnlyList<Choice<RefreshPick>> Rates(IReadOnlyList<DisplayInfo> displays, DisplayResolution? size, RefreshRate? stored)
     {
         ArgumentNullException.ThrowIfNull(displays);
         var rates = displays.SelectMany(display => display.Modes)
@@ -37,7 +40,12 @@ public static class DisplayModeChoices
             rates = rates.Append(own);
         }
 
-        return [new Choice<RefreshRate?>(AutoText, null), .. DisplayModeResolver.HighestFirst(rates).Select(rate => new Choice<RefreshRate?>(rate.ToString(), rate))];
+        return
+        [
+            new Choice<RefreshPick>(AutoText, RefreshPick.Auto),
+            new Choice<RefreshPick>(HighestText, RefreshPick.HighestAvailable),
+            .. DisplayModeResolver.HighestFirst(rates).Select(rate => new Choice<RefreshPick>(rate.ToString(), new RefreshPick(rate, false))),
+        ];
     }
 
     public static IReadOnlyList<Choice<DisplayTarget>> Targets { get; } =

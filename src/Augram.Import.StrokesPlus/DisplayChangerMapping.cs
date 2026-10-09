@@ -9,11 +9,12 @@ namespace Augram.Import.StrokesPlus;
 /// Turns a 12noon Display Changer command line (the program <c>dc64cmd.exe</c> or <c>dccmd.exe</c> plus its argument
 /// string, as an SP.net <c>sp.RunProgram</c> script runs it) into a <see cref="DisplayModeStep"/>, or null when it is
 /// not one or asks for something the step cannot express (learnings 0002 §1, §4). Understood: <c>-width=N</c> and
-/// <c>-height=N</c> (both or neither), <c>-refresh=N</c> and <c>-quiet</c>. <c>-refresh</c> is Windows' whole-hertz rate,
-/// so it goes through <see cref="RefreshRate.FromLegacyHertz"/> (23 → 23.976, 120 → 120). Anything else (<c>max</c>,
-/// <c>-depth</c>, <c>-monitor</c>, <c>-force</c>, <c>-test</c>, a program to run afterwards) gives null, and the command
-/// stays a Run step. The target is the step's default, the display under the gesture: Display Changer changed the
-/// primary display, which is the same display on a one-display PC. Pure; not yet called by the step reader.
+/// <c>-height=N</c> (both or neither), <c>-refresh=N</c> or <c>-refresh=max</c> (the step's "highest available"), and
+/// <c>-quiet</c>. <c>-refresh=N</c> is Windows' whole-hertz rate, so it goes through <see cref="RefreshRate.FromLegacyHertz"/>
+/// (23 → 23.976, 120 → 120). Anything else (<c>-depth</c>, <c>-monitor</c>, <c>-force</c>, <c>-test</c>, a program to run
+/// afterwards) gives null, and the command stays a Run step. The target is the step's default, the display under the
+/// gesture: Display Changer changed the primary display, which is the same display on a one-display PC. Pure; reached
+/// through <see cref="ProgramCallMapping"/>.
 /// </summary>
 public static class DisplayChangerMapping
 {
@@ -39,6 +40,7 @@ public static class DisplayChangerMapping
         int? width = null;
         int? height = null;
         RefreshRate? refresh = null;
+        var highest = false;
         foreach (var token in Tokens(arguments))
         {
             if (token.Length < 2 || token[0] is not ('-' or '/'))
@@ -63,7 +65,11 @@ public static class DisplayChangerMapping
             {
                 height = h;
             }
-            else if (Is(name, "refresh") && refresh is null && Rate(value) is { } rate)
+            else if (Is(name, "refresh") && refresh is null && !highest && Is(value ?? string.Empty, "max"))
+            {
+                highest = true;
+            }
+            else if (Is(name, "refresh") && refresh is null && !highest && Rate(value) is { } rate)
             {
                 refresh = rate;
             }
@@ -73,12 +79,12 @@ public static class DisplayChangerMapping
             }
         }
 
-        if (width.HasValue != height.HasValue || (width is null && refresh is null))
+        if (width.HasValue != height.HasValue || (width is null && refresh is null && !highest))
         {
             return null;
         }
 
-        return new DisplayModeStep(width is { } wide && height is { } high ? new DisplayResolution(wide, high) : null, refresh);
+        return new DisplayModeStep(width is { } wide && height is { } high ? new DisplayResolution(wide, high) : null, refresh, HighestRefresh: highest);
     }
 
     private static bool Is(string name, string expected) => string.Equals(name, expected, StringComparison.OrdinalIgnoreCase);

@@ -49,7 +49,7 @@ internal static class DisplayModeExecutor
             return StepResult.Skipped("no display under the gesture start");
         }
 
-        resolved = DisplayModeResolver.Resolve(display, step.Resolution, step.Refresh);
+        resolved = DisplayModeResolver.Resolve(display, step.Resolution, step.Refresh, step.HighestRefresh);
         if (resolved.Mode is not { } mode)
         {
             return StepResult.Skipped(resolved.Reason ?? $"{display.Name} cannot run {step.Summary}");

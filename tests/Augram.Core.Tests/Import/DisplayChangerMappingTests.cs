@@ -33,6 +33,17 @@ public sealed class DisplayChangerMappingTests
     }
 
     [Theory]
+    [InlineData("-refresh=max", null, "Display refresh highest available")]
+    [InlineData("-width=1920 -height=1080 -refresh=MAX", 1920, "Display 1920×1080 at the highest refresh")]
+    public void RefreshMaxIsTheHighestAvailableRate(string arguments, int? width, string summary)
+    {
+        var step = DisplayChangerMapping.FromInvocation(Program, arguments);
+
+        Assert.Equal(new DisplayModeStep(width is { } w ? new DisplayResolution(w, 1080) : null, HighestRefresh: true), step);
+        Assert.Equal(summary, step!.Summary);
+    }
+
+    [Theory]
     [InlineData("-width=1920 -height=1080", 1920, 1080, "Display 1920×1080")]
     [InlineData("-width=3840 -height=2160", 3840, 2160, "Display 3840×2160")]
     [InlineData("-height=2160   -width=3840", 3840, 2160, "Display 3840×2160")]
@@ -78,7 +89,6 @@ public sealed class DisplayChangerMappingTests
     [InlineData("-quiet")]
     [InlineData("-width=1920")]
     [InlineData("-height=1080 -refresh=60")]
-    [InlineData("-refresh=max")]
     [InlineData("-width=max -height=max")]
     [InlineData("-refresh=0")]
     [InlineData("-refresh=60 -refresh=24")]

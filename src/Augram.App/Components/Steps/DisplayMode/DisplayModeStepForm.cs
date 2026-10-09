@@ -66,11 +66,11 @@ public sealed class DisplayModeStepForm : IStepForm
                     DisplayModeChoices.Resolutions(displays, step.Resolution),
                     new DelegateBinding<DisplayResolution?>(() => state.Resolution, size => Emit(state with { Resolution = size })),
                     "Auto keeps the current one. Pixels on Windows, the \"looks like\" size on macOS."),
-                new DropdownField<RefreshRate?>(
+                new DropdownField<RefreshPick>(
                     "Refresh",
                     DisplayModeChoices.Rates(displays, step.Resolution, step.Refresh),
-                    new DelegateBinding<RefreshRate?>(() => state.Refresh, rate => Emit(state with { Refresh = rate })),
-                    "Auto keeps the current rate, or the closest the new resolution has. 120 Hz also matches 119.88 Hz on a display that has only that, and the reverse."),
+                    new DelegateBinding<RefreshPick>(() => RefreshPick.Of(state), pick => Emit(state with { Refresh = pick.Rate, HighestRefresh = pick.Highest })),
+                    "Auto keeps the current rate, or the closest the new resolution has. Highest available takes the top rate at that resolution. 120 Hz also matches 119.88 Hz on a display that has only that, and the reverse."),
                 new DropdownField<DisplayTarget>(
                     "Display",
                     DisplayModeChoices.Targets,

@@ -32,8 +32,8 @@ public sealed class DisplayStepFormTests
     {
         var displays = TwoDisplays.Instance.Displays();
 
-        Assert.Equal(["Auto (keep current)", "60 Hz", "59.94 Hz", "24 Hz", "23.976 Hz"], DisplayModeChoices.Rates(displays, Uhd, null).Select(choice => choice.Label));
-        Assert.Equal(["Auto (keep current)", "144 Hz", "120 Hz", "60 Hz", "59.94 Hz", "24 Hz", "23.976 Hz"], DisplayModeChoices.Rates(displays, null, null).Select(choice => choice.Label));
+        Assert.Equal(["Auto (keep current)", "Highest available", "60 Hz", "59.94 Hz", "24 Hz", "23.976 Hz"], DisplayModeChoices.Rates(displays, Uhd, null).Select(choice => choice.Label));
+        Assert.Equal(["Auto (keep current)", "Highest available", "144 Hz", "120 Hz", "60 Hz", "59.94 Hz", "24 Hz", "23.976 Hz"], DisplayModeChoices.Rates(displays, null, null).Select(choice => choice.Label));
         Assert.Contains("50 Hz", DisplayModeChoices.Rates(displays, Uhd, RefreshRate.FromHertz(50)).Select(choice => choice.Label));
     }
 

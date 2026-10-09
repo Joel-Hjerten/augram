@@ -171,5 +171,16 @@ public sealed class DisplayModeResolverTests
         Assert.Equal("SONY TV has no 120 Hz at 4096×2160; it offers 60, 24 Hz", resolved.Reason);
     }
 
+    [Fact]
+    public void HighestAvailableTakesTheTopRateAtTheTargetSize_IgnoringAStoredRate()
+    {
+        var display = FakeDisplayModes.Tv();
+        var topAtFullHd = display.Modes.Where(mode => mode.Resolution == FullHd).Max(mode => mode.Refresh.Millihertz);
+
+        var resolved = DisplayModeResolver.Resolve(display, FullHd, Rate(24), highest: true);
+
+        Assert.Equal(new VideoMode(FullHd, new RefreshRate(topAtFullHd)), resolved.Mode);
+    }
+
     private static RefreshRate Rate(double hertz) => RefreshRate.FromHertz(hertz);
 }
