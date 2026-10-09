@@ -3,6 +3,7 @@ using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Steps.Unknown;
 using Augram.Core.Tests.Mapping.Support;
 using Xunit;
 using static Augram.Core.Tests.Mapping.Support.MappingFixtures;
@@ -54,24 +55,30 @@ public sealed class MappingSerializationTests
     }
 
     [Fact]
-    public void AnUnknownStepTypeIsDroppedWithANoticeAndTheRestLoads()
+    public void AnUnknownStepTypeIsKeptAsIsWithANotice_AndSavesBackUnchanged()
     {
-        var json = ConfigSerializer.Write(new ConfigDocument { Mapping = FullMapping() });
+        var mapping = FullMapping();
+        var json = ConfigSerializer.Write(new ConfigDocument { Mapping = mapping });
 
         var back = ConfigSerializer.Read(json, new StepRegistry([]), _notices.Add);
 
         Assert.Equal(4, back.Mapping.Groups.Count);
         Assert.Equal(3, back.Mapping.Global.Commands.Count);
-        Assert.All(back.Mapping.AllCommands(), pair => Assert.Empty(pair.Command.Steps));
+        Assert.All(back.Mapping.AllCommands().SelectMany(pair => pair.Command.Steps), step => Assert.Equal("fake", Assert.IsType<UnknownStep>(step.Step).StoredTypeKey));
         Assert.Equal(5, _notices.Count);
-        Assert.Contains("Step 1 of the own version of command 'Minimize' in 'Global' dropped: unknown step type 'fake'.", _notices);
-        Assert.Contains("Step 1 of command 'Minimize' in 'Global' dropped: unknown step type 'fake'.", _notices);
-        Assert.Contains("Step 2 of command 'Minimize' in 'Global' dropped: unknown step type 'fake'.", _notices);
-        Assert.Contains("Step 1 of command 'Type' in 'Chrome' dropped: unknown step type 'fake'.", _notices);
+        Assert.Contains("Step 1 of the own version of command 'Minimize' in 'Global' kept as is: unknown step type 'fake'.", _notices);
+        Assert.Contains("Step 1 of command 'Minimize' in 'Global' kept as is: unknown step type 'fake'.", _notices);
+        Assert.Contains("Step 2 of command 'Minimize' in 'Global' kept as is: unknown step type 'fake'.", _notices);
+        Assert.Contains("Step 1 of command 'Type' in 'Chrome' kept as is: unknown step type 'fake'.", _notices);
+
+        // The older build saves: the file is what the newer one wrote, and the newer one reads its steps back.
+        var saved = ConfigSerializer.Write(back);
+        Assert.Equal(json, saved);
+        AssertSameMapping(mapping, ConfigSerializer.Read(saved, FakeStepType.Registry, notice: null).Mapping);
     }
 
     [Fact]
-    public void AStepItsTypeRefusesIsDropped_AndAStepLevelOverridesMemberIsPassedOver()
+    public void AStepItsTypeRefusesIsKeptAsIs_AndAStepLevelOverridesMemberIsPassedOver()
     {
         const string json = """
             { "schemaVersion": 1, "mapping": { "groups": [ { "id": "00000000-0000-4000-8000-000000000001", "name": "Global", "commands": [
@@ -85,14 +92,19 @@ public sealed class MappingSerializationTests
         var back = ConfigSerializer.Read(json, FakeStepType.Registry, _notices.Add);
 
         var command = Assert.Single(back.Mapping.Global.Commands);
-        var step = Assert.Single(command.Steps);
+        Assert.Equal(3, command.Steps.Count);
+        var refused = Assert.IsType<UnknownStep>(command.Steps[0].Step);
+        Assert.Equal(("fake", "{\"text\":5}", "'text' must be a string"), (refused.StoredTypeKey, refused.ParametersJson, refused.Reason));
+        var unknown = Assert.IsType<UnknownStep>(command.Steps[2].Step);
+        Assert.Equal(("bogus", "{}"), (unknown.StoredTypeKey, unknown.ParametersJson));
+        var step = command.Steps[1];
         Assert.Equal("ok", ((FakeStep)step.Step).Text);
         Assert.Equal(HostPlatform.Windows, step.AuthoredOn);
         Assert.True(step.IsActive);
         Assert.Null(command.OwnVersion);
         Assert.Equal(2, _notices.Count);
-        Assert.Contains("Step 1 of command 'Mixed' in 'Global' dropped: 'text' must be a string.", _notices);
-        Assert.Contains("Step 3 of command 'Mixed' in 'Global' dropped: unknown step type 'bogus'.", _notices);
+        Assert.Contains("Step 1 of command 'Mixed' in 'Global' kept as is: 'text' must be a string.", _notices);
+        Assert.Contains("Step 3 of command 'Mixed' in 'Global' kept as is: unknown step type 'bogus'.", _notices);
     }
 
     [Fact]
@@ -177,7 +189,7 @@ public sealed class MappingSerializationTests
         Assert.False(minimize.IsOwnVersionStale);
 
         var builtIn = new FileConfigStore(folder.Path, _notices.Add).Load();
-        Assert.Empty(builtIn.Mapping.Global.Commands.Single(command => command.Name == "Minimize").Steps);
+        Assert.All(builtIn.Mapping.Global.Commands.Single(command => command.Name == "Minimize").Steps, step => Assert.IsType<UnknownStep>(step.Step));
         Assert.Equal(5, _notices.Count);
     }
 

@@ -9,6 +9,7 @@ using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.Run;
 using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
+using Augram.Core.Steps.Unknown;
 using Augram.Core.Steps.WindowOp;
 using Xunit;
 
@@ -19,7 +20,7 @@ public sealed class StepRegistryTests
     [Fact]
     public void BuiltInListsTheShippedTypesInPickerOrder()
     {
-        string[] expected = ["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "typeText", "run", "delay", "imported"];
+        string[] expected = ["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "typeText", "run", "delay", "imported", "unknown"];
 
         Assert.Equal(expected, StepRegistry.BuiltIn.All.Select(type => type.Key).ToArray());
         Assert.Same(WindowOpStepType.Instance, StepRegistry.BuiltIn.Find("windowOp"));
@@ -33,15 +34,15 @@ public sealed class StepRegistryTests
         Assert.Same(RunStepType.Instance, StepRegistry.BuiltIn.Find("run"));
         Assert.Same(DelayStepType.Instance, StepRegistry.BuiltIn.Find("delay"));
         Assert.Same(ImportedStepType.Instance, StepRegistry.BuiltIn.Find("imported"));
+        Assert.Same(UnknownStepType.Instance, StepRegistry.BuiltIn.Find("unknown"));
     }
 
     [Fact]
-    public void OnlyThePlaceholderSitsInTheOtherCategory()
+    public void OnlyThePlaceholdersSitInTheOtherCategory()
     {
-        var hidden = StepRegistry.BuiltIn.All.Where(type => type.Category == StepCategory.Other).ToArray();
+        var hidden = StepRegistry.BuiltIn.All.Where(type => type.Category == StepCategory.Other).Select(type => type.Key).ToArray();
 
-        var placeholder = Assert.Single(hidden);
-        Assert.Equal("imported", placeholder.Key);
+        Assert.Equal(["imported", "unknown"], hidden);
     }
 
     [Fact]

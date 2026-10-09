@@ -8,6 +8,7 @@ using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.Run;
 using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
+using Augram.Core.Steps.Unknown;
 using Augram.Core.Steps.WindowOp;
 
 namespace Augram.Core.Steps;
@@ -50,6 +51,7 @@ public sealed class StepRegistry
         RunStepType.Instance,
         DelayStepType.Instance,
         ImportedStepType.Instance,
+        UnknownStepType.Instance,
     ]);
 
     public IReadOnlyList<IStepType> All { get; }

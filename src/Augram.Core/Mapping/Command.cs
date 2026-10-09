@@ -102,7 +102,7 @@ public sealed partial record Command(
         var text = new StringBuilder();
         foreach (var step in steps)
         {
-            text.Append(step.Step.Type.Key).Append('|').Append(step.AuthoredOn).Append('|').Append(step.IsActive)
+            text.Append(step.Step.StoredKey).Append('|').Append(step.AuthoredOn).Append('|').Append(step.IsActive)
                 .Append('|').Append(step.Step.Type.Write(step.Step).ToJsonString()).Append('\n');
         }
 

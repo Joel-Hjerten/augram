@@ -32,6 +32,7 @@ Picker order within a category is `BuiltIn` order.
 | `run` | `Run/` | Run | Run | no (F8: only http/https/mailto/ftp links carry over; a program or path needs its own version) | "Run explorer", "Run taskkill.exe /f /im yuzu.exe (as admin, hidden)", "Open ms-settings:display", "Run (no program set)" |
 | `delay` | `Delay/` | Delay | Timing | yes | "Wait 30 ms" |
 | `imported` | `Imported/` | Imported (not supported yet) | Other | yes (nothing to convert) | "SendAltDown (not supported yet)" |
+| `unknown` | `Unknown/` | Needs a newer Augram | Other | yes (nothing to convert) | "'scroll' step (needs a newer Augram)"; never written under this key: the file keeps the original type key and `params` (`IStep.StoredKey`) |
 
 Still to land in M2 (plan 0001 step 2): later `MouseClick`.
 

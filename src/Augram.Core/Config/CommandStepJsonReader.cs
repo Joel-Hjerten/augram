@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Steps.Unknown;
 
 namespace Augram.Core.Config;
 
@@ -9,8 +10,9 @@ namespace Augram.Core.Config;
 /// Reads the step envelopes of one command as <see cref="MappingJsonWriter"/> writes them, resolving
 /// each <c>type</c> through the <see cref="StepRegistry"/> and the parameters through
 /// <see cref="IStepType.Read"/>. A step whose type the registry lacks, or whose parameters its type
-/// refuses, is dropped with one notice and the rest of the command survives: a newer or hand-edited
-/// file never loses the whole configuration over one step (F8). An override that fails the same way
+/// refuses, is kept as is (<see cref="UnknownStep"/>, Joel 2026-10-09) with one notice, and written back
+/// unchanged when this build saves: a newer or hand-edited file never loses the whole configuration over
+/// one step (F8), and an older build no longer deletes a newer one's steps. An override that fails the same way
 /// is dropped on its own; the authored step stays. A malformed envelope (no <c>type</c>, <c>params</c>
 /// not an object) is a format error like any other.
 /// </summary>
@@ -32,36 +34,33 @@ internal sealed class CommandStepJsonReader
         var result = new List<CommandStep>(steps.Count);
         for (int i = 0; i < steps.Count; i++)
         {
-            var step = Read(steps[i], $"step {i + 1} of {where}");
-            if (step is not null)
-            {
-                result.Add(step);
-            }
+            result.Add(Read(steps[i], $"step {i + 1} of {where}"));
         }
 
         return result;
     }
 
-    private CommandStep? Read(JsonNode? node, string where)
+    private CommandStep Read(JsonNode? node, string where)
     {
         var envelope = JsonMembers.RequireObject(node, Capitalised(where));
         var key = JsonMembers.RequireString(envelope, "type", where);
+        var parameters = Parameters(envelope["params"], "params", where);
         var type = _registry.Find(key);
+        IStep step;
         if (type is null)
         {
-            Drop(where, $"unknown step type '{key}'.");
-            return null;
+            step = Keep(where, key, parameters, $"unknown step type '{key}'");
         }
-
-        IStep step;
-        try
+        else
         {
-            step = type.Read(Parameters(envelope["params"], "params", where));
-        }
-        catch (StepFormatException ex)
-        {
-            Drop(where, ex.Message);
-            return null;
+            try
+            {
+                step = type.Read(parameters);
+            }
+            catch (StepFormatException ex)
+            {
+                step = Keep(where, key, parameters, ex.Message.TrimEnd('.'));
+            }
         }
 
         // A step-level "overrides" member (the 2026-10-05 design, never written by a shipped version) is passed over: a
@@ -75,7 +74,12 @@ internal sealed class CommandStepJsonReader
     private static JsonObject Parameters(JsonNode? node, string name, string where)
         => node is null ? [] : JsonMembers.RequireObject(node, $"'{name}' of {where}");
 
-    private void Drop(string what, string why) => _notice?.Invoke($"{Capitalised(what)} dropped: {why}");
+    /// <summary>The step as the file had it, with one notice; the sync counts these notices and skips such a file.</summary>
+    private UnknownStep Keep(string where, string key, JsonObject parameters, string why)
+    {
+        _notice?.Invoke($"{Capitalised(where)} kept as is: {why}.");
+        return UnknownStepType.Keep(key, parameters, why);
+    }
 
     private static string Capitalised(string text)
         => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];

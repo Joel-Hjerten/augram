@@ -127,14 +127,14 @@ public sealed class SyncFileSerializerTests
     }
 
     [Fact]
-    public void AStepOfAnUnknownTypeIsDroppedWithANotice()
+    public void AStepOfAnUnknownTypeIsKeptWithANotice()
     {
         var notices = new List<string>();
 
         Assert.True(SyncFileSerializer.TryRead(SyncFileSerializer.Write(SampleFile()), new Core.Steps.StepRegistry([]), notices.Add, out var file, out _));
 
         Assert.NotEmpty(notices);
-        Assert.All(file.Mapping.AllCommands(), pair => Assert.Empty(pair.Command.Steps));
+        Assert.All(file.Mapping.AllCommands().SelectMany(pair => pair.Command.Steps), step => Assert.IsType<Core.Steps.Unknown.UnknownStep>(step.Step));
     }
 
     private static SyncFile SampleFile()

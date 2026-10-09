@@ -25,4 +25,10 @@ public interface IStep
     /// command line must not reach a log).
     /// </summary>
     string LogSummary => Summary;
+
+    /// <summary>
+    /// The type key the config file holds for this step: <see cref="IStepType.Key"/>, except for a step kept as is from a
+    /// newer Augram (<c>Steps/Unknown</c>), which writes back the key it was read with.
+    /// </summary>
+    string StoredKey => Type.Key;
 }

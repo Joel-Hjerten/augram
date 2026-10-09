@@ -203,7 +203,7 @@ internal static class MappingJsonWriter
     private static void WriteStep(Utf8JsonWriter writer, CommandStep step)
     {
         writer.WriteStartObject();
-        writer.WriteString("type", step.Step.Type.Key);
+        writer.WriteString("type", step.Step.StoredKey);
         writer.WriteString("authoredOn", step.AuthoredOn.ToString());
         writer.WriteBoolean("isActive", step.IsActive);
         writer.WritePropertyName("params");
