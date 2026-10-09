@@ -146,7 +146,7 @@ Decided design: requirements F8 "Cross-platform commands — DECIDED" and "Use o
 
 - May Joel's 105 gestures be copied into the public repo as a test fixture? Not asked yet; do not do it without his yes.
 - Avalonia 12 / SharpHook 8 upgrade: deferred to the start of M2 or later; nothing blocks on it.
-- **Tray click on macOS** (asked 2026-10-07, no answer yet): 1) Windows behaviour via a native NSStatusItem (single click toggles, double opens, right-click menu; recommended), 2) Mac convention (click opens the menu, first item toggles), 3) click opens the menu, Option-click toggles. Today Avalonia's tray on macOS opens the menu on every click.
+- **Tray click on macOS: answered 2026-10-09 (Joel: as on Windows), built as `MacStatusItem`; was:** 1) Windows behaviour via a native NSStatusItem (single click toggles, double opens, right-click menu; recommended), 2) Mac convention (click opens the menu, first item toggles), 3) click opens the menu, Option-click toggles. Today Avalonia's tray on macOS opens the menu on every click.
 - **D6** maximize = fill the visible frame and restore (working choice; Joel has used it without objecting).
 - Gestures tab Undo/Redo buttons: keep or drop like the Commands lists? Keyboard undo on the Commands lists: kept; Joel may want it gone.
 - Next Mac slices offered: Center / snap halves / set size, start at login for the installed bundle.

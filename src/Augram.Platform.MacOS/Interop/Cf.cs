@@ -27,6 +27,9 @@ internal static class Cf
     public static nint Constant(string text) =>
         Constants.GetOrAdd(text, static t => MacNative.CFStringCreateWithCString(0, t, MacNative.CFStringEncodingUtf8));
 
+    /// <summary>A new <c>CFStringRef</c> (toll-free an <c>NSString</c>) for <paramref name="text"/>; owned, so <see cref="Release"/> it.</summary>
+    public static nint String(string text) => MacNative.CFStringCreateWithCString(0, text, MacNative.CFStringEncodingUtf8);
+
     public static void Release(nint cf)
     {
         if (cf != 0)

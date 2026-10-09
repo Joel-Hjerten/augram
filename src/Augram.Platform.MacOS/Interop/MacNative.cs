@@ -215,6 +215,33 @@ internal static partial class MacNative
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial void SendVoid(nint receiver, nint selector, CGRect rect, byte flag);
 
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendPtr(nint receiver, nint selector, nint argument);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendPtr(nint receiver, nint selector, double argument);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendPtr(nint receiver, nint selector, nint first, nuint second);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendPtr(nint receiver, nint selector, nint first, nint second, nint third);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial void SendVoid(nint receiver, nint selector);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial void SendVoid(nint receiver, nint selector, CGSize size);
+
+    [LibraryImport(ObjCLibrary, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial nint objc_allocateClassPair(nint superclass, string name, nuint extraBytes);
+
+    [LibraryImport(ObjCLibrary)]
+    public static partial void objc_registerClassPair(nint cls);
+
+    [LibraryImport(ObjCLibrary, StringMarshalling = StringMarshalling.Utf8)]
+    public static unsafe partial byte class_addMethod(nint cls, nint selector, delegate* unmanaged<nint, nint, nint, void> implementation, string types);
+
     /// <summary>A method returning <c>NSRect</c> on arm64, where a four-double struct comes back in registers.</summary>
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial CGRect SendRect(nint receiver, nint selector);

@@ -4,6 +4,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Threading;
 
 namespace Augram.App.Tray;
@@ -14,8 +15,11 @@ namespace Augram.App.Tray;
 /// · Sync now (only while a sync repository is set, F8) · Quit, and the tooltip starts with the build's name and ends with the
 /// last sync ("Augram (Dev) (enabled) · synced 14:32", <see cref="ToolTipFor"/>); while a "disable while focused" app has focus
 /// it says so instead of "enabled" ("Augram (paused: VMware is focused)", <see cref="EnginePauseState"/>) and the icon is the disabled one, while the Enabled check box keeps showing the setting. Single versus double is decided by
-/// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click
-/// takes effect only after the double-click window (250 ms) has passed; Avalonia offers no better signal.
+/// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click takes effect only after
+/// the system's double-click time has passed (2026-10-09: the fixed 250 ms was shorter than an ordinary double click, so a
+/// double click toggled twice instead of opening); Avalonia offers no better signal. The item itself is the platform's
+/// <see cref="ITrayHost"/>: on macOS Augram's own menu-bar item, so the clicks arrive there too and the menu opens on a
+/// right click or a Control-click (Joel, 2026-10-09).
 /// </summary>
 public sealed class AppTray : IDisposable
 {
@@ -24,9 +28,9 @@ public sealed class AppTray : IDisposable
     private readonly AppState _state;
     private readonly Action _open;
     private readonly IEventLog _log;
-    private readonly TrayIcon _icon;
+    private readonly ITrayHost _host;
     private TrayIconSet _icons;
-    private readonly ClickDiscriminator _clicks = new();
+    private readonly ClickDiscriminator _clicks = new(DoubleClickTime());
     private readonly DispatcherTimer _timer;
     private readonly NativeMenuItem _enabledItem;
     private readonly NativeMenuItem _startAtLoginItem;
@@ -67,9 +71,8 @@ public sealed class AppTray : IDisposable
             _sync.Changed += (_, _) => Sync();
         }
 
-        _icon = new TrayIcon { Menu = menu, IsVisible = true };
-        MacOSProperties.SetIsTemplateIcon(_icon, _icons.IsTemplate);
-        _icon.Clicked += OnClicked;
+        _host = ITrayHost.Create(menu);
+        _host.Clicked += OnClicked;
         _timer = new DispatcherTimer { Interval = _clicks.Window };
         _timer.Tick += OnTick;
         _state.PropertyChanged += OnStateChanged;
@@ -80,9 +83,6 @@ public sealed class AppTray : IDisposable
         }
 
         Sync();
-
-        var icons = new TrayIcons { _icon };
-        TrayIcon.SetIcons(Application.Current!, icons);
     }
 
     public void Dispose()
@@ -95,8 +95,8 @@ public sealed class AppTray : IDisposable
             _pause.PropertyChanged -= OnPauseChanged;
         }
 
-        _icon.Clicked -= OnClicked;
-        _icon.Dispose();
+        _host.Clicked -= OnClicked;
+        _host.Dispose();
     }
 
     private void OnClicked(object? sender, EventArgs e)
@@ -132,9 +132,7 @@ public sealed class AppTray : IDisposable
 
         if (e.PropertyName == nameof(AppState.ColourMenuBarIcon))
         {
-            // Template first, then the image: the menu bar reads the flag when the image is set.
             _icons = TrayIconSet.Load(_state.ColourMenuBarIcon);
-            MacOSProperties.SetIsTemplateIcon(_icon, _icons.IsTemplate);
         }
 
         Sync();
@@ -144,8 +142,10 @@ public sealed class AppTray : IDisposable
 
     private void Sync()
     {
-        _icon.Icon = ShowsEnabledIcon(_state.Enabled, _pause?.PausedBy) ? _icons.Enabled : _icons.Disabled;
-        _icon.ToolTipText = ToolTipFor(_state.App, _state.Enabled, _sync?.ShortStatus, _pause?.PausedBy);
+        _host.Show(
+            ShowsEnabledIcon(_state.Enabled, _pause?.PausedBy) ? _icons.Enabled : _icons.Disabled,
+            _icons.IsTemplate,
+            ToolTipFor(_state.App, _state.Enabled, _sync?.ShortStatus, _pause?.PausedBy));
         _enabledItem.IsChecked = _state.Enabled;
         _startAtLoginItem.IsChecked = _state.StartAtLogin;
     }
@@ -160,6 +160,13 @@ public sealed class AppTray : IDisposable
     /// a pause shows the disabled icon too); the Enabled menu check box keeps showing the setting itself.
     /// </summary>
     public static bool ShowsEnabledIcon(bool enabled, string? pausedBy) => enabled && pausedBy is null;
+
+    /// <summary>The system's double-click time (Windows: the mouse setting, 500 ms by default; macOS: the Dock and trackpad setting), or <see cref="ClickDiscriminator.DefaultWindow"/> when the platform gives none.</summary>
+    private static TimeSpan DoubleClickTime()
+    {
+        var time = Application.Current?.PlatformSettings?.GetDoubleTapTime(PointerType.Mouse);
+        return time is { } value && value > TimeSpan.Zero ? value : ClickDiscriminator.DefaultWindow;
+    }
 
     public static string ToolTipFor(AppInfo app, bool enabled, string? syncStatus, string? pausedBy = null)
     {
