@@ -859,6 +859,9 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Cursor" Value="Help" />
     <Setter Property="ToolTip.ShowDelay" Value="200" />
+    <!-- Beside the mark, not at the pointer: the help cursor covered a tooltip opened under it (Joel, 2026-10-09). -->
+    <Setter Property="ToolTip.Placement" Value="Right" />
+    <Setter Property="ToolTip.HorizontalOffset" Value="8" />
   </Style>
   <Style Selector="TextBlock.help">
     <Setter Property="FontSize" Value="{StaticResource Font.S}" />

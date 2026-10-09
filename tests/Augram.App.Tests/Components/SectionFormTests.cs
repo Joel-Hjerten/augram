@@ -43,6 +43,7 @@ public sealed class SectionFormTests
         var marks = form.GetVisualDescendants().OfType<TextBlock>().Where(text => text.Classes.Contains("help-icon")).ToList();
         Assert.Equal(["About the section.", "What it does.", null], marks.Select(mark => mark.IsVisible ? (string?)ToolTip.GetTip(mark) : null));
         Assert.All(marks, mark => Assert.Equal("ⓘ", mark.Text));
+        Assert.All(marks, mark => Assert.Equal(PlacementMode.Right, ToolTip.GetPlacement(mark)));
         Assert.DoesNotContain(form.GetVisualDescendants().OfType<TextBlock>(), text => text.Text is "What it does." or "About the section.");
     }
 
