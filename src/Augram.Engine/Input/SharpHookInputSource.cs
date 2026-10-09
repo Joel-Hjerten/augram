@@ -1,5 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.Diagnostics;
+using Augram.Engine.Hosting;
 using SharpHook;
 using SharpHook.Data;
 using SharpHook.Providers;
@@ -13,7 +15,10 @@ namespace Augram.Engine.Input;
 /// handler translates the event to a <see cref="RawInput"/>, calls the <see cref="InputHandler"/>, copies
 /// its answer to <c>SuppressEvent</c>, returns; nothing else. Simulated events are dropped before the
 /// handler: <c>IsEventSimulated</c> is true for input injected by any process, so other utilities'
-/// synthetic input is ignored too (learnings 0001, B4). Key events take the same path; the handler
+/// synthetic input is ignored too (learnings 0001, B4). A dropped button press or release (simulated, or a
+/// button number past 5) is logged as "Button ignored" with the raw number, at most once per
+/// <see cref="IgnoredLogInterval"/> for each button, reason and direction, so a remapped mouse button that
+/// never reaches the engine (a vendor tool injecting it) shows what it arrives as. Key events take the same path; the handler
 /// suppresses them only while a hotkey capture is armed (<c>EngineHost.CaptureKeys</c>, decided in
 /// <c>InputGate</c>). Thin and untested on purpose: it needs a desktop, and everything above it is
 /// driven through a fake source in tests.
@@ -22,16 +27,26 @@ public sealed class SharpHookInputSource : IInputSource
 {
     private static readonly TimeSpan JoinTimeout = TimeSpan.FromSeconds(5);
 
+    /// <summary>The minimum gap between two "Button ignored" lines for the same button, reason and direction.</summary>
+    public static readonly TimeSpan IgnoredLogInterval = TimeSpan.FromSeconds(30);
+
+    private const int IgnoredButtonSlots = 16;
+
     private readonly IClock _clock;
+    private readonly IEventLog _log;
+
+    // Hook thread only: last "Button ignored" time per (button, simulated, pressed); 0 = never.
+    private readonly long[] _ignoredLoggedAt = new long[IgnoredButtonSlots * 4];
     private readonly object _gate = new();
     private Generation? _current;
     private InputHandler? _handler;
     private int _generation;
 
-    public SharpHookInputSource(IClock clock)
+    public SharpHookInputSource(IClock clock, IEventLog? log = null)
     {
         ArgumentNullException.ThrowIfNull(clock);
         _clock = clock;
+        _log = log ?? NullEventLog.Instance;
     }
 
     public event EventHandler<HookHealth>? HookHealthChanged;
@@ -168,6 +183,7 @@ public sealed class SharpHookInputSource : IInputSource
     {
         if (e.IsEventSimulated || !MouseButtonMap.TryToCore(e.Data.Button, out var button))
         {
+            LogIgnoredButton(e);
             return;
         }
 
@@ -175,6 +191,30 @@ public sealed class SharpHookInputSource : IInputSource
             ? RawInput.ButtonDown(button, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask))
             : RawInput.ButtonUp(button, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask));
         e.SuppressEvent = _handler!(in raw);
+    }
+
+    private void LogIgnoredButton(MouseHookEventArgs e)
+    {
+        var number = (int)e.Data.Button;
+        var pressed = e.RawEvent.Type == EventType.MousePressed;
+        var slot = ((Math.Min(number, IgnoredButtonSlots - 1) * 2) + (e.IsEventSimulated ? 1 : 0)) * 2 + (pressed ? 1 : 0);
+        var now = _clock.MonotonicMs;
+        var last = _ignoredLoggedAt[slot];
+        if ((last != 0 && now - last < (long)IgnoredLogInterval.TotalMilliseconds) || !_log.IsEnabled(EventLevel.Info))
+        {
+            return;
+        }
+
+        _ignoredLoggedAt[slot] = now == 0 ? 1 : now;
+        _log.Info(
+            LogSources.Hook,
+            "Button ignored",
+            ("button", number),
+            ("direction", pressed ? "down" : "up"),
+            ("reason", e.IsEventSimulated ? "simulated" : "unknown button"),
+            ("mask", $"0x{(ushort)e.RawEvent.Mask:X4}"),
+            ("x", e.Data.X),
+            ("y", e.Data.Y));
     }
 
     private void OnMove(object? sender, MouseHookEventArgs e)

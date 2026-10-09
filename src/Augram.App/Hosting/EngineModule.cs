@@ -59,7 +59,7 @@ public static class EngineModule
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Settings);
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Gestures);
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Mapping);
-        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>()));
+        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>(), sp.GetRequiredService<IEventLog>()));
         services.AddSingleton<IInputSimulator>(_ => new SharpHookInputSimulator());
         RegisterPlatform(services, options.PlatformAdapters);
 
