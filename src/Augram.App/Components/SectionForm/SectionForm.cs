@@ -73,7 +73,7 @@ public sealed class SectionForm : TemplatedControl
 
     private FieldRow BuildRow(string sectionPath, Field field)
     {
-        var row = new FieldRow { Label = field.Label, Help = field.Help, Editor = Renderers.Build(field) };
+        var row = new FieldRow { Label = field.Label, Help = field.Help, Editor = Renderers.Build(field), Accessory = field.Accessory?.Invoke() };
         Region.Mark(row, field.Label, new RegionInfo($"{sectionPath} › {field.Label}", field.Kind, field.Source, field.Binding?.PropertyName));
         if (field.Visible is { } visible)
         {

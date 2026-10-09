@@ -1,0 +1,55 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:wf="using:Augram.App.Components.WindowFinder">
+  <!--
+    Wireframe look of the window finder (F5 app identification): a small framed magnifier drawn as a path (no icon font),
+    and while dragging the feedback line ("chrome.exe · Google Chrome") in a popup above it, so nothing on the form moves.
+    Included by Wireframe.axaml next to Tokens.axaml; it merges the tokens itself so it also loads on its own (tests).
+    Tokens only, no literal colours. The frame keeps one thickness; finding changes only its colour.
+  -->
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <ControlTheme x:Key="{x:Type wf:WindowFinder}" TargetType="wf:WindowFinder">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Panel>
+          <Border Name="PART_Glass"
+                  Width="{StaticResource Row.ControlSize}"
+                  Height="{StaticResource Row.ControlSize}"
+                  Background="{StaticResource Brush.Background}"
+                  BorderBrush="{StaticResource Brush.Border}"
+                  BorderThickness="{StaticResource Border.Hairline}">
+            <Path Name="PART_Magnifier"
+                  Data="M 10,6 A 4,4 0 1 1 2,6 A 4,4 0 1 1 10,6 Z M 9,9 L 14,14"
+                  Stroke="{StaticResource Brush.Text}"
+                  StrokeThickness="1.5"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center" />
+          </Border>
+          <Popup Name="PART_Feedback"
+                 IsOpen="{TemplateBinding IsFinding}"
+                 Placement="Top"
+                 VerticalOffset="-4"
+                 IsLightDismissEnabled="False">
+            <Border Background="{StaticResource Brush.Surface}"
+                    BorderBrush="{StaticResource Brush.Accent}"
+                    BorderThickness="{StaticResource Border.Hairline}"
+                    Padding="{StaticResource Pad.S}">
+              <TextBlock Name="PART_HoverText" Text="{TemplateBinding HoverText}" />
+            </Border>
+          </Popup>
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:finding /template/ Border#PART_Glass">
+      <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+    </Style>
+    <Style Selector="^:finding /template/ Path#PART_Magnifier">
+      <Setter Property="Stroke" Value="{StaticResource Brush.Accent}" />
+    </Style>
+  </ControlTheme>
+</ResourceDictionary>

@@ -35,6 +35,16 @@ The engine's ignore-list watch (`src/Augram.Engine/README.md`, "Ignore list") ru
 
 Not built yet: `ISystemEvents` (sleep/wake via `NSWorkspace` notifications), `IStartupRegistration` (`SMAppService`, needs an app bundle), the placement operations and an app bundle.
 
+## Window finder on macOS (2026-10-09, not yet run on a Mac)
+
+The identification form's magnifiers (App README, "Window finder") call `MacWindowSystem.WindowKeyAt` and `WindowAt` on the main thread while dragging: both read the window server's list and `proc_pidpath` only, no Accessibility call, so they run inline there. The pointer comes from Avalonia (`PointToScreen`), which is points from the top left of the main display like the window list. The Mac session must verify:
+
+1. Dragging a magnifier from Commands › Apps out of Augram's window onto Safari, Chrome or TextEdit names the app in the popup as the pointer moves (on both displays: the 2x built-in and the 1x external, and on a display left of or above the main one), and the release adds `Safari` / `Google Chrome` / `TextEdit` to the macOS executables.
+2. The cursor is a crosshair outside Augram's window during the drag, and the target app gets no click from the release.
+3. Over Augram's own window the popup says so and nothing is picked; over the desktop it names whatever owns the desktop window there (Finder for the icons; say what the wallpaper reads as); over the menu bar it names the menu-bar owner (`MacWindowPick` keeps small windows above the normal layer).
+4. Esc cancels; whether a right-click during the drag reaches Augram outside its window (AppKit may send it to the window under the pointer, in which case only Esc cancels).
+5. Executable path fills the path inside the bundle (`/Applications/Safari.app/Contents/MacOS/Safari`); the title magnifier says "no title" without the Screen Recording permission.
+
 ## Coordinates and identity
 
 - **Units are points, origin top-left of the main display, y down** everywhere this project hands a value out: the hook reports the pointer that way, CoreGraphics window bounds and the Accessibility API use it, and so does Avalonia for screens and window positions. Only `NSScreen` is bottom-left based; `MacRect.FromCocoa` flips it by the main screen's height. `WindowSize` is read as points.
