@@ -5,7 +5,7 @@ namespace Augram.Core.Tests.Steps.Support;
 
 /// <summary>
 /// Fake <see cref="IInputSimulator"/>: records every call as one line ("press VolumeUp", "release VolumeUp",
-/// "hotkey Control+W", "hotkey Alt+F9 right Alt", "click Left@10,20", "text hi") in order, with a
+/// "hotkey Control+W", "hotkey Alt+F9 right Alt", "click Left@10,20", "scroll Down x3@100,200", "text hi") in order, with a
 /// configurable answer per call kind.
 /// </summary>
 internal sealed class FakeInputSimulator : IInputSimulator
@@ -27,6 +27,8 @@ internal sealed class FakeInputSimulator : IInputSimulator
     public SimulationResult Release(MouseButton button) => Record($"up {button}", OtherResult);
 
     public SimulationResult MoveTo(int x, int y) => Record($"move {x},{y}", OtherResult);
+
+    public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => Record($"scroll {direction} x{notches}@{x},{y}", OtherResult);
 
     public SimulationResult KeyPress(KeyCode key) => Record($"press {key}", PressResult);
 

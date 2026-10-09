@@ -11,7 +11,7 @@ using Xunit;
 namespace Augram.Engine.Tests.Execution;
 
 /// <summary>
-/// A8 and lazy activation: the target is activated right before the first Keyboard or Text step (never
+/// A8 and lazy activation: the target is activated right before the first Keyboard, Mouse or Text step (never
 /// for a command of System steps only), and the settle delay is waited once after that activation when
 /// it moved focus. Measured as the gap
 /// between the fake window system's activation timestamp and the fake step's run timestamp, with a
@@ -62,6 +62,21 @@ public sealed class SettleDelayTests
         EngineHarness.WaitFor(() => keyboard.Runs.Count == 1, "the keyboard step");
         var waited = GapMs(Assert.Single(harness.Windows.Activations).Timestamp, keyboard.Runs[0]);
         Assert.True(waited < 1000, $"waited {waited:F1} ms, expected no settle delay");
+        harness.WaitForLog(LogSources.Execution, "Command fired");
+    }
+
+    [Fact]
+    public void MouseStepFirst_AfterFocusMoved_WaitsTheSettleDelay()
+    {
+        // A Scroll's held keys go to the foreground window and its wheel must reach the same one.
+        var mouse = new FakeStepType(StepCategory.Mouse);
+        using var harness = Harness([mouse], settleDelayMs: 50, activation: Moved);
+
+        harness.Stroke(200, 0);
+
+        EngineHarness.WaitFor(() => mouse.Runs.Count == 1, "the mouse step");
+        var waited = GapMs(Assert.Single(harness.Windows.Activations).Timestamp, mouse.Runs[0]);
+        Assert.True(waited >= 40, $"waited {waited:F1} ms, expected at least 50");
         harness.WaitForLog(LogSources.Execution, "Command fired");
     }
 

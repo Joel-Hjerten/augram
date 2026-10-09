@@ -36,6 +36,8 @@ internal sealed class FakeInputSimulator : IInputSimulator
 
     public SimulationResult MoveTo(int x, int y) => SimulationResult.Success;
 
+    public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => SimulationResult.Success;
+
     public SimulationResult KeyPress(KeyCode key) => SimulationResult.Success;
 
     public SimulationResult KeyRelease(KeyCode key) => SimulationResult.Success;

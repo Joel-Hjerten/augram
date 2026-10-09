@@ -42,6 +42,9 @@ public sealed record EnginePorts
     /// <summary>What the Display steps read and change (learnings 0002); the null object knows no displays, so they skip.</summary>
     public IDisplayModes DisplayModes { get; init; } = NullDisplayModes.Instance;
 
+    /// <summary>What the Clear clipboard step empties; the null object declines, so the step skips.</summary>
+    public IClipboard Clipboard { get; init; } = NullClipboard.Instance;
+
     /// <summary>The current mapping, read once per stroke by the executor; null means no executor at all (recognise and report only, as in M1).</summary>
     public Func<MappingDocument>? Mapping { get; init; }
 

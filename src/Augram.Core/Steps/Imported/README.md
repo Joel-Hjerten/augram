@@ -1,6 +1,6 @@
 # Steps/Imported
 
-The **Imported (not supported yet)** placeholder (key `imported`, category Other): what the StrokesPlus.net importer stores for a step Augram has no type for yet, so Joel's commands survive an import before every type exists and show honestly as not supported. C1 routes `SendAltDown`/`SendAltUp`, `SendWinDown`/`SendWinUp`, `ConsumePhysicalInput`, `MouseClick` (until the MouseClick type lands) and anything unknown here; script-only actions keep their script as the command's note instead.
+The **Imported (not supported yet)** placeholder (key `imported`, category Other): what the StrokesPlus.net importer stores for a step Augram has no type for yet, so Joel's commands survive an import before every type exists and show honestly as not supported. C1 routes `SendAltDown`/`SendAltUp`, `SendWinDown`/`SendWinUp`, `ConsumePhysicalInput`, `MouseClick` (until the MouseClick type lands) and anything unknown here, and a script-only action whose script the importer's `ScriptMapping` does not recognise (method `Script`, the script as the `script` parameter, with a "script-only action" note on the command); the importer's `PlaceholderUpgrade` replaces such placeholders at start once a type for them exists.
 
 | File | Role |
 |---|---|

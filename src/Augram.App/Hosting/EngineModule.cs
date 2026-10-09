@@ -13,11 +13,13 @@ using Augram.Engine.Hosting;
 using Augram.Engine.Input;
 using Augram.Import.StrokesPlus;
 using Augram.Platform.MacOS;
+using Augram.Platform.MacOS.Clipboard;
 using Augram.Platform.MacOS.Display;
 using Augram.Platform.MacOS.Input;
 using Augram.Platform.MacOS.Launch;
 using Augram.Platform.MacOS.Overlay;
 using Augram.Platform.MacOS.WindowSystem;
+using Augram.Platform.Windows.Clipboard;
 using Augram.Platform.Windows.Display;
 using Augram.Platform.Windows.Input;
 using Augram.Platform.Windows.Launch;
@@ -172,6 +174,7 @@ public static class EngineModule
             WindowOperations = sp.GetRequiredService<IWindowOperations>(),
             ProcessLauncher = sp.GetRequiredService<IProcessLauncher>(),
             DisplayModes = sp.GetRequiredService<IDisplayModes>(),
+            Clipboard = sp.GetRequiredService<IClipboard>(),
             Mapping = () => mapping.Current,
             Intercept = training is null ? null : e => training.TryConsume(e),
         };
@@ -197,6 +200,7 @@ public static class EngineModule
         services.AddSingleton<IWindowOperations>(NullWindowOperations.Instance);
         services.AddSingleton<IProcessLauncher>(NullProcessLauncher.Instance);
         services.AddSingleton<IDisplayModes>(NullDisplayModes.Instance);
+        services.AddSingleton<IClipboard>(NullClipboard.Instance);
     }
 
     [SupportedOSPlatform("windows")]
@@ -211,6 +215,7 @@ public static class EngineModule
         services.AddSingleton<IWindowOperations>(_ => new Win32WindowOperations());
         services.AddSingleton<IProcessLauncher>(sp => new Win32ProcessLauncher(sp.GetRequiredService<IEventLog>()));
         services.AddSingleton<IDisplayModes>(_ => new Win32DisplayModes());
+        services.AddSingleton<IClipboard>(_ => new Win32Clipboard());
     }
 
     /// <summary>
@@ -227,6 +232,7 @@ public static class EngineModule
         services.AddSingleton<IWindowOperations, MacWindowOperations>();
         services.AddSingleton<IProcessLauncher>(_ => new MacProcessLauncher());
         services.AddSingleton<IDisplayModes, MacDisplayModes>();
+        services.AddSingleton<IClipboard, MacClipboard>();
     }
 
     private static ConfigSession CreateSession(IServiceProvider sp, EngineModuleOptions options, Action<Action> marshal)

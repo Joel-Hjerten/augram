@@ -1,12 +1,15 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Steps.ClearClipboard;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.DisplayMode;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.Run;
+using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
+using Augram.Core.Steps.WindowOp;
 using Augram.Import.StrokesPlus;
 using Xunit;
 
@@ -78,6 +81,46 @@ public sealed class PlaceholderUpgradeTests
 
         Assert.Equal(new DisplayModeStep(Refresh: RefreshRate.FromHertz(100)), command.Steps.Single().Step);
         Assert.Null(command.Note);
+    }
+
+    [Fact]
+    public void ACommentOnlyScriptIsRemoved_LeavingACommandThatDoesNothingHere()
+    {
+        const string script = "//Do nothing here: this silences the Global gesture over the desktop\r\n//on purpose";
+        var mapping = Mapping(Command("Synthetic Ignore", Placeholder("Script", ("script", script))) with { Note = ScriptNote });
+
+        var result = PlaceholderUpgrade.Upgrade(mapping);
+
+        var command = Global(result).Commands.Single();
+        Assert.Empty(command.Steps);
+        Assert.Null(command.Note);
+        Assert.Equal(1, result.Methods["Script"]);
+    }
+
+    [Fact]
+    public void SendKeysClipClearSnapAndWheelScriptsBecomeTheirSteps_KeepingTheActiveFlag()
+    {
+        const string wheel = "var WM_MOUSEWHEEL = 0x20A; var WHEEL_POS = 0x00780000; var WHEEL_NEG = 0xff880000; var MK_CONTROL = 0x08;"
+            + " sp.WindowFromPoint(action.Start, false).PostMessage(WM_MOUSEWHEEL, new System.IntPtr(WHEEL_NEG+MK_CONTROL), new System.IntPtr((action.Start.Y << 16) + action.Start.X));";
+        const string snap = "var win = action.Window; var screen = win.Screen.WorkingArea; var margin = 0; var halfWidth = Math.floor(screen.Width / 2); win.Restore();"
+            + " var rect = win.Rectangle; rect.X = screen.X + margin; rect.Y = screen.Y + margin; rect.Width = halfWidth - margin*1.5; rect.Height = screen.Height - margin*2; win.Rectangle = rect;";
+        var mapping = Mapping(
+            Command("Zoom", Placeholder("Script", ("script", "// zoom\r\nsp.SendKeys(\"^{ADD}\");"))) with { Note = "Kept line" + Environment.NewLine + ScriptNote },
+            Command("Clear", Placeholder("Script", ("script", "clip.Clear();"))),
+            Command("Snap", Placeholder("Script", ("script", snap))),
+            Command("Wheel", Placeholder("Script", ("script", wheel), isActive: false)));
+
+        var result = PlaceholderUpgrade.Upgrade(mapping);
+
+        var commands = Global(result).Commands;
+        Assert.Equal(new HotkeyStep(KeyModifiers.Control, KeyCode.NumPadAdd), commands[0].Steps.Single().Step);
+        Assert.Equal("Kept line", commands[0].Note);
+        Assert.Equal(new ClearClipboardStep(), commands[1].Steps.Single().Step);
+        Assert.Equal(new WindowOpStep(WindowOperation.SnapLeftHalf), commands[2].Steps.Single().Step);
+        var scroll = commands[3].Steps.Single();
+        Assert.Equal((new ScrollStep(ScrollDirection.Down, 1, KeyModifiers.Control), HostPlatform.Windows, false), (scroll.Step, scroll.AuthoredOn, scroll.IsActive));
+        Assert.Equal(4, result.Methods["Script"]);
+        Assert.Equal(0, PlaceholderUpgrade.Upgrade(result.Mapping).Count);
     }
 
     [Fact]

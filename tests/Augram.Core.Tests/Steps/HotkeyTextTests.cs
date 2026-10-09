@@ -117,4 +117,14 @@ public sealed class HotkeyTextTests
             Enum.GetValues<KeyCode>().Where(HotkeyKeys.IsRightHand));
         Assert.All(Enum.GetValues<KeyCode>().Where(HotkeyKeys.IsRightHand), key => Assert.True(HotkeyKeys.IsModifier(key)));
     }
+
+    [Fact]
+    public void LeftKeysAreTheLeftHandKeyOfEachModifierInPressOrder()
+    {
+        Assert.Equal(
+            [KeyCode.LeftControl, KeyCode.LeftAlt, KeyCode.LeftShift, KeyCode.LeftMeta],
+            HotkeyKeys.LeftKeys(KeyModifiers.Meta | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Control));
+        Assert.Equal([KeyCode.LeftShift], HotkeyKeys.LeftKeys(KeyModifiers.Shift | (KeyModifiers)0x40));
+        Assert.Empty(HotkeyKeys.LeftKeys(KeyModifiers.None));
+    }
 }

@@ -96,7 +96,7 @@ Step vocabulary across active actions:
 
 Trigger kinds across active actions: **201 gesture-only**, 5 wheel-up, 5 wheel-down, 1 Shift chord. No rocker, no X1/X2 chords, no secondary stroke button in use (the two global "Zoom" wheel actions require the secondary button, which is set to none, so they are dead).
 
-Script actions (18 active) reduce to four things: run a program with arguments (refresh-rate switcher, `taskkill /f` elevated), snap the window to the left or right half of the work area via the window rectangle, post `WM_MOUSEWHEEL` with `MK_CONTROL` to the window under the start point (Ctrl+wheel zoom in Explorer), and clear the clipboard. Hotkeys, text expansion, floaters, regions, plug-ins: unused.
+Script actions (18 active) reduce to four things: run a program with arguments (refresh-rate switcher, `taskkill /f` elevated), snap the window to the left or right half of the work area via the window rectangle, post `WM_MOUSEWHEEL` with `MK_CONTROL` to the window under the start point (Ctrl+wheel zoom in Explorer), and clear the clipboard. Hotkeys, text expansion, floaters, regions, plug-ins: unused. (Since 2026-10-09 the importer maps all of these, plus a lone `sp.SendKeys("…")` and the comment-only "Ignore …" overrides, to steps: `Augram.Import.StrokesPlus/README.md`, "Script actions".)
 
 ## 5. What Augram must support, ranked by evidence
 

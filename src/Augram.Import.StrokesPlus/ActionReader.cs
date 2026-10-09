@@ -8,9 +8,10 @@ namespace Augram.Import.StrokesPlus;
 /// Reads an application's <c>Actions[]</c> into <see cref="Command"/> records (plan 0001 §C1): the
 /// description as the name (unique within the group), the trigger through <see cref="TriggerReader"/> (the gesture by name,
 /// a wheel flag, a click, each with the keys and buttons held and the capture mode; learnings 0003 §3.8), steps through
-/// <see cref="StepReader"/>, a script-only action whose script is one <c>sp.RunProgram</c> call as the step it makes
-/// (<see cref="ProgramCallMapping"/>), any other script-only action as a placeholder step, and an action with neither as an
-/// override to nothing. A trigger bound twice in one group (overlapping, as A7 has it) keeps the active command bound and
+/// <see cref="StepReader"/>, a script-only action whose script Augram can express as the steps it makes
+/// (<see cref="ScriptMapping"/>: one <c>sp.RunProgram</c> or <c>sp.SendKeys</c> call, <c>clip.Clear()</c>, SP.net's snap and
+/// Ctrl + wheel samples, or nothing but comments, which is no steps), any other script-only action as a placeholder step,
+/// and an action with neither as an override to nothing. A trigger bound twice in one group (overlapping, as A7 has it) keeps the active command bound and
 /// imports the other without it.
 /// </summary>
 internal sealed class ActionReader
@@ -72,9 +73,9 @@ internal sealed class ActionReader
         var script = JsonRead.Text(action, StrokesPlusJson.Action.Script);
         if (steps.Count == 0 && script.Length > 0)
         {
-            if (RunProgramScript.TryRecognize(script, out var call, out _))
+            if (ScriptMapping.TryMap(script) is { } mapped)
             {
-                steps.Add(new CommandStep(ProgramCallMapping.ToStep(call), HostPlatform.Windows));
+                steps.AddRange(mapped.Select(step => new CommandStep(step, HostPlatform.Windows)));
             }
             else
             {

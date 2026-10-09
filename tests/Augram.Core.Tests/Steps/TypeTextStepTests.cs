@@ -291,6 +291,8 @@ public sealed class TypeTextStepTests
 
         public SimulationResult MoveTo(int x, int y) => Record($"move {x},{y}");
 
+        public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => Record($"scroll {direction}");
+
         public SimulationResult KeyPress(KeyCode key) => Record($"press {key}");
 
         public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}");

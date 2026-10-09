@@ -4,7 +4,7 @@ namespace Augram.Core.Abstractions;
 
 /// <summary>
 /// Synthesises input (ADR-0002 §2): the click replay of a motionless press, a held-back press handed
-/// back to the app (trigger combinations), and the keyboard side of steps (hotkey, text, media keys).
+/// back to the app (trigger combinations), the keyboard side of steps (hotkey, text, media keys) and the wheel (Scroll).
 /// The engine worker and the command executor call it, never the hook thread, and every injected
 /// down gets its up (checklist A19). Injected input comes back through the hook flagged as simulated and is ignored
 /// there. <see cref="TypeText"/> is Unicode entry (layout independent; some games do not see it);
@@ -26,6 +26,13 @@ public interface IInputSimulator
 
     /// <summary>Moves the pointer to the given screen position.</summary>
     SimulationResult MoveTo(int x, int y);
+
+    /// <summary>
+    /// Moves the pointer to the given screen position and turns the wheel <paramref name="notches"/> times in
+    /// <paramref name="direction"/>, one standard notch each (120 on Windows, one line on macOS), so the window under that
+    /// point scrolls. The pointer stays there. Keys held while scrolling are the caller's to press and release.
+    /// </summary>
+    SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y);
 
     SimulationResult KeyPress(KeyCode key);
 

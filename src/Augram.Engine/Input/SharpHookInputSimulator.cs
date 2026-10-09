@@ -1,12 +1,15 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using SharpHook;
+using WheelAxis = SharpHook.Data.MouseWheelScrollDirection;
+using WheelUnit = SharpHook.Data.MouseWheelScrollType;
 
 namespace Augram.Engine.Input;
 
 /// <summary>
-/// <see cref="IInputSimulator"/> over SharpHook's <see cref="EventSimulator"/>. Thin and untested
-/// (it needs a desktop) except for <see cref="ModifierKeys"/>, the left/right choice a hotkey presses;
+/// <see cref="IInputSimulator"/> over SharpHook's <see cref="EventSimulator"/>. Thin and untested against a desktop
+/// except for <see cref="ModifierKeys"/>, the left/right choice a hotkey presses, and <see cref="Notch"/>, one wheel
+/// notch per platform (<see cref="Scroll"/> itself is tested over SharpHook's <c>TestGlobalHook</c>, which posts nothing);
 /// everything above it is driven through a fake in tests. Injected events come
 /// back through the hook with <c>IsEventSimulated</c> set and <see cref="SharpHookInputSource"/> drops
 /// them, which is what keeps a replayed click from being captured again.
@@ -55,6 +58,24 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     {
         var (sx, sy) = Point(x, y);
         return Translate(_simulator.SimulateMouseMovement(sx, sy));
+    }
+
+    public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y)
+    {
+        var moved = MoveTo(x, y);
+        if (moved != SimulationResult.Success)
+        {
+            return moved;
+        }
+
+        var (rotation, axis, type) = Notch(direction, OperatingSystem.IsMacOS());
+        var result = SimulationResult.Success;
+        for (var i = 0; i < notches; i++)
+        {
+            result = Worst(result, Translate(_simulator.SimulateMouseWheel(rotation, axis, type)));
+        }
+
+        return result;
     }
 
     public SimulationResult KeyPress(KeyCode key) => WithKey(key, _simulator.SimulateKeyPress);
@@ -120,6 +141,25 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         }
 
         return keys;
+    }
+
+    /// <summary>
+    /// One wheel notch as SharpHook takes it (positive is up or left): 120 per notch on Windows (<c>WHEEL_DELTA</c>, what
+    /// a wheel click sends; the scroll type is ignored there), one line on macOS (<c>BlockScroll</c> is the line unit
+    /// there; pixel units would barely move).
+    /// </summary>
+    internal static (short Rotation, WheelAxis Axis, WheelUnit Type) Notch(ScrollDirection direction, bool macOS)
+    {
+        short step = macOS ? (short)1 : (short)120;
+        var type = macOS ? WheelUnit.BlockScroll : WheelUnit.UnitScroll;
+        return direction switch
+        {
+            ScrollDirection.Up => (step, WheelAxis.Vertical, type),
+            ScrollDirection.Down => ((short)-step, WheelAxis.Vertical, type),
+            ScrollDirection.Left => (step, WheelAxis.Horizontal, type),
+            ScrollDirection.Right => ((short)-step, WheelAxis.Horizontal, type),
+            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, "Not a scroll direction."),
+        };
     }
 
     private static (short X, short Y) Point(int x, int y)

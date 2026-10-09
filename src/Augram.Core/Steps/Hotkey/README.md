@@ -8,7 +8,8 @@ The **Hotkey** step (key `hotkey`, category Keyboard, **platform-bound**): press
 | `HotkeyStepType` | metadata and JSON (below); `CreateDefault()` is `HotkeyStep.Unset` |
 | `HotkeyExecutor` | no key set → Skipped "no key set" (the command goes on) · `IInputSimulator.Hotkey(modifiers, key, rightHand & modifiers)` → Done, or Failed "Ctrl+W: Unsupported" with the simulator's answer (the command stops). One Debug line (`steps` / "Hotkey": keys, outcome, reason) per run |
 | `HotkeyText` | the one place a hotkey becomes text: the modifiers in a fixed order under the platform's key names, Ctrl, Alt, Shift, Win on Windows and Ctrl, Opt, Shift, Cmd on macOS (Joel, 2026-10-07: words, not ⌘⌥ symbols; display only, Meta is the Win key there and the Command key here), a right-hand one as RCtrl, RAlt, ROpt, RCmd… in the same place ("Ctrl+RAlt+F9", "RCtrl+RShift+P"), joined by "+", then the key's short name (letters and digits as themselves, F-keys, "Esc", "Tab", "PgUp", "PgDn", "Ins", "Del", "PrtSc", arrows as "Left"/"Up"…, "Num 4", "Volume Up", punctuation as its character). The step summary, the App's capture field and key dropdown, the log and the importer share it. `HotkeyText.Names` picks the names for calls without an explicit platform: Windows by default, set by the App's `Program.Main` to the platform it runs on |
-| `HotkeyKeys` | which `KeyCode`s are modifier keys and which flag each holds (left and right fold together); `IsRightHand` (the four Right* keys); `AllModifiers` |
+| `HotkeyKeys` | which `KeyCode`s are modifier keys and which flag each holds (left and right fold together); `IsRightHand` (the four Right* keys); `AllModifiers`; `LeftKeys(modifiers)`, the left-hand keys of a set in press order (what the Scroll step holds) |
+| `HotkeyConversion` (internal) | the F8 conversion below; `SwapModifiers(modifiers, from, out needs)` is the plain Ctrl ↔ Cmd swap alone, shared with the Scroll step's held keys |
 
 ## Parameters
 
@@ -16,7 +17,7 @@ The **Hotkey** step (key `hotkey`, category Keyboard, **platform-bound**): press
 { "modifiers": "Control, Alt", "rightHand": "Alt", "key": "F9" }
 ```
 
-- `modifiers`: `KeyModifiers` flag names (`Control`, `Alt`, `Shift`, `Meta`), case-insensitive, comma-separated; `"None"` or `""` for none; absent = none. Any other name is a `StepFormatException` naming `modifiers`. `Write` emits `KeyModifiers.ToString()` ("None", "Control", "Control, Shift"), so the round trip is byte-stable.
+- `modifiers`: `KeyModifiers` flag names (`Control`, `Alt`, `Shift`, `Meta`), case-insensitive, comma-separated; `"None"` or `""` for none; absent = none. Any other name is a `StepFormatException` naming `modifiers`. The reader (`HotkeyStepType.ReadModifiers`) is shared with the Scroll step's `keys`. `Write` emits `KeyModifiers.ToString()` ("None", "Control", "Control, Shift"), so the round trip is byte-stable.
 - `rightHand`: the same flag names for the modifiers pressed with the right-hand key. Written only when there are any (so a plain hotkey's JSON is unchanged and older files read as plain); read and written cut down to `modifiers`. A bad name is a `StepFormatException` naming `rightHand`.
 - `key`: a `KeyCode` name (`T`, `Digit5`, `F5`, `PageUp`, `Escape`…), case-insensitive; absent = `None` (unset). Numbers are refused: the stored name is the contract, not the enum value.
 
@@ -31,7 +32,7 @@ Some apps treat plain Alt and Ctrl differently from the right-hand keys, which i
 
 ## Execution rules
 
-- The **settle delay (A8)** is not this step's: the executor activates the target and waits once before the first Keyboard or Text step, only when focus moved. This step just sends.
+- The **settle delay (A8)** is not this step's: the executor activates the target and waits once before the first Keyboard, Mouse or Text step, only when focus moved. This step just sends.
 - The simulator presses the **left** modifier keys, and the right-hand key (RightAlt, RightControl, RightShift, RightMeta) for each modifier in `RightHand`.
 - A key held by the user while the step runs is the user's business; the step never releases keys it did not press.
 
@@ -49,4 +50,4 @@ Some apps treat plain Alt and Ctrl differently from the right-hand keys, which i
 
 The exception table is in `HotkeyConversion` and grows as real use shows more. `SummaryOn(platform)` reads a step in that platform's names, so a Windows "Win+D" reads "Win+D" on a Mac too.
 
-**May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn` (one line), the importer (`Augram.Import.StrokesPlus/HotkeyMapping`: `SendHotKey` and non-media `SendVKey`), the App's `Components/Steps/Hotkey/` form and `Components/HotkeyCapture/` field.
+**May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn` (one line), `Steps/Scroll` (`HotkeyText`, `HotkeyKeys`, `ReadModifiers`, `SwapModifiers`), the importer (`Augram.Import.StrokesPlus/HotkeyMapping`: `SendHotKey` and non-media `SendVKey`), the App's `Components/Steps/Hotkey/` form and `Components/HotkeyCapture/` field.

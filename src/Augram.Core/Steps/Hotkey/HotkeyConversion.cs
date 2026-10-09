@@ -51,16 +51,31 @@ internal static class HotkeyConversion
             return Result(step, new HotkeyStep(mapped.Item1, mapped.Item2));
         }
 
-        if (from == HostPlatform.Windows)
+        if (SwapModifiers(source.Modifiers, from, out var needs) is not { } modifiers)
         {
-            return (source.Modifiers & Meta) != 0
-                ? StepConversion.None($"{HotkeyText.Format(source.Modifiers, source.Key, source.RightHand, HostPlatform.Windows)} needs a macOS version: the Windows key has no Mac counterpart")
-                : Result(step, source with { Modifiers = Swap(source.Modifiers, Ctrl, Meta), RightHand = Swap(source.RightHand, Ctrl, Meta) });
+            return StepConversion.None($"{HotkeyText.Format(source.Modifiers, source.Key, source.RightHand, from)} {needs}");
         }
 
-        return (source.Modifiers & (Meta | Ctrl)) == (Meta | Ctrl)
-            ? StepConversion.None($"{HotkeyText.Format(source.Modifiers, source.Key, source.RightHand, HostPlatform.MacOS)} needs a Windows version: Cmd and Ctrl together have no Windows counterpart")
-            : Result(step, source with { Modifiers = Swap(source.Modifiers, Meta, Ctrl), RightHand = Swap(source.RightHand, Meta, Ctrl) });
+        var rightHand = from == HostPlatform.Windows ? Swap(source.RightHand, Ctrl, Meta) : Swap(source.RightHand, Meta, Ctrl);
+        return Result(step, source with { Modifiers = modifiers, RightHand = rightHand });
+    }
+
+    /// <summary>
+    /// The modifier swap alone, shared with a step that holds modifiers without a key (Scroll): authored on Windows, Ctrl
+    /// becomes Cmd; authored on a Mac, Cmd becomes Ctrl; Alt (Option) and Shift stay. Null when the set has no counterpart,
+    /// with the rest of the sentence in <paramref name="needs"/> ("needs a macOS version: the Windows key has no Mac
+    /// counterpart"; on a Mac, Cmd and Ctrl held together).
+    /// </summary>
+    public static KeyModifiers? SwapModifiers(KeyModifiers modifiers, HostPlatform from, out string needs)
+    {
+        if (from == HostPlatform.Windows)
+        {
+            needs = "needs a macOS version: the Windows key has no Mac counterpart";
+            return (modifiers & Meta) != 0 ? null : Swap(modifiers, Ctrl, Meta);
+        }
+
+        needs = "needs a Windows version: Cmd and Ctrl together have no Windows counterpart";
+        return (modifiers & (Meta | Ctrl)) == (Meta | Ctrl) ? null : Swap(modifiers, Meta, Ctrl);
     }
 
     private static StepConversion Result(HotkeyStep original, HotkeyStep converted)

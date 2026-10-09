@@ -22,7 +22,7 @@ The **Run** step (key `run`, category Run, **platform-bound**): start a program,
 ## Execution
 
 - The executor thread calls `IProcessLauncher.Launch` and gets an answer within a bounded time: the launcher **never waits for the program to exit**, and an adapter that has to wait on the OS (the Windows UAC prompt) answers `Started` with a note after its wait and logs the late outcome itself.
-- Run is not a Keyboard or Text step, so the executor never activates the target or waits the settle delay (A8) for it: a started program opens its own window.
+- Run is not a Keyboard, Mouse or Text step, so the executor never activates the target or waits the settle delay (A8) for it: a started program opens its own window.
 - The step's log line names the file, not the arguments. The engine's own `Step ran` Debug line and `Command stopped` Warning carry the step's `Summary`, which shows the arguments: an open point for Joel (handoff), shared with TypeText.
 
 ## Platform (F8)

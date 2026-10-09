@@ -5,7 +5,7 @@ namespace Augram.Import.StrokesPlus;
 
 /// <summary>
 /// A cursor over a StrokesPlus.net script (JavaScript run by ClearScript) that reads just enough of the language for
-/// <see cref="RunProgramScript"/>: blanks and <c>//</c> or <c>/* */</c> comments, words, single characters, and string
+/// <see cref="RunProgramScript"/> and <see cref="ScriptTokens"/>: blanks and <c>//</c> or <c>/* */</c> comments, words, single characters, tokens, and string
 /// literals in double or single quotes or backticks with JavaScript's escapes (<c>\\</c>, <c>\"</c>, <c>\n</c>,
 /// <c>\xHH</c>, <c>\uHHHH</c>, <c>\u{…}</c>, a line continuation; an unknown escape is the character itself), plus
 /// <c>String.raw</c> template literals, read raw. A template with <c>${…}</c> is not a plain string and is refused.
@@ -139,6 +139,42 @@ internal sealed class ScriptReader
         }
 
         return Fail("a string literal is not closed");
+    }
+
+    /// <summary>
+    /// The next token after trivia, for <see cref="ScriptTokens"/>: a word (<c>sp</c>, <c>var</c>, <c>WM_MOUSEWHEEL</c>), a
+    /// number with its letters and dots (<c>0x20A</c>, <c>1.5</c>), a string literal as <c>"value"</c> with its escapes
+    /// applied (whatever its quotes), or one other character. Null at the end, or with <see cref="Error"/> set when a
+    /// comment or a string is not closed.
+    /// </summary>
+    public string? TryToken()
+    {
+        if (!SkipTrivia())
+        {
+            return Fail("a comment is not closed");
+        }
+
+        if (_position >= _text.Length)
+        {
+            return null;
+        }
+
+        var first = _text[_position];
+        if (first is '"' or '\'' or '`')
+        {
+            return TryString() is { } literal ? '"' + literal + '"' : null;
+        }
+
+        var start = _position++;
+        if (char.IsLetterOrDigit(first) || first is '_' or '$')
+        {
+            while (_position < _text.Length && (char.IsLetterOrDigit(_text[_position]) || _text[_position] is '_' or '$' || (_text[_position] == '.' && char.IsDigit(first))))
+            {
+                _position++;
+            }
+        }
+
+        return _text[start.._position];
     }
 
     /// <summary>The body of a template literal after <c>String.raw</c>, kept exactly as written; null when there is none.</summary>
