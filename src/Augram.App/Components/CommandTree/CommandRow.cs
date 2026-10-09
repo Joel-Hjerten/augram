@@ -21,6 +21,9 @@ public sealed class CommandRow : ItemRow
     public static readonly StyledProperty<string> TriggerTextProperty =
         AvaloniaProperty.Register<CommandRow, string>(nameof(TriggerText), string.Empty);
 
+    public static readonly StyledProperty<string> BadgeTextProperty =
+        AvaloniaProperty.Register<CommandRow, string>(nameof(BadgeText), string.Empty);
+
     public static readonly StyledProperty<string> SummaryTextProperty =
         AvaloniaProperty.Register<CommandRow, string>(nameof(SummaryText), string.Empty);
 
@@ -52,6 +55,13 @@ public sealed class CommandRow : ItemRow
     {
         get => GetValue(TriggerTextProperty);
         private set => SetValue(TriggerTextProperty, value);
+    }
+
+    /// <summary>The badge's text when there is no glyph: <see cref="TriggerText"/> one word per line ("Wheel" / "up"), so it never breaks inside a word.</summary>
+    public string BadgeText
+    {
+        get => GetValue(BadgeTextProperty);
+        private set => SetValue(BadgeTextProperty, value);
     }
 
     public string SummaryText
@@ -106,6 +116,7 @@ public sealed class CommandRow : ItemRow
             NameText = item?.Name ?? string.Empty;
             IsActive = item?.IsActive ?? true;
             TriggerText = item?.TriggerText ?? string.Empty;
+            BadgeText = string.Join('\n', TriggerText.Split(' ', StringSplitOptions.RemoveEmptyEntries));
             SummaryText = item?.StepSummary ?? string.Empty;
             MarkerText = item?.PlatformMarker;
             PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });

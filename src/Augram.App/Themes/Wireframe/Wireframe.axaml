@@ -465,7 +465,9 @@
                                       IsActive="{TemplateBinding IsActive}"
                                       IsVisible="{TemplateBinding HasGlyph}" />
                   <Border Classes="trigger-badge" IsVisible="{TemplateBinding HasGlyph, Converter={x:Static BoolConverters.Not}}">
-                    <TextBlock Classes="trigger-badge" Text="{TemplateBinding TriggerText}" />
+                    <Viewbox StretchDirection="DownOnly">
+                      <TextBlock Classes="trigger-badge" Text="{TemplateBinding BadgeText}" />
+                    </Viewbox>
                   </Border>
                 </Panel>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
@@ -767,6 +769,18 @@
     <Setter Property="Padding" Value="0" />
     <Setter Property="MinHeight" Value="0" />
   </Style>
+  <!--
+    Scroll bars sit beside the content, never over it (Joel, 2026-10-09): Fluent's auto-hiding bar draws over the right
+    edge and widens on hover, and on the Commands tab it covered every row's active check box. With auto-hide off the
+    bar gets its own column whenever the content scrolls. Set on the scroll viewer itself and as the attached value
+    the list and text box templates bind to. ScrollBarLayoutTests holds it.
+  -->
+  <Style Selector="ScrollViewer">
+    <Setter Property="AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ListBox, TextBox">
+    <Setter Property="ScrollViewer.AllowAutoHide" Value="False" />
+  </Style>
   <Style Selector="TabControl.sub">
     <Setter Property="Padding" Value="0" />
   </Style>
@@ -885,12 +899,12 @@
     <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
     <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
     <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
-    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
   </Style>
+  <!-- One word per line (CommandRow.BadgeText) in small type; the template's down-only Viewbox shrinks a word too wide for the tile instead of breaking it (TriggerBadgeTests). -->
   <Style Selector="TextBlock.trigger-badge">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
     <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
-    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
