@@ -14,7 +14,8 @@
         xmlns:steps="using:Augram.App.Components.StepList"
         xmlns:picker="using:Augram.App.Components.StepTypePicker"
         xmlns:gpicker="using:Augram.App.Components.GesturePicker"
-        xmlns:dialog="using:Augram.App.Components.FormDialog">
+        xmlns:dialog="using:Augram.App.Components.FormDialog"
+        xmlns:md="using:Augram.App.Components.MasterDetail">
   <!--
     Wireframe theme (ADR-0002 §5b): grey boxes, 1 px borders, system font, text where icons would go.
     Every lookless component's ControlTheme lives here; Tokens.axaml supplies the values. Replacing the
@@ -497,6 +498,101 @@
         </Style>
         <Style Selector="^:elsewhere">
           <Setter Property="Opacity" Value="0.55" />
+        </Style>
+      </ControlTheme>
+
+      <!-- A list beside the selected item's form (the Ignored tab): the Commands tab's look, its column widths and its row metrics. -->
+      <ControlTheme x:Key="{x:Type md:MasterDetail}" TargetType="md:MasterDetail">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <DockPanel>
+              <Border DockPanel.Dock="Bottom"
+                      BorderBrush="{StaticResource Brush.Border}"
+                      BorderThickness="0,1,0,0"
+                      Padding="{StaticResource Pad.S}"
+                      Margin="{StaticResource Pad.S}"
+                      IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Classes="note" Text="{TemplateBinding Message}" TextWrapping="Wrap" />
+              </Border>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource Workbench.TreeWidth}" MinWidth="240" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" MinWidth="240" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0"
+                        BorderBrush="{StaticResource Brush.Border}"
+                        BorderThickness="{StaticResource Border.Hairline}"
+                        Background="{StaticResource Brush.Surface}"
+                        Margin="{StaticResource Pad.S}">
+                  <DockPanel>
+                    <Border DockPanel.Dock="Top"
+                            BorderBrush="{StaticResource Brush.Border}"
+                            BorderThickness="{StaticResource Border.Bottom}"
+                            Padding="{StaticResource Pad.S}">
+                      <StackPanel Spacing="{StaticResource Space.S}">
+                        <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                          <Button Name="PART_New" Classes="toolbar" Content="{TemplateBinding NewLabel}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                    <Border DockPanel.Dock="Bottom"
+                            BorderBrush="{StaticResource Brush.Border}"
+                            BorderThickness="0,1,0,0"
+                            Padding="{StaticResource Pad.S}"
+                            IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Classes="help" Text="{TemplateBinding HelpText}" />
+                    </Border>
+                    <ListBox Name="PART_Rows"
+                             ItemsSource="{TemplateBinding Rows}"
+                             Background="{StaticResource Brush.Surface}"
+                             SelectionMode="Single">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                    </ListBox>
+                  </DockPanel>
+                </Border>
+                <GridSplitter Grid.Column="1" Width="4" Background="{StaticResource Brush.Border}" ResizeDirection="Columns" />
+                <Panel Grid.Column="2">
+                  <TextBlock Classes="help"
+                             Margin="{StaticResource Pad.L}"
+                             Text="{TemplateBinding EmptyDetailText}"
+                             IsVisible="{TemplateBinding HasDetail, Converter={x:Static BoolConverters.Not}}" />
+                  <form:SectionForm Name="PART_Detail"
+                                    Screen="{TemplateBinding Detail}"
+                                    IsVisible="{TemplateBinding HasDetail}" />
+                </Panel>
+              </Grid>
+            </DockPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- A MasterDetail row: name (or its in-place editor) over the summary, the active box at the end. -->
+      <ControlTheme x:Key="{x:Type md:MasterRow}" TargetType="md:MasterRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line" ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                  <TextBlock Name="PART_Name"
+                             Classes="row-name"
+                             Text="{TemplateBinding NameText}"
+                             IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="help" Text="{TemplateBinding SummaryText}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <CheckBox Grid.Column="1" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:inactive /template/ TextBlock#PART_Name">
+          <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
         </Style>
       </ControlTheme>
 

@@ -66,7 +66,11 @@ public static class CommandResolver
             : CommandResolution.None($"no command for {trigger.Describe()}");
     }
 
-    /// <summary>The first active ignored app whose matcher claims the window, or null. The engine also asks this at button-down, before any stroke.</summary>
+    /// <summary>
+    /// The first active ignored app (either mode) whose matcher claims the window, or null. <see cref="IgnoreList.Under"/> is
+    /// this rule: the engine's ignore-list watch asks it as the pointer moves, so the stroke button passes through over the app
+    /// before any stroke; here it is the backstop for a stroke captured on a stale answer.
+    /// </summary>
     public static IgnoredApp? FindIgnored(MappingDocument mapping, WindowIdentity? target, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);

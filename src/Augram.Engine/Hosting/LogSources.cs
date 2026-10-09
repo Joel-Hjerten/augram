@@ -20,4 +20,7 @@ public static class LogSources
 
     /// <summary>Command execution: what a trigger resolved to, activation, each step, the command's outcome.</summary>
     public const string Execution = "exec";
+
+    /// <summary>The ignore list's watch: what it watches, the pointer entering and leaving an ignored app, pauses while a "disable while focused" app has focus.</summary>
+    public const string Ignore = "ignore";
 }

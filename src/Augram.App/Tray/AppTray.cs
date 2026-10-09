@@ -12,7 +12,8 @@ namespace Augram.App.Tray;
 /// The tray presence (F7): single click toggles <see cref="AppState.Enabled"/> (the persisted setting the engine follows), double click opens the
 /// window, the menu has Open · Enabled · Start at login (disabled in a development build, <see cref="AppState.CanChangeStartAtLogin"/>)
 /// · Sync now (only while a sync repository is set, F8) · Quit, and the tooltip starts with the build's name and ends with the
-/// last sync ("Augram (Dev) (enabled) · synced 14:32", <see cref="ToolTipFor"/>). Single versus double is decided by
+/// last sync ("Augram (Dev) (enabled) · synced 14:32", <see cref="ToolTipFor"/>); while a "disable while focused" app has focus
+/// it says so instead of "enabled" ("Augram (paused: VMware is focused)", <see cref="EnginePauseState"/>; the icon stays). Single versus double is decided by
 /// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click
 /// takes effect only after the double-click window (250 ms) has passed; Avalonia offers no better signal.
 /// </summary>
@@ -30,9 +31,11 @@ public sealed class AppTray : IDisposable
     private readonly NativeMenuItem _enabledItem;
     private readonly NativeMenuItem _startAtLoginItem;
     private readonly SyncTrayItem? _sync;
+    private readonly EnginePauseState? _pause;
 
-    /// <remarks><c>sync</c> is the sync service, for Sync now and the tooltip; null leaves both out.</remarks>
-    public AppTray(AppState state, Action open, Action quit, IEventLog log, SyncService? sync = null)
+    /// <remarks><c>sync</c> is the sync service, for Sync now and the tooltip; null leaves both out. <c>pause</c> is the
+    /// ignore list's pause for the tooltip; null leaves it out.</remarks>
+    public AppTray(AppState state, Action open, Action quit, IEventLog log, SyncService? sync = null, EnginePauseState? pause = null)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(open);
@@ -70,6 +73,12 @@ public sealed class AppTray : IDisposable
         _timer = new DispatcherTimer { Interval = _clicks.Window };
         _timer.Tick += OnTick;
         _state.PropertyChanged += OnStateChanged;
+        _pause = pause;
+        if (_pause is not null)
+        {
+            _pause.PropertyChanged += OnPauseChanged;
+        }
+
         Sync();
 
         var icons = new TrayIcons { _icon };
@@ -81,6 +90,11 @@ public sealed class AppTray : IDisposable
         _timer.Stop();
         _sync?.Dispose();
         _state.PropertyChanged -= OnStateChanged;
+        if (_pause is not null)
+        {
+            _pause.PropertyChanged -= OnPauseChanged;
+        }
+
         _icon.Clicked -= OnClicked;
         _icon.Dispose();
     }
@@ -126,19 +140,26 @@ public sealed class AppTray : IDisposable
         Sync();
     }
 
+    private void OnPauseChanged(object? sender, PropertyChangedEventArgs e) => Sync();
+
     private void Sync()
     {
         _icon.Icon = _state.Enabled ? _icons.Enabled : _icons.Disabled;
-        _icon.ToolTipText = ToolTipFor(_state.App, _state.Enabled, _sync?.ShortStatus);
+        _icon.ToolTipText = ToolTipFor(_state.App, _state.Enabled, _sync?.ShortStatus, _pause?.PausedBy);
         _enabledItem.IsChecked = _state.Enabled;
         _startAtLoginItem.IsChecked = _state.StartAtLogin;
     }
 
-    /// <summary>"Augram (enabled)", "Augram (Dev) (disabled) · synced 14:32": the build's name, the state, the last sync when there is one.</summary>
-    public static string ToolTipFor(AppInfo app, bool enabled, string? syncStatus)
+    /// <summary>
+    /// "Augram (enabled)", "Augram (Dev) (disabled) · synced 14:32", "Augram (paused: VMware is focused)": the build's name, the
+    /// state (paused while enabled and a "disable while focused" app named by <paramref name="pausedBy"/> has focus), the last
+    /// sync when there is one.
+    /// </summary>
+    public static string ToolTipFor(AppInfo app, bool enabled, string? syncStatus, string? pausedBy = null)
     {
         ArgumentNullException.ThrowIfNull(app);
-        var tip = $"{app.DisplayName} ({(enabled ? "enabled" : "disabled")})";
+        var state = !enabled ? "disabled" : pausedBy is { Length: > 0 } paused ? $"paused: {paused} is focused" : "enabled";
+        var tip = $"{app.DisplayName} ({state})";
         return syncStatus is { Length: > 0 } sync ? $"{tip} · {sync}" : tip;
     }
 }

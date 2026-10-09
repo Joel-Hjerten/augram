@@ -47,6 +47,16 @@ public sealed class BuildLabelTests
     }
 
     [Fact]
+    public void TheTrayTooltipSaysWhichFocusedAppPausedAugram()
+    {
+        Assert.Equal("Augram (paused: VMware is focused)", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, null, "VMware"));
+        Assert.Equal("Augram (Dev) (paused: VMware is focused) · synced 14:32", AppTray.ToolTipFor(TestBuilds.Dev, enabled: true, "synced 14:32", "VMware"));
+        // Switched off wins: a pause means nothing while Augram is disabled anyway.
+        Assert.Equal("Augram (disabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: false, null, "VMware"));
+        Assert.Equal("Augram (enabled)", AppTray.ToolTipFor(TestBuilds.Release, enabled: true, null, string.Empty));
+    }
+
+    [Fact]
     public void OptionsAboutShowsVersionCommitAndChannel()
     {
         using var engine = new EngineFixture(start: false);

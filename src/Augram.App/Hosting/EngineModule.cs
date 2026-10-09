@@ -67,6 +67,7 @@ public static class EngineModule
         services.AddSingleton<IStrokeTrail>(sp => sp.GetRequiredService<TrailOverlayWindow>());
         services.AddSingleton(CreateHost);
         services.AddSingleton<EngineSettingsLink>();
+        services.AddSingleton(_ => new EnginePauseState(marshal));
         services.AddSingleton(sp => new StrokeButtonDetection(sp.GetRequiredService<EngineHost>(), sp.GetRequiredService<SettingsStore>(), marshal));
         services.AddSingleton<IKeyCapture>(sp => new EngineKeyCapture(sp.GetRequiredService<EngineHost>(), marshal));
         return services;
@@ -100,6 +101,8 @@ public static class EngineModule
         services.GetRequiredService<EngineSettingsLink>();
         services.GetRequiredService<AppState>().SyncStartupRegistration();
         host.Start();
+        // The tray says "paused: VMware is focused" while a "disable while focused" app has focus (F5 ignore list).
+        services.GetRequiredService<EnginePauseState>().Follow(host);
         PublishKeyCapture(services);
     }
 

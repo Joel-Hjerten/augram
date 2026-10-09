@@ -22,7 +22,7 @@ The three facade interfaces (`IWin32Windows` queries, `IWin32Foreground` and `IW
 
 ## Threading rule
 
-**Never block, never sleep on the hook thread.** Every `IWindowSystem` call makes several Win32 calls (and `WindowFromPoint` crosses into other processes' windows), `ProcessImagePath` opens a process handle, and `Activate` sleeps while polling. The engine worker calls these; a hook handler only appends a point and returns (invariant 1). `Activate` is bounded: at most 3 techniques × 50 ms of polling ≈ 150 ms worst case, typically one call and 0–5 ms.
+**Never block, never sleep on the hook thread.** Every `IWindowSystem` call makes several Win32 calls (and `WindowFromPoint` crosses into other processes' windows), `ProcessImagePath` opens a process handle, and `Activate` sleeps while polling. The engine worker, the command executor and the ignore-list watch call these; a hook handler only appends a point and returns (invariant 1). The ignore list's cheap keys are one call each: `WindowKeyAt` is the `WindowFromPoint` handle, `ForegroundKey` the `GetForegroundWindow` handle; the watch reads an identity only when one of them changes. `Activate` is bounded: at most 3 techniques × 50 ms of polling ≈ 150 ms worst case, typically one call and 0–5 ms.
 
 ## Identity (`WindowAt`, `Foreground`)
 

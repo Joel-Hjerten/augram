@@ -110,7 +110,7 @@ public sealed class App : Application
         EngineModule.Start(_services);
         // Sync starts also under --no-engine: it never touches input.
         SyncModule.Start(_services);
-        _tray = new AppTray(_services.GetRequiredService<AppState>(), ShowMainWindow, () => desktop.Shutdown(), log, _services.GetService<SyncService>());
+        _tray = new AppTray(_services.GetRequiredService<AppState>(), ShowMainWindow, () => desktop.Shutdown(), log, _services.GetService<SyncService>(), _services.GetService<EnginePauseState>());
         if (_startup?.Guard is { } guard)
         {
             ListenToOtherLaunches(guard, desktop, log);

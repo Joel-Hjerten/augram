@@ -27,7 +27,7 @@ public static class AppNavigation
         {
             GesturesModule.NavEntry(services),
             CommandsModule.NavEntry(services),
-            new("Ignored", IgnoredKey, IgnoredScreen.Declare),
+            IgnoredModule.NavEntry(services),
             new("Options", OptionsKey, () => OptionsScreen.Declare(services.GetRequiredService<AppSettingsViewModel>(), services.GetService<SyncViewModel>())),
             new("Diagnostics", DiagnosticsKey, SubEntries:
             [

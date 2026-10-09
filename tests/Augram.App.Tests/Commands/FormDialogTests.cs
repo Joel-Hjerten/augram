@@ -36,7 +36,8 @@ public sealed class FormDialogTests
     [AvaloniaFact]
     public void TheGroupFormRendersItsDeclaredFieldsAndWritesBackToTheEditState()
     {
-        var edit = new GroupEditViewModel { Name = "Chrome", WindowsNames = "chrome.exe" };
+        var edit = new GroupEditViewModel { Name = "Chrome" };
+        edit.Identification.WindowsNames = "chrome.exe";
         var dialog = new FormDialog { Screen = edit.Declare(), ConfirmLabel = "Save" };
         var window = new Window { Content = dialog };
         window.Show();
@@ -45,7 +46,10 @@ public sealed class FormDialogTests
 
         Assert.True(dialog.HasScreen);
         Assert.False(dialog.HasMessage);
-        Assert.Equal(["Name", "Active", "Use on", "Suppress global commands", "Windows executables", "macOS executables", "Guess for an empty list", "Pick a window", "Window title", "Title is a regular expression"], rows.Select(row => row.Label));
+        Assert.Equal(
+            ["Name", "Active", "Use on", "Suppress global commands", "Windows executables", "macOS executables", "Guess for an empty list", "Pick a window",
+                "Executable path", "Path is a regular expression", "Window title", "Title is a regular expression", "Window classes", "Not when full screen"],
+            rows.Select(row => row.Label));
         ((TextBox)rows[0].Editor!).Text = "Chromium";
         ((CheckBox)rows[3].Editor!).IsChecked = true;
         var useOn = ((StackPanel)rows[2].Editor!).Children.OfType<CheckBox>().ToList();

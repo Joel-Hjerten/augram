@@ -18,9 +18,12 @@ namespace Augram.Engine.Hosting;
 /// (<see cref="CommandExecutor"/>, its own thread, present only when <see cref="EnginePorts.Mapping"/>
 /// is wired) resolves and runs what the worker hands it. Gestures and recognition options are
 /// delegates so the App wires its stores. <see cref="CaptureKeys"/> is the hotkey field's system-wide
-/// key capture (F5; <see cref="KeyCaptureController"/>).
+/// key capture (F5; <see cref="KeyCaptureController"/>). With a mapping, the <see cref="IgnoreListWatch"/>
+/// (its own thread) keeps the ignore list's answer current for the hook: the stroke button passes through
+/// over an ignored app, and everything does while a "disable while focused" app has focus
+/// (<see cref="PausedBy"/>, <see cref="PauseChanged"/>; the App calls <see cref="MappingChanged"/> after an edit).
 /// </summary>
-public sealed class EngineHost : IDisposable
+public sealed partial class EngineHost : IDisposable
 {
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(5);
 
@@ -35,6 +38,7 @@ public sealed class EngineHost : IDisposable
     private readonly EngineWorker _worker;
     private readonly CommandExecutor? _executor;
     private readonly KeyCaptureController _keyCapture;
+    private readonly IgnoreListWatch? _ignoreWatch;
     private readonly Thread _workerThread;
     private readonly Timer _tick;
     private readonly TimeSpan _tickInterval;
@@ -71,6 +75,12 @@ public sealed class EngineHost : IDisposable
         var machine = new CaptureStateMachine(options.StrokeButton, options.Thresholds);
         var recognizer = new StrokeRecognizer(gestures, recognition, ports.RecognitionLog, _log, _clock);
         _executor = ports.Mapping is null ? null : new CommandExecutor(ports, options);
+        if (ports.Mapping is not null)
+        {
+            _ignoreWatch = new IgnoreListWatch(_gate, ports, ports.Mapping, OnPauseChanged);
+            _gate.Attach(_ignoreWatch);
+        }
+
         _worker = new EngineWorker(this, _gate, _queue.Reader, machine, recognizer, _executor, ports, options.QueueCapacity);
         _workerThread = new Thread(_worker.Run) { IsBackground = true, Name = "augram-engine-worker" };
         _tick = new Timer(_ => _gate.Post(WorkerMessage.Input(new CaptureEvent.Tick(_clock.MonotonicMs), false), critical: false));
@@ -181,6 +191,7 @@ public sealed class EngineHost : IDisposable
         _log.Info(LogSources.Engine, "Engine starting", ("strokeButton", StrokeButton), ("enabled", Enabled), ("tickMs", _tickInterval.TotalMilliseconds));
         _workerThread.Start();
         _executor?.Start();
+        _ignoreWatch?.Start();
         Volatile.Write(ref _running, 1);
         _monitor.Start(_gate.Handle);
     }
@@ -204,6 +215,7 @@ public sealed class EngineHost : IDisposable
         }
 
         _executor?.Stop();
+        _ignoreWatch?.Stop();
         _log.Info(LogSources.Engine, "Engine stopped", ("droppedMoves", DroppedMoveCount));
     }
 
@@ -216,6 +228,7 @@ public sealed class EngineHost : IDisposable
 
         Stop();
         _executor?.Dispose();
+        _ignoreWatch?.Dispose();
         _tick.Dispose();
         _monitor.ResetRequested -= OnResetRequested;
         _monitor.Dispose();
