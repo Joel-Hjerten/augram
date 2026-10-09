@@ -27,6 +27,7 @@ public static class GalleryNavigation
         new("GestureGlyph", Key + ".gestureglyph", GestureGalleryPages.GlyphPage),
         new("GestureGrid", Key + ".gesturegrid", GestureGalleryPages.GridPage),
         new("GestureDrawArea", Key + ".gesturedrawarea", GestureGalleryPages.DrawAreaPage),
+        new("Shape cleanup", Key + ".shapecleanup", ShapeCleanupGalleryPage.Page),
         new("Training", Key + ".training", GestureGalleryPages.TrainingPage),
         new("Import", Key + ".import", GestureGalleryPages.ImportPage),
         new("Commands Global", Key + ".commands.global", CommandGalleryPages.GlobalWorkbenchPage),

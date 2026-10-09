@@ -26,6 +26,8 @@
   <SolidColorBrush x:Key="Brush.GlyphStartMuted" Color="#4A4A4A" />
   <SolidColorBrush x:Key="Brush.Accent" Color="#6CA0DC" />
   <SolidColorBrush x:Key="Brush.Danger" Color="#E5484D" />
+  <!-- The cleaned shape drawn over the stroke in the shape cleanup preview (Gallery, plan M2 step 10). -->
+  <SolidColorBrush x:Key="Brush.Cleaned" Color="#F2C14E" />
   <!-- Invisible but hit-testable: a row's background so a click on its empty part still reaches the row. -->
   <SolidColorBrush x:Key="Brush.HitTest" Color="#00000000" />
 

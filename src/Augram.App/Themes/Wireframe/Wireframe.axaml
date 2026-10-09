@@ -844,6 +844,15 @@
   <Style Selector="TextBlock.field-label">
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
+  <!-- A draw area laid over another to show the cleaned shape: no background or frame, the stroke in the cleaned colour. -->
+  <Style Selector="draw|GestureDrawArea.cleaned /template/ Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="draw|GestureDrawArea.cleaned /template/ Path#PART_Stroke">
+    <Setter Property="Stroke" Value="{StaticResource Brush.Cleaned}" />
+    <Setter Property="StrokeThickness" Value="3" />
+  </Style>
   <!-- The (i) that carries a field's or a section's help in its tooltip. -->
   <Style Selector="TextBlock.help-icon">
     <Setter Property="Text" Value="ⓘ" />
