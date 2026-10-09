@@ -10,6 +10,9 @@
 //                                      `xcrun notarytool store-credentials` profile) are set; unsigned, with a warning,
 //                                      when they are not. AUGRAM_INSTALLER_IDENTITY ("Developer ID Installer: ...") adds
 //                                      a signed Augram-osx-Setup.pkg; an unsigned run makes an unsigned .pkg.
+//   node scripts/package.mjs mac --signed
+//                                      the same with Joel's Mac's values (joelsMac below) where the variables are not
+//                                      set: the signed build as one fixed command (Joel allows it in .claude/settings.json).
 //
 // Each run reads the version from the app project (<Version>, Directory.Build.props), publishes self-contained and
 // ReadyToRun into artifacts/publish/<runtime> with -p:AugramChannel=Release, and runs the repo's vpk tool
@@ -133,10 +136,23 @@ function reportGit(version) {
 }
 
 /** The vpk options for signing and notarizing on the Mac, from the environment; warnings for what is missing. */
-function macSigning() {
-  const identity = process.env.AUGRAM_SIGN_IDENTITY?.trim();
-  const notaryProfile = process.env.AUGRAM_NOTARY_PROFILE?.trim();
-  const installerIdentity = process.env.AUGRAM_INSTALLER_IDENTITY?.trim();
+/**
+ * Joel's Mac (docs/release.md): the original Developer ID Application certificate by fingerprint (a second one shares its
+ * name), Eyeris' notary profile, the Developer ID Installer certificate. Not secrets: every signed app names them.
+ * `--signed` uses them where the AUGRAM_* variables are not set, so a signed build is one fixed command that a permission
+ * rule can allow (Eyeris allows its own build the same way).
+ */
+const joelsMac = {
+  identity: "0EBC5A7A9D2041BCC40DC1B6FC9CB9C1F28C9CCE",
+  notaryProfile: "eyeris-notary",
+  installerIdentity: "Developer ID Installer: Joel Hjertén (MN7V4KZF8M)",
+};
+
+function macSigning(signed) {
+  const fallback = signed ? joelsMac : {};
+  const identity = process.env.AUGRAM_SIGN_IDENTITY?.trim() || fallback.identity;
+  const notaryProfile = process.env.AUGRAM_NOTARY_PROFILE?.trim() || fallback.notaryProfile;
+  const installerIdentity = process.env.AUGRAM_INSTALLER_IDENTITY?.trim() || fallback.installerIdentity;
   if (!identity) {
     if (notaryProfile || installerIdentity) {
       fail("AUGRAM_NOTARY_PROFILE or AUGRAM_INSTALLER_IDENTITY is set without AUGRAM_SIGN_IDENTITY: Apple notarizes signed apps only.");
@@ -244,13 +260,15 @@ function formatSize(bytes) {
 
 const mode = process.argv[2];
 const target = targets[mode];
-if (!target) fail("usage: node scripts/package.mjs windows|mac");
+if (!target) fail("usage: node scripts/package.mjs windows|mac [--signed]");
+const signed = process.argv.includes("--signed");
+if (signed && mode !== "mac") fail("--signed is for the Mac build (Windows packages are not code-signed yet).");
 if (process.platform !== target.platform) fail(target.elsewhere);
 
 useHomeDotnetIfNeeded();
 const version = readVersion();
 reportGit(version);
-const signing = mode === "mac" ? macSigning() : [];
+const signing = mode === "mac" ? macSigning(signed) : [];
 
 const publishDir = join(artifacts, "publish", target.runtime);
 const releaseDir = join(artifacts, "releases", target.runtime);

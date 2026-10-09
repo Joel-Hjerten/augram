@@ -52,10 +52,7 @@ release flow below stays ready for when that changes (and auto-update needs it).
 
    ```sh
    git fetch --tags && git checkout v0.2.0
-   export AUGRAM_SIGN_IDENTITY=0EBC5A7A9D2041BCC40DC1B6FC9CB9C1F28C9CCE
-   export AUGRAM_NOTARY_PROFILE=eyeris-notary
-   export AUGRAM_INSTALLER_IDENTITY="Developer ID Installer: Joel Hjertén (MN7V4KZF8M)"
-   node scripts/package.mjs mac
+   node scripts/package.mjs mac --signed
    gh release upload v0.2.0 artifacts/releases/osx-arm64/Augram-0.2.0-osx-full.nupkg \
      artifacts/releases/osx-arm64/Augram-osx-Portable.zip artifacts/releases/osx-arm64/releases.osx.json --clobber
    git checkout main
@@ -86,6 +83,9 @@ Later that day a second Developer ID Application certificate (made by mistake wh
 the keychain under the same name, and codesign refuses an ambiguous name: `AUGRAM_SIGN_IDENTITY` is therefore the
 original's SHA-1 fingerprint, `0EBC5A7A…` (the one Eyeris uses), and `package.mjs` stops early when a name matches more
 than one certificate. The Developer ID Installer certificate exists since 2026-10-08, so the run makes a signed `.pkg`.
+**One command (Joel, 2026-10-09):** `node scripts/package.mjs mac --signed` fills in these three values (`joelsMac` in
+the script; AUGRAM_* variables override them). An agent runs it only where Joel allows that exact command in
+`.claude/settings.json` (the auto-mode check otherwise blocks a build that notarizes with his Apple account).
 
 1. **Developer ID Application certificate** in the login keychain. `security find-identity -v -p codesigning` must list
    it as valid. **If the certificate is installed but the list shows 0 valid identities**, the Developer ID **G2**
