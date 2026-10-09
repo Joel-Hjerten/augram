@@ -221,7 +221,7 @@ Instead of one-off probe runs, the app logs its own health and timings continuou
 | D7 | Distribution ambitions (personal vs public; signing/notarization) | OPEN |
 | D8 | Start-on-login, onboarding | OPEN |
 | D9 | Import from StrokesPlus.net JSON in v1 | LEANING yes (see F8) |
-| D12 | Hold remaps (F9): editor placement, Global hold remaps, hold threshold for letter keys | OPEN — shape DECIDED 2026-10-09; Blender is the first user |
+| D12 | Hold remaps (F9): editor placement, Global hold remaps, hold threshold for letter keys | LEANING — [plan 0002](plans/0002-hold-remaps.md) takes defaults (a section on the app group page; no Global; no threshold) that Joel may overturn; shape DECIDED 2026-10-09 |
 | D11 | Pre-plan checklist (§6) | OPEN — walk through with Joel, then write the plan |
 | D10 | Initial implementation shape (project layout, build order, first milestone) | **DECIDED** — layout in [ADR-0002](adr/0002-code-and-repo-structure.md), build order in [plans/0001-first-version.md](plans/0001-first-version.md). **M1 reached 2026-10-06** (tag `m1`); Joel's acceptance pass pending |
 

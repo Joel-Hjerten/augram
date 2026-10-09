@@ -56,7 +56,7 @@ M1 acceptance: Joel draws his top ten gestures over any app and the log names th
 
 ## M3: daily driver
 
-Switch Joel's stroke button to Middle, retire SP.net for a day, collect the friction list, fix what blocks daily use, write plan 0002 from the rest (macOS adapter, cross-platform conversion UI, hold-modifier wheel step, exclusion zones if ever needed).
+Switch Joel's stroke button to Middle, retire SP.net for a day, collect the friction list, fix what blocks daily use, write the next plan from the rest (macOS adapter, cross-platform conversion UI, hold-modifier wheel step, exclusion zones if ever needed).
 
 ## C1: SP.net import mapping
 
@@ -85,4 +85,4 @@ Eight flicks (↑ ↓ ← → and the four diagonals), four out-and-backs (↑�
 
 ## Not in this plan
 
-Hold remaps (requirements F9, Joel 2026-10-09; Blender first): its own plan once D12's open points are answered, starting with the macOS drag test; macOS adapter and permissions onboarding; signing and notarization (both started anyway on Joel's Mac, 2026-10-07/08: session handoff §8a, docs/release.md); cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.
+Hold remaps (requirements F9): [plan 0002](0002-hold-remaps.md), which Joel put ahead of the rest of M2 on 2026-10-10; macOS adapter and permissions onboarding; signing and notarization (both started anyway on Joel's Mac, 2026-10-07/08: session handoff §8a, docs/release.md); cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.

@@ -2,7 +2,7 @@
 
 Cross-platform (Windows + macOS) mouse gesture utility: hold a chosen mouse button, draw a stroke, fire an action. Replaces StrokesPlus.net (abandoned). Tray-resident, tiny footprint, zero perceptible latency.
 
-## Current phase: BUILDING — plan 0001, M1 accepted by Joel (2026-10-07), M2 under way, macOS port started (2026-10-07)
+## Current phase: BUILDING — plan 0001, M1 accepted by Joel (2026-10-07), M2 under way, macOS port started (2026-10-07); [plan 0002 hold remaps](docs/plans/0002-hold-remaps.md) ahead of the rest of M2 (2026-10-10)
 
 **New agent? Read [docs/session-handoff.md](docs/session-handoff.md) first.** It has the state, the read order, Joel's pending acceptance pass, and the rules that came from incidents. Requirements are in [docs/requirements.md](docs/requirements.md); both ADRs are ACCEPTED; the build order is [docs/plans/0001-first-version.md](docs/plans/0001-first-version.md). Feature code follows that plan and [ADR-0002](docs/adr/0002-code-and-repo-structure.md)'s structure rules, nothing else. The two spikes were deleted at the start of M2 (2026-10-07); their findings live in [docs/learnings/0001-spike2.md](docs/learnings/0001-spike2.md).
 
