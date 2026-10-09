@@ -32,8 +32,15 @@ public static class ShapeCleanup
     /// <summary>The analysis spacing is the stroke's bounding-box diagonal over this (ShortStraw's 40).</summary>
     public const int AnalysisPoints = 40;
 
-    /// <summary>A corner must also turn the stroke at least this much (radians), so a hand's wobble on a straight run is no corner.</summary>
+    /// <summary>A corner must turn the stroke at least this much (radians) over the wide window, so a wiggle that turns back is none.</summary>
     public const double MinimumCornerTurn = 35 * Math.PI / 180;
+
+    /// <summary>
+    /// A corner turns sharply: at least this share of the wide window's turn happens within the narrow one. A round curve
+    /// spreads its turn evenly (about half), a corner concentrates it (close to all) (Joel, 2026-10-09: corners showed on
+    /// small wiggles and on large rounded shapes).
+    /// </summary>
+    public const double CornerSharpness = 0.7;
 
     /// <summary>ShortStraw's window: the straw at a point spans this many resampled points either side.</summary>
     public const int StrawWindow = 3;
@@ -67,7 +74,7 @@ public static class ShapeCleanup
 
         // Corners are looked for on a lightly smoothed copy, so a hand's wobble does not make straws short; the pieces are
         // fitted on the points as drawn.
-        var corners = Corners(Smooth(points));
+        var corners = Corners(Smooth(Smooth(points)));
 
         // One piece that closes on itself is a circle, drawn from where it started and in its direction.
         if (corners.Count == 2 && FitCircle(points) is { } whole && IsClosedCircle(points, whole))
@@ -124,7 +131,7 @@ public static class ShapeCleanup
         var threshold = Median(inner) * CornerThreshold;
         for (var i = StrawWindow; i < count - StrawWindow; i++)
         {
-            if (straws[i] >= threshold || Turn(points, i) < MinimumCornerTurn)
+            if (straws[i] >= threshold || !IsSharpTurn(points, i))
             {
                 continue;
             }
@@ -168,7 +175,7 @@ public static class ShapeCleanup
                 var best = -1;
                 for (var j = Math.Max(low, StrawWindow); j <= Math.Min(high, points.Length - StrawWindow - 1); j++)
                 {
-                    if (best < 0 || straws[j] < straws[best])
+                    if ((best < 0 || straws[j] < straws[best]) && IsSharpTurn(points, j))
                     {
                         best = j;
                     }
@@ -381,10 +388,29 @@ public static class ShapeCleanup
         return length;
     }
 
-    /// <summary>How much the stroke turns at point <paramref name="i"/>: the angle between the run into it and the run out of it, over ShortStraw's window.</summary>
-    private static double Turn(GesturePoint[] points, int i)
+    /// <summary>
+    /// A corner at <paramref name="i"/> judged at two scales: the stroke turns at least <see cref="MinimumCornerTurn"/> over
+    /// twice ShortStraw's window (a wiggle turns back, so not there), and most of that turn happens within the window itself
+    /// (<see cref="CornerSharpness"/>; a round curve spreads it). Near the ends, where the wide window does not fit, the
+    /// narrow turn alone decides.
+    /// </summary>
+    private static bool IsSharpTurn(GesturePoint[] points, int i)
     {
-        var (before, at, after) = (points[i - StrawWindow], points[i], points[i + StrawWindow]);
+        var narrow = Turn(points, i, StrawWindow);
+        var wideWindow = Math.Min(2 * StrawWindow, Math.Min(i, points.Length - 1 - i));
+        if (wideWindow <= StrawWindow)
+        {
+            return narrow >= MinimumCornerTurn;
+        }
+
+        var wide = Turn(points, i, wideWindow);
+        return wide >= MinimumCornerTurn && narrow >= CornerSharpness * wide;
+    }
+
+    /// <summary>How much the stroke turns at point <paramref name="i"/>: the angle between the run into it and the run out of it, <paramref name="window"/> points either side.</summary>
+    private static double Turn(GesturePoint[] points, int i, int window)
+    {
+        var (before, at, after) = (points[i - window], points[i], points[i + window]);
         var turn = Math.Atan2(after.Y - at.Y, after.X - at.X) - Math.Atan2(at.Y - before.Y, at.X - before.X);
         return Math.Abs(turn - (2 * Math.PI * Math.Round(turn / (2 * Math.PI))));
     }

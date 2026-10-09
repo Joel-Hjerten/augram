@@ -25,6 +25,10 @@ Recognition (Corrected scoring, default options), each drawn sample matched agai
 
 **Caveat:** this is biased towards raw: each raw template is scored against the very stroke it was made from. The fair test is fresh strokes. Cleanup also pulls gestures built from straight segments closer together (more pairs above the cut-off), so the per-gesture choice (Clean up shape / Restore original) matters.
 
+## Round 2: corners judged at two scales (same day, Joel: "corners on small wiggles and larger rounded shapes")
+
+A corner must now turn the stroke at least 35° over twice ShortStraw's window (a wiggle turns back, so it does not), and at least 70 % of that turn must happen within the window itself (a round curve spreads its turn, about half; a corner concentrates it). The "add a missed corner" refinement uses the same test, and corners are looked for on a copy smoothed three times. Result on Joel's set: loops, S, e, G, x and S flipped are one smooth piece (before: three or four arcs with corners on their curves); Right Up is two lines, rectangle CW four. Self-recognition 95/95, mean score 97.6, lead 14.3, confusion pairs 7. Still odd: Triangle (Arc Smooth Line), \Up \Down (Arc Arc), Up Right Left (two smooth pieces).
+
 ## Next measurements
 
 - Record the strokes Joel draws in daily use (the Recognition log holds them in memory only) and replay them against raw and cleaned templates.

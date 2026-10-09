@@ -66,6 +66,34 @@ public sealed class ShapeCleanupTests
         Assert.All(cleaned.Points.Skip(1).SkipLast(1), point => Assert.InRange(Distance(point, new GesturePoint(100, 100)), 54, 66));
     }
 
+    /// <summary>A small wiggle in a straight run turns back on itself: no corner (Joel, 2026-10-09).</summary>
+    [Fact]
+    public void ASmallWiggleInALine_IsNoCorner()
+    {
+        var points = Line(new(0, 0), new(240, 0), 80);
+        for (var i = 36; i <= 44; i++)
+        {
+            points[i] = points[i] with { Y = 6 * Math.Sin((i - 36) * Math.PI / 8) };
+        }
+
+        var cleaned = ShapeCleanup.Clean(Wobble(points, 1, seed: 8));
+
+        Assert.Empty(cleaned.Corners);
+        Assert.Equal([PieceKind.Line], cleaned.Pieces);
+    }
+
+    /// <summary>A large rounded U whose curvature varies (half an ellipse) spreads its turn: no corner (Joel, 2026-10-09).</summary>
+    [Fact]
+    public void ALargeUnevenlyRoundedShape_IsNoCorner()
+    {
+        var points = Enumerable.Range(0, 81).Select(i => new GesturePoint(150 + (120 * Math.Cos(Math.PI * i / 80)), 100 + (60 * Math.Sin(Math.PI * i / 80)))).ToList();
+
+        var cleaned = ShapeCleanup.Clean(Wobble(points, 1.5, seed: 9));
+
+        Assert.Empty(cleaned.Corners);
+        Assert.Single(cleaned.Pieces);
+    }
+
     [Fact]
     public void AnUpFlickAndADownFlick_StayDifferent()
     {
