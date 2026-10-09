@@ -1,5 +1,6 @@
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.SectionForm;
+using Augram.App.Components.WindowFinder;
 using Augram.App.ViewModels.Commands;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -47,9 +48,13 @@ public sealed class FormDialogTests
         Assert.True(dialog.HasScreen);
         Assert.False(dialog.HasMessage);
         Assert.Equal(
-            ["Name", "Active", "Use on", "Suppress global commands", "Windows executables", "macOS executables", "Guess for an empty list", "Pick a window",
+            ["Name", "Active", "Use on", "Suppress global commands", "Identify window", "Windows executables", "macOS executables", "Guess for an empty list",
+                "Its path", "Its title", "Its classes",
                 "Executable path", "Path is a regular expression", "Window title", "Title is a regular expression", "Window classes", "Not when full screen"],
             rows.Select(row => row.Label));
+        // The app group gets the window finder through the identification form it shares with ignored apps.
+        Assert.Contains(rows, row => row.Label == "Identify window" && row.Accessory is WindowFinder);
+        Assert.False(rows.Single(row => row.Label == "Its path").IsVisible);
         ((TextBox)rows[0].Editor!).Text = "Chromium";
         ((CheckBox)rows[3].Editor!).IsChecked = true;
         var useOn = ((StackPanel)rows[2].Editor!).Children.OfType<CheckBox>().ToList();

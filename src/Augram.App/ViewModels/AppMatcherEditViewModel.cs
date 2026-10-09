@@ -1,3 +1,4 @@
+using Augram.App.Components.WindowFinder;
 using Augram.App.Declarations;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
@@ -8,13 +9,15 @@ namespace Augram.App.ViewModels;
 /// <summary>
 /// The app identification form, one for both hosts (F5 app identification, F8 per platform; plan 0001 M2 step 6): an app
 /// group on Commands › Apps (<c>GroupEditViewModel</c>) and an ignored app on the Ignored tab (<c>IgnoredEditViewModel</c>).
-/// The Windows and the macOS executable names as comma-separated text with the known-app guess for a platform left empty
-/// (<see cref="GuessText"/>, over the platforms the host says it is used on), the crosshair note, and, out of the way, the
-/// executable path and the window title with their regex toggles, the window classes (Windows) and the full-screen rule
-/// (A21). <see cref="Sections"/> are its part of the host's <see cref="FormScreen"/>; <see cref="ToMatcher"/> turns the text
-/// back into an <see cref="AppMatcher"/> (every matcher field is on the form, so nothing is kept aside); <see cref="SyncFrom"/>
-/// re-reads a stored one without touching a list whose names are the same (a trailing comma being typed survives). Nothing
-/// is validated here: the store's rules answer when the host applies.
+/// "Identify window" (a magnifier dragged onto a window: <c>.Picking</c>), the Windows and the macOS executable names as
+/// comma-separated text with the known-app guess for a platform left empty (<see cref="GuessText"/>, over the platforms the
+/// host says it is used on) and what the identified window offers besides, then, out of the way, the executable path and the
+/// window title with their regex toggles, the window classes (Windows) and the full-screen rule (A21); this platform's
+/// executables, the path, the title and the classes each have a magnifier of their own. <see cref="Sections"/> are its part
+/// of the host's <see cref="FormScreen"/>; <see cref="ToMatcher"/> turns the text back into an <see cref="AppMatcher"/> (every
+/// matcher field is on the form, so nothing is kept aside); <see cref="SyncFrom"/> re-reads a stored one without touching a
+/// list whose names are the same (a trailing comma being typed survives). Nothing is validated here: the store's rules
+/// answer when the host applies.
 /// </summary>
 public sealed partial class AppMatcherEditViewModel : ObservableObject
 {
@@ -136,23 +139,60 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
         IgnoreWhenFullScreen = IgnoreWhenFullScreen,
     };
 
-    /// <summary>The form's part of the host's screen: the identification first, the rarely needed fields after it.</summary>
+    /// <summary>
+    /// The form's part of the host's screen: the identification first, the rarely needed fields after it. A magnifier sits
+    /// before "Identify window", this platform's executables, the path, the title and (Windows) the classes; the identified
+    /// window's path, title and classes show, each with Use, once a window was identified.
+    /// </summary>
     public IReadOnlyList<Section> Sections() =>
     [
         new Section("App identification",
         [
-            new TextField("Windows executables", new DelegateBinding<string>(() => WindowsNames, value => WindowsNames = value, this), "Comma-separated; any of them matches: chrome.exe, msedge.exe"),
-            new TextField("macOS executables", new DelegateBinding<string>(() => MacNames, value => MacNames = value, this), "Comma-separated; any of them matches: Google Chrome, Safari"),
+            new NoteField("Identify window", new DelegateBinding<string>(() => Identified.Summary, owner: Identified), "Drag the magnifier onto any window: its executable joins this platform's list; its path, title and classes show below.")
+            {
+                Accessory = WindowFinderAccessory.Finder(WindowFinder.Summary, IdentifyWindow),
+            },
+            new TextField("Windows executables", new DelegateBinding<string>(() => WindowsNames, value => WindowsNames = value, this), "Comma-separated; any of them matches: chrome.exe, msedge.exe")
+            {
+                Accessory = ExecutableFinder(HostPlatform.Windows),
+            },
+            new TextField("macOS executables", new DelegateBinding<string>(() => MacNames, value => MacNames = value, this), "Comma-separated; any of them matches: Google Chrome, Safari")
+            {
+                Accessory = ExecutableFinder(HostPlatform.MacOS),
+            },
             new TextField("Guess for an empty list", new DelegateBinding<string>(() => GuessText, owner: this), "Well-known apps have a name on each platform; typing names for a platform replaces the guess."),
-            new NoteField("Pick a window", "A crosshair that fills the current platform's names from a window on screen comes in a later slice; type the executable name for now."),
+            new NoteField("Its path", new DelegateBinding<string>(() => Identified.PathText, owner: Identified), "The identified window's executable; Use makes it the executable path below.")
+            {
+                Visible = new DelegateBinding<bool>(() => Identified.HasPath, owner: Identified),
+                Accessory = WindowFinderAccessory.UseButton(UseIdentifiedPath),
+            },
+            new NoteField("Its title", new DelegateBinding<string>(() => Identified.TitleText, owner: Identified), "Use makes it the window title below.")
+            {
+                Visible = new DelegateBinding<bool>(() => Identified.HasTitle, owner: Identified),
+                Accessory = WindowFinderAccessory.UseButton(UseIdentifiedTitle),
+            },
+            new NoteField("Its classes", new DelegateBinding<string>(() => Identified.ClassesText, owner: Identified), "Use makes them the window classes below.")
+            {
+                Visible = new DelegateBinding<bool>(() => Identified.HasClasses, owner: Identified),
+                Accessory = WindowFinderAccessory.UseButton(UseIdentifiedClasses),
+            },
         ], "The executable's file name per platform, as the log shows it after process=."),
         new Section("More matching options",
         [
-            new TextField("Executable path", new DelegateBinding<string>(() => ProcessPath, value => ProcessPath = value, this), "The executable's full path; exact, case-insensitive, unless the toggle below makes it a pattern."),
+            new TextField("Executable path", new DelegateBinding<string>(() => ProcessPath, value => ProcessPath = value, this), "The executable's full path; exact, case-insensitive, unless the toggle below makes it a pattern.")
+            {
+                Accessory = WindowFinderAccessory.Finder(PathOf, TakePath),
+            },
             new ToggleField("Path is a regular expression", new DelegateBinding<bool>(() => PathIsRegex, value => PathIsRegex = value, this)),
-            new TextField("Window title", new DelegateBinding<string>(() => WindowTitle, value => WindowTitle = value, this), "Exact, case-insensitive, unless the toggle below makes it a pattern."),
+            new TextField("Window title", new DelegateBinding<string>(() => WindowTitle, value => WindowTitle = value, this), "Exact, case-insensitive, unless the toggle below makes it a pattern.")
+            {
+                Accessory = WindowFinderAccessory.Finder(TitleOf, TakeTitle),
+            },
             new ToggleField("Title is a regular expression", new DelegateBinding<bool>(() => TitleIsRegex, value => TitleIsRegex = value, this)),
-            new TextField("Window classes", new DelegateBinding<string>(() => WindowClasses, value => WindowClasses = value, this), "Windows only. Comma-separated; each must be in the window's class chain; Progman|WorkerW lists alternatives."),
+            new TextField("Window classes", new DelegateBinding<string>(() => WindowClasses, value => WindowClasses = value, this), "Windows only. Comma-separated; each must be in the window's class chain; Progman|WorkerW lists alternatives.")
+            {
+                Accessory = Platform == HostPlatform.Windows ? WindowFinderAccessory.Finder(ClassesOf, TakeClasses) : null,
+            },
             new ToggleField("Not when full screen", new DelegateBinding<bool>(() => IgnoreWhenFullScreen, value => IgnoreWhenFullScreen = value, this), "Matches nothing while the window covers its whole screen."),
         ], "Rarely needed. Every filled field must match; empty fields are ignored."),
     ];

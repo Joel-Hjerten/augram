@@ -38,6 +38,7 @@ public static class GalleryNavigation
         new("FormDialog", Key + ".formdialog", CommandGalleryPages.FormDialogPage),
         new("Ignored", Key + ".ignored", IgnoredGalleryPages.IgnoredPage),
         new("MasterDetail", Key + ".masterdetail", IgnoredGalleryPages.MasterDetailPage),
+        new("WindowFinder", Key + ".windowfinder", IgnoredGalleryPages.WindowFinderPage),
         new("Sync join", Key + ".syncjoin", SyncGalleryPages.JoinPage),
         new("Sync conflicts", Key + ".syncconflicts", SyncGalleryPages.ConflictsPage),
     ]);

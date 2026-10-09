@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using Augram.App.Components.HotkeyCapture;
 using Augram.App.Components.Steps.DisplayMode;
+using Augram.App.Components.WindowFinder;
 using Augram.App.Overlay;
 using Augram.App.Training;
 using Augram.Core.Abstractions;
@@ -81,8 +82,8 @@ public static class EngineModule
     public static void Start(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        // Reading display modes changes nothing, so the Display mode form gets them under --no-engine too.
-        PublishDisplayModes(services);
+        // Reading display modes or the window under the pointer changes nothing, so the forms get them under --no-engine too.
+        PublishReadOnlyAdapters(services);
         if (EngineKillSwitch.IsSet())
         {
             services.GetRequiredService<IEventLog>().Info(LogSources.Engine, "Engine disabled by flag", ("argument", EngineKillSwitch.Argument), ("variable", EngineKillSwitch.EnvironmentVariable));
@@ -133,12 +134,16 @@ public static class EngineModule
         }
     }
 
-    /// <summary>The display adapter for the Display mode step form, which <c>StepFormRegistry</c> builds without services, like the key capture above.</summary>
-    internal static void PublishDisplayModes(IServiceProvider services)
+    /// <summary>
+    /// The adapters forms only read, for forms built without services like the key capture above: the display modes for the
+    /// Display mode step form (<c>StepFormRegistry</c>), the window system for the window finder's magnifiers.
+    /// </summary>
+    internal static void PublishReadOnlyAdapters(IServiceProvider services)
     {
         if (Application.Current is { } app)
         {
             app.Resources[DisplayModeStepForm.DisplayModesResourceKey] = services.GetRequiredService<IDisplayModes>();
+            app.Resources[WindowFinder.WindowSystemResourceKey] = services.GetRequiredService<IWindowSystem>();
         }
     }
 

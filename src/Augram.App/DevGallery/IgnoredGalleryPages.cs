@@ -1,13 +1,15 @@
 #if DEBUG
 using Augram.App.Components.MasterDetail;
+using Augram.App.Components.WindowFinder;
 using Augram.App.Declarations;
+using Augram.App.ViewModels;
 using Augram.App.ViewModels.Ignored;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 
 namespace Augram.App.DevGallery;
 
-/// <summary>Gallery pages for the <see cref="MasterDetail"/> component: the Ignored tab over a throwaway store, and the component's empty and selected states with plain items.</summary>
+/// <summary>Gallery pages for the <see cref="MasterDetail"/> component (the Ignored tab over a throwaway store, and the component's empty and selected states with plain items) and the <see cref="WindowFinder"/> on the identification form.</summary>
 public static class IgnoredGalleryPages
 {
     /// <summary>The Ignored tab over Joel's six imported ignored apps (two inactive), with dialogs that answer at once.</summary>
@@ -48,6 +50,43 @@ public static class IgnoredGalleryPages
                     Height = 520,
                 }),
             ]),
+        ]);
+    }
+
+    /// <summary>
+    /// The window finder: a bare magnifier whose last pick shows beside it, and the identification form after "Identify window"
+    /// named a pretend Chrome (its path, title and classes offered with Use). Drags read the real windows on screen through the
+    /// window system the app publishes; nothing is written anywhere.
+    /// </summary>
+    public static ScreenDeclaration WindowFinderPage()
+    {
+        var last = "Nothing picked yet.";
+        var lastBinding = new DelegateBinding<string>(() => last, propertyName: null);
+        var edit = new AppMatcherEditViewModel(() => PlatformSet.All, "type its name", "none needed");
+        edit.IdentifyWindow(new WindowIdentity(
+            0x100,
+            0x100,
+            "chrome.exe",
+            @"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            "Google Chrome",
+            ["Chrome_RenderWidgetHostHWND", "Chrome_WidgetWin_1"],
+            ProcessId: 4242,
+            IsFullScreen: false,
+            IsDesktop: false));
+        return new FormScreen("WindowFinder",
+        [
+            new Section("Bare: press, drag onto any window, release; Esc or a right-click cancels",
+            [
+                new NoteField("Last pick", lastBinding, "Over Augram's own windows or empty screen nothing is picked.")
+                {
+                    Accessory = WindowFinderAccessory.Finder(WindowFinder.Summary, window =>
+                    {
+                        last = $"{WindowFinder.Summary(window)} · {window.ProcessPath ?? "no path"} · {string.Join(", ", window.ClassChain)}";
+                        lastBinding.NotifyChanged();
+                    }),
+                },
+            ]),
+            .. edit.Sections(),
         ]);
     }
 

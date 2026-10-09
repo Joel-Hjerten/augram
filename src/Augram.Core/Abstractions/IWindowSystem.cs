@@ -3,7 +3,9 @@ namespace Augram.Core.Abstractions;
 /// <summary>
 /// Window lookup, identity and activation (ADR-0002 §2). Implemented by Platform.Windows / Platform.MacOS.
 /// Every member may block for a few milliseconds and must be called from the engine worker, the command executor or the
-/// ignore-list watch, never from a hook handler.
+/// ignore-list watch, never from a hook handler. <see cref="WindowAt"/> and <see cref="WindowKeyAt"/> are also called on
+/// the UI thread by the App's window finder: neither asks another app anything on either platform (no message to another
+/// process's window, no Accessibility call), so a hung app cannot stall the UI through them.
 /// </summary>
 public interface IWindowSystem
 {

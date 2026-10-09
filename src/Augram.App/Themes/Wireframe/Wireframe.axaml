@@ -27,6 +27,7 @@
         <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
         <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/Hotkey.axaml" />
         <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/Sync.axaml" />
+        <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/WindowFinder.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <ControlTheme x:Key="{x:Type shell:Shell}" TargetType="shell:Shell">
@@ -82,12 +83,18 @@
             <Border BorderBrush="{StaticResource Brush.Border}"
                     BorderThickness="{StaticResource Border.Bottom}"
                     Padding="{StaticResource Pad.S}">
-              <Grid ColumnDefinitions="220,*">
+              <Grid ColumnDefinitions="220,Auto,*">
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                   <TextBlock Classes="field-label" Text="{TemplateBinding Label}" />
                   <TextBlock Classes="help" Text="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
                 </StackPanel>
+                <!-- The field's accessory (a window finder's magnifier) before the editor; no room taken without one. -->
                 <ContentPresenter Grid.Column="1"
+                                  Content="{TemplateBinding Accessory}"
+                                  IsVisible="{TemplateBinding HasAccessory}"
+                                  Margin="0,0,8,0"
+                                  VerticalAlignment="Center" />
+                <ContentPresenter Grid.Column="2"
                                   Content="{TemplateBinding Editor}"
                                   HorizontalAlignment="Left"
                                   VerticalAlignment="Center" />
