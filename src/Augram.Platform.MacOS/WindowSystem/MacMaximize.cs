@@ -16,6 +16,21 @@ internal static class MacMaximize
 
     public static bool Fills(MacRect window, MacRect visible) => window.IsNear(visible, FillTolerance);
 
+    /// <summary>The share of the visible frame <see cref="DefaultRestore"/> gives a window, each way.</summary>
+    public const double DefaultRestoreShare = 2.0 / 3.0;
+
+    /// <summary>
+    /// Where a filled window goes when Augram did not fill it and remembers no frame (2026-10-09: macOS's own zoom or
+    /// tiling filled it): centred on the visible frame at two thirds of its width and height. Predictable, and never what
+    /// pressing the green button did on current macOS, which is native full screen.
+    /// </summary>
+    public static MacRect DefaultRestore(MacRect visible)
+    {
+        var width = Math.Round(visible.Width * DefaultRestoreShare);
+        var height = Math.Round(visible.Height * DefaultRestoreShare);
+        return new MacRect(Math.Round(visible.X + ((visible.Width - width) / 2)), Math.Round(visible.Y + ((visible.Height - height) / 2)), width, height);
+    }
+
     /// <summary>The index of the screen a window belongs to: the one containing its centre, else the one it overlaps most, else the first.</summary>
     public static int ScreenFor(MacRect window, IReadOnlyList<MacRect> screens)
     {

@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using Augram.Core.Abstractions;
+using Augram.Core.Diagnostics;
 using Augram.Platform.MacOS.Interop;
 
 namespace Augram.Platform.MacOS.WindowSystem;
@@ -10,7 +11,9 @@ namespace Augram.Platform.MacOS.WindowSystem;
 /// stroke reports "window gone" instead of acting on another. Close presses the window's close button (the app runs its
 /// own close path, "save changes?" included); Minimize sets <c>AXMinimized</c>; MaximizeOrRestore fills the screen's
 /// visible frame and restores the frame it had (<see cref="MacMaximize"/>), leaves native full screen when the window is
-/// in it, and presses the zoom button to restore a window something else filled. The placement operations and
+/// in it, and gives a window something else filled (macOS's zoom or tiling) a default frame
+/// (<see cref="MacMaximize.DefaultRestore"/>): pressing the zoom button, as before 2026-10-09, sent it into native full
+/// screen on current macOS. The placement operations and
 /// always-on-top are not built yet and report not supported. Runs on the command executor thread only; nothing here
 /// throws, a failed call becomes <see cref="WindowOperationResult.Failed"/> with the reason.
 /// </summary>
@@ -21,6 +24,12 @@ public sealed class MacWindowOperations : IWindowOperations
 
     // Frames from before a maximize, by window id; only the command executor thread touches it.
     private readonly Dictionary<uint, MacRect> _restore = [];
+    private readonly IEventLog _log;
+
+    public MacWindowOperations(IEventLog? log = null)
+    {
+        _log = log ?? NullEventLog.Instance;
+    }
 
     public HostPlatform Platform => HostPlatform.MacOS;
 
@@ -75,6 +84,8 @@ public sealed class MacWindowOperations : IWindowOperations
         }
     }
 
+    private static string Describe(MacRect rect) => $"{rect.X:0},{rect.Y:0} {rect.Width:0}x{rect.Height:0}";
+
     private static WindowOperationResult Result(int error) =>
         error == MacNative.AXErrorSuccess ? WindowOperationResult.Ok : WindowOperationResult.Failed(Ax.Describe(error));
 
@@ -99,9 +110,16 @@ public sealed class MacWindowOperations : IWindowOperations
         var visible = screens[MacMaximize.ScreenFor(frame, [.. screens.Select(screen => screen.Frame)])].Visible;
         if (MacMaximize.Fills(frame, visible))
         {
-            return _restore.Remove(id, out var previous)
-                ? Result(Ax.SetFrame(element, previous))
-                : Result(Ax.PressButton(element, Ax.ZoomButtonAttribute));
+            if (_restore.Remove(id, out var previous))
+            {
+                return Result(Ax.SetFrame(element, previous));
+            }
+
+            // Not filled by Augram: never the zoom button (native full screen now). What was read goes to the log, to tell
+            // macOS's zoom from its tiling before a better restore is chosen (the Eyeris report, 2026-10-09).
+            var fallback = MacMaximize.DefaultRestore(visible);
+            _log.Info("window", "Restored a window Augram did not maximize", ("frame", Describe(frame)), ("visible", Describe(visible)), ("restoredTo", Describe(fallback)));
+            return Result(Ax.SetFrame(element, fallback));
         }
 
         if (_restore.Count >= MaxRemembered)

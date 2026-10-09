@@ -36,6 +36,19 @@ public sealed class MacGeometryTests
         Assert.Equal(rect, MacRect.FromCocoa(rect.X, rect.CocoaY(MainHeight), rect.Width, rect.Height, MainHeight));
     }
 
+    /// <summary>A window macOS filled and Augram did not: two thirds of the visible frame, centred, and no longer "filling" (2026-10-09).</summary>
+    [Fact]
+    public void DefaultRestore_IsTwoThirdsCentred_AndNoLongerFills()
+    {
+        var visible = new MacRect(0, 33, 1512, 949);
+
+        var restored = MacMaximize.DefaultRestore(visible);
+
+        Assert.Equal(new MacRect(252, 191, 1008, 633), restored);
+        Assert.False(MacMaximize.Fills(restored, visible));
+        Assert.Equal(new MacRect(1512 + 252, 191, 1008, 633), MacMaximize.DefaultRestore(visible with { X = 1512 }));
+    }
+
     [Fact]
     public void Fills_WithinToleranceOnEveryEdge()
     {
