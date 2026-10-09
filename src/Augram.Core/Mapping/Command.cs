@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using Augram.Core.Abstractions;
-using Augram.Core.Gestures;
 
 namespace Augram.Core.Mapping;
 
@@ -14,7 +13,7 @@ namespace Augram.Core.Mapping;
 /// it is sorted into (<see cref="AppGroup.Categories"/>); null is "Uncategorized". Immutable: a change is a new record committed through
 /// <see cref="MappingStore"/>.
 /// </summary>
-public sealed record Command(
+public sealed partial record Command(
     CommandId Id,
     string Name,
     Trigger Trigger,
@@ -111,7 +110,4 @@ public sealed record Command(
     }
 
     private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
-
-    public bool UsesGesture(GestureId gestureId)
-        => Trigger is Trigger.GestureTrigger gesture && gesture.GestureId == gestureId;
 }

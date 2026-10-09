@@ -58,7 +58,7 @@ public static class StrokesPlusImporter
         var warnings = new List<ImportWarning>();
         var gestures = new GestureReader(warnings).Read(document.Root);
         var steps = new StepReader(warnings);
-        var actions = new ActionReader(warnings, ByName(gestures), steps);
+        var actions = new ActionReader(warnings, new TriggerReader(warnings, ByName(gestures), TriggerReader.SecondaryOf(document.Root)), steps);
         var groups = new ApplicationReader(warnings, actions).Read(document.Root);
         var ignored = new IgnoredApplicationReader(warnings).Read(document.Root);
         steps.ReportPlaceholders();

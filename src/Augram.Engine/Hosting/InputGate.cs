@@ -9,17 +9,18 @@ namespace Augram.Engine.Hosting;
 
 /// <summary>
 /// Everything that runs on the hook thread, in one class so it can be audited against CLAUDE.md
-/// invariant 1: <see cref="Handle"/> reads four volatiles (state, stroke button, enabled, the ignore
-/// list's answer), asks the <see cref="SuppressionShadow"/>, allocates one <see cref="CaptureEvent"/>,
-/// <c>TryWrite</c>s one message, measures itself, returns the decision. A key event reads one volatile
-/// (the hotkey-capture flag), asks the <see cref="KeySuppressionShadow"/>, and posts one message only
-/// while capturing. Moves are forwarded only while a press is owed or the machine is not Idle. A full
-/// queue drops moves and ticks; a press that cannot be enqueued is passed through and the shadow
+/// invariant 1: <see cref="Handle"/> reads four volatiles (state, stroke button, enabled, the pointer's
+/// answer: the ignore list's bits and the window's <see cref="AnchorPlan"/>), asks the <see cref="SuppressionShadow"/>,
+/// allocates one <see cref="CaptureEvent"/>, <c>TryWrite</c>s one message, measures itself, returns the decision. A key
+/// event reads one volatile (the hotkey-capture flag), asks the <see cref="KeySuppressionShadow"/> (which a held press may
+/// claim a Ctrl/Alt/Shift/Win press for), and posts one message while capturing, and one for a modifier press while a
+/// press is held. Moves are forwarded only while a press is owed or the machine is not Idle. A full
+/// queue drops moves, ticks and key notes; a press that cannot be enqueued is passed through and the shadow
 /// restored; a release is still consumed (A19) and the worker resets the machine when it sees the drop
 /// count. The worker publishes state and the applied stroke button here; the App writes
 /// <see cref="Enabled"/> and <see cref="IgnoreKey"/>; <see cref="KeyCaptureController"/> writes the
-/// capture flag; the <see cref="IgnoreListWatch"/> publishes the ignore list's answer
-/// (<see cref="PublishIgnore"/>) and, while it watches the pointer, is handed each move's position.
+/// capture flag; the <see cref="IgnoreListWatch"/> publishes the pointer's answer
+/// (<see cref="PublishPointer"/>) and, while it watches the pointer, is handed each move's position.
 /// </summary>
 internal sealed class InputGate
 {
@@ -42,7 +43,8 @@ internal sealed class InputGate
     private long _droppedButtons;
     private int _observeNextPress;
     private int _captureKeys;
-    private int _ignoreState;
+    private const int IgnoreBits = 2;
+    private long _pointerAnswer;
     private IgnoreListWatch? _watch;
 
     public InputGate(ChannelWriter<WorkerMessage> writer, IEventLog log, MouseButton strokeButton, KeyModifiers ignoreKey, bool enabled)
@@ -76,10 +78,20 @@ internal sealed class InputGate
     public bool KeysCaptured => Volatile.Read(ref _captureKeys) != 0;
 
     /// <summary>The ignore list's answer the next press reads: <see cref="OverIgnoredApp"/> and <see cref="PausedByFocus"/> bits, 0 for neither.</summary>
-    public int IgnoreState => Volatile.Read(ref _ignoreState);
+    public int IgnoreState => (int)(Volatile.Read(ref _pointerAnswer) & ((1 << IgnoreBits) - 1));
 
-    /// <summary>The watch's answer, read at the next stroke-button press only: a press already consumed still gets its release consumed (A19).</summary>
-    public void PublishIgnore(int state) => Volatile.Write(ref _ignoreState, state);
+    /// <summary>The anchor plan for the window under the pointer as of the watch's last pass (per app, Joel 2026-10-09); <see cref="AnchorPlan.None"/> while nothing holds a button besides the stroke button.</summary>
+    public AnchorPlan Plan => new(Volatile.Read(ref _pointerAnswer) >> IgnoreBits);
+
+    /// <summary>The watch's ignore answer, keeping the plan: read at the next press only, so a press already consumed still gets its release consumed (A19).</summary>
+    public void PublishIgnore(int state) => PublishPointer(state, Plan);
+
+    /// <summary>
+    /// The watch's whole answer for the window under the pointer, as one volatile the hook reads at a press: the ignore bits
+    /// and the anchor plan. Single writer (the watch's thread).
+    /// </summary>
+    public void PublishPointer(int ignoreState, AnchorPlan plan)
+        => Volatile.Write(ref _pointerAnswer, (plan.Bits << IgnoreBits) | (uint)(ignoreState & ((1 << IgnoreBits) - 1)));
 
     /// <summary>Hands moves to the ignore list's watch from now on (while it asks for them). Called once, before the hook starts.</summary>
     public void Attach(IgnoreListWatch watch) => _watch = watch;
@@ -135,15 +147,20 @@ internal sealed class InputGate
                 break;
             case RawInputKind.ButtonDown:
                 // Disabled, paused by a focused "disable while focused" app, or over an ignored app: the press passes through,
-                // decided from the watch's last answer; nothing here looks a window up (invariant 1).
-                var allowed = Enabled && IgnoreState == 0;
+                // decided from the watch's last answer; the same answer says which buttons are anchors over this window. Nothing
+                // here looks a window up (invariant 1).
+                var answer = Volatile.Read(ref _pointerAnswer);
+                var allowed = Enabled && (answer & ((1 << IgnoreBits) - 1)) == 0;
+                var plan = new AnchorPlan(answer >> IgnoreBits);
                 var ignore = (input.Modifiers & IgnoreKey) != 0;
-                var owedBefore = _shadow.Owed;
-                suppress = _shadow.Decide(in input, state, StrokeButton, allowed, ignore);
-                var down = new CaptureEvent.ButtonDown(input.Button, input.X, input.Y, input.TimestampMs, allowed, ignore);
+                // The press's Before keys: the library's mask, limited to keys this hook saw go down (a stale mask holds no phantom key).
+                var press = input with { Modifiers = input.Modifiers & _keys.HeldModifiers() };
+                var before = _shadow.Save();
+                suppress = _shadow.Decide(in press, state, StrokeButton, allowed, ignore, plan);
+                var down = new CaptureEvent.ButtonDown(input.Button, input.X, input.Y, input.TimestampMs, allowed, ignore, press.Modifiers, plan);
                 if (!Post(WorkerMessage.Input(down, suppress), critical: true))
                 {
-                    _shadow.Restore(owedBefore);
+                    _shadow.Restore(before);
                     suppress = false;
                 }
 
@@ -170,10 +187,16 @@ internal sealed class InputGate
             case RawInputKind.KeyDown:
             case RawInputKind.KeyUp:
                 var capturing = Volatile.Read(ref _captureKeys) != 0;
-                suppress = _keys.Decide(in input, capturing);
+                suppress = _keys.Decide(in input, capturing, _shadow.KeyClaim(state));
                 if (capturing)
                 {
                     Post(WorkerMessage.KeyCaptured(KeyCaptureEvent.From(in input)), critical: false);
+                }
+
+                // While a press is held, Ctrl/Alt/Shift/Win presses go to the machine with the decision: a consumed one is an After key.
+                if (input.Kind == RawInputKind.KeyDown && _shadow.Owed.HasValue && KeySuppressionShadow.ModifierOf(input.Key) is var modifier and not KeyModifiers.None)
+                {
+                    Post(WorkerMessage.Input(new CaptureEvent.Key(modifier, suppress, input.TimestampMs), suppress), critical: false);
                 }
 
                 break;

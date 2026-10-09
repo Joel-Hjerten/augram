@@ -102,6 +102,77 @@ public sealed class PairingInvariantTests
         Assert.True(trailsOpened > 100, $"only {trailsOpened} strokes began");
     }
 
+    /// <summary>
+    /// The same invariant with trigger combinations (Joel, 2026-10-09): random anchor plans per press, so any button may own a
+    /// press or join one. Every button's release gets its press's decision, a hand-back's injected down always gets its injected
+    /// release, and nothing is owed once every button is up.
+    /// </summary>
+    [Fact]
+    public void RandomSequencesWithAnchorsAndChords_PairEveryButton_AndEveryHandBack()
+    {
+        var rng = new Random(20261009);
+        var joined = 0;
+        var handBacks = 0;
+
+        for (var sequence = 0; sequence < Sequences; sequence++)
+        {
+            var machine = new CaptureStateMachine(Stroke, new CaptureThresholds(CancelDelayMs: rng.Next(100, 1500)));
+            var pressed = new CaptureOutcome?[Buttons.Length];
+            var injected = new bool[Buttons.Length];
+            foreach (var e in Generate(rng, () => RandomPlan(rng)))
+            {
+                var stateBefore = machine.State;
+                var outcomes = machine.Handle(e);
+                var decision = SingleDecision(outcomes, e);
+                switch (e)
+                {
+                    case CaptureEvent.ButtonDown down:
+                        joined += stateBefore is CaptureState.Held or CaptureState.Drawing && decision is CaptureOutcome.Suppress && down.Button != Stroke ? 1 : 0;
+                        pressed[(int)down.Button] = decision;
+                        break;
+                    case CaptureEvent.ButtonUp up:
+                        Assert.Equal(pressed[(int)up.Button] ?? CaptureOutcome.PassThrough.Instance, decision);
+                        pressed[(int)up.Button] = null;
+                        break;
+                }
+
+                foreach (var outcome in outcomes)
+                {
+                    if (outcome is CaptureOutcome.HandBack back)
+                    {
+                        Assert.False(injected[(int)back.Button]);
+                        injected[(int)back.Button] = true;
+                        handBacks++;
+                    }
+                    else if (outcome is CaptureOutcome.ReleaseHandedBack release)
+                    {
+                        Assert.True(injected[(int)release.Button]);
+                        injected[(int)release.Button] = false;
+                    }
+                }
+            }
+
+            Assert.Equal(CaptureState.Idle, machine.State);
+            Assert.Equal(HeldButtons.None, machine.OwedButtons);
+            Assert.All(injected, held => Assert.False(held));
+        }
+
+        Assert.True(joined > 100, $"only {joined} buttons joined a press");
+        Assert.True(handBacks > 100, $"only {handBacks} hand-backs");
+    }
+
+    private static AnchorPlan RandomPlan(Random rng)
+    {
+        var plan = AnchorPlan.None;
+        foreach (var button in Buttons)
+        {
+            plan = rng.Next(3) == 0 ? plan.WithAnchor(button) : plan;
+            plan = plan.WithExtras(button, ownerIsStroke: rng.Next(2) == 0, (HeldButtons)(rng.Next(32) << 1));
+        }
+
+        return plan;
+    }
+
     /// <summary>Exactly one of Suppress / PassThrough for button and wheel events, none for ticks; returns it.</summary>
     private static CaptureOutcome? SingleDecision(IReadOnlyList<CaptureOutcome> outcomes, CaptureEvent e)
     {
@@ -116,7 +187,7 @@ public sealed class PairingInvariantTests
     }
 
     /// <summary>Random events where each button alternates down/up and time never goes backwards; ends with every button released.</summary>
-    private static List<CaptureEvent> Generate(Random rng)
+    private static List<CaptureEvent> Generate(Random rng, Func<AnchorPlan>? plan = null)
     {
         var events = new List<CaptureEvent>();
         var isDown = new bool[Buttons.Length];
@@ -132,7 +203,7 @@ public sealed class PairingInvariantTests
             {
                 case 0 when !isDown[(int)button]:
                     isDown[(int)button] = true;
-                    events.Add(new CaptureEvent.ButtonDown(button, x, y, t, CaptureAllowed: rng.Next(12) != 0, IgnoreKeyHeld: rng.Next(12) == 0));
+                    events.Add(new CaptureEvent.ButtonDown(button, x, y, t, CaptureAllowed: rng.Next(12) != 0, IgnoreKeyHeld: rng.Next(12) == 0, Plan: plan?.Invoke() ?? AnchorPlan.None));
                     break;
                 case 1 when isDown[(int)button]:
                     isDown[(int)button] = false;

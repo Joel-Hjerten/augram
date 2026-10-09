@@ -3,10 +3,11 @@ using Augram.Core.Abstractions;
 namespace Augram.Engine.Input;
 
 /// <summary>
-/// The hook thread's record of each key's press as the OS saw it, so hotkey capture (F5) can swallow
+/// The hook thread's record of each key's press as the OS saw it, so hotkey capture (F5) and a held mouse press
+/// (trigger combinations: a Ctrl/Alt/Shift/Win press during it is an After key) can swallow
 /// keys without ever leaving the OS with a key it thinks is held (A19, applied to keys). Per key: up,
 /// <em>passed</em> (the OS saw the press) or <em>owed</em> (the press was suppressed, so its repeats and
-/// its release must be too). A press is suppressed iff capture is armed when it starts; a repeat or a
+/// its release must be too). A press is suppressed iff capture is armed, or the held mouse press claims it, when it starts; a repeat or a
 /// release follows its press, whatever capture does in between: a key held from before capture began
 /// reaches the OS to its release, and a key pressed during capture stays swallowed to its release even
 /// after capture ended.
@@ -38,8 +39,45 @@ public sealed class KeySuppressionShadow
     /// <summary>Forget every key. Only when the hook was reinstalled or the OS state is otherwise unknown.</summary>
     public void Reset() => Array.Clear(_state);
 
+    /// <summary>Ctrl, Alt, Shift or Win for a modifier key (left or right), else none.</summary>
+    public static KeyModifiers ModifierOf(KeyCode key) => key switch
+    {
+        KeyCode.LeftControl or KeyCode.RightControl => KeyModifiers.Control,
+        KeyCode.LeftAlt or KeyCode.RightAlt => KeyModifiers.Alt,
+        KeyCode.LeftShift or KeyCode.RightShift => KeyModifiers.Shift,
+        KeyCode.LeftMeta or KeyCode.RightMeta => KeyModifiers.Meta,
+        _ => KeyModifiers.None,
+    };
+
+    /// <summary>
+    /// Ctrl, Alt, Shift and Win as far as this shadow has seen them go down and not up since the last <see cref="Reset"/>.
+    /// A press's Before keys are the event's modifier mask limited to these, so a mask the input library left stale (a key-up
+    /// it never saw, such as Win's after Win+L locked the desktop) cannot make every press hold a phantom key: the hook reset
+    /// at unlock and resume clears this record. Eight reads; hook thread.
+    /// </summary>
+    public KeyModifiers HeldModifiers()
+    {
+        var held = KeyModifiers.None;
+        for (var key = KeyCode.LeftShift; key <= KeyCode.RightMeta; key++)
+        {
+            if (Volatile.Read(ref _state[(int)key]) != Up)
+            {
+                held |= ModifierOf(key);
+            }
+        }
+
+        return held;
+    }
+
     /// <summary>Decides for one key event and records it; anything but a key event is never suppressed.</summary>
-    public bool Decide(in RawInput input, bool captureArmed)
+    public bool Decide(in RawInput input, bool captureArmed) => Decide(in input, captureArmed, KeyModifiers.None);
+
+    /// <summary>
+    /// Decides for one key event and records it. A press is suppressed when it starts while a hotkey capture is armed, or when
+    /// it is a modifier in <paramref name="pressClaims"/>: a mouse press is held and takes it as an After key (trigger
+    /// combinations, learnings 0003 §3.2; <see cref="SuppressionShadow.KeyClaim"/>). Its repeats and release follow it.
+    /// </summary>
+    public bool Decide(in RawInput input, bool captureArmed, KeyModifiers pressClaims)
     {
         if (input.Kind is not (RawInputKind.KeyDown or RawInputKind.KeyUp))
         {
@@ -62,7 +100,7 @@ public sealed class KeySuppressionShadow
 
         if (state == Up)
         {
-            state = captureArmed ? Owed : Passed;
+            state = captureArmed || (ModifierOf(input.Key) & pressClaims) != 0 ? Owed : Passed;
         }
 
         Volatile.Write(ref _state[slot], state);

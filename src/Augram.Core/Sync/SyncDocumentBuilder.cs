@@ -25,12 +25,17 @@ internal static class SyncDocumentBuilder
             .Place(merged.OfType<SyncItem.CommandItem>(), incoming);
         var ignored = merged.OfType<SyncItem.IgnoredItem>().Select(item => item.App).ToArray();
         var versions = Versions(merged.OfType<SyncItem.VersionItem>().ToArray(), commands, repairs);
+        var gestureIds = gestures.Select(gesture => gesture.Id).ToHashSet();
 
         var document = new MappingDocument(
             groups.Select(group => group with
             {
                 Categories = categories[group.Id],
-                Commands = [.. commands[group.Id].Select(command => versions.TryGetValue(command.Id, out var own) ? command with { OwnVersion = own } : command)],
+                Commands = OwnTriggersChecked(
+                    [.. commands[group.Id].Select(command => versions.TryGetValue(command.Id, out var own) ? command with { OwnVersion = own } : command)],
+                    group.Name,
+                    gestureIds,
+                    repairs),
             }).ToArray(),
             ignored);
         var validGestures = GestureRules.ValidSet(gestures);
@@ -134,6 +139,35 @@ internal static class SyncDocumentBuilder
         }
 
         return versions;
+    }
+
+    /// <summary>
+    /// An own version's trigger (F8, 2026-10-09) arrives with its own-steps item, after the commands were placed: one naming a
+    /// gesture that is gone, or overlapping another command of the group, leaves that platform unbound, with a repair line.
+    /// </summary>
+    private static Command[] OwnTriggersChecked(Command[] commands, string groupName, HashSet<GestureId> gestures, List<SyncRepair> repairs)
+    {
+        for (var i = 0; i < commands.Length; i++)
+        {
+            if (commands[i].OwnVersion is not { Trigger: { IsBound: true } trigger } own)
+            {
+                continue;
+            }
+
+            var key = SyncItemKey.ForCommandVersion(commands[i].Id);
+            string? problem = trigger is Trigger.GestureTrigger gesture && !gestures.Contains(gesture.GestureId)
+                ? "its gesture is gone"
+                : commands.Where((other, index) => index != i).Select(other => MappingRules.Overlap(commands[i], other)).FirstOrDefault(clash => clash is not null) is { } clash
+                    ? $"another command already uses {clash}"
+                    : null;
+            if (problem is not null)
+            {
+                repairs.Add(new(key, SyncRepairKind.TriggerCleared, $"The own trigger of '{commands[i].Name}' in '{groupName}' unbound: {problem}."));
+                commands[i] = commands[i] with { OwnVersion = own with { Trigger = Trigger.None } };
+            }
+        }
+
+        return commands;
     }
 
     /// <summary>What <see cref="Build"/> returns.</summary>

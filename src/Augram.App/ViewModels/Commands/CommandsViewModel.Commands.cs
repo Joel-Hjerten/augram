@@ -1,15 +1,12 @@
 using Augram.App.Components.CommandTree;
-using Augram.App.Components.GesturePicker;
-using Augram.Core.Capture;
-using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The command half of <see cref="CommandsViewModel"/> (F5a, F3): new and paste into the selected section
-/// (its group, and on the Global tab its category), copy, delete with confirmation, the category, and the
-/// trigger (wheel, none, or the Select Gesture picker).
+/// (its group, and on the Global tab its category), copy, delete with confirmation and the category; the trigger is
+/// <c>CommandsViewModel.Trigger.cs</c>.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -63,9 +60,10 @@ public sealed partial class CommandsViewModel
         {
             stored = _store.AddCommand(group.Id, copy);
         }
-        catch (MappingValidationException) when (copy.Trigger.IsBound)
+        catch (MappingValidationException) when (copy.Trigger.IsBound || copy.OwnVersion?.Trigger is not null)
         {
-            stored = _store.AddCommand(group.Id, copy with { Trigger = Trigger.None });
+            // Unbound on every platform: the original's trigger and an own version's.
+            stored = _store.AddCommand(group.Id, copy with { Trigger = Trigger.None, OwnVersion = copy.OwnVersion is { } own ? own with { Trigger = null } : null });
             Message = $"Pasted '{stored.Name}' into '{group.Name}' without its trigger: that trigger is already used there.";
         }
 
@@ -111,43 +109,6 @@ public sealed partial class CommandsViewModel
         {
             Project();
         }
-    }
-
-    private void SetTriggerKind(CommandItem command, TriggerKind kind)
-    {
-        switch (kind)
-        {
-            case TriggerKind.None:
-                UpdateCommand(command.Id, stored => stored with { Trigger = Trigger.None });
-                break;
-            case TriggerKind.WheelUp:
-                UpdateCommand(command.Id, stored => stored with { Trigger = Trigger.ForWheel(WheelDirection.Up) });
-                break;
-            case TriggerKind.WheelDown:
-                UpdateCommand(command.Id, stored => stored with { Trigger = Trigger.ForWheel(WheelDirection.Down) });
-                break;
-            case TriggerKind.Gesture:
-                _ = PickGestureAsync(command);
-                break;
-        }
-    }
-
-    private async Task PickGestureAsync(CommandItem command)
-    {
-        var current = RequireCommand(command.Id).Command.Trigger is Trigger.GestureTrigger gesture ? gesture.GestureId : (GestureId?)null;
-        var result = await _picker.PickAsync(current).ConfigureAwait(true);
-        Guard(() =>
-        {
-            switch (result.Outcome)
-            {
-                case GesturePickerOutcome.Selected when result.GestureId is { } id:
-                    UpdateCommand(command.Id, stored => stored with { Trigger = Trigger.ForGesture(id) });
-                    break;
-                case GesturePickerOutcome.NoGesture:
-                    UpdateCommand(command.Id, stored => stored with { Trigger = Trigger.None });
-                    break;
-            }
-        });
     }
 
     /// <summary>The Apps tab has no section to fall back to: without one selected, New command and Paste say so.</summary>

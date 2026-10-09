@@ -29,7 +29,7 @@ public sealed class CommandsViewModelGlobalTests
         var close = Item(vm, "Close window");
         Assert.Equal(("Close window", "Up", true), (close.StepSummary, close.TriggerText, close.HasGlyph));
         var volume = Item(vm, "Volume up");
-        Assert.Equal((TriggerKind.WheelUp, "Wheel up", false), (volume.TriggerKind, volume.TriggerText, volume.HasGlyph));
+        Assert.Equal((TriggerKind.Wheel, "Wheel up", false), (volume.TriggerKind, volume.TriggerText, volume.HasGlyph));
         Assert.Equal("3 steps", Item(vm, "Three steps").StepSummary);
         Assert.All(vm.Sections.SelectMany(section => section.Commands), command =>
         {

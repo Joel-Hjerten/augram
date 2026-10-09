@@ -49,7 +49,8 @@ public sealed class SuppressionShadowTests
             }
         }
 
-        foreach (var state in Enum.GetValues<CaptureState>())
+        // HandedBack needs an anchor besides the stroke button: ChordPairingTests covers it.
+        foreach (var state in Enum.GetValues<CaptureState>().Where(state => state != CaptureState.HandedBack))
         {
             foreach (var kind in new[] { RawInputKind.ButtonDown, RawInputKind.ButtonUp, RawInputKind.Wheel })
             {
@@ -84,14 +85,19 @@ public sealed class SuppressionShadowTests
     public void RestoreAndReset_ChangeTheOwedButton()
     {
         var shadow = new SuppressionShadow();
+        var empty = shadow.Save();
         shadow.Decide(RawInput.ButtonDown(MouseButton.Left, 0, 0, 0), CaptureState.Idle, MouseButton.Left, true, false);
         Assert.Equal(MouseButton.Left, shadow.Owed);
-        shadow.Restore(null);
+        Assert.Equal(HeldButtons.Left, shadow.OwedButtons);
+        var pressed = shadow.Save();
+        shadow.Restore(empty);
         Assert.Null(shadow.Owed);
-        shadow.Restore(MouseButton.X1);
-        Assert.Equal(MouseButton.X1, shadow.Owed);
+        Assert.Equal(HeldButtons.None, shadow.OwedButtons);
+        shadow.Restore(pressed);
+        Assert.Equal(MouseButton.Left, shadow.Owed);
         shadow.Reset();
         Assert.Null(shadow.Owed);
+        Assert.Equal(HeldButtons.None, shadow.OwedButtons);
     }
 
     private static CaptureEvent ToCaptureEvent(RawInput raw, bool allowed, bool ignore) => raw.Kind switch

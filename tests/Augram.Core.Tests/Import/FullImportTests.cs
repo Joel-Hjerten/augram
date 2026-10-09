@@ -17,7 +17,6 @@ namespace Augram.Core.Tests.Import;
 public sealed class FullImportTests
 {
     private const string ScriptNote = "Imported from StrokesPlus.net: script-only action";
-    private const string ModifierNote = "Imported from StrokesPlus.net: needs modifier/rocker support (deferred)";
 
     private static readonly ImportResult Result = ReadFixture();
 
@@ -175,12 +174,13 @@ public sealed class FullImportTests
     }
 
     [Fact]
-    public void ModifierActionImportsInactiveWithNote()
+    public void ModifierActionImportsAsACombination_Active()
     {
         var command = Command("Synthetic Browser", "Synthetic Shifted");
 
-        Assert.False(command.IsActive);
-        Assert.Equal(ModifierNote, command.Note);
+        Assert.True(command.IsActive);
+        Assert.Null(command.Note);
+        Assert.Equal(Trigger.ForGesture(GestureNamed("Synthetic L"), TriggerHold.WithStroke(KeyModifiers.Shift)), command.Trigger);
         var click = Assert.IsType<ImportedStep>(Assert.Single(command.Steps).Step);
         Assert.Equal("MouseClick", click.SourceMethod);
         Assert.Equal("true", click.Parameters["down"]);

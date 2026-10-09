@@ -179,7 +179,11 @@ internal sealed class MappingJsonReader
             JsonMembers.OptionalEnum(own, "platform", HostPlatform.MacOS, what),
             _steps.ReadAll(JsonMembers.OptionalArray(own, "steps", what), what),
             JsonMembers.OptionalString(own, "basedOn", what) ?? string.Empty,
-            DateTimeOffset.TryParse(changedAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed) ? parsed : DateTimeOffset.UnixEpoch);
+            DateTimeOffset.TryParse(changedAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed) ? parsed : DateTimeOffset.UnixEpoch)
+        {
+            // Absent: the platform uses the original's trigger, converted; present (null included): its own.
+            Trigger = own.ContainsKey("trigger") ? ReadTrigger(own["trigger"], what) : null,
+        };
     }
 
     /// <summary>Missing or null: Uncategorized. Not a Guid string: Uncategorized, with a notice.</summary>
@@ -199,6 +203,7 @@ internal sealed class MappingJsonReader
         return null;
     }
 
+    /// <summary>A trigger as <see cref="MappingJsonWriter"/> writes it: null, or a gesture, wheel or click object with an optional <c>hold</c>.</summary>
     private static Trigger ReadTrigger(JsonNode? node, string where)
     {
         if (node is null)
@@ -208,17 +213,39 @@ internal sealed class MappingJsonReader
 
         var what = $"'trigger' of {where}";
         var trigger = JsonMembers.RequireObject(node, what);
+        var hold = ReadHold(trigger, what);
         if (trigger["gesture"] is not null)
         {
-            return Trigger.ForGesture(new GestureId(JsonMembers.RequireGuid(trigger, "gesture", what)));
+            return Trigger.ForGesture(new GestureId(JsonMembers.RequireGuid(trigger, "gesture", what)), hold);
         }
 
         if (trigger["wheel"] is not null)
         {
-            return Trigger.ForWheel(JsonMembers.OptionalEnum(trigger, "wheel", WheelDirection.Up, what));
+            return Trigger.ForWheel(JsonMembers.OptionalEnum(trigger, "wheel", WheelDirection.Up, what), hold);
         }
 
-        throw new ConfigFormatException($"{what} must be null, {{ \"gesture\": \"<id>\" }} or {{ \"wheel\": \"Up\" | \"Down\" }}.");
+        if (JsonMembers.OptionalBool(trigger, "click", fallback: false, what))
+        {
+            return Trigger.ForClick(hold);
+        }
+
+        throw new ConfigFormatException($"{what} must be null, {{ \"gesture\": \"<id>\" }}, {{ \"wheel\": \"Up\" | \"Down\" }} or {{ \"click\": true }}, each with an optional \"hold\".");
+    }
+
+    /// <summary>F1 combinations (schema 2): the "while holding" set; missing or null is the stroke button alone.</summary>
+    private static TriggerHold ReadHold(JsonObject trigger, string what)
+    {
+        if (trigger["hold"] is null)
+        {
+            return TriggerHold.Default;
+        }
+
+        var where = $"'hold' of {what}";
+        var hold = JsonMembers.RequireObject(trigger["hold"], where);
+        return new TriggerHold(
+            JsonMembers.OptionalFlags(hold, "buttons", HeldButtons.Stroke, where),
+            JsonMembers.OptionalFlags(hold, "keys", KeyModifiers.None, where),
+            JsonMembers.OptionalEnum(hold, "capture", HoldCapture.Either, where));
     }
 
     private static AppMatcher ReadMatcher(JsonNode? node, string where)

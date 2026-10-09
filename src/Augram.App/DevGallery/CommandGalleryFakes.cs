@@ -18,8 +18,9 @@ namespace Augram.App.DevGallery;
 /// The fake mapping and the instant-answer presenters behind the Commands gallery pages: Global with the
 /// categories Window and Media, "PC tools" (Use on Windows only: its command's header shows the macOS box disabled
 /// with "Set by category") and "Mac tools" (macOS only: listed greyed with Show other platforms), and one
-/// uncategorized command; Chrome, Steam games (an override to nothing) and Photoshop with categories, so every
-/// section kind, tag and marker has a case.
+/// uncategorized command; Chrome (with trigger combinations: Right + wheel up, Shift + gesture, Ctrl + Left + click),
+/// Steam games (an override to nothing) and Photoshop with categories, so every section kind, tag, marker and trigger
+/// badge has a case.
 /// </summary>
 public static class CommandGalleryFakes
 {
@@ -48,6 +49,11 @@ public static class CommandGalleryFakes
             [
                 Cmd("Close tab", Trigger.ForGesture(StarterGestures.IdFor("Up")), new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w" })),
                 ZoomReset(),
+
+                // F1 combinations (Joel, 2026-10-09): an anchor other than the stroke button, a gesture with a key, a click trigger.
+                Cmd("Zoom in", Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right)), new DelayStep(10)),
+                Cmd("Reopen tab", Trigger.ForGesture(StarterGestures.IdFor("Up"), TriggerHold.WithStroke(KeyModifiers.Shift, capture: HoldCapture.Before)), new DelayStep(10)),
+                Cmd("Open in background", Trigger.ForClick(TriggerHold.WithStroke(KeyModifiers.Control, HeldButtons.Left)), new DelayStep(10)),
             ]);
         var steam = new AppGroup(GroupId.New(), "Steam games", IsActive: true, SuppressGlobals: true,
             new AppMatcher { Title = "^.*\\(Steam\\)$", TitleIsRegex = true },

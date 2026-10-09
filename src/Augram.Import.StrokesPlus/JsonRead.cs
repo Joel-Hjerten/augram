@@ -33,6 +33,15 @@ internal static class JsonRead
         };
     }
 
+    /// <summary>The member as a whole number, or null when absent, null, not a number or not whole.</summary>
+    public static long? Integer(JsonElement element, string member)
+        => element.ValueKind == JsonValueKind.Object
+            && element.TryGetProperty(member, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetInt64(out var number)
+            ? number
+            : null;
+
     public static bool TryArray(JsonElement element, string member, out JsonElement array)
         => TryKind(element, member, JsonValueKind.Array, out array);
 

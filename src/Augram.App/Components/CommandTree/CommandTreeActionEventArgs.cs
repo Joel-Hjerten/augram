@@ -1,9 +1,11 @@
+using Augram.Core.Capture;
 using Augram.Core.Mapping;
 namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// One <see cref="CommandTreeAction"/> with the section and command it applies to, the new name for
-/// Rename, the kind for SetTriggerKind and the chosen category for SetCategory.
+/// Rename, the kind for SetTriggerKind, the chosen category for SetCategory, the set for SetTriggerHold and the
+/// direction for SetWheelDirection.
 /// </summary>
 public sealed class CommandTreeActionEventArgs : EventArgs
 {
@@ -14,8 +16,12 @@ public sealed class CommandTreeActionEventArgs : EventArgs
         string? name = null,
         TriggerKind? kind = null,
         CategoryChoice? category = null,
-        PlatformSet? useOn = null)
+        PlatformSet? useOn = null,
+        TriggerHold? hold = null,
+        WheelDirection? wheel = null)
     {
+        Hold = hold;
+        Wheel = wheel;
         UseOn = useOn;
         Action = action;
         Section = section;
@@ -40,4 +46,10 @@ public sealed class CommandTreeActionEventArgs : EventArgs
 
     /// <summary>The platforms a <see cref="CommandTreeAction.SetUseOn"/> asks for.</summary>
     public PlatformSet? UseOn { get; }
+
+    /// <summary>The "while holding" set a <see cref="CommandTreeAction.SetTriggerHold"/> asks for.</summary>
+    public TriggerHold? Hold { get; }
+
+    /// <summary>The direction a <see cref="CommandTreeAction.SetWheelDirection"/> asks for.</summary>
+    public WheelDirection? Wheel { get; }
 }

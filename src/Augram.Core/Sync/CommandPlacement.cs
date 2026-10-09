@@ -81,7 +81,6 @@ internal sealed class CommandPlacement
     private List<Command> Unique(GroupId groupId, List<(Command Command, SyncItemKey Key, bool Incoming)> entries)
     {
         var names = new SyncNames();
-        var bound = new Dictionary<Trigger, string>();
         var result = new List<Command>(entries.Count);
         foreach (var (original, key, _) in entries.OrderBy(entry => entry.Incoming ? 1 : 0))
         {
@@ -93,9 +92,10 @@ internal sealed class CommandPlacement
                 command = command with { Name = name };
             }
 
-            if (command.Trigger.IsBound && !bound.TryAdd(command.Trigger, command.Name))
+            // A7 as MappingRules has it: overlapping triggers (combinations included) on either platform.
+            if (command.Trigger.IsBound && Clash(command, result) is { } clash)
             {
-                _repairs.Add(new(key, SyncRepairKind.Unbound, $"Incoming command '{command.Name}' in '{_groupNames[groupId]}' unbound: '{bound[command.Trigger]}' already uses {command.Trigger.Describe()}."));
+                _repairs.Add(new(key, SyncRepairKind.Unbound, $"Incoming command '{command.Name}' in '{_groupNames[groupId]}' unbound: '{clash.Holder.Name}' already uses {clash.Phrase}."));
                 command = command with { Trigger = Trigger.None };
             }
 
@@ -103,5 +103,18 @@ internal sealed class CommandPlacement
         }
 
         return result;
+    }
+
+    private static (Command Holder, string Phrase)? Clash(Command command, List<Command> placed)
+    {
+        foreach (var other in placed)
+        {
+            if (MappingRules.Overlap(command, other) is { } phrase)
+            {
+                return (other, phrase);
+            }
+        }
+
+        return null;
     }
 }

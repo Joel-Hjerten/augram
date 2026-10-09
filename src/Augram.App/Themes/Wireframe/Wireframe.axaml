@@ -613,6 +613,7 @@
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
                     <TextBlock Classes="field-label header-label" Text="Trigger" VerticalAlignment="Center" />
                     <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
+                    <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
                     <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                         <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />
@@ -625,6 +626,32 @@
                                VerticalAlignment="Center"
                                IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
+                  <!-- F1 combinations (Joel, 2026-10-09): the buttons, then the keys (Ctrl / Alt / Shift / Win, Opt and Cmd on a Mac), then when they must go down. -->
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                    <TextBlock Classes="field-label header-label" Text="While holding" VerticalAlignment="Center" />
+                    <CheckBox Name="PART_HoldStroke" Classes="toggle-option" Content="Stroke button" />
+                    <CheckBox Name="PART_HoldLeft" Classes="toggle-option" Content="Left" />
+                    <CheckBox Name="PART_HoldRight" Classes="toggle-option" Content="Right" />
+                    <CheckBox Name="PART_HoldMiddle" Classes="toggle-option" Content="Middle" />
+                    <CheckBox Name="PART_HoldX1" Classes="toggle-option" Content="X1" />
+                    <CheckBox Name="PART_HoldX2" Classes="toggle-option" Content="X2" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                    <TextBlock Classes="field-label header-label" Text="" VerticalAlignment="Center" />
+                    <CheckBox Name="PART_KeyControl" Classes="toggle-option" />
+                    <CheckBox Name="PART_KeyAlt" Classes="toggle-option" />
+                    <CheckBox Name="PART_KeyShift" Classes="toggle-option" />
+                    <CheckBox Name="PART_KeyMeta" Classes="toggle-option" />
+                    <ComboBox Name="PART_Capture" Classes="field-editor" IsVisible="{TemplateBinding HasHoldMembers}" />
+                  </StackPanel>
+                  <TextBlock Classes="help"
+                             Text="{TemplateBinding AnchorWarning}"
+                             TextWrapping="Wrap"
+                             IsVisible="{TemplateBinding AnchorWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <TextBlock Classes="help"
+                             Text="{TemplateBinding TriggerNote}"
+                             TextWrapping="Wrap"
+                             IsVisible="{TemplateBinding TriggerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
                     <TextBlock Classes="field-label header-label" Text="Category" VerticalAlignment="Center" />
                     <ComboBox Name="PART_Category" Classes="field-editor" />

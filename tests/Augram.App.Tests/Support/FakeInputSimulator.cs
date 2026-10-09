@@ -30,6 +30,12 @@ internal sealed class FakeInputSimulator : IInputSimulator
         return SimulationResult.Success;
     }
 
+    public SimulationResult Press(MouseButton button, int x, int y) => SimulationResult.Success;
+
+    public SimulationResult Release(MouseButton button) => SimulationResult.Success;
+
+    public SimulationResult MoveTo(int x, int y) => SimulationResult.Success;
+
     public SimulationResult KeyPress(KeyCode key) => SimulationResult.Success;
 
     public SimulationResult KeyRelease(KeyCode key) => SimulationResult.Success;

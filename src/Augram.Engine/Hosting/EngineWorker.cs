@@ -2,7 +2,6 @@ using System.Threading.Channels;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
-using Augram.Core.Mapping;
 using Augram.Engine.Execution;
 
 namespace Augram.Engine.Hosting;
@@ -10,13 +9,14 @@ namespace Augram.Engine.Hosting;
 /// <summary>
 /// The engine worker thread's loop: the only code that calls <see cref="CaptureStateMachine.Handle"/>.
 /// Drains the channel, runs the machine, publishes its state for the hook thread, and acts on the
-/// outcomes: trail, click replay (the only place that injects input, A19), recognition, events, log.
-/// A recognised gesture or a wheel tick is then offered to the App's intercept (the training popup),
-/// else enqueued to the <see cref="CommandExecutor"/>; the worker itself never runs a step. Also
-/// cross-checks every button and wheel decision the hook made against the machine's own. Hotkey-capture
-/// key events and release notices pass straight through to the <see cref="KeyCaptureController"/>'s caller.
+/// outcomes (<c>EngineWorker.Outcomes.cs</c>): trail, click replay and hand-back (the only place that injects
+/// mouse input for a press, A19), recognition, events, log. A recognised gesture, a wheel tick or a click trigger
+/// is then offered to the App's intercept (the training popup), else enqueued to the <see cref="CommandExecutor"/>;
+/// the worker itself never runs a step. Also cross-checks every button and wheel decision the hook made against the
+/// machine's own. Hotkey-capture key events and release notices pass straight through to the
+/// <see cref="KeyCaptureController"/>'s caller.
 /// </summary>
-internal sealed class EngineWorker
+internal sealed partial class EngineWorker
 {
     public const string NoMappingReason = "no mapping configured";
     public const string ConsumedReason = "consumed by training";
@@ -33,6 +33,7 @@ internal sealed class EngineWorker
     private readonly IInputSimulator _simulator;
     private readonly IEventLog _log;
     private readonly IClock _clock;
+    private readonly bool _maskWinAlt;
     private readonly int _deepQueue;
     private bool _trailOpen;
     private bool _deepWarned;
@@ -51,6 +52,7 @@ internal sealed class EngineWorker
         _simulator = ports.Simulator;
         _log = ports.Log;
         _clock = ports.Clock;
+        _maskWinAlt = ports.WindowOperations.Platform == HostPlatform.Windows;
         _deepQueue = Math.Max(1, queueCapacity / 2);
     }
 
@@ -82,6 +84,8 @@ internal sealed class EngineWorker
                 _machine.StrokeButton = button;
                 _gate.PublishStrokeButton(button);
                 _log.Info(LogSources.Engine, "Stroke button changed", ("button", button));
+                // The anchor plans name the stroke button: the ignore-list watch works them out again for the new one.
+                _host.MappingChanged();
                 break;
             case WorkerMessage.MessageKind.SetThresholds:
                 var thresholds = (CaptureThresholds)message.Payload!;
@@ -89,8 +93,7 @@ internal sealed class EngineWorker
                 _log.Info(LogSources.Engine, "Capture thresholds changed", ("startDistancePx", thresholds.StartDistancePx), ("minSegmentPx", thresholds.MinSegmentPx), ("cancelDelayMs", thresholds.CancelDelayMs), ("resetOnMovement", thresholds.ResetCancelDelayOnMovement));
                 break;
             case WorkerMessage.MessageKind.Reset:
-                _machine.Reset();
-                EndTrail();
+                ResetMachine();
                 _log.Info(LogSources.Capture, "Capture reset", ("reason", (string)message.Payload!));
                 break;
             case WorkerMessage.MessageKind.ButtonObserved:
@@ -109,16 +112,36 @@ internal sealed class EngineWorker
 
     private void OnInput(CaptureEvent e, bool hookSuppressed)
     {
+        var activeBefore = _machine.ActiveButton;
         var outcomes = _machine.Handle(e);
         _gate.PublishState(_machine.State);
         if (e is CaptureEvent.ButtonDown or CaptureEvent.ButtonUp or CaptureEvent.Wheel)
         {
-            CrossCheck(e, hookSuppressed, outcomes);
+            CrossCheck(e, hookSuppressed, outcomes, activeBefore);
         }
 
         foreach (var outcome in outcomes)
         {
             Dispatch(outcome, e);
+        }
+
+        if (e is CaptureEvent.ButtonDown down && _machine.State == CaptureState.Held && _machine.ActiveButton == down.Button)
+        {
+            MaskWinAlt(down);
+        }
+    }
+
+    /// <summary>
+    /// A captured press with Win or Alt held before it (learnings 0003 §3.2): Windows would see that key go down and up with
+    /// nothing between (the press was swallowed) and open Start or the menu bar; one Ctrl tap now makes it a combination, as
+    /// SP.net does for its hotkeys. Windows only; macOS does nothing on a lone Cmd or Option.
+    /// </summary>
+    private void MaskWinAlt(CaptureEvent.ButtonDown down)
+    {
+        if (_maskWinAlt && (down.Modifiers & (KeyModifiers.Meta | KeyModifiers.Alt)) != 0)
+        {
+            _simulator.KeyPress(KeyCode.LeftControl);
+            _simulator.KeyRelease(KeyCode.LeftControl);
         }
     }
 
@@ -135,107 +158,19 @@ internal sealed class EngineWorker
         _host.ArmTick(state is CaptureState.Held or CaptureState.Drawing);
     }
 
-    private void Dispatch(CaptureOutcome outcome, CaptureEvent e)
+    /// <summary>The hard reset; a handed-back press's injected down gets its up first, so the app is never left holding it.</summary>
+    private void ResetMachine()
     {
-        switch (outcome)
+        if (_machine.HandedBackButton is { } button)
         {
-            case CaptureOutcome.BeginStroke begin:
-                _trail.Begin(begin.Start);
-                _trailOpen = true;
-                _log.Debug(LogSources.Capture, "Stroke began", ("x", begin.Start.X), ("y", begin.Start.Y));
-                break;
-            case CaptureOutcome.StrokeProgress progress:
-                _trail.Extend(progress.Point);
-                break;
-            case CaptureOutcome.EndStroke:
-                EndTrail();
-                break;
-            case CaptureOutcome.ReplayClick replay:
-                var result = _simulator.Click(replay.Button, replay.X, replay.Y);
-                _log.Debug(LogSources.Capture, "Click replayed", ("button", replay.Button), ("x", replay.X), ("y", replay.Y), ("result", result), ("lagMs", _clock.MonotonicMs - e.TimestampMs));
-                break;
-            case CaptureOutcome.StrokeComplete stroke:
-                Recognize(stroke);
-                break;
-            case CaptureOutcome.WheelTrigger wheel:
-                _log.Info(LogSources.Capture, "Wheel trigger", ("direction", wheel.Direction), ("x", wheel.Start.X), ("y", wheel.Start.Y));
-                var wheelEvent = new EngineEvent.WheelTriggered(wheel.Direction, wheel.Start);
-                _host.Raise(wheelEvent);
-                Fire(wheelEvent, Trigger.ForWheel(wheel.Direction), wheel.Start, null);
-                break;
-            case CaptureOutcome.Cancelled cancelled:
-                _log.Debug(LogSources.Capture, "Gesture cancelled", ("reason", cancelled.Reason));
-                break;
+            _simulator.Release(button);
         }
+
+        _machine.Reset();
+        EndTrail();
     }
 
-    private void Recognize(CaptureOutcome.StrokeComplete stroke)
-    {
-        try
-        {
-            var (engineEvent, draft) = _recognizer.Recognize(stroke, _gate.TakeWorstHandlerMicroseconds());
-            _host.PublishStrokeLatency(Math.Max(0, _clock.MonotonicMs - stroke.Points[^1].TimestampMs));
-            _host.Raise(engineEvent);
-            if (engineEvent is EngineEvent.GestureRecognized recognized)
-            {
-                Fire(engineEvent, Trigger.ForGesture(recognized.GestureId), recognized.Start, draft);
-            }
-        }
-        catch (Exception exception)
-        {
-            _log.Error(LogSources.Recognition, "Recognition failed", exception, ("points", stroke.Points.Count));
-        }
-    }
-
-    /// <summary>
-    /// After the event is raised: the App's intercept may claim it (training popup, F3/A6); else the
-    /// executor gets it; else (no Mapping port: recognise and report only, as in M1) the draft is
-    /// completed with the reason and added here. Acts first, logs second.
-    /// </summary>
-    private void Fire(EngineEvent engineEvent, Trigger trigger, CapturePoint start, RecognitionLogEntry? draft)
-    {
-        if (Intercepted(engineEvent))
-        {
-            if (draft is not null)
-            {
-                _recognitionLog.Add(draft with { NothingFiredReason = ConsumedReason });
-            }
-
-            _log.Debug(LogSources.Capture, "Stroke consumed", ("trigger", trigger.Describe()));
-            return;
-        }
-
-        if (_executor is not null)
-        {
-            _executor.Enqueue(new ExecutionRequest(trigger, start, draft));
-            return;
-        }
-
-        if (draft is not null)
-        {
-            _recognitionLog.Add(draft with { NothingFiredReason = NoMappingReason });
-        }
-    }
-
-    private bool Intercepted(EngineEvent engineEvent)
-    {
-        if (_intercept is null)
-        {
-            return false;
-        }
-
-        try
-        {
-            return _intercept(engineEvent);
-        }
-        catch (Exception exception)
-        {
-            _log.Error(LogSources.Engine, "Intercept threw", exception, ("event", engineEvent.GetType().Name));
-            return false;
-        }
-    }
-
-    private void CrossCheck(CaptureEvent e, bool hookSuppressed, IReadOnlyList<CaptureOutcome> outcomes)
+    private void CrossCheck(CaptureEvent e, bool hookSuppressed, IReadOnlyList<CaptureOutcome> outcomes, MouseButton activeBefore)
     {
         var machineSuppressed = false;
         foreach (var outcome in outcomes)
@@ -251,8 +186,10 @@ internal sealed class EngineWorker
             return;
         }
 
-        // A wheel tick can race the hold-still cancel by one tick interval (documented in README); anything else is a bug.
-        var level = e is CaptureEvent.Wheel ? EventLevel.Debug : EventLevel.Warning;
+        // A wheel tick, or a button joining a press, can race the hold-still cancel or a hand-back by one tick interval
+        // (documented in README); a mismatch on the anchor's own press or release is a bug.
+        var raced = e is CaptureEvent.Wheel || (e is CaptureEvent.ButtonDown down && down.Button != activeBefore) || (e is CaptureEvent.ButtonUp up && up.Button != activeBefore);
+        var level = raced ? EventLevel.Debug : EventLevel.Warning;
         if (_log.IsEnabled(level))
         {
             _log.Log(new LogEvent(DateTimeOffset.Now, level, LogSources.Capture, "Suppression decision mismatch", [new("event", e.GetType().Name), new("hook", hookSuppressed), new("machine", machineSuppressed)]));
@@ -295,8 +232,7 @@ internal sealed class EngineWorker
         if (buttons > 0)
         {
             _log.Error(LogSources.Capture, "Input queue full: button or wheel events dropped; capture reset", ("dropped", buttons));
-            _machine.Reset();
-            EndTrail();
+            ResetMachine();
             AfterMachineChange();
         }
     }

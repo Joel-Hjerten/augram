@@ -82,5 +82,5 @@ public sealed class CommandExecutorTests
         return executor;
     }
 
-    private static ExecutionRequest Request() => new(Trigger.ForGesture(Gesture), new CapturePoint(1, 2, 0), null);
+    private static ExecutionRequest Request() => new(PressedTrigger.Of(Trigger.ForGesture(Gesture)), new CapturePoint(1, 2, 0), null);
 }

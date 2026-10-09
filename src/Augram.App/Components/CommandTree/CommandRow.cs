@@ -107,6 +107,26 @@ public sealed class CommandRow : ItemRow
         private set => SetValue(HasCategoryProperty, value);
     }
 
+    /// <summary>One word per line, a combination's "+" kept at the end of the word before it: "Right +" / "wheel" / "up".</summary>
+    public static string BadgeLines(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var lines = new List<string>();
+        foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (word == "+" && lines.Count > 0)
+            {
+                lines[^1] += " +";
+            }
+            else
+            {
+                lines.Add(word);
+            }
+        }
+
+        return string.Join('\n', lines);
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -116,7 +136,7 @@ public sealed class CommandRow : ItemRow
             NameText = item?.Name ?? string.Empty;
             IsActive = item?.IsActive ?? true;
             TriggerText = item?.TriggerText ?? string.Empty;
-            BadgeText = string.Join('\n', TriggerText.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            BadgeText = BadgeLines(TriggerText);
             SummaryText = item?.StepSummary ?? string.Empty;
             MarkerText = item?.PlatformMarker;
             PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });

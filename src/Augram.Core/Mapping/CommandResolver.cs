@@ -12,7 +12,7 @@ namespace Augram.Core.Mapping;
 /// <list type="number">
 /// <item>the window belongs to an active ignored app → <see cref="ResolutionOutcome.Ignored"/>;</item>
 /// <item>the first active app group (in document order) whose matcher matches the window is the app group;</item>
-/// <item>an active command in that group with this trigger → matched ("app override in 'Chrome'", or "override to nothing in 'Steam'" when it has no steps);</item>
+/// <item>an active command in that group whose trigger on this platform matches the press exactly (the keys and buttons held, learnings 0003 §3.4; there is no fallback to a trigger holding fewer) → matched ("app override in 'Chrome'", or "override to nothing in 'Steam'" when it has no steps);</item>
 /// <item>else, if that group suppresses globals → none ("globals suppressed by 'FF7'");</item>
 /// <item>else the Global group's active command for the trigger → matched ("global");</item>
 /// <item>else none ("no command for this gesture").</item>
@@ -21,7 +21,15 @@ namespace Augram.Core.Mapping;
 /// </summary>
 public static class CommandResolver
 {
+    /// <summary>The press a configured trigger describes (<see cref="PressedTrigger.Of"/>), resolved: for callers that hold a trigger rather than a press.</summary>
     public static CommandResolution Resolve(MappingDocument mapping, WindowIdentity? target, Trigger trigger, HostPlatform platform)
+    {
+        ArgumentNullException.ThrowIfNull(trigger);
+        return Resolve(mapping, target, PressedTrigger.Of(trigger), platform);
+    }
+
+    /// <summary>The rule above for one press; a command matches when its trigger on <paramref name="platform"/> (<see cref="Command.TriggerFor"/>) matches the press exactly.</summary>
+    public static CommandResolution Resolve(MappingDocument mapping, WindowIdentity? target, PressedTrigger trigger, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(trigger);
@@ -110,11 +118,11 @@ public static class CommandResolver
         return null;
     }
 
-    private static Command? ActiveCommandFor(AppGroup group, Trigger trigger, HostPlatform platform)
+    private static Command? ActiveCommandFor(AppGroup group, PressedTrigger trigger, HostPlatform platform)
     {
         foreach (var command in group.Commands)
         {
-            if (command.IsActive && group.IsCommandUsedOn(command, platform) && command.Trigger == trigger)
+            if (command.IsActive && group.IsCommandUsedOn(command, platform) && trigger.Matches(command.TriggerFor(platform)))
             {
                 return command;
             }

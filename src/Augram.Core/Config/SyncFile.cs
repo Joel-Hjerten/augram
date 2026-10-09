@@ -27,9 +27,11 @@ public sealed record SyncFile(
     /// build would read such a category as used everywhere and publish it back that way. 4 (2026-10-08): the step types
     /// TypeText, Run and Display (<c>typeText</c>, <c>run</c>, <c>displayMode</c>, <c>hdr</c>); a format 3 build cannot read
     /// a command holding one and would drop it. 5 (2026-10-09): Display mode's "highest available" refresh
-    /// (<c>"refreshHz": "highest"</c>), which a format 4 build refuses to read.
+    /// (<c>"refreshHz": "highest"</c>), which a format 4 build refuses to read. 6 (2026-10-09): trigger combinations (a
+    /// trigger's <c>hold</c>, the click trigger, an own-steps item's <c>trigger</c>); a format 5 build would read a
+    /// combination as the plain trigger and publish it back that way (the config schema went to 2 at the same time).
     /// </summary>
-    public const int CurrentFormatVersion = 5;
+    public const int CurrentFormatVersion = 6;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;

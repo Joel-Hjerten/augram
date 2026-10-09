@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace Augram.Core.Config;
@@ -91,6 +92,27 @@ internal static class JsonMembers
         return Enum.TryParse<TEnum>(text, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
             ? parsed
             : throw Refuse(name, where, $"one of {string.Join(", ", Enum.GetNames<TEnum>())}");
+    }
+
+    /// <summary>A flags enum written by name, comma-separated ("Stroke, Right"); missing or null is <paramref name="fallback"/>, a name or bit the enum lacks is refused.</summary>
+    public static TEnum OptionalFlags<TEnum>(JsonObject owner, string name, TEnum fallback, string where)
+        where TEnum : struct, Enum
+    {
+        var text = OptionalString(owner, name, where);
+        if (text is null)
+        {
+            return fallback;
+        }
+
+        long defined = 0;
+        foreach (var value in Enum.GetValues<TEnum>())
+        {
+            defined |= Convert.ToInt64(value, CultureInfo.InvariantCulture);
+        }
+
+        return Enum.TryParse<TEnum>(text, ignoreCase: true, out var parsed) && (Convert.ToInt64(parsed, CultureInfo.InvariantCulture) & ~defined) == 0
+            ? parsed
+            : throw Refuse(name, where, $"a comma-separated list of {string.Join(", ", Enum.GetNames<TEnum>())}");
     }
 
     private static ConfigFormatException Refuse(string name, string where, string expected)

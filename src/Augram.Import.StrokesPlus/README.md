@@ -22,7 +22,8 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 | `JsonRead`, `MethodParameterReader`, `RegexAlternation` (internal) | the tolerant member reads every reader shares; `MethodParameters[]` as name → value text (numbers, bools and objects kept as JSON text); the "plain alternation of literals" regex splitter |
 | `GestureReader` (internal) | `Gestures[]` to `Gesture` records: fresh `GestureId`, trimmed `Name`, `IsActive` from `Active`, one `GestureSample` per `PointPattern` ordered by `Order` |
 | `StepReader` (internal) | one `Steps[]` entry to one `CommandStep` authored on Windows, per the table below; counts placeholders per method and reports them once per file |
-| `ActionReader` (internal) | one `Action` to one `Command`: name = `Description` (fallback "Action N", unique in the group with a numbered suffix), trigger, modifier flags, steps, script, `Active`; hands back each action's `Category` name beside its command |
+| `ActionReader` (internal) | one `Action` to one `Command`: name = `Description` (fallback "Action N", unique in the group with a numbered suffix), trigger, steps, script, `Active`; hands back each action's `Category` name beside its command |
+| `TriggerReader` (internal) | an action's trigger with its keys, buttons and capture mode, and the file's `SecondaryStrokeButton` (table below) |
 | `CategoryReader` (internal) | an application's `Categories[]` and its actions' `Category` names to the group's `CommandCategory` list and each command's `CategoryId`, per the table below |
 | `MatcherReader` (internal) | the shared matcher fields to an `AppMatcher`, per the table below |
 | `ApplicationReader`, `IgnoredApplicationReader` (internal) | `GlobalApplication` to the Global group's commands; `Applications[]` to `AppGroup`s (`NoGlobalActions` → `SuppressGlobals`); `IgnoredApplications[]` to `IgnoredApp`s (`DisableOnFocus` → `DisableEntirely`). An entry whose matcher ends up empty is imported **inactive** with a warning ("needs an app definition") |
@@ -98,9 +99,14 @@ Against the reference config (read 2026-10-08, never copied): both `Run` steps m
 | `GestureName` resolves (case-insensitive) to a gesture imported from the same file | `Trigger.ForGesture(id)`; SP.net binds by name, so a duplicated source name binds to the first |
 | `GestureName` names nothing | `Trigger.None` + warning "gesture 'X' not found; command imported without a gesture" |
 | `GestureName` empty and `WheelUp` / `WheelDown` | `Trigger.ForWheel`; both set → wheel up + warning |
-| neither | `Trigger.None` + warning |
-| a trigger already bound in the group (A7) | the active command keeps it; the other is imported with `Trigger.None` + warning |
-| `Control`, `Alt`, `Shift`, `Left`, `Middle`, `Right`, `X1`, `X2` or `UseSecondaryStrokeButton` | imported **inactive**, `Note` "Imported from StrokesPlus.net: needs modifier/rocker support (deferred)" |
+| neither, but keys or buttons held | a **click trigger** (`Trigger.ForClick`: the stroke button clicked while holding them; SP.net's no-gesture action) |
+| none of these | `Trigger.None` + warning |
+| `Control`, `Alt`, `Shift`; `Left`, `Middle`, `Right`, `X1`, `X2`; `Capture` 0 / 1 / 2 | the trigger's "while holding" set (`TriggerHold`, `TriggerReader`; learnings 0003 §3.8): the keys, the buttons with the stroke button, capture Before / After / Either (SP.net's order; missing is Either). The command keeps its `Active` flag (until 2026-10-09 these imported inactive with a "needs modifier/rocker support" note) |
+| `UseSecondaryStrokeButton`, a wheel action, `SecondaryStrokeButton` set in the file (WinForms `MouseButtons`) | the wheel trigger holds that button instead of the stroke button ("X1 + wheel up"), active as in the source |
+| `UseSecondaryStrokeButton`, a wheel action, no secondary button set (Joel's file) | "Right + wheel" (Joel's own use, requirements F1), **inactive**, note "a secondary-stroke-button command … check the button to hold, then switch it on" |
+| `UseSecondaryStrokeButton`, a gesture or click action | the stroke-button trigger, **inactive**, note "drawn or clicked with the secondary stroke button, and Augram draws and clicks with the stroke button only" |
+| a click trigger whose steps re-send a mouse click (`MouseClick`; SP.net's "Shift+Right Click" workaround) | **inactive**, note "Augram passes a click with keys held through to the app itself when nothing is bound to it" (Joel, 2026-10-09) |
+| a trigger already bound in the group (A7: overlapping, combinations included) | the active command keeps it; the other is imported with `Trigger.None` + warning naming the combination ("Shift + gesture 'Up'") |
 | `Steps` non-empty | one `CommandStep` per entry (a script beside steps is ignored, as SP.net ignores it) |
 | `Steps` empty, `Script` one `sp.RunProgram(...)` call (`RunProgramScript.TryRecognize`) | the step `ProgramCallMapping.ToStep` makes of the call, no note |
 | `Steps` empty, any other `Script` | one `ImportedStep("Script", name, { script })` so the script is visible on the step list, plus `Note` "Imported from StrokesPlus.net: script-only action"; `Active` carried over |

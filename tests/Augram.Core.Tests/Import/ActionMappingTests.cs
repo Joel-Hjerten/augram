@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
 using Augram.Core.Steps.WindowOp;
@@ -41,12 +42,74 @@ public sealed class ActionMappingTests
     }
 
     [Fact]
-    public void SecondaryStrokeButtonImportsInactiveWithNote()
+    public void SecondaryStrokeButtonWithNoneSet_ImportsAsRightPlusWheel_InactiveWithNote()
     {
         var command = Only(Read("{ \"Description\": \"Synthetic Zoom\", \"GestureName\": \"\", \"WheelUp\": true, \"UseSecondaryStrokeButton\": true, \"Steps\": [] }"));
 
         Assert.False(command.IsActive);
-        Assert.Contains("modifier/rocker", command.Note, StringComparison.Ordinal);
+        Assert.Contains("secondary-stroke-button command", command.Note, StringComparison.Ordinal);
+        Assert.Equal(Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right)), command.Trigger);
+    }
+
+    [Fact]
+    public void SecondaryStrokeButtonSetInTheFile_IsTheAnchor_AndTheCommandKeepsItsActiveFlag()
+    {
+        var result = StrokesPlusImporter.ReadAll("{ \"SecondaryStrokeButton\": 8388608, \"Gestures\": [], \"GlobalApplication\": { \"Actions\": [ "
+            + "{ \"Description\": \"Synthetic Zoom\", \"GestureName\": \"\", \"WheelDown\": true, \"UseSecondaryStrokeButton\": true, \"Shift\": true, \"Capture\": 1, \"Steps\": [] } ] } }");
+
+        var command = Only(result);
+        Assert.True(command.IsActive);
+        Assert.Null(command.Note);
+        Assert.Equal(Trigger.ForWheel(WheelDirection.Down, new TriggerHold(HeldButtons.X1, KeyModifiers.Shift, HoldCapture.After)), command.Trigger);
+    }
+
+    [Theory]
+    [InlineData(0, HoldCapture.Before)]
+    [InlineData(1, HoldCapture.After)]
+    [InlineData(2, HoldCapture.Either)]
+    public void KeysAndButtonsImportWithTheCaptureMode_InSPNetsOrder(int capture, HoldCapture expected)
+    {
+        var command = Only(Read($"{{ \"Description\": \"Synthetic Chord\", \"GestureName\": \"Synthetic Up\", \"Control\": true, \"Left\": true, \"Capture\": {capture}, \"Steps\": [] }}"));
+
+        Assert.True(command.IsActive);
+        Assert.Equal(new TriggerHold(HeldButtons.Stroke | HeldButtons.Left, KeyModifiers.Control, expected), command.Trigger.Hold);
+    }
+
+    [Fact]
+    public void KeysWithoutGestureOrWheel_ImportAsAClickTrigger()
+    {
+        var command = Only(Read("{ \"Description\": \"Synthetic Alt Click\", \"GestureName\": \"\", \"Alt\": true, \"Capture\": 0, \"Steps\": [ { \"Method\": \"CloseWindow\" } ] }"));
+
+        Assert.True(command.IsActive);
+        Assert.Equal(Trigger.ForClick(TriggerHold.WithStroke(KeyModifiers.Alt, capture: HoldCapture.Before)), command.Trigger);
+    }
+
+    /// <summary>Joel, 2026-10-09: an unbound click with keys passes through, so SP.net's "Shift+Right Click" workaround is not needed.</summary>
+    [Fact]
+    public void ShiftRightClickWorkaround_ImportsInactive_BecauseAugramRelaysTheClickItself()
+    {
+        var command = Only(Read("{ \"Description\": \"Shift+Right Click\", \"GestureName\": \"\", \"Shift\": true, \"Capture\": 0, \"Steps\": [ "
+            + "{ \"Method\": \"ConsumePhysicalInput\", \"MethodParameters\": [ { \"Name\": \"active\", \"Value\": true } ] }, "
+            + "{ \"Method\": \"MouseClick\", \"MethodParameters\": [ { \"Name\": \"button\", \"Value\": \"Right\" } ] } ] }"));
+
+        Assert.False(command.IsActive);
+        Assert.Contains("passes a click with keys held through", command.Note, StringComparison.Ordinal);
+        Assert.IsType<Trigger.ClickTrigger>(command.Trigger);
+    }
+
+    [Fact]
+    public void ACombinationAndThePlainTriggerAreBothBound_ButTwoOverlappingCombinationsAreNot()
+    {
+        var result = Read(
+            "{ \"Description\": \"Synthetic Plain\", \"GestureName\": \"Synthetic Up\", \"Steps\": [] }, "
+            + "{ \"Description\": \"Synthetic Shift Either\", \"GestureName\": \"Synthetic Up\", \"Shift\": true, \"Capture\": 2, \"Steps\": [] }, "
+            + "{ \"Description\": \"Synthetic Shift Before\", \"GestureName\": \"Synthetic Up\", \"Shift\": true, \"Capture\": 0, \"Steps\": [] }");
+
+        var commands = result.Mapping.Global.Commands;
+        Assert.True(commands.Single(command => command.Name == "Synthetic Plain").Trigger.IsBound);
+        Assert.True(commands.Single(command => command.Name == "Synthetic Shift Either").Trigger.IsBound);
+        Assert.False(commands.Single(command => command.Name == "Synthetic Shift Before").Trigger.IsBound);
+        Assert.Contains(result.Warnings, warning => warning.Item == "Synthetic Shift Before" && warning.Message.Contains("Shift + gesture 'Synthetic Up'", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -59,12 +122,12 @@ public sealed class ActionMappingTests
     }
 
     [Fact]
-    public void ScriptAndModifierNotesAreBothKept()
+    public void ScriptOnlyActionWithAKey_KeepsTheKeyAndTheScriptNote()
     {
         var command = Only(Read("{ \"Description\": \"Synthetic Scripted\", \"GestureName\": \"Synthetic Up\", \"Alt\": true, \"Steps\": [], \"Script\": \"sp.Beep();\" }"));
 
-        Assert.False(command.IsActive);
-        Assert.Contains("modifier/rocker", command.Note, StringComparison.Ordinal);
+        Assert.True(command.IsActive);
+        Assert.Equal(KeyModifiers.Alt, command.Trigger.Hold.Keys);
         Assert.Contains("script-only", command.Note, StringComparison.Ordinal);
         Assert.Single(command.Steps);
     }

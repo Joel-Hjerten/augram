@@ -45,6 +45,7 @@ public sealed class FileConfigStore : IConfigStore
         }
         else if (TryRead(Location, out var document))
         {
+            ReportOlderBuildSave();
             return document;
         }
 
@@ -76,6 +77,37 @@ public sealed class FileConfigStore : IConfigStore
         var temp = Location + ".tmp";
         File.WriteAllText(temp, json);
         File.Move(temp, Location, overwrite: true);
+    }
+
+    /// <summary>
+    /// An older build cannot read a newer file: it loads the newest backup it can read and, on its first change, saves over
+    /// the newer file (whose copy lands in the backups first). When the main file is older than the newest backup, that is
+    /// what happened; it is reported, never undone automatically (the older build's edits would be lost).
+    /// </summary>
+    private void ReportOlderBuildSave()
+    {
+        if (PeekSchema(Location) is not { } main || main >= ConfigDocument.CurrentSchemaVersion)
+        {
+            return;
+        }
+
+        var newest = Backups.NewestFirst().FirstOrDefault();
+        if (newest is not null && PeekSchema(newest) is { } backup && backup > main)
+        {
+            _notice?.Invoke($"{Location} was saved by an older Augram (schema {main}) over a newer one (schema {backup}); what only the newer one could hold, such as trigger combinations, is in {newest}.");
+        }
+    }
+
+    private static int? PeekSchema(string path)
+    {
+        try
+        {
+            return ConfigSerializer.PeekSchemaVersion(File.ReadAllText(path));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private bool TryRead(string path, out ConfigDocument document)

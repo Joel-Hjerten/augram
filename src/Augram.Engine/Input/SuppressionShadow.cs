@@ -4,77 +4,136 @@ using Augram.Core.Capture;
 namespace Augram.Engine.Input;
 
 /// <summary>
-/// The hook thread's copy of the one fact it needs to answer "suppress?" without running the
-/// <see cref="CaptureStateMachine"/>: which button's consumed press it still owes a consumed release
-/// for (checklist A19). The machine itself lives on the engine worker and lags the hook by the
-/// queue depth, so its state cannot be trusted for the press/release pairing; it is read only for
-/// the wheel decision, where a stale answer costs one scroll tick at most.
+/// The hook thread's copy of the facts it needs to answer "suppress?" without running the
+/// <see cref="CaptureStateMachine"/>: which anchor owns the press in progress, and which buttons' consumed downs it still
+/// owes a consumed up for (checklist A19, now per button). The machine itself lives on the engine worker and lags the
+/// hook by the queue depth, so its state cannot be trusted for the pairing; it is read only where a stale answer costs
+/// one event (a wheel tick, a button joining a press just after it was cancelled or handed back).
 /// <para>
-/// Derivation from the Capture README table, event by event (<c>SuppressionShadowTests</c>
-/// proves it equals the machine's own decision over random sequences):
-/// stroke-button press: suppress iff capture is allowed and the ignore key is up (the machine says
-/// the same from every state, since a press while not Idle restarts the capture); stroke-button
-/// release: suppress iff the press was suppressed; the "stroke button" for both is the owed button
-/// while one is owed, so a button change mid-capture keeps consuming the old button (the machine's
-/// <c>_activeButton</c>); other buttons are never suppressed; a wheel tick is suppressed iff the
-/// machine is Held, Drawing or WheelFiring; moves never are. Keys are <see cref="KeySuppressionShadow"/>'s (hotkey capture).
+/// Derivation from the Capture README table, event by event (<c>SuppressionShadowTests</c> and <c>ChordPairingTests</c>
+/// prove it equals the machine's own decision over random sequences):
+/// a press with no press in progress, or of the owner again (a missed release): suppress iff the button is an anchor
+/// (the stroke button, or one the window's <see cref="AnchorPlan"/> holds back), capture is allowed and the ignore key is
+/// up; it then owns the press. Another button while the press is held and not frozen (no wheel tick, not cancelled, not
+/// handed back): suppress iff the press's plan claims it for this owner. A release: suppress iff its press was suppressed,
+/// whatever happened in between. A wheel tick: suppress iff a press is owned and the machine has not cancelled it or
+/// handed it back. Moves never. Keys are <see cref="KeySuppressionShadow"/>'s, which asks <see cref="KeyClaim"/>.
 /// </para>
 /// </summary>
 public sealed class SuppressionShadow
 {
     private const int NoButton = -1;
-    private int _owed = NoButton;
 
-    /// <summary>The button whose release is still owed, or null. Snapshot for undoing a failed enqueue.</summary>
+    private int _owner = NoButton;
+    private bool _ownerIsStroke;
+    private int _owed;
+    private AnchorPlan _plan;
+    private bool _wheel;
+    private KeyModifiers _beforeKeys;
+
+    /// <summary>The anchor that owns the press in progress, or null.</summary>
     public MouseButton? Owed
     {
         get
         {
-            var owed = Volatile.Read(ref _owed);
-            return owed == NoButton ? null : (MouseButton)owed;
+            var owner = Volatile.Read(ref _owner);
+            return owner == NoButton ? null : (MouseButton)owner;
         }
     }
 
-    /// <summary>Forget any owed release. Only when the hook was reinstalled or the OS state is otherwise unknown.</summary>
-    public void Reset() => Volatile.Write(ref _owed, NoButton);
+    /// <summary>Every button whose consumed down still owes a consumed up, the owner included.</summary>
+    public HeldButtons OwedButtons => (HeldButtons)Volatile.Read(ref _owed);
 
-    public void Restore(MouseButton? owed) => Volatile.Write(ref _owed, owed.HasValue ? (int)owed.Value : NoButton);
+    /// <summary>Everything this shadow knows, to undo a decision whose event could not be enqueued.</summary>
+    public Snapshot Save() => new(_owner, _ownerIsStroke, _owed, _plan, _wheel, _beforeKeys);
+
+    public void Restore(Snapshot snapshot)
+    {
+        _ownerIsStroke = snapshot.OwnerIsStroke;
+        _plan = snapshot.Plan;
+        _wheel = snapshot.Wheel;
+        _beforeKeys = snapshot.BeforeKeys;
+        Volatile.Write(ref _owed, snapshot.Owed);
+        Volatile.Write(ref _owner, snapshot.Owner);
+    }
+
+    /// <summary>Forget every owed release. Only when the hook was reinstalled or the OS state is otherwise unknown.</summary>
+    public void Reset() => Restore(new Snapshot(NoButton, false, 0, AnchorPlan.None, false, KeyModifiers.None));
 
     /// <summary>
-    /// Decides for one event and updates the owed button. <paramref name="machineState"/> is the worker's
-    /// latest published state; <paramref name="strokeButton"/> the configured button; the two flags are the
-    /// press verdict the <c>ButtonDown</c> event will carry.
+    /// The keys a modifier press starting now would join the press as (an After key, consumed): Ctrl, Alt, Shift and Win not
+    /// already held when the anchor went down, while a press is owned and not frozen; none otherwise.
     /// </summary>
+    public KeyModifiers KeyClaim(CaptureState machineState)
+        => Volatile.Read(ref _owner) == NoButton || Frozen(machineState) ? KeyModifiers.None : PressHold.TrackedKeys & ~_beforeKeys;
+
+    /// <summary>The decision for one event without an anchor plan (only the stroke button is an anchor).</summary>
     public bool Decide(in RawInput input, CaptureState machineState, MouseButton strokeButton, bool captureAllowed, bool ignoreKeyHeld)
+        => Decide(in input, machineState, strokeButton, captureAllowed, ignoreKeyHeld, AnchorPlan.None);
+
+    /// <summary>
+    /// Decides for one event and updates the record. <paramref name="machineState"/> is the worker's latest published state;
+    /// <paramref name="strokeButton"/> the configured button; the two flags are the press verdict the <c>ButtonDown</c> event
+    /// will carry; <paramref name="plan"/> the anchor plan for the window under the pointer, read once at this event.
+    /// </summary>
+    public bool Decide(in RawInput input, CaptureState machineState, MouseButton strokeButton, bool captureAllowed, bool ignoreKeyHeld, AnchorPlan plan)
     {
-        var owed = Volatile.Read(ref _owed);
-        var active = owed == NoButton ? strokeButton : (MouseButton)owed;
+        var owner = Volatile.Read(ref _owner);
+        var flag = (int)input.Button.Flag();
         switch (input.Kind)
         {
             case RawInputKind.ButtonDown:
-                if (input.Button != active)
+                if (owner == NoButton || (int)input.Button == owner)
                 {
+                    var isAnchor = input.Button == strokeButton || plan.IsAnchor(input.Button);
+                    if (isAnchor && captureAllowed && !ignoreKeyHeld)
+                    {
+                        _ownerIsStroke = input.Button == strokeButton;
+                        _plan = plan;
+                        _wheel = false;
+                        _beforeKeys = input.Modifiers & PressHold.TrackedKeys;
+                        Volatile.Write(ref _owed, _owed | flag);
+                        Volatile.Write(ref _owner, (int)input.Button);
+                        return true;
+                    }
+
+                    if (owner != NoButton)
+                    {
+                        Volatile.Write(ref _owner, NoButton);
+                    }
+
+                    Volatile.Write(ref _owed, _owed & ~flag);
                     return false;
                 }
 
-                var suppress = captureAllowed && !ignoreKeyHeld;
-                Volatile.Write(ref _owed, suppress ? (int)input.Button : NoButton);
-                return suppress;
+                var joins = !Frozen(machineState) && _plan.Claims((MouseButton)owner, _ownerIsStroke, input.Button);
+                Volatile.Write(ref _owed, joins ? _owed | flag : _owed & ~flag);
+                return joins;
 
             case RawInputKind.ButtonUp:
-                if (input.Button != active)
+                var owed = (_owed & flag) != 0;
+                Volatile.Write(ref _owed, _owed & ~flag);
+                if ((int)input.Button == owner)
                 {
-                    return false;
+                    Volatile.Write(ref _owner, NoButton);
                 }
 
-                Volatile.Write(ref _owed, NoButton);
-                return owed != NoButton;
+                return owed;
 
             case RawInputKind.Wheel:
-                return machineState is CaptureState.Held or CaptureState.Drawing or CaptureState.WheelFiring;
+                var suppress = owner != NoButton && machineState is not (CaptureState.Cancelled or CaptureState.HandedBack);
+                _wheel |= suppress;
+                return suppress;
 
             default:
                 return false;
         }
     }
+
+    /// <summary>A wheel tick froze the press, or the machine cancelled it or handed it back: nothing joins it any more.</summary>
+    private bool Frozen(CaptureState machineState)
+        => _wheel || machineState is CaptureState.WheelFiring or CaptureState.Cancelled or CaptureState.HandedBack;
+
+    /// <summary>What <see cref="Save"/> returns; opaque to callers.</summary>
+    public readonly record struct Snapshot(int Owner, bool OwnerIsStroke, int Owed, AnchorPlan Plan, bool Wheel, KeyModifiers BeforeKeys);
 }

@@ -14,7 +14,8 @@ namespace Augram.App.Tests.Commands;
 
 /// <summary>
 /// A command row's trigger badge (no glyph to draw) shows one word per line and shrinks rather than overflow its tile:
-/// "Wheel up" used to read "Whee / l up" and "No trigger" was cut to "No trigge" (Joel, 2026-10-09).
+/// "Wheel up" used to read "Whee / l up" and "No trigger" was cut to "No trigge" (Joel, 2026-10-09). A combination keeps
+/// each "+" with the word before it ("Right +" / "wheel" / "up").
 /// </summary>
 public sealed class TriggerBadgeTests
 {
@@ -24,6 +25,8 @@ public sealed class TriggerBadgeTests
         { "wheel down", "Wheel\ndown" },
         { "none", "No\ntrigger" },
         { "missing gesture", "Missing\ngesture" },
+        { "right wheel up", "Right +\nwheel\nup" },
+        { "ctrl shift click", "Ctrl +\nShift +\nclick" },
     };
 
     [AvaloniaTheory]
@@ -53,6 +56,8 @@ public sealed class TriggerBadgeTests
             "wheel up" => Trigger.ForWheel(WheelDirection.Up),
             "wheel down" => Trigger.ForWheel(WheelDirection.Down),
             "missing gesture" => Trigger.ForGesture(GestureId.New()),
+            "right wheel up" => Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right)),
+            "ctrl shift click" => Trigger.ForClick(TriggerHold.WithStroke(KeyModifiers.Control | KeyModifiers.Shift)),
             _ => Trigger.None,
         },
         IsActive: true,

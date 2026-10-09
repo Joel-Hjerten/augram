@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 
 namespace Augram.Core.Mapping;
@@ -61,10 +62,12 @@ public static class MappingRules
             : group with { Name = Trimmed(group.Name), Commands = commands });
     }
 
+    /// <summary>Trims the name and normalises the trigger and an own version's trigger (<see cref="Trigger.Normalised"/>: a gesture or click holds the stroke button, a click holding nothing else is no trigger).</summary>
     public static Command Normalised(Command command)
     {
         ArgumentNullException.ThrowIfNull(command);
-        return command with { Name = Trimmed(command.Name) };
+        var own = command.OwnVersion is { Trigger: { } trigger } version ? version with { Trigger = trigger.Normalised() } : command.OwnVersion;
+        return command with { Name = Trimmed(command.Name), Trigger = command.Trigger.Normalised(), OwnVersion = own };
     }
 
     public static IgnoredApp Normalised(IgnoredApp app)
@@ -118,7 +121,11 @@ public static class MappingRules
         }
     }
 
-    /// <summary>Checks a normalised command against the other commands of its group (A7: one command per trigger per group).</summary>
+    /// <summary>
+    /// Checks a normalised command against the other commands of its group (A7: one command per trigger per group, where two
+    /// triggers are the same when they overlap on either platform, learnings 0003 §3.5), and that every trigger it has can be
+    /// held: a wheel trigger without the stroke button holds another button.
+    /// </summary>
     public static void EnsureValid(Command command, AppGroup group, IEnumerable<Command> others)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -135,6 +142,13 @@ public static class MappingRules
             throw new MappingValidationException($"Use '{command.Name}' on at least one platform.");
         }
 
+        EnsureHoldable(command, command.Trigger);
+        if (command.OwnVersion?.Trigger is { } own)
+        {
+            EnsureHoldable(command, own);
+        }
+
+        var mine = TriggersOf(command);
         foreach (var other in others)
         {
             if (other.Id == command.Id)
@@ -147,10 +161,45 @@ public static class MappingRules
                 throw new MappingValidationException($"A command named '{other.Name}' already exists in '{group.Name}'.");
             }
 
-            if (command.Trigger.IsBound && other.Trigger == command.Trigger)
+            if (OverlapOf(mine, other) is { } clash)
             {
-                throw new MappingValidationException($"'{other.Name}' in '{group.Name}' already uses {command.Trigger.Describe()}.");
+                throw new MappingValidationException($"'{other.Name}' in '{group.Name}' already uses {clash}.");
             }
+        }
+    }
+
+    /// <summary>
+    /// A7 between two commands: the phrase of the trigger they share on some platform ("Shift + this gesture", with " on macOS"
+    /// when they share it on one platform only), or null when they share none.
+    /// </summary>
+    public static string? Overlap(Command command, Command other)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(other);
+        return OverlapOf(TriggersOf(command), other);
+    }
+
+    private static (Trigger Windows, Trigger MacOS) TriggersOf(Command command)
+        => (command.TriggerFor(HostPlatform.Windows), command.TriggerFor(HostPlatform.MacOS));
+
+    private static string? OverlapOf((Trigger Windows, Trigger MacOS) mine, Command other)
+    {
+        var onWindows = mine.Windows.Overlaps(other.TriggerFor(HostPlatform.Windows));
+        var onMac = mine.MacOS.Overlaps(other.TriggerFor(HostPlatform.MacOS));
+        return (onWindows, onMac) switch
+        {
+            (true, true) => mine.Windows.Describe(),
+            (true, false) => $"{mine.Windows.Describe(HostPlatform.Windows)} on Windows",
+            (false, true) => $"{mine.MacOS.Describe(HostPlatform.MacOS)} on macOS",
+            _ => null,
+        };
+    }
+
+    private static void EnsureHoldable(Command command, Trigger trigger)
+    {
+        if (trigger.IsBound && !trigger.Hold.HasAnchor)
+        {
+            throw new MappingValidationException($"'{command.Name}' holds no button: a wheel trigger needs the stroke button or another button to hold.");
         }
     }
 

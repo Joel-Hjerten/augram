@@ -73,13 +73,24 @@ public static class CommandsModule
             ? CommandsScreen.Declare(vm)
             : new TextScreen(title, "The Commands tab is not registered: CompositionRoot.Build needs CommandsModule.Register(services) after GesturesModule.Register."));
 
-    private static CommandsViewModel Create(IServiceProvider sp, CommandsScope scope) => new(
-        scope,
-        sp.GetRequiredService<MappingStore>(),
-        sp.GetRequiredService<GestureLibrary>(),
-        sp.GetRequiredService<IGesturePickerPresenter>(),
-        sp.GetRequiredService<IFormDialogPresenter>(),
-        sp.GetRequiredService<IConfirmPresenter>(),
-        sp.GetRequiredService<CommandClipboard>(),
-        CurrentPlatform);
+    private static CommandsViewModel Create(IServiceProvider sp, CommandsScope scope)
+    {
+        var vm = new CommandsViewModel(
+            scope,
+            sp.GetRequiredService<MappingStore>(),
+            sp.GetRequiredService<GestureLibrary>(),
+            sp.GetRequiredService<IGesturePickerPresenter>(),
+            sp.GetRequiredService<IFormDialogPresenter>(),
+            sp.GetRequiredService<IConfirmPresenter>(),
+            sp.GetRequiredService<CommandClipboard>(),
+            CurrentPlatform);
+        if (sp.GetService<SettingsStore>() is { } settings)
+        {
+            // This machine's stroke button: a trigger naming it means the stroke button here, which the header says.
+            vm.StrokeButton = settings.Current.General.StrokeButton;
+            settings.Changed += (_, _) => vm.StrokeButton = settings.Current.General.StrokeButton;
+        }
+
+        return vm;
+    }
 }

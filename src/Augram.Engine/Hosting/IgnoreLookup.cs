@@ -1,17 +1,20 @@
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
 using Augram.Core.Mapping;
 
 namespace Augram.Engine.Hosting;
 
 /// <summary>
 /// One pass of the <see cref="IgnoreListWatch"/>, on its thread only: which window is under the pointer and what has focus,
-/// looked up as little as possible, and what the ignore list says about them (<see cref="IgnoreList"/>). Lookups are
+/// looked up as little as possible, what the ignore list says about them (<see cref="IgnoreList"/>), and which buttons are
+/// anchors over that window (<see cref="AnchorPlanner"/>; Joel 2026-10-09: per app, cached per app group). Lookups are
 /// deduplicated by window: the cheap keys of <see cref="IWindowSystem.WindowKeyAt"/> and <see cref="IWindowSystem.ForegroundKey"/>
 /// are compared with the last ones, and <see cref="IWindowSystem.WindowAt"/> / <see cref="IWindowSystem.Foreground"/> run
 /// only when a key changed (on a platform without cheap keys, at most every <c>slowLookupInterval</c>, the latest position
 /// retried at <see cref="RetryAtMs"/>). A change of focus re-checks the pointer even when it did not move, since a window
 /// brought to the front under a motionless pointer usually takes focus. Nothing is looked up while no active ignored app
-/// can match on this platform; the foreground identity is read only while a "disable while focused" app is active.
+/// can match on this platform and no active command holds a button besides the stroke button; the foreground identity is
+/// read only while a "disable while focused" app is active.
 /// </summary>
 internal sealed class IgnoreLookup
 {
@@ -24,6 +27,12 @@ internal sealed class IgnoreLookup
     private readonly long _slowLookupMs;
     private MappingDocument? _seen;
     private bool _pausing;
+    private bool _ignoring;
+    private bool _anchoring;
+    private MouseButton _planStrokeButton;
+    private WindowIdentity? _planWindow;
+    private bool _planStale = true;
+    private readonly Dictionary<GroupId, AnchorPlan> _plans = [];
     private long _pointerSeen = NoPointer;
     private nint? _pointerKey;
     private WindowIdentity? _pointerWindow;
@@ -39,8 +48,14 @@ internal sealed class IgnoreLookup
         _slowLookupMs = (long)slowLookupInterval.TotalMilliseconds;
     }
 
-    /// <summary>An active ignored app can match here: the pointer and the focus are watched.</summary>
+    /// <summary>An active ignored app can match here, or a command holds a button besides the stroke button (per-app anchors): the pointer and the focus are watched.</summary>
     public bool WatchesPointer { get; private set; }
+
+    /// <summary>Some active command holds a button besides the stroke button: <see cref="Plan"/> follows the window under the pointer.</summary>
+    public bool WatchesAnchors => _anchoring;
+
+    /// <summary>The anchor plan over the window under the pointer as of the last pass (<see cref="AnchorPlanner"/>); <see cref="AnchorPlan.None"/> while no command holds another button.</summary>
+    public AnchorPlan Plan { get; private set; }
 
     /// <summary>An active "disable while focused" app can match here: the foreground's identity is read when focus moves.</summary>
     public bool WatchesFocus => _pausing;
@@ -65,15 +80,25 @@ internal sealed class IgnoreLookup
     /// <param name="pointer">The latest position the hook saw (<see cref="Pack"/>), or <see cref="NoPointer"/>.</param>
     /// <param name="forget">Drop every key (resume, unlock, display change): the next lookups start fresh.</param>
     /// <param name="checkFocus">Ask what has focus this pass: the watch says so at its polling pace, so a busy pointer does not ask on every pass.</param>
-    public void Pass(MappingDocument mapping, long pointer, bool forget, bool checkFocus = true)
+    /// <param name="strokeButton">The stroke button the anchor plans are worked out for (a plan names it as the stroke anchor).</param>
+    public void Pass(MappingDocument mapping, long pointer, bool forget, bool checkFocus = true, MouseButton strokeButton = MouseButton.Right)
     {
         if (!ReferenceEquals(mapping, _seen))
         {
             _seen = mapping;
-            WatchesPointer = IgnoreList.WatchesPointer(mapping, _platform);
+            _ignoring = IgnoreList.WatchesPointer(mapping, _platform);
+            _anchoring = AnchorPlanner.UsesButtons(mapping, _platform);
+            WatchesPointer = _ignoring || _anchoring;
             _pausing = IgnoreList.WatchesFocus(mapping, _platform);
             _focusKey = null;
+            _planStale = true;
             checkFocus = true;
+        }
+
+        if (strokeButton != _planStrokeButton)
+        {
+            _planStrokeButton = strokeButton;
+            _planStale = true;
         }
 
         if (forget || !WatchesPointer)
@@ -92,14 +117,41 @@ internal sealed class IgnoreLookup
         {
             Over = null;
             PausedBy = null;
+            Plan = AnchorPlan.None;
             return;
         }
 
         FocusChecked = checkFocus;
         var focusMoved = checkFocus && CheckFocus();
         CheckPointer(pointer, focusMoved);
-        Over = IgnoreList.Under(mapping, _pointerWindow, _platform);
-        PausedBy = IgnoreList.PausedBy(mapping, _focusWindow, _platform);
+        Over = _ignoring ? IgnoreList.Under(mapping, _pointerWindow, _platform) : null;
+        PausedBy = _ignoring ? IgnoreList.PausedBy(mapping, _focusWindow, _platform) : null;
+        Plan = _anchoring ? PlanFor(mapping, _pointerWindow) : AnchorPlan.None;
+    }
+
+    /// <summary>The plan over the window, worked out again only when the window, the mapping or the stroke button changed; cached per app group.</summary>
+    private AnchorPlan PlanFor(MappingDocument mapping, WindowIdentity? window)
+    {
+        if (_planStale)
+        {
+            _plans.Clear();
+            _planStale = false;
+        }
+        else if (ReferenceEquals(window, _planWindow))
+        {
+            return Plan;
+        }
+
+        _planWindow = window;
+        var group = CommandResolver.FindGroup(mapping, window, _platform);
+        var key = group?.Id ?? GroupId.Global;
+        if (!_plans.TryGetValue(key, out var plan))
+        {
+            plan = AnchorPlanner.ForGroup(mapping, group, _platform, _planStrokeButton);
+            _plans[key] = plan;
+        }
+
+        return plan;
     }
 
     /// <summary>True when what has focus changed since the last pass.</summary>
