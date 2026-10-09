@@ -104,6 +104,7 @@ public sealed class App : Application
         desktop.MainWindow = _services.GetRequiredService<MainWindow>();
         if (OperatingSystem.IsMacOS())
         {
+            ShowOwnDockIconWhenUnbundled();
             MacDockPresence.Follow(desktop.MainWindow);
         }
 
@@ -153,6 +154,21 @@ public sealed class App : Application
     private static LogProperty[] Who(InstanceRequestEventArgs e) => e.From is { } from
         ? [("from", from.App.Describe()), ("channel", from.App.Channel), ("version", from.App.InformationalVersion), ("path", from.ExecutablePath), ("reason", e.Reason)]
         : [("from", "an Augram from before identities")];
+
+    /// <summary>A development build runs as dotnet, which the Dock shows as "exec"; it gets Augram's icon instead (Joel, 2026-10-09).</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+    private static void ShowOwnDockIconWhenUnbundled()
+    {
+        if (Platform.MacOS.MacDock.IsBundled(Environment.ProcessPath))
+        {
+            return;
+        }
+
+        using var icon = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Augram.App/Icons/augram.icns"));
+        using var bytes = new MemoryStream();
+        icon.CopyTo(bytes);
+        Platform.MacOS.MacDock.SetIcon(bytes.ToArray());
+    }
 
     private void ShowMainWindow()
     {

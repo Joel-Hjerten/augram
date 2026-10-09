@@ -2,9 +2,7 @@ using System.ComponentModel;
 using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Threading;
 
 namespace Augram.App.Tray;
@@ -16,8 +14,7 @@ namespace Augram.App.Tray;
 /// last sync ("Augram (Dev) (enabled) · synced 14:32", <see cref="ToolTipFor"/>); while a "disable while focused" app has focus
 /// it says so instead of "enabled" ("Augram (paused: VMware is focused)", <see cref="EnginePauseState"/>) and the icon is the disabled one, while the Enabled check box keeps showing the setting. Single versus double is decided by
 /// <see cref="ClickDiscriminator"/> with a <see cref="DispatcherTimer"/>, which means a single click takes effect only after
-/// the system's double-click time has passed (2026-10-09: the fixed 250 ms was shorter than an ordinary double click, so a
-/// double click toggled twice instead of opening); Avalonia offers no better signal. The item itself is the platform's
+/// its 300 ms window has passed (Joel, 2026-10-09: the system's 500 ms was too slow); Avalonia offers no better signal. The item itself is the platform's
 /// <see cref="ITrayHost"/>: on macOS Augram's own menu-bar item, so the clicks arrive there too and the menu opens on a
 /// right click or a Control-click (Joel, 2026-10-09).
 /// </summary>
@@ -30,7 +27,7 @@ public sealed class AppTray : IDisposable
     private readonly IEventLog _log;
     private readonly ITrayHost _host;
     private TrayIconSet _icons;
-    private readonly ClickDiscriminator _clicks = new(DoubleClickTime());
+    private readonly ClickDiscriminator _clicks = new();
     private readonly DispatcherTimer _timer;
     private readonly NativeMenuItem _enabledItem;
     private readonly NativeMenuItem _startAtLoginItem;
@@ -101,7 +98,13 @@ public sealed class AppTray : IDisposable
 
     private void OnClicked(object? sender, EventArgs e)
     {
-        if (_clicks.Click(DateTimeOffset.UtcNow) == ClickKind.Double)
+        var kind = _clicks.Click(DateTimeOffset.UtcNow);
+        if (kind == ClickKind.None)
+        {
+            return;
+        }
+
+        if (kind == ClickKind.Double)
         {
             _timer.Stop();
             _open();
@@ -161,12 +164,6 @@ public sealed class AppTray : IDisposable
     /// </summary>
     public static bool ShowsEnabledIcon(bool enabled, string? pausedBy) => enabled && pausedBy is null;
 
-    /// <summary>The system's double-click time (Windows: the mouse setting, 500 ms by default; macOS: the Dock and trackpad setting), or <see cref="ClickDiscriminator.DefaultWindow"/> when the platform gives none.</summary>
-    private static TimeSpan DoubleClickTime()
-    {
-        var time = Application.Current?.PlatformSettings?.GetDoubleTapTime(PointerType.Mouse);
-        return time is { } value && value > TimeSpan.Zero ? value : ClickDiscriminator.DefaultWindow;
-    }
 
     public static string ToolTipFor(AppInfo app, bool enabled, string? syncStatus, string? pausedBy = null)
     {

@@ -38,4 +38,25 @@ public sealed class ClickDiscriminatorTests
         Assert.Equal(ClickKind.Pending, clicks.Click(T0.AddMilliseconds(400)));
         Assert.Equal(ClickKind.Single, clicks.Flush(T0.AddMilliseconds(700)));
     }
+
+    /// <summary>Windows can report a double click as up, double, up: the third is swallowed, so nothing toggles after the window opens.</summary>
+    [Fact]
+    public void AClickRightAfterADouble_IsSwallowed()
+    {
+        var clicks = new ClickDiscriminator();
+        var start = DateTimeOffset.UnixEpoch;
+
+        Assert.Equal(ClickKind.Pending, clicks.Click(start));
+        Assert.Equal(ClickKind.Double, clicks.Click(start.AddMilliseconds(120)));
+        Assert.Equal(ClickKind.None, clicks.Click(start.AddMilliseconds(200)));
+        Assert.Equal(ClickKind.None, clicks.Flush(start.AddMilliseconds(600)));
+
+        Assert.Equal(ClickKind.Pending, clicks.Click(start.AddMilliseconds(700)));
+    }
+
+    [Fact]
+    public void TheWindowIs300Ms()
+    {
+        Assert.Equal(TimeSpan.FromMilliseconds(300), ClickDiscriminator.DefaultWindow);
+    }
 }

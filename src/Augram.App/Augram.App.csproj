@@ -35,6 +35,8 @@
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
+    <!-- The Mac icon, also for a development build's Dock icon (MacDock.SetIcon). -->
+    <AvaloniaResource Include="Icons/augram.icns" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
