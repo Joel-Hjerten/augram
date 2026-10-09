@@ -68,7 +68,15 @@ public static class EngineModule
             sp.GetRequiredService<IOverlayWindowStyle>(),
             sp.GetRequiredService<IEventLog>(),
             sp.GetService<HealthRegistry>()));
-        services.AddSingleton<IStrokeTrail>(sp => sp.GetRequiredService<TrailOverlayWindow>());
+        services.AddSingleton(sp => new NativeTrailOverlay(
+            () => sp.GetRequiredService<SettingsStore>().Current.Trail,
+            sp.GetRequiredService<ITrailSurface>(),
+            sp.GetRequiredService<IEventLog>(),
+            sp.GetService<HealthRegistry>()));
+        // A platform with its own trail surface (macOS: a panel that shows over full-screen apps) draws there; otherwise the Avalonia window.
+        services.AddSingleton<IStrokeTrail>(sp => sp.GetService<ITrailSurface>() is null
+            ? sp.GetRequiredService<TrailOverlayWindow>()
+            : sp.GetRequiredService<NativeTrailOverlay>());
         services.AddSingleton(CreateHost);
         services.AddSingleton<EngineSettingsLink>();
         services.AddSingleton(_ => new EnginePauseState(marshal));
@@ -227,13 +235,15 @@ public static class EngineModule
 
     /// <summary>
     /// The macOS adapters: Accessibility-API window system and operations (close, minimize, maximize/restore so far), a
-    /// verified click-through overlay, the cursor probe. Start at login and system events have no Mac adapter yet.
+    /// verified click-through overlay (the trail's own panel, <see cref="MacTrailPanel"/>), the cursor probe. Start at login and
+    /// system events have no Mac adapter yet.
     /// </summary>
     [SupportedOSPlatform("macos")]
     private static void RegisterMacOS(IServiceCollection services)
     {
         services.AddSingleton<ICursorProbe, MacCursorProbe>();
         services.AddSingleton<IOverlayWindowStyle, MacOverlayWindowStyle>();
+        services.AddSingleton<ITrailSurface, MacTrailPanel>();
         services.AddSingleton<IStartupRegistration, NullStartupRegistration>();
         services.AddSingleton<IWindowSystem, MacWindowSystem>();
         services.AddSingleton<IWindowOperations, MacWindowOperations>();

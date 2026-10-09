@@ -126,6 +126,22 @@ internal static partial class MacNative
     [LibraryImport(CoreGraphicsLibrary)]
     public static partial CGPoint CGEventGetLocation(nint cgEvent);
 
+    [LibraryImport(CoreGraphicsLibrary)]
+    public static partial nint CGPathCreateMutable();
+
+    /// <summary>A polyline: a move to the first point and a line to each of the others. <paramref name="transform"/> is a <c>CGAffineTransform*</c>, zero for none.</summary>
+    [LibraryImport(CoreGraphicsLibrary)]
+    public static partial void CGPathAddLines(nint path, nint transform, ReadOnlySpan<CGPoint> points, nuint count);
+
+    [LibraryImport(CoreGraphicsLibrary)]
+    public static partial void CGPathRelease(nint path);
+
+    [LibraryImport(CoreGraphicsLibrary)]
+    public static partial nint CGColorCreateSRGB(double red, double green, double blue, double alpha);
+
+    [LibraryImport(CoreGraphicsLibrary)]
+    public static partial void CGColorRelease(nint color);
+
     // Accessibility (HIServices)
 
     [LibraryImport(ApplicationServicesLibrary)]
@@ -232,6 +248,19 @@ internal static partial class MacNative
 
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial void SendVoid(nint receiver, nint selector, CGSize size);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial void SendVoid(nint receiver, nint selector, double argument);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial double SendDouble(nint receiver, nint selector);
+
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendPtr(nint receiver, nint selector, CGRect rect);
+
+    /// <summary><c>-[NSWindow initWithContentRect:styleMask:backing:defer:]</c>.</summary>
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendPtr(nint receiver, nint selector, CGRect rect, nuint styleMask, nuint backing, byte defer);
 
     [LibraryImport(ObjCLibrary, StringMarshalling = StringMarshalling.Utf8)]
     public static partial nint objc_allocateClassPair(nint superclass, string name, nuint extraBytes);
