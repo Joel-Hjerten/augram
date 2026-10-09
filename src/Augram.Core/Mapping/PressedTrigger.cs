@@ -35,11 +35,14 @@ public sealed record PressedTrigger(Trigger Kind, PressHold Hold)
         return new PressedTrigger(trigger, press);
     }
 
-    /// <summary>True when <paramref name="configured"/> fires for this press: the same kind, and its set matches exactly.</summary>
+    /// <summary>
+    /// True when <paramref name="configured"/> fires for this press: the same kind, and its set matches exactly. An input of a
+    /// hold remap (<see cref="Trigger.InputTrigger"/>) never does: a hold remap plays it, not the resolver.
+    /// </summary>
     public bool Matches(Trigger configured)
     {
         ArgumentNullException.ThrowIfNull(configured);
-        return configured.IsBound && configured.IsSameKind(Kind) && configured.Hold.Matches(Hold);
+        return configured.IsBound && configured is not Trigger.InputTrigger && configured.IsSameKind(Kind) && configured.Hold.Matches(Hold);
     }
 
     /// <summary>"Shift + this gesture", "Right + wheel up", "Alt + click": what was held (anchor, Before and After together), then the kind.</summary>

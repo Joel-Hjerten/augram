@@ -1,14 +1,15 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 
 namespace Augram.Core.Mapping;
 
 /// <summary>
-/// The business rules of the mapping (ADR-0002 §5a: one home, called by the store; view models only
-/// display the outcome). Names compare trimmed and case-insensitively, like gesture names. Group,
-/// command and category order is not a user choice (F5a): <see cref="ValidDocument"/> sorts groups Global
-/// first and then by name, and commands and categories by name, so every snapshot the store hands out is
-/// already in display order. A group's categories follow <see cref="CategoryRules"/>.
+/// The business rules of the mapping (ADR-0002 §5a: one home, called by the store; view models only display the outcome).
+/// Names compare trimmed and case-insensitively, like gesture names. Group, command and category order is not a user choice
+/// (F5a): <see cref="ValidDocument"/> sorts groups Global first and then by name, and commands and categories by name, so
+/// every snapshot the store hands out is already in display order. A group's categories follow <see cref="CategoryRules"/>,
+/// its hold remaps and the commands under them <see cref="HoldRemapRules"/> (F9).
 /// </summary>
 public static class MappingRules
 {
@@ -50,16 +51,16 @@ public static class MappingRules
     }
 
     /// <summary>
-    /// Trims the name, normalises and sorts the commands and the categories (a command in a category the
-    /// group lacks becomes Uncategorized); the Global group never has a matcher, suppresses itself or stays off a platform.
+    /// Trims the name, normalises and sorts the commands, categories and hold remaps (a command in a category the group lacks
+    /// becomes Uncategorized, one under a hold remap it lacks ordinary); Global never has a matcher, suppresses or stays off a platform.
     /// </summary>
     public static AppGroup Normalised(AppGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
         var commands = group.Commands.Select(Normalised).OrderBy(command => command.Name, NameComparer).ToArray();
-        return CategoryRules.Normalised(group.IsGlobal
+        return HoldRemapRules.Normalised(CategoryRules.Normalised(group.IsGlobal
             ? group with { Name = Trimmed(group.Name), Matcher = null, SuppressGlobals = false, UseOn = PlatformSet.All, Commands = commands }
-            : group with { Name = Trimmed(group.Name), Commands = commands });
+            : group with { Name = Trimmed(group.Name), Commands = commands }));
     }
 
     /// <summary>Trims the name and normalises the trigger and an own version's trigger (<see cref="Trigger.Normalised"/>: a gesture or click holds the stroke button, a click holding nothing else is no trigger).</summary>
@@ -113,6 +114,7 @@ public static class MappingRules
         }
 
         CategoryRules.EnsureValid(group);
+        HoldRemapRules.EnsureValid(group);
         var commands = new List<Command>();
         foreach (var command in group.Commands)
         {
@@ -122,9 +124,9 @@ public static class MappingRules
     }
 
     /// <summary>
-    /// Checks a normalised command against the other commands of its group (A7: one command per trigger per group, where two
-    /// triggers are the same when they overlap on either platform, learnings 0003 §3.5), and that every trigger it has can be
-    /// held: a wheel trigger without the stroke button holds another button.
+    /// Checks a normalised command against the other commands of its group (A7: one command per trigger per group, an input once
+    /// per hold remap, where two triggers are the same when they overlap on either platform, learnings 0003 §3.5), that every
+    /// trigger it has can be held (a wheel trigger needs a button to hold), and <see cref="HoldRemapRules.EnsureValid(Command, AppGroup)"/>.
     /// </summary>
     public static void EnsureValid(Command command, AppGroup group, IEnumerable<Command> others)
     {
@@ -148,6 +150,8 @@ public static class MappingRules
             EnsureHoldable(command, own);
         }
 
+        HoldRemapRules.EnsureValid(command, group);
+
         var mine = TriggersOf(command);
         foreach (var other in others)
         {
@@ -161,22 +165,24 @@ public static class MappingRules
                 throw new MappingValidationException($"A command named '{other.Name}' already exists in '{group.Name}'.");
             }
 
-            if (OverlapOf(mine, other) is { } clash)
+            if (other.HoldRemapId == command.HoldRemapId && OverlapOf(mine, other) is { } clash)
             {
-                throw new MappingValidationException($"'{other.Name}' in '{group.Name}' already uses {clash}.");
+                var where = group.HoldRemapOf(command) is { } holdRemap ? $"under '{holdRemap.Name}' in '{group.Name}'" : $"in '{group.Name}'";
+                throw new MappingValidationException($"'{other.Name}' {where} already uses {clash}.");
             }
         }
     }
 
     /// <summary>
     /// A7 between two commands: the phrase of the trigger they share on some platform ("Shift + this gesture", with " on macOS"
-    /// when they share it on one platform only), or null when they share none.
+    /// when they share it on one platform only), or null when they share none. Commands under different hold remaps (or one
+    /// under a hold remap and one not) share none: an input is unique per hold remap (F9, plan 0002).
     /// </summary>
     public static string? Overlap(Command command, Command other)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(other);
-        return OverlapOf(TriggersOf(command), other);
+        return command.HoldRemapId == other.HoldRemapId ? OverlapOf(TriggersOf(command), other) : null;
     }
 
     private static (Trigger Windows, Trigger MacOS) TriggersOf(Command command)

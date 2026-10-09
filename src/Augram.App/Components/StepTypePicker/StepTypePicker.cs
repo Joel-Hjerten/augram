@@ -8,7 +8,8 @@ namespace Augram.App.Components.StepTypePicker;
 /// <summary>
 /// Lookless step type picker (F5a): <see cref="Types"/> in, grouped by their declared
 /// <see cref="StepCategory"/> (in enum order, types in registry order within a category; the
-/// <see cref="StepCategory.Other"/> placeholders are never offered), one <see cref="TypeChosen"/> out.
+/// <see cref="StepCategory.Other"/> placeholders are never offered, nor, until the picker knows it serves a command under a
+/// hold remap (plan 0002 step 4), types offered only there, <see cref="IStepType.HoldRemapsOnly"/>), one <see cref="TypeChosen"/> out.
 /// <see cref="Entries"/> is a category header followed by one button per type; the template lists them.
 /// Knows no type key: adding a step type changes nothing here.
 /// </summary>
@@ -56,7 +57,7 @@ public sealed class StepTypePicker : TemplatedControl
     private void Rebuild()
     {
         var entries = new List<Control>();
-        foreach (var category in Types.Where(type => type.Category != StepCategory.Other).GroupBy(type => type.Category).OrderBy(group => group.Key))
+        foreach (var category in Types.Where(type => type.Category != StepCategory.Other && !type.HoldRemapsOnly).GroupBy(type => type.Category).OrderBy(group => group.Key))
         {
             var header = new TextBlock { Text = category.Key.ToString() };
             header.Classes.Add("picker-category");

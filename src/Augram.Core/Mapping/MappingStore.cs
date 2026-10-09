@@ -1,4 +1,5 @@
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.State;
 
 namespace Augram.Core.Mapping;
@@ -12,7 +13,7 @@ namespace Augram.Core.Mapping;
 /// mutates; the engine takes <see cref="Current"/> as an immutable snapshot when told the version
 /// moved and resolves against it (<see cref="CommandResolver"/>) on its own thread.
 /// </summary>
-public sealed class MappingStore
+public sealed partial class MappingStore
 {
     private readonly UndoStack<MappingDocument> _history = new();
 
@@ -123,7 +124,8 @@ public sealed class MappingStore
     /// <summary>
     /// Moves the command into another group (paste), keeping its id. Its category goes with it only when
     /// the target group has a category of the same name (case-insensitive), whose id it takes; otherwise
-    /// it lands Uncategorized. One undo step.
+    /// it lands Uncategorized. Its hold remap goes with it only when the target group has one on the same hold key; otherwise
+    /// it lands an ordinary command without its input (<see cref="HoldRemapRules.Moved"/>). One undo step.
     /// </summary>
     public Command MoveCommand(CommandId id, GroupId toGroupId)
     {
@@ -134,7 +136,7 @@ public sealed class MappingStore
             return command;
         }
 
-        var moved = command with { CategoryId = CategoryRules.Carried(command.CategoryId, from, to) };
+        var moved = HoldRemapRules.Moved(command, from, to) with { CategoryId = CategoryRules.Carried(command.CategoryId, from, to) };
         var groups = Current.Groups.Select(group =>
             group.Id == from.Id ? group with { Commands = group.Commands.Where(other => other.Id != id).ToArray() }
             : group.Id == to.Id ? group with { Commands = [.. group.Commands, moved] }

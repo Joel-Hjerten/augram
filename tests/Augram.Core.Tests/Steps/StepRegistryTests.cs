@@ -6,6 +6,7 @@ using Augram.Core.Steps.Hdr;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.Remap;
 using Augram.Core.Steps.Run;
 using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
@@ -20,7 +21,7 @@ public sealed class StepRegistryTests
     [Fact]
     public void BuiltInListsTheShippedTypesInPickerOrder()
     {
-        string[] expected = ["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "typeText", "run", "openApp", "delay", "imported", "unknown"];
+        string[] expected = ["windowOp", "mediaKey", "clearClipboard", "displayMode", "hdr", "hotkey", "scroll", "remap", "typeText", "run", "openApp", "delay", "imported", "unknown"];
 
         Assert.Equal(expected, StepRegistry.BuiltIn.All.Select(type => type.Key).ToArray());
         Assert.Same(WindowOpStepType.Instance, StepRegistry.BuiltIn.Find("windowOp"));
@@ -30,6 +31,7 @@ public sealed class StepRegistryTests
         Assert.Same(HdrStepType.Instance, StepRegistry.BuiltIn.Find("hdr"));
         Assert.Same(HotkeyStepType.Instance, StepRegistry.BuiltIn.Find("hotkey"));
         Assert.Same(ScrollStepType.Instance, StepRegistry.BuiltIn.Find("scroll"));
+        Assert.Same(RemapStepType.Instance, StepRegistry.BuiltIn.Find("remap"));
         Assert.Same(TypeTextStepType.Instance, StepRegistry.BuiltIn.Find("typeText"));
         Assert.Same(RunStepType.Instance, StepRegistry.BuiltIn.Find("run"));
         Assert.Same(DelayStepType.Instance, StepRegistry.BuiltIn.Find("delay"));
@@ -43,6 +45,14 @@ public sealed class StepRegistryTests
         var hidden = StepRegistry.BuiltIn.All.Where(type => type.Category == StepCategory.Other).Select(type => type.Key).ToArray();
 
         Assert.Equal(["imported", "unknown"], hidden);
+    }
+
+    [Fact]
+    public void OnlyRemapIsOfferedForHoldRemapsAlone()
+    {
+        var holdRemapsOnly = StepRegistry.BuiltIn.All.Where(type => type.HoldRemapsOnly).Select(type => type.Key).ToArray();
+
+        Assert.Equal(["remap"], holdRemapsOnly);
     }
 
     [Fact]

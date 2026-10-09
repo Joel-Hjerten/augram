@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Augram.Core.Abstractions;
+using Augram.Core.HoldRemaps;
 
 namespace Augram.Core.Mapping;
 
@@ -10,8 +11,8 @@ namespace Augram.Core.Mapping;
 /// config (F5: Steam games ignore the global Close). Inactive commands stay in the list and are
 /// invisible to the resolver. <paramref name="Note"/> is free text shown read-only; the importer keeps
 /// a script-only SP.net action's script there. <paramref name="CategoryId"/> is the section of its group
-/// it is sorted into (<see cref="AppGroup.Categories"/>); null is "Uncategorized". Immutable: a change is a new record committed through
-/// <see cref="MappingStore"/>.
+/// it is sorted into (<see cref="AppGroup.Categories"/>); null is "Uncategorized". <see cref="HoldRemapId"/> puts it under a hold
+/// remap instead (F9). Immutable: a change is a new record committed through <see cref="MappingStore"/>.
 /// </summary>
 public sealed partial record Command(
     CommandId Id,
@@ -31,6 +32,13 @@ public sealed partial record Command(
 
     /// <summary>The command's own value only; ask <see cref="AppGroup.IsCommandUsedOn"/> for whether it is used on a platform.</summary>
     public bool IsUsedOn(HostPlatform platform) => UseOn.Includes(platform);
+
+    /// <summary>
+    /// The hold remap of its group the command sits under (F9, plan 0002), as <see cref="CategoryId"/> names a category; null
+    /// for an ordinary command. A command under a hold remap has an input (<see cref="Trigger.InputTrigger"/>) or no trigger
+    /// yet, and no category; the resolver never fires it. <see cref="HoldRemapRules"/> keeps all of that true.
+    /// </summary>
+    public HoldRemapId? HoldRemapId { get; init; }
 
     /// <summary>
     /// The own steps for the platform the command was not authored on (F8, Joel 2026-10-07); null while that platform runs

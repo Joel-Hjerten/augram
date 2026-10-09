@@ -17,7 +17,8 @@ namespace Augram.Core.Mapping;
 /// <item>else the Global group's active command for the trigger → matched ("global");</item>
 /// <item>else none ("no command for this gesture").</item>
 /// </list>
-/// A null window (nothing under the point) skips 1 and 2 and resolves against Global alone.
+/// A null window (nothing under the point) skips 1 and 2 and resolves against Global alone. Commands under a hold remap
+/// (F9) are never resolved here: the hold remap plays them while its hold key is held.
 /// </summary>
 public static class CommandResolver
 {
@@ -118,11 +119,12 @@ public static class CommandResolver
         return null;
     }
 
+    /// <summary>The active command for the press; commands under a hold remap are skipped (F9: their inputs belong to the hold remap).</summary>
     private static Command? ActiveCommandFor(AppGroup group, PressedTrigger trigger, HostPlatform platform)
     {
         foreach (var command in group.Commands)
         {
-            if (command.IsActive && group.IsCommandUsedOn(command, platform) && trigger.Matches(command.TriggerFor(platform)))
+            if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && trigger.Matches(command.TriggerFor(platform)))
             {
                 return command;
             }

@@ -27,6 +27,12 @@ public interface IStepType
     /// </summary>
     bool IsPlatformNeutral { get; }
 
+    /// <summary>
+    /// True for a type the step picker offers only for a command under a hold remap (plan 0002: the Remap step), false (the
+    /// default) for one it offers everywhere. The picker reads this; it never names a type.
+    /// </summary>
+    bool HoldRemapsOnly => false;
+
     IStep CreateDefault();
 
     /// <summary>Reads the step's parameters as written by <see cref="Write"/>; missing members take their defaults, unknown ones are ignored.</summary>

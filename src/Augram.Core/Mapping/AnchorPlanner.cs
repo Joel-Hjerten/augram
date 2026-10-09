@@ -27,7 +27,7 @@ public static class AnchorPlanner
 
             foreach (var command in group.Commands)
             {
-                if (command.IsActive && group.IsCommandUsedOn(command, platform) && command.TriggerFor(platform) is { IsBound: true } trigger && trigger.Hold.Physical != HeldButtons.None)
+                if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && command.TriggerFor(platform) is { IsBound: true } trigger && trigger.Hold.Physical != HeldButtons.None)
                 {
                     return true;
                 }
@@ -70,11 +70,12 @@ public static class AnchorPlanner
         return plan;
     }
 
+    /// <summary>The commands that hold buttons back here; a command under a hold remap never does (F9: its hold remap owns its input).</summary>
     private static IEnumerable<(Command Command, Trigger Trigger)> Applying(AppGroup group, HostPlatform platform)
     {
         foreach (var command in group.Commands)
         {
-            if (command.IsActive && group.IsCommandUsedOn(command, platform) && command.TriggerFor(platform) is { IsBound: true } trigger)
+            if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && command.TriggerFor(platform) is { IsBound: true } trigger)
             {
                 yield return (command, trigger);
             }
