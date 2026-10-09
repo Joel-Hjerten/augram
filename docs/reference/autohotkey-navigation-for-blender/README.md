@@ -26,7 +26,7 @@ Only while `blender.exe` is the foreground window (`#HotIf WinActive`):
 ## Quirks Augram fixes (F9)
 
 - **Typing rollover:** Space is only sent at its release, after any key typed while it was still down, so "a b" typed fast in a Blender text field becomes "ab ". Joel hits this often. Augram sends the pending Space before the first key that is not one of the rows.
-- **Tap is only "under 180 ms":** a short Space with a click in it still sends a Space. Augram keeps the timer (a long hold sends nothing, so a held Space never starts Blender's playback) and also requires that no row was used while Space was down (Joel, 2026-10-10).
+- **Tap is only "under 180 ms":** a short Space with a click in it still sends a Space, which starts playback; Joel sees occasional accidental playback and this is the likely cause. Augram keeps the timer (a long hold sends nothing, so a held Space never starts Blender's playback) and also requires that no row was used while Space was down (Joel, 2026-10-10).
 - **No rolling between buttons:** with Space + Left orbiting, pressing Right sends a second Middle down (with Shift) that Blender's orbit ignores, and releasing either button sends the Middle up that ends the drag. Left + Right never zooms. Joel wants Softimage's rolling (F9 "Rolling between buttons").
 - Runs elevated (`*RunAs`) for no reason Blender needs; Augram does not.
 - Windows only, and a separate program to keep running.
