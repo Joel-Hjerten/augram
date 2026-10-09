@@ -49,19 +49,24 @@ public sealed class CommandsViewModelSharedTests
         var (vm, store, picker, _) = Create(CommandsScope.Global);
         var window = Section(vm, "Window");
         var close = Item(vm, "Close window");
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, window, close));
 
         // Wheel up is the volume's here, so choosing Wheel takes the free direction.
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerKind, window, close, kind: TriggerKind.Wheel));
         Assert.Equal(Trigger.ForWheel(WheelDirection.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetWheelDirection, window, Item(vm, "Close window"), wheel: WheelDirection.Up));
-        Assert.Matches("^'(Volume up|Close window)' in 'Global' already uses wheel up\\.$", vm.Message);
+        // Up is taken: the header keeps it as a draft with a note instead of refusing it; the store keeps wheel down.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetWheelDirection, window, vm.SelectedCommand, wheel: WheelDirection.Up));
+        Assert.Equal(Trigger.ForWheel(WheelDirection.Up), vm.SelectedCommand!.Trigger);
+        Assert.Equal("Not saved yet: 'Volume up' already uses Stroke button + wheel up here. Change the direction, a button or a key.", vm.SelectedCommand.DraftNote);
+        Assert.Null(vm.Message);
         Assert.Equal(Trigger.ForWheel(WheelDirection.Down), store.FindCommand(close.Id)!.Value.Command.Trigger);
 
-        // A combination is another trigger: Right + wheel up sits beside the plain wheel up.
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerHold, window, Item(vm, "Close window"), hold: new TriggerHold(HeldButtons.Right)));
+        // A combination is another trigger: Right + wheel up sits beside the plain wheel up, and the draft saves as it.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerHold, window, vm.SelectedCommand, hold: new TriggerHold(HeldButtons.Right)));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetWheelDirection, window, Item(vm, "Close window"), wheel: WheelDirection.Up));
         Assert.Equal(Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right)), store.FindCommand(close.Id)!.Value.Command.Trigger);
+        Assert.Null(vm.SelectedCommand.DraftNote);
         Assert.Equal("Right + wheel up", Item(vm, "Close window").TriggerText);
         Assert.Equal("Right clicks in every app wait until you release or move.", Item(vm, "Close window").AnchorWarning);
 

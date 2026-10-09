@@ -16,7 +16,8 @@ namespace Augram.App.Components.CommandTree;
 /// labelled Ctrl / Alt / Shift / Win, or Ctrl / Opt / Shift / Cmd on a Mac, through <see cref="HotkeyText"/>), and when they
 /// must have gone down (<c>PART_Capture</c>, shown once something besides the anchor is held). The stroke button's box is
 /// ticked and locked for a gesture or a click (it draws, it clicks) and free for a wheel trigger. Every box only asks
-/// (<see cref="CommandTreeAction.SetTriggerHold"/>); <see cref="ApplyHold"/> then shows what is really stored.
+/// (<see cref="CommandTreeAction.SetTriggerHold"/>); <see cref="ApplyHold"/> then shows the item's trigger: what is stored, or
+/// the draft the host keeps while the combination is not valid yet, with <see cref="DraftNote"/> saying why (Joel, 2026-10-09).
 /// </summary>
 public sealed partial class CommandHeader
 {
@@ -31,6 +32,9 @@ public sealed partial class CommandHeader
 
     public static readonly StyledProperty<string?> TriggerNoteProperty =
         AvaloniaProperty.Register<CommandHeader, string?>(nameof(TriggerNote));
+
+    public static readonly StyledProperty<string?> DraftNoteProperty =
+        AvaloniaProperty.Register<CommandHeader, string?>(nameof(DraftNote));
 
     private static readonly (string Part, HeldButtons Flag)[] ButtonParts =
     [
@@ -90,6 +94,16 @@ public sealed partial class CommandHeader
     {
         get => GetValue(TriggerNoteProperty);
         private set => SetValue(TriggerNoteProperty, value);
+    }
+
+    /// <summary>
+    /// The warning under the trigger rows while the item is a draft the host could not save yet (<see cref="CommandItem.DraftNote"/>:
+    /// "Not saved yet: 'Volume up' already uses Stroke button + wheel up here. …"); null for a stored trigger.
+    /// </summary>
+    public string? DraftNote
+    {
+        get => GetValue(DraftNoteProperty);
+        private set => SetValue(DraftNoteProperty, value);
     }
 
     /// <summary>The direction the wheel choice shows; -1 without a wheel trigger.</summary>

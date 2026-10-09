@@ -8,11 +8,13 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The trigger half of <see cref="CommandsViewModel"/> (F1 "Triggers as combinations", Joel 2026-10-09): the kind (Gesture
-/// through the Select Gesture picker, Wheel, No trigger), the wheel direction and the "While holding" set, each one
-/// <c>UpdateCommand</c>. What is edited is this platform's trigger (<see cref="Command.TriggerFor"/>): the original where the
-/// command was authored, else its own; the first edit on the other platform makes it that platform's own, the way steps work
-/// (<see cref="Command.WithTriggerFor"/>). Changing between gesture and wheel keeps the keys and buttons held; choosing "No
-/// trigger" unbinds, and ticking keys or buttons then makes it a click trigger (<see cref="Trigger.WithHold"/>).
+/// through the Select Gesture picker, Wheel, No trigger), the wheel direction and the "While holding" set. What is edited is
+/// this platform's trigger (<see cref="Command.TriggerFor"/>): the original where the command was authored, else its own; the
+/// first edit on the other platform makes it that platform's own, the way steps work (<see cref="Command.WithTriggerFor"/>).
+/// Changing between gesture and wheel keeps the keys and buttons held; choosing "No trigger" unbinds, and ticking keys or
+/// buttons then makes it a click trigger (<see cref="Trigger.WithHold"/>). Every edit goes through <see cref="EditTrigger"/>:
+/// it starts from the draft when one waits, is saved as one <c>UpdateCommand</c> when the rules accept it, and otherwise
+/// waits as the draft with its note (<c>.TriggerDraft</c>) instead of being refused.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -21,19 +23,10 @@ public sealed partial class CommandsViewModel
         switch (kind)
         {
             case TriggerKind.None:
-                SetTrigger(command.Id, _ => Trigger.None);
+                EditTrigger(command.Id, _ => Trigger.None);
                 break;
             case TriggerKind.Wheel:
-                try
-                {
-                    SetTrigger(command.Id, current => current is Trigger.WheelTrigger ? current : Trigger.ForWheel(WheelDirection.Up, Held(current)));
-                }
-                catch (MappingValidationException)
-                {
-                    // Wheel up is taken here (by the volume, say): the free direction rather than a refusal.
-                    SetTrigger(command.Id, current => current is Trigger.WheelTrigger ? current : Trigger.ForWheel(WheelDirection.Down, Held(current)));
-                }
-
+                ChooseWheel(command.Id);
                 break;
             case TriggerKind.Gesture:
                 _ = PickGestureAsync(command);
@@ -41,22 +34,58 @@ public sealed partial class CommandsViewModel
         }
     }
 
+    /// <summary>
+    /// Wheel up with the keys and buttons held now (the stroke button alone by default). When the rules refuse it (wheel up is
+    /// the volume's here, say) the free direction is saved instead; when both are taken, wheel up waits as the draft with its note.
+    /// </summary>
+    private void ChooseWheel(CommandId id)
+    {
+        var current = DraftedTrigger(id);
+        if (current is Trigger.WheelTrigger)
+        {
+            return;
+        }
+
+        var up = Trigger.ForWheel(WheelDirection.Up, Held(current));
+        if (!TrySaveTrigger(id, up) && !TrySaveTrigger(id, Trigger.ForWheel(WheelDirection.Down, Held(current))))
+        {
+            KeepDraft(id, up);
+        }
+
+        ShowSelected();
+    }
+
     private async Task PickGestureAsync(CommandItem command)
     {
-        var current = RequireCommand(command.Id).Command.TriggerFor(_platform) is Trigger.GestureTrigger gesture ? gesture.GestureId : (GestureId?)null;
+        var current = DraftedTrigger(command.Id) is Trigger.GestureTrigger gesture ? gesture.GestureId : (GestureId?)null;
         var result = await _picker.PickAsync(current).ConfigureAwait(true);
         Guard(() =>
         {
             switch (result.Outcome)
             {
                 case GesturePickerOutcome.Selected when result.GestureId is { } id:
-                    SetTrigger(command.Id, trigger => Trigger.ForGesture(id, Held(trigger)));
+                    EditTrigger(command.Id, trigger => Trigger.ForGesture(id, Held(trigger)));
                     break;
                 case GesturePickerOutcome.NoGesture:
-                    SetTrigger(command.Id, _ => Trigger.None);
+                    EditTrigger(command.Id, _ => Trigger.None);
                     break;
             }
         });
+    }
+
+    /// <summary>
+    /// What every trigger edit from the header does: <paramref name="change"/> applies to the draft while one waits, else to the
+    /// stored trigger; the result is saved when the rules accept it, else it becomes the draft. The header then shows which.
+    /// </summary>
+    private void EditTrigger(CommandId id, Func<Trigger, Trigger> change)
+    {
+        var trigger = change(DraftedTrigger(id));
+        if (!TrySaveTrigger(id, trigger))
+        {
+            KeepDraft(id, trigger);
+        }
+
+        ShowSelected();
     }
 
     /// <summary>
@@ -68,11 +97,10 @@ public sealed partial class CommandsViewModel
             : trigger.Hold.HoldsStroke ? trigger.Hold
             : TriggerHold.WithStroke(trigger.Hold.Keys, capture: trigger.Hold.Capture);
 
-    /// <summary>One store call: this platform's trigger changed by <paramref name="change"/>; says so when that made it this platform's own.</summary>
-    private void SetTrigger(CommandId id, Func<Trigger, Trigger> change)
+    /// <summary>One store call (one undo step): this platform's trigger is <paramref name="trigger"/>; says so when that made it this platform's own.</summary>
+    private void SaveTrigger(CommandId id, Trigger trigger)
     {
         var (group, command) = RequireCommand(id);
-        var trigger = change(command.TriggerFor(_platform));
         var forked = command.Origin is { } origin && origin != _platform && !command.HasOwnTriggerOn(_platform);
         _store.UpdateCommand(group.Id, command.WithTriggerFor(_platform, trigger, DateTimeOffset.UtcNow));
         if (forked)

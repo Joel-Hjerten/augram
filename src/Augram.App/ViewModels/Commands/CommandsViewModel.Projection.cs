@@ -59,10 +59,6 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// Re-reads the selected command and its steps from the current projection: the section follows the
-    /// command (a category change moves it), and a selection that vanished is dropped.
-    /// </summary>
-    /// <summary>
     /// This platform's steps (F8): each row reads as the stored step does here ("Ctrl+W → Cmd+W"), and the step its form edits
     /// is the one an edit here starts from, the converted step where this platform has no own steps yet.
     /// </summary>
@@ -73,9 +69,18 @@ public sealed partial class CommandsViewModel
         return [.. shown.Select((step, index) => StepItem.From(step, index, _platform) with { Step = editable[index] })];
     }
 
+    /// <summary>The selected command's row in the current projection; null without one.</summary>
+    private CommandItem? SelectedRow()
+        => SelectedCommandId is { } id ? Sections.SelectMany(section => section.Commands).FirstOrDefault(command => command.Id == id) : null;
+
+    /// <summary>
+    /// Re-reads the selected command and its steps from the current projection: the section follows the
+    /// command (a category change moves it), a selection that vanished is dropped, and the header shows the
+    /// trigger draft while one waits (<c>.TriggerDraft</c>).
+    /// </summary>
     private void ProjectSelection()
     {
-        var selected = SelectedCommandId is { } id ? Sections.SelectMany(section => section.Commands).FirstOrDefault(command => command.Id == id) : null;
+        var selected = SelectedRow();
         if (selected is null)
         {
             SelectedCommandId = null;
@@ -90,7 +95,7 @@ public sealed partial class CommandsViewModel
             SelectedSectionId = null;
         }
 
-        SelectedCommand = selected;
+        SelectedCommand = WithDraft(selected);
         var steps = selected is null ? [] : StepItems(_store.FindCommand(selected.Id)!.Value.Command);
         Steps = steps;
         if (_stepsOf != SelectedCommandId)

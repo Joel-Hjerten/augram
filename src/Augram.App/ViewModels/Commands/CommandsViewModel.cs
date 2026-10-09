@@ -17,15 +17,16 @@ namespace Augram.App.ViewModels.Commands;
 /// Joel 2026-10-07): the sections of its <see cref="Scope"/> (<see cref="CommandSections"/>: the Global
 /// group's categories, or the app groups), the selection, the selected command's steps, undo/redo
 /// availability and the message line. Turns the tree's and the step list's intents into store calls;
-/// the rules live in <see cref="MappingRules"/> and only their messages show here. UI-only state
-/// (selection, expanded sections) is all it owns, and the in-memory clipboard is shared by both tabs, so a
+/// the rules live in <see cref="MappingRules"/> and only their messages show here (a refused trigger edit
+/// waits as a draft in the header, with its note, instead: <c>.TriggerDraft</c>). UI-only state
+/// (selection, expanded sections, the trigger draft) is all it owns, and the in-memory clipboard is shared by both tabs, so a
 /// Global command copied on one pastes into an app group on the other; deleting it loses nothing.
 /// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
 /// process-lifetime singleton, so what the user opened stays open for the running session (tab
 /// switches, closing and reopening the window) and starts collapsed again on the next launch. This file
 /// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c> and <c>.CategoryPanel</c> keep
 /// the selected app group's or category's form in step with it, and <c>.Commands</c>,
-/// <c>.Sections</c>, <c>.Groups</c>, <c>.Categories</c> and <c>.Steps</c> hold the intents of each level.
+/// <c>.Sections</c>, <c>.Groups</c>, <c>.Categories</c>, <c>.Trigger</c> and <c>.Steps</c> hold the intents of each level.
 /// </summary>
 public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 {
@@ -212,10 +213,10 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 SetTriggerKind(command, kind);
                 break;
             case CommandTreeAction.SetTriggerHold when e.Command is { } command && e.Hold is { } hold:
-                SetTrigger(command.Id, current => current.WithHold(hold));
+                EditTrigger(command.Id, current => current.WithHold(hold));
                 break;
             case CommandTreeAction.SetWheelDirection when e.Command is { } command && e.Wheel is { } direction:
-                SetTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
+                EditTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
                 break;
             case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
                 UpdateCommand(command.Id, stored => stored with { UseOn = useOn });
