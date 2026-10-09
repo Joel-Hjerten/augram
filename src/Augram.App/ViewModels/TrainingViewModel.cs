@@ -39,6 +39,15 @@ public sealed partial class TrainingViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<GesturePoint> Stroke => _session.Stroke;
 
+    /// <summary>The cleaned shape drawn over the stroke while Clean up shape is ticked; empty otherwise.</summary>
+    public IReadOnlyList<GesturePoint> CleanedStroke => _session.CleanUp ? _session.CleanedStroke : [];
+
+    public bool CleanUp
+    {
+        get => _session.CleanUp;
+        set => _session.CleanUp = value;
+    }
+
     public bool HasStroke => _session.Stroke.Count > 0;
 
     public string BestMatchText => _session.BestMatch is { } best
@@ -84,6 +93,8 @@ public sealed partial class TrainingViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(Stroke));
+        OnPropertyChanged(nameof(CleanedStroke));
+        OnPropertyChanged(nameof(CleanUp));
         OnPropertyChanged(nameof(HasStroke));
         OnPropertyChanged(nameof(BestMatchText));
         OnPropertyChanged(nameof(CanAccept));

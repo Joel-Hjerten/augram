@@ -3,6 +3,7 @@ using Augram.App.Import;
 using Augram.App.Training;
 using Augram.App.UsedBy;
 using Augram.Core.Gestures;
+using Augram.Core.Gestures.Cleanup;
 using Augram.Core.Mapping;
 using Augram.Core.Recognition;
 using Avalonia.Threading;
@@ -132,6 +133,12 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
             case GestureGridAction.KeepThis when e.Tile is { } tile:
                 KeepThis(tile);
                 break;
+            case GestureGridAction.CleanUp when e.Tile is { } tile:
+                Store(tile.Id, GestureCleanup.CleanUp, "Cleaned up the shape of '{0}'; Restore original puts the drawn one back.");
+                break;
+            case GestureGridAction.RestoreOriginal when e.Tile is { } tile:
+                Store(tile.Id, GestureCleanup.Restore, "Restored '{0}' as drawn.");
+                break;
             case GestureGridAction.Import:
                 _ = ImportAsync();
                 break;
@@ -141,6 +148,25 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
             case GestureGridAction.Redo:
                 _library.Redo();
                 break;
+        }
+    }
+
+    /// <summary>Stores <paramref name="change"/> of the gesture through the library: one undo step, with a line saying what happened.</summary>
+    private void Store(GestureId id, Func<Gesture, Gesture> change, string done)
+    {
+        if (_library.Find(id) is not { } gesture)
+        {
+            return;
+        }
+
+        try
+        {
+            var stored = _library.Update(change(gesture));
+            Message = string.Format(System.Globalization.CultureInfo.InvariantCulture, done, stored.Name) + $" {GestureGridKeymap.Undo} undoes it.";
+        }
+        catch (GestureValidationException exception)
+        {
+            Message = exception.Message;
         }
     }
 

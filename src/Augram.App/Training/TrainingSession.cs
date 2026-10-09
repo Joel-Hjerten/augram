@@ -3,6 +3,7 @@ using Augram.App.Components.GestureDrawArea;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
+using Augram.Core.Gestures.Cleanup;
 using Augram.Core.Recognition;
 using Avalonia.Threading;
 
@@ -62,6 +63,27 @@ public sealed class TrainingSession : ITrainingSession
 
     public IReadOnlyList<GesturePoint> Stroke { get; private set; } = [];
 
+    /// <summary>The stroke's cleaned shape (plan 0001 M2 step 10), for the preview; empty without a stroke.</summary>
+    public IReadOnlyList<GesturePoint> CleanedStroke { get; private set; } = [];
+
+    /// <summary>
+    /// Clean up shape (Joel, 2026-10-08: on by default): Accept stores the cleaned shape and keeps the stroke as its
+    /// original, and the best match compares the cleaned shape. Kept for the rest of the run once changed.
+    /// </summary>
+    public bool CleanUp
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                Rank();
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    } = true;
+
     /// <summary>The best-scoring active gesture for the current stroke, whatever its score; null without a stroke.</summary>
     public MatchResult? BestMatch { get; private set; }
 
@@ -76,6 +98,7 @@ public sealed class TrainingSession : ITrainingSession
         Request = request;
         Name = Target?.Name ?? NextName();
         Stroke = [];
+        CleanedStroke = [];
         BestMatch = null;
         Volatile.Write(ref _isOpen, true);
         Started?.Invoke(this, EventArgs.Empty);
@@ -94,8 +117,8 @@ public sealed class TrainingSession : ITrainingSession
         }
 
         Stroke = points.ToArray();
-        var ranked = Stroke.Count >= 2 ? _matcher.Rank(Stroke, _library.All, _options()) : [];
-        BestMatch = ranked.Count > 0 ? ranked[0] : null;
+        CleanedStroke = Stroke.Count >= 2 ? ShapeCleanup.Clean(Stroke).Points : [];
+        Rank();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -143,12 +166,19 @@ public sealed class TrainingSession : ITrainingSession
             throw new GestureValidationException("Draw the gesture first.");
         }
 
-        var sample = new GestureSample(Stroke);
         var stored = Target is { } target
-            ? _library.Update(target with { Name = Name, Samples = [sample] })
-            : _library.Add(new Gesture(GestureId.New(), Name, IsActive: true, [sample]));
+            ? _library.Update(GestureCleanup.FromStroke(target with { Name = Name }, Stroke, CleanUp))
+            : _library.Add(GestureCleanup.FromStroke(new Gesture(GestureId.New(), Name, IsActive: true, []), Stroke, CleanUp));
         End(TrainingOutcome.Accepted);
         return stored;
+    }
+
+    /// <summary>The best match for what Accept would store: the cleaned shape when Clean up shape is on.</summary>
+    private void Rank()
+    {
+        var stored = CleanUp ? CleanedStroke : Stroke;
+        var ranked = stored.Count >= 2 ? _matcher.Rank(stored, _library.All, _options()) : [];
+        BestMatch = ranked.Count > 0 ? ranked[0] : null;
     }
 
     public void Cancel()

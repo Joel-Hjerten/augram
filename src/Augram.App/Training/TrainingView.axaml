@@ -21,6 +21,12 @@
     </Grid>
     <TextBlock DockPanel.Dock="Top" Classes="note" Text="{Binding BestMatchText}" />
     <TextBlock DockPanel.Dock="Top" Classes="error" Text="{Binding Message}" IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}" />
-    <draw:GestureDrawArea Name="DrawArea" Points="{Binding Stroke}" />
+    <!-- Shape cleanup (plan 0001 M2 step 10): ticked by default; the cleaned shape shows in gold over the stroke. -->
+    <CheckBox DockPanel.Dock="Bottom" Classes="toggle-option" Content="Clean up shape" IsChecked="{Binding CleanUp}"
+              ToolTip.Tip="Stores a cleaned shape: wobbly straight runs become lines, curves smooth arcs, a loop a circle. The stroke as drawn is kept, and Restore original on the gesture's menu puts it back." />
+    <Panel>
+      <draw:GestureDrawArea Name="DrawArea" Points="{Binding Stroke}" />
+      <draw:GestureDrawArea Classes="cleaned" IsHitTestVisible="False" Points="{Binding CleanedStroke}" />
+    </Panel>
   </DockPanel>
 </UserControl>

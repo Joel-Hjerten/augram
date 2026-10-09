@@ -30,6 +30,23 @@ public sealed class TrainingSessionTests
     }
 
     [Fact]
+    public void WithCleanUpOff_TheStrokeIsStoredAsDrawn_AndTheBestMatchComparesIt()
+    {
+        var library = new GestureLibrary(StarterGestures.All());
+        var session = new TrainingSession(library, () => RecognitionOptions.Default);
+        session.Begin(TrainingRequest.NewGesture);
+        session.ReplaceStroke(UpStroke);
+        Assert.NotEmpty(session.CleanedStroke);
+
+        session.CleanUp = false;
+        var added = session.Accept();
+
+        Assert.Equal(UpStroke, Assert.Single(added.Samples));
+        Assert.False(added.IsCleanedUp);
+        session.CleanUp = true;
+    }
+
+    [Fact]
     public void AcceptAddsANewGestureAndARedrawReplacesItsSamples()
     {
         var library = new GestureLibrary(StarterGestures.All());
@@ -44,7 +61,9 @@ public sealed class TrainingSessionTests
         var added = session.Accept();
 
         Assert.Equal("North", added.Name);
-        Assert.Equal(UpStroke, Assert.Single(added.Samples));
+        // Clean up shape is on by default: the cleaned shape is stored, the stroke kept as the original.
+        Assert.Equal(UpStroke, Assert.Single(added.OriginalSamples!));
+        Assert.True(added.IsCleanedUp);
         Assert.False(session.IsOpen);
 
         var twoSamples = library.Update(added with { Samples = [.. added.Samples, new GestureSample([new(0, 0), new(0, -50)])] });

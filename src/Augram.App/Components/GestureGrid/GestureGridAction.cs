@@ -21,6 +21,12 @@ public enum GestureGridAction
     /// <summary>Open the "Used by…" popup: every app group › command bound to the selected gesture (F3).</summary>
     UsedBy,
 
+    /// <summary>Replace the selected gesture's samples with their cleaned shape, keeping the drawn ones (plan 0001 M2 step 10); one undo step.</summary>
+    CleanUp,
+
+    /// <summary>Put the selected gesture's drawn samples back in place of the cleaned shape; one undo step.</summary>
+    RestoreOriginal,
+
     /// <summary>Start the StrokesPlus.net import flow (toolbar button).</summary>
     Import,
 

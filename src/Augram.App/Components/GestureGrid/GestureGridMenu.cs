@@ -13,13 +13,15 @@ internal static class GestureGridMenu
         menu.Items.Add(Item("New gesture…", GestureGridAction.New, request));
         menu.Items.Add(Item("Redraw…", GestureGridAction.Redraw, request));
         menu.Items.Add(Item("Rename", GestureGridAction.Rename, request));
+        menu.Items.Add(Item("Clean up shape", GestureGridAction.CleanUp, request));
+        menu.Items.Add(Item("Restore original", GestureGridAction.RestoreOriginal, request));
         menu.Items.Add(Item("Used by…", GestureGridAction.UsedBy, request));
         menu.Items.Add(Item("Delete", GestureGridAction.Delete, request));
         menu.Items.Add(Item("Keep this, delete its duplicates", GestureGridAction.KeepThis, request));
         return menu;
     }
 
-    /// <summary>Shows or hides the entries that only apply to some tiles: "Keep this" needs a duplicate.</summary>
+    /// <summary>Shows or hides the entries that only apply to some tiles: "Keep this" needs a duplicate; "Clean up shape" a gesture as drawn, "Restore original" a cleaned one.</summary>
     public static void Refresh(ContextMenu menu, GestureTileItem? selected)
     {
         ArgumentNullException.ThrowIfNull(menu);
@@ -28,6 +30,14 @@ internal static class GestureGridMenu
             if (item.Tag is GestureGridAction.KeepThis)
             {
                 item.IsVisible = selected?.HasDuplicates == true;
+            }
+            else if (item.Tag is GestureGridAction.CleanUp)
+            {
+                item.IsVisible = selected is { IsCleanedUp: false, SampleCount: > 0 };
+            }
+            else if (item.Tag is GestureGridAction.RestoreOriginal)
+            {
+                item.IsVisible = selected?.IsCleanedUp == true;
             }
         }
     }

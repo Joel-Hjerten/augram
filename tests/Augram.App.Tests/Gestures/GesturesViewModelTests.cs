@@ -26,6 +26,28 @@ public sealed class GesturesViewModelTests
         Assert.True(f.Vm.CanUndo);
     }
 
+    /// <summary>Clean up shape and Restore original on a tile (plan 0001 M2 step 10): each one undo step; the tile says which applies.</summary>
+    [AvaloniaFact]
+    public void CleanUpAndRestoreOriginal_SwapTheSamples_OneUndoStepEach()
+    {
+        var f = Create();
+        var circle = f.Vm.Tiles.Single(t => t.Name == "Circle");
+        var drawn = f.Library.Find(circle.Id)!.Samples;
+        Assert.False(circle.IsCleanedUp);
+
+        f.Vm.Handle(new GestureGridActionEventArgs(GestureGridAction.CleanUp, circle));
+        var cleaned = f.Library.Find(circle.Id)!;
+        Assert.Same(drawn, cleaned.OriginalSamples);
+        Assert.True(f.Vm.Tiles.Single(t => t.Name == "Circle").IsCleanedUp);
+
+        f.Vm.Handle(new GestureGridActionEventArgs(GestureGridAction.RestoreOriginal, f.Vm.Tiles.Single(t => t.Name == "Circle")));
+        Assert.Same(drawn, f.Library.Find(circle.Id)!.Samples);
+        Assert.False(f.Library.Find(circle.Id)!.IsCleanedUp);
+
+        f.Vm.Handle(new GestureGridActionEventArgs(GestureGridAction.Undo, null));
+        Assert.True(f.Library.Find(circle.Id)!.IsCleanedUp);
+    }
+
     [AvaloniaFact]
     public void RenameGoesThroughTheLibraryAndRejectsDuplicatesWithTheRuleMessage()
     {
