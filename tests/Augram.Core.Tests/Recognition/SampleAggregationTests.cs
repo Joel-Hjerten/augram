@@ -18,7 +18,8 @@ public sealed class SampleAggregationTests
 
         var score = _matcher.Rank(StockFlicks.Template("Up"), [_gesture], options)[0].Score;
 
-        Assert.Equal(50.5, score, precision: 9);
+        // The Up sample scores 100 and the Down sample, 180° off, 0 under Corrected scoring (the default; Legacy gives it 1).
+        Assert.Equal(50, score, precision: 9);
     }
 
     [Fact]

@@ -13,10 +13,11 @@
 //
 // The original StrokesPlus code sizes its delta array at Precision (P) but a resample of
 // P points yields only P-1 angles, so at least one zero delta is always averaged in and
-// every score is diluted by the factor (P-1)/P. Joel's threshold of 75 and his trained
-// templates were tuned against that behaviour, so ScoringMode.Legacy reproduces it and
-// is the default; ScoringMode.Corrected divides by the actual delta count. See
-// docs/reference/strokesplus-classic-source.md section 1 ("Quirk to preserve for score parity").
+// every score is diluted by the factor (P-1)/P. ScoringMode.Legacy reproduces that;
+// ScoringMode.Corrected divides by the actual delta count and is the default, because
+// StrokesPlus.net 0.5.8, which Joel's threshold of 75 and his templates were tuned with,
+// scores that way (docs/learnings/0003-trigger-modifiers.md; Joel, 2026-10-09). See
+// docs/reference/strokesplus-classic-source.md section 1 for the classic quirk.
 using Augram.Core.Gestures;
 
 namespace Augram.Core.Recognition;

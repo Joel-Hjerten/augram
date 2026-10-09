@@ -107,7 +107,7 @@ public static class OptionsScreen
                     "Resample count; templates stay raw so this can change any time."),
                 new DropdownField<ScoringMode>("Scoring mode", Choice.FromEnum<ScoringMode>(),
                     new DelegateBinding<ScoringMode>(() => vm.ScoringMode, v => vm.ScoringMode = v, vm),
-                    "Legacy reproduces StrokesPlus exactly, quirks included."),
+                    "Corrected scores as StrokesPlus.net does. Legacy is the classic StrokesPlus maths, slightly more forgiving, kept for comparison."),
             ]),
         ];
     }
