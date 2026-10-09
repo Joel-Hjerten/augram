@@ -42,7 +42,7 @@ public sealed class ClipboardPortTests
         var simulator = new FakeInputSimulator();
         var ports = new EnginePorts { Input = new FakeInputSource(), Simulator = simulator };
         var runner = new CommandRunner(ports, settleDelayMs: 0, CancellationToken.None);
-        var command = Mappings.Command("Zoom", Trigger.None, new ScrollStep(ScrollDirection.Up, 1, KeyModifiers.Control));
+        var command = Mappings.CommandHere("Zoom", Trigger.None, new ScrollStep(ScrollDirection.Up, 1, KeyModifiers.Control));
 
         runner.Run(new ExecutionRequest(PressedTrigger.Of(Trigger.None), new CapturePoint(30, 40, 0), null), AppGroup.EmptyGlobal, command, target: null);
 
