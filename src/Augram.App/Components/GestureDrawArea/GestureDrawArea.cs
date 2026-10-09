@@ -112,6 +112,17 @@ public sealed class GestureDrawArea : TemplatedControl
         ScreenAreaChanged?.Invoke(this, null);
     }
 
+    /// <summary>
+    /// The pointer always crosses into the area before a stroke is drawn in it, with any button: publishing here keeps the
+    /// position current even when the window was placed after the last layout pass (Joel, 2026-10-09: a Redraw window's
+    /// stroke-button strokes went to the normal gesture path, the published position being stale).
+    /// </summary>
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        ScreenAreaChanged?.Invoke(this, CurrentScreenArea());
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);

@@ -103,8 +103,14 @@ public sealed class TrainingSession : ITrainingSession
     {
         ArgumentNullException.ThrowIfNull(points);
         var canvas = Volatile.Read(ref _canvas);
-        if (!IsOpen || canvas is null || !canvas.Contains(startX, startY))
+        if (!IsOpen)
         {
+            return false;
+        }
+
+        if (canvas is null || !canvas.Contains(startX, startY))
+        {
+            _log.Info("training", "Stroke outside the draw area", ("start", $"{startX},{startY}"), ("canvas", canvas is null ? "none" : $"{canvas.Left:0},{canvas.Top:0} {canvas.Width:0}x{canvas.Height:0}"));
             return false;
         }
 
