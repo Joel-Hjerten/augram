@@ -106,6 +106,14 @@ public sealed record AppMatcher
         ("control class", ControlClass, ControlClassIsRegex, levels => levels.ControlClass),
     ];
 
+    /// <summary>
+    /// Nothing set that <paramref name="platform"/> consults: the other platform's path alone (the Steam games group, matched
+    /// by a Windows path only) must match nothing on a Mac, never every window. Names count even with none for this platform,
+    /// since they then match nothing here by themselves.
+    /// </summary>
+    public bool IsEmptyOn(HostPlatform platform)
+        => !HasProcessNames && !HasText(PathFor(platform).Path) && !HasText(Title) && !ClassChain.Any(HasText) && !WindowFields.Any(entry => HasText(entry.Pattern));
+
     /// <summary><paramref name="platform"/>'s executable path and whether it is a pattern; only that one is consulted there.</summary>
     public (string? Path, bool IsRegex) PathFor(HostPlatform platform)
         => platform == HostPlatform.MacOS ? (MacProcessPath, MacProcessPathIsRegex) : (ProcessPath, ProcessPathIsRegex);
@@ -138,7 +146,7 @@ public sealed record AppMatcher
     {
         ArgumentNullException.ThrowIfNull(window);
 
-        if (IsEmpty || (IgnoreWhenFullScreen && window.IsFullScreen))
+        if (IsEmptyOn(platform) || (IgnoreWhenFullScreen && window.IsFullScreen))
         {
             return false;
         }

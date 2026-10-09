@@ -58,6 +58,6 @@ public static class IgnoreList
     public static bool CanMatchOn(AppMatcher matcher, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(matcher);
-        return !matcher.IsEmpty && (!matcher.HasProcessNames || matcher.EffectiveProcessNames(platform).Count > 0);
+        return !matcher.IsEmptyOn(platform) && (!matcher.HasProcessNames || matcher.EffectiveProcessNames(platform).Count > 0);
     }
 }

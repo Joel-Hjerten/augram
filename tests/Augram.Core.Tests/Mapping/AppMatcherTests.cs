@@ -187,4 +187,19 @@ public sealed class AppMatcherTests
         Assert.False(chrome.Matches(MappingFixtures.Window("chrome.exe", path: @"D:\chrome.exe"), HostPlatform.Windows));
         Assert.False(new AppMatcher { MacProcessPath = "/x" }.IsEmpty);
     }
+
+    /// <summary>A matcher whose only field is the other platform's path matches nothing here, never everything (Joel's Steam games group).</summary>
+    [Fact]
+    public void OnlyTheOtherPlatformsPath_MatchesNothing()
+    {
+        var steam = new AppMatcher { ProcessPath = @"^C:\\Program Files \(x86\)\\Steam\\steamapps\\common\\.+$", ProcessPathIsRegex = true };
+
+        Assert.False(steam.IsEmpty);
+        Assert.True(steam.IsEmptyOn(HostPlatform.MacOS));
+        Assert.False(steam.Matches(MappingFixtures.Window("Google Chrome", path: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"), HostPlatform.MacOS));
+        Assert.True(steam.Matches(MappingFixtures.Window("game.exe", path: @"C:\Program Files (x86)\Steam\steamapps\common\Game\game.exe"), HostPlatform.Windows));
+
+        var macOnly = new AppMatcher { MacProcessPath = "^/Applications/Steam", MacProcessPathIsRegex = true };
+        Assert.False(macOnly.Matches(MappingFixtures.Window("chrome.exe", path: @"C:\chrome.exe"), HostPlatform.Windows));
+    }
 }
