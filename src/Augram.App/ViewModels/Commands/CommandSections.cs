@@ -36,7 +36,7 @@ internal static class CommandSections
         ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<SectionItem> sections = scope == CommandsScope.Global
             ? GlobalSections(document, expanded, findGesture, here, showOtherPlatforms)
-            : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).SelectMany(group => GroupSections(group, expanded, findGesture, here, showOtherPlatforms))];
+            : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).SelectMany(group => GroupSections(document, group, expanded, findGesture, here, showOtherPlatforms))];
         return strokeButton is { } stroke
             ? [.. sections.Select(section => section with { Commands = [.. section.Commands.Select(item => WithStrokeButtonNote(item, stroke))] })]
             : sections;
@@ -63,7 +63,7 @@ internal static class CommandSections
             : [];
 
     /// <summary>The group's section (its ordinary commands), then one nested section per hold remap shown here, by name.</summary>
-    private static IEnumerable<SectionItem> GroupSections(AppGroup group, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
+    private static IEnumerable<SectionItem> GroupSections(MappingDocument document, AppGroup group, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
     {
         var id = SectionId.ForGroup(group.Id);
         var choices = Choices(group);
@@ -74,6 +74,7 @@ internal static class CommandSections
                 Section = id,
                 CategoryLabel = command.CategoryId is { } category ? group.FindCategory(category)?.Name : null,
                 Categories = choices,
+                NotInText = NotInText(document, command),
             })
             .ToList();
         var holdRemaps = group.HoldRemaps.Where(holdRemap => showOtherPlatforms || holdRemap.IsUsedOn(here)).ToList();
@@ -131,15 +132,15 @@ internal static class CommandSections
     }
 
     /// <summary>
-    /// What the header's Not in row says for a Global command (plan 0004): the app groups it is not used in, by name ("Eyeris,
-    /// Spine"), or <see cref="CommandItem.NoneNotIn"/>.
+    /// What the header's Not in row says (plan 0004): the Ignored › Per command entries the command is not used over, by name
+    /// ("Eyeris, Spine"), or <see cref="CommandItem.NoneNotIn"/>.
     /// </summary>
     public static string NotInText(MappingDocument document, Command command)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(command);
         var names = command.NotIn
-            .Select(id => document.Groups.FirstOrDefault(group => group.Id == id && !group.IsGlobal)?.Name)
+            .Select(id => document.Ignored.FirstOrDefault(app => app.Id == id && app.IsPerCommand)?.Name)
             .OfType<string>()
             .Order(MappingRules.NameComparer)
             .ToList();

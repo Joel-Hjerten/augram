@@ -27,7 +27,7 @@ public sealed record CommandItem(
     string StepSummary,
     string? PlatformMarker)
 {
-    /// <summary>The header's Not in row for a Global command used in every app group.</summary>
+    /// <summary>The header's Not in row for a command that names no Ignored › Per command entry.</summary>
     public const string NoneNotIn = "none";
 
     /// <summary>The section the row sits in: its group on the Apps tab, its category (or Uncategorized) on the Global tab.</summary>
@@ -110,13 +110,13 @@ public sealed record CommandItem(
     public bool ShowsDragDistance => HoldRemap is null && Trigger.IsBound && Trigger.Hold.HandsBackDrags
         && (StrokeButton is not { } stroke || Trigger.Hold.ForStrokeButton(stroke).HandsBackDrags);
 
-    /// <summary>The header shows "Not in" (plan 0004): a Global command; never an app group's, never one under a hold remap.</summary>
+    /// <summary>The header shows "Not in" (plan 0004): any command (Global's or an app group's) not under a hold remap.</summary>
     public bool CanSetNotIn { get; init; }
 
-    /// <summary>The app groups a Global command is not used in (<see cref="Command.NotIn"/>), as stored.</summary>
+    /// <summary>The Ignored › Per command entries the command is not used over (<see cref="Command.NotIn"/>), as stored.</summary>
     public IReadOnlyList<GroupId> NotIn { get; init; } = [];
 
-    /// <summary>What the header's "Not in" row says: those app groups by name ("Eyeris, Spine"), or <see cref="NoneNotIn"/>.</summary>
+    /// <summary>What the header's "Not in" row says: those entries by name ("Eyeris, Spine"), or <see cref="NoneNotIn"/>.</summary>
     public string NotInText { get; init; } = NoneNotIn;
 
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
@@ -167,7 +167,7 @@ public sealed record CommandItem(
             VersionText = VersionLine(command, here),
             HasOwnVersionHere = command.OwnVersion?.Platform == here,
             IsOwnVersionStale = command.IsOwnVersionStale,
-            CanSetNotIn = group.IsGlobal && holdRemap is null,
+            CanSetNotIn = holdRemap is null,
             NotIn = command.NotIn,
         };
     }

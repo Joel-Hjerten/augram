@@ -51,9 +51,11 @@ public static class CommandGalleryPages
 
     /// <summary>
     /// The header's Drag distance and Not in rows (plan 0004) over <see cref="CommandGalleryFakes.MappingWithZoom"/>, each header
-    /// live over its own throwaway store: Global's Zoom in with its own 3 px and two app groups, Zoom out on the Options value
-    /// (12 px here) and used everywhere, Chrome's Zoom in (an app command: no Not in), Volume up (the stroke button: no drag
-    /// distance), and the Not in dialog for Zoom in.
+    /// live over its own throwaway store: Global's Zoom in with its own 3 px, not used over Spine and Eyeris; Zoom out on the
+    /// Options value (12 px here) and used everywhere; Chrome's Zoom in (an app command has both rows), not used over Eyeris;
+    /// Volume up (the stroke button: no drag distance); then the Not in dialog for Zoom in (the Per command entries by name, two
+    /// ticked, Krita inactive, and Add app… with its magnifier, which adds the window dropped on), and the same dialog over a
+    /// mapping without Per command entries.
     /// </summary>
     public static ScreenDeclaration DragDistanceNotInPage()
     {
@@ -61,15 +63,15 @@ public static class CommandGalleryPages
         var zoomIn = mapping.Global.Commands.Single(command => command.Name == "Zoom in");
         return new FormScreen("Drag distance and Not in",
         [
-            new Section("Global › Zoom in: Right + wheel up with its own 3 px; not in Photoshop and Steam games",
+            new Section("Global › Zoom in: Right + wheel up with its own 3 px; not used over Spine and Eyeris",
             [
                 new CustomField("Zoom in", () => LiveHeader(CommandsScope.Global, "Zoom in")),
             ]),
-            new Section("Global › Zoom out: the Options value (12 px here); used in every app",
+            new Section("Global › Zoom out: the Options value (12 px here); used everywhere",
             [
                 new CustomField("Zoom out", () => LiveHeader(CommandsScope.Global, "Zoom out", optionsDragDistancePx: 12)),
             ]),
-            new Section("Chrome › Zoom in: an app command has a drag distance, no Not in",
+            new Section("Chrome › Zoom in: an app command has both rows; not used over Eyeris",
             [
                 new CustomField("Chrome", () => LiveHeader(CommandsScope.Apps, "Zoom in")),
             ]),
@@ -77,17 +79,22 @@ public static class CommandGalleryPages
             [
                 new CustomField("Volume up", () => LiveHeader(CommandsScope.Global, "Volume up")),
             ]),
-            new Section("The Not in dialog for Zoom in: the app groups by name, two ticked",
+            new Section("The Not in dialog for Zoom in: the Per command entries by name, two ticked; Add app… adds the window dropped on",
             [
-                new CustomField("Not in", () =>
-                {
-                    var request = new FormDialogRequest(NotInEditViewModel.Title, NotInEditViewModel.ConfirmLabel, Screen: NotInEditViewModel.For(zoomIn, mapping).Declare());
-                    var dialog = FormDialogPresenter.Build(request);
-                    dialog.Width = 560;
-                    return dialog;
-                }),
+                new CustomField("Not in", () => NotInDialog(NotInEditViewModel.For(zoomIn, mapping, HostPlatform.Windows))),
+            ]),
+            new Section("The Not in dialog with nothing on Per command yet",
+            [
+                new CustomField("Empty", () => NotInDialog(NotInEditViewModel.For(zoomIn, mapping with { Ignored = [] }, HostPlatform.Windows))),
             ]),
         ]);
+    }
+
+    private static FormDialog NotInDialog(NotInEditViewModel edit)
+    {
+        var dialog = FormDialogPresenter.Build(new FormDialogRequest(NotInEditViewModel.Title, NotInEditViewModel.ConfirmLabel, Screen: edit.Declare()));
+        dialog.Width = 560;
+        return dialog;
     }
 
     /// <summary>A command header bound to a view model over a throwaway store with <paramref name="name"/> selected; its edits go to that store.</summary>

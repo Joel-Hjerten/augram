@@ -7,7 +7,7 @@ namespace Augram.App.Components.Fields.CheckList;
 /// <summary>
 /// A <see cref="CheckListField"/>: its items' check boxes one under the other inside a framed list that scrolls past the
 /// theme's height (<c>Border.check-list</c>), each two-way on its own binding, its detail in the <c>help</c> style after
-/// the caption.
+/// the caption. A list with <see cref="CheckListField.LiveItems"/> is rebuilt from it whenever it changes.
 /// </summary>
 public sealed class CheckListFieldRenderer : IFieldRenderer
 {
@@ -18,15 +18,28 @@ public sealed class CheckListFieldRenderer : IFieldRenderer
         var list = (CheckListField)field;
         var items = new StackPanel();
         items.Classes.Add("check-list-items");
-        foreach (var item in list.Items)
+        if (list.LiveItems is { } live)
         {
-            items.Children.Add(Box(item));
+            BindingObserver.Attach(items, live, current => Fill(items, current));
+        }
+        else
+        {
+            Fill(items, list.Items);
         }
 
         var frame = new Border { Child = new ScrollViewer { Content = items } };
         frame.Classes.Add("field-editor");
         frame.Classes.Add("check-list");
         return frame;
+    }
+
+    private static void Fill(StackPanel items, IReadOnlyList<CheckListItem> current)
+    {
+        items.Children.Clear();
+        foreach (var item in current)
+        {
+            items.Children.Add(Box(item));
+        }
     }
 
     private static CheckBox Box(CheckListItem item)

@@ -35,6 +35,25 @@ internal static class FreeNames
             && name[(stem.Length + 1)..].All(char.IsAsciiDigit);
     }
 
+    /// <summary>The name itself when it is free, else "name 2", "name 3", … (an app added from a picked window: "Spine 2").</summary>
+    public static string Free(string name, IEnumerable<string> taken)
+    {
+        var names = taken.ToHashSet(MappingRules.NameComparer);
+        if (!names.Contains(name))
+        {
+            return name;
+        }
+
+        for (var n = 2; ; n++)
+        {
+            var candidate = $"{name} {n}";
+            if (!names.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
     /// <summary>The name itself when it is free, else "name copy", "name copy 2", …</summary>
     public static string CopyOf(string name, IEnumerable<string> taken)
     {

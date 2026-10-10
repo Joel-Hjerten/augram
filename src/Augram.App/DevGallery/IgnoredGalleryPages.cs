@@ -12,11 +12,25 @@ namespace Augram.App.DevGallery;
 /// <summary>Gallery pages for the <see cref="MasterDetail"/> component (the Ignored tab over a throwaway store, and the component's empty and selected states with plain items) and the <see cref="WindowFinder"/> on the identification form.</summary>
 public static class IgnoredGalleryPages
 {
-    /// <summary>The Ignored tab over Joel's six imported ignored apps (two inactive), with dialogs that answer at once.</summary>
+    /// <summary>Ignored › Global over Joel's six imported ignored apps (two inactive), with dialogs that answer at once.</summary>
     public static ScreenDeclaration IgnoredPage()
     {
         var store = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal], FakeIgnored()));
         var vm = new IgnoredViewModel(store, new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), HostPlatform.Windows);
+        return Screens.IgnoredScreen.Declare(vm);
+    }
+
+    /// <summary>
+    /// Ignored › Per command (plan 0004) over <see cref="CommandGalleryFakes.MappingWithZoom"/>: Eyeris (used by Global › Media ›
+    /// Zoom in and Chrome › Zoom in), Krita (inactive, not used) and Spine, selected, its form with "Used by" Global › Media ›
+    /// Zoom in as a link (the gallery's locator opens nothing). Right-click offers Move to Global.
+    /// </summary>
+    public static ScreenDeclaration PerCommandPage()
+    {
+        var store = new MappingStore(CommandGalleryFakes.MappingWithZoom());
+        var vm = new IgnoredViewModel(store, new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), HostPlatform.Windows, IgnoreScope.PerCommand, new CommandGalleryFakes.Locator());
+        var spine = vm.Items.Single(item => item.Name == "Spine");
+        vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, spine));
         return Screens.IgnoredScreen.Declare(vm);
     }
 
@@ -37,12 +51,13 @@ public static class IgnoredGalleryPages
             [
                 new CustomField("Empty", () => new MasterDetail { Heading = "Things", NewLabel = "New thing", HelpText = "A help line under the list.", EmptyDetailText = "Select a thing.", Height = 220 }),
             ]),
-            new Section("Three items, the second selected, a message line; the third inactive",
+            new Section("Three items, the second selected, a message line; the third inactive; the menu has a move entry",
             [
                 new CustomField("Selected", () => new MasterDetail
                 {
                     Heading = "Ignored apps",
                     NewLabel = "New ignored app",
+                    MoveLabel = "Move to Per command",
                     Items = items,
                     SelectedId = items[1].Id,
                     Detail = edit.Declare(),

@@ -10,7 +10,8 @@ namespace Augram.App.ViewModels.Ignored;
 /// form (<see cref="Detail"/>, an <see cref="IgnoredEditViewModel"/>), rebuilt only when another app is selected so typing
 /// never loses focus. Each edit applies at once, one undo step each; a rule the store refuses (an empty name, a pattern that
 /// does not compile) shows on the message line and the field keeps what was typed. A change from elsewhere (undo, a rename
-/// or the active box in the list, a sync) is synced into the form, but the form's own edits are not echoed back.
+/// or the active box in the list, a sync) is synced into the form, but the form's own edits are not echoed back. A Per command
+/// entry's "Used by" (<see cref="IgnoredEditViewModel.UsedBy"/>) is re-read on every store change, a command's Not in included.
 /// </summary>
 public sealed partial class IgnoredViewModel
 {
@@ -38,15 +39,22 @@ public sealed partial class IgnoredViewModel
             DetachEdit();
             _edit = IgnoredEditViewModel.From(app);
             _editId = app.Id;
+            _edit.UsedBy = app.IsPerCommand ? UsedByLinks(app.Id) : [];
             _edit.PropertyChanged += OnEdited;
             Detail = _edit.Declare();
         }
-        else if (!_applyingEdit)
+        else
         {
             _syncingEdit = true;
             try
             {
-                _edit.SyncFrom(app);
+                if (!_applyingEdit)
+                {
+                    _edit.SyncFrom(app);
+                }
+
+                // A command ticking or unticking the entry in its Not in changes this, never the form.
+                _edit.UsedBy = app.IsPerCommand ? UsedByLinks(app.Id) : [];
             }
             finally
             {
@@ -57,8 +65,8 @@ public sealed partial class IgnoredViewModel
 
     private void OnEdited(object? sender, PropertyChangedEventArgs e)
     {
-        // GuessText is computed from the fields; its notice follows a real edit that is applied already.
-        if (_syncingEdit || e.PropertyName == nameof(AppMatcherEditViewModel.GuessText) || _edit is not { } edit || _editId is not { } id)
+        // GuessText is computed from the fields; its notice follows a real edit that is applied already. UsedBy is the host's.
+        if (_syncingEdit || e.PropertyName is nameof(AppMatcherEditViewModel.GuessText) or nameof(IgnoredEditViewModel.UsedBy) || _edit is not { } edit || _editId is not { } id)
         {
             return;
         }

@@ -4,21 +4,24 @@ using Augram.App.Components.FormDialog;
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
-/// The "Not in" half of <see cref="CommandsViewModel"/> (Joel, 2026-10-10, plan 0004): a Global command's app groups it is not
-/// used in. The header's Change… opens <see cref="NotInEditViewModel"/> in the shared form dialog, the app groups by name as a
-/// check list; Save stores what is ticked as one <c>UpdateCommand</c>, one undo step (none when nothing changed), Cancel
-/// nothing. The rules (only Global keeps it, only groups that exist, sorted) are Core's normalisation, not this file's.
+/// The "Not in" half of <see cref="CommandsViewModel"/> (Joel, 2026-10-10, plan 0004): the Ignored › Per command entries a
+/// command (Global's or an app group's, not one under a hold remap) is not used over. The header's Change… opens
+/// <see cref="NotInEditViewModel"/> in the shared form dialog, the entries by name as a check list with Add app… and its
+/// magnifier. Save stores what is ticked as one undo step: an <c>UpdateCommand</c>, or, when Add app… made new entries, one
+/// <c>MappingStore.UpdateCommandAddingIgnored</c> that adds them and updates the command together; nothing when nothing
+/// changed. Cancel stores nothing, the new entries included. The rules (only entries that exist, none under a hold remap,
+/// sorted) are Core's normalisation, not this file's.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
     private async Task EditNotInAsync(CommandItem item)
     {
-        if (_store.FindCommand(item.Id) is not { Group.IsGlobal: true, Command: { HoldRemapId: null } command })
+        if (_store.FindCommand(item.Id) is not { Command: { HoldRemapId: null } command })
         {
             return;
         }
 
-        var edit = NotInEditViewModel.For(command, _store.Current);
+        var edit = NotInEditViewModel.For(command, _store.Current, _platform);
         if (!await _dialogs.ShowAsync(new FormDialogRequest(NotInEditViewModel.Title, NotInEditViewModel.ConfirmLabel, Screen: edit.Declare())).ConfigureAwait(true))
         {
             return;
@@ -26,10 +29,15 @@ public sealed partial class CommandsViewModel
 
         Guard(() =>
         {
+            var (group, stored) = RequireCommand(item.Id);
             var notIn = edit.NotIn;
-            if (!RequireCommand(item.Id).Command.NotIn.ToHashSet().SetEquals(notIn))
+            if (edit.Added.Count > 0)
             {
-                UpdateCommand(item.Id, stored => stored with { NotIn = notIn });
+                _store.UpdateCommandAddingIgnored(group.Id, stored with { NotIn = notIn }, edit.Added);
+            }
+            else if (!stored.NotIn.ToHashSet().SetEquals(notIn))
+            {
+                _store.UpdateCommand(group.Id, stored with { NotIn = notIn });
             }
         });
     }

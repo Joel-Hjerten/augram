@@ -6,6 +6,7 @@ namespace Augram.App.Declarations;
 /// A list of check boxes one under the other, each with its own binding and an optional detail beside its caption: the
 /// export dialog's "Global · Blender (Windows only) · Steam" selection (plan 0003). For a few bools on one row,
 /// <see cref="TogglesField"/>. The list scrolls past a theme height. <see cref="Binding"/> is the first item's, for the inspector.
+/// A list whose items can change while it is shown (the "Not in" dialog's Add app…, plan 0004) sets <see cref="LiveItems"/>.
 /// </summary>
 public sealed record CheckListField(
     string Label,
@@ -17,4 +18,7 @@ public sealed record CheckListField(
     public override string Kind => "CheckList";
 
     public override IValueBinding? Binding => Items.Count > 0 ? Items[0].Value : null;
+
+    /// <summary>When set, the boxes follow it: rebuilt from it whenever it changes, <see cref="Items"/> being only its first reading.</summary>
+    public IValueBinding<IReadOnlyList<CheckListItem>>? LiveItems { get; init; }
 }

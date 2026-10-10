@@ -16,7 +16,7 @@ public sealed class FieldKindCoverageTests
             .OrderBy(kind => kind, StringComparer.Ordinal)
             .ToList();
 
-        Assert.Equal(["ButtonRadio", "CheckList", "Color", "Custom", "Dropdown", "Note", "Number", "Pattern", "Text", "Toggle", "Toggles"], kinds);
+        Assert.Equal(["ButtonRadio", "CheckList", "Color", "Custom", "Dropdown", "Links", "Note", "Number", "Pattern", "Text", "Toggle", "Toggles"], kinds);
         foreach (var kind in kinds)
         {
             Assert.Contains(kind, FieldRendererRegistry.Default.Kinds);

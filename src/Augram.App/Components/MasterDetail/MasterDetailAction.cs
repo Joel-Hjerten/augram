@@ -18,6 +18,9 @@ public enum MasterDetailAction
     /// <summary>The row's active box was clicked.</summary>
     ToggleActive,
 
+    /// <summary>The menu's move entry (<see cref="MasterDetail.MoveLabel"/>: Ignored's "Move to Per command" / "Move to Global"): move the selected item to the host's other list.</summary>
+    Move,
+
     Undo,
 
     Redo,
