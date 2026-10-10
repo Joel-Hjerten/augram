@@ -17,13 +17,16 @@ namespace Augram.Import.StrokesPlus;
 /// </summary>
 public static class MappingImport
 {
-    /// <summary>Replaces every gesture trigger whose id is in <paramref name="idMap"/> (imported id → final id); other triggers are untouched.</summary>
+    /// <summary>
+    /// Replaces every gesture trigger whose id is in <paramref name="idMap"/> (imported id → final id), an own version's
+    /// included (<see cref="Command.WithGesturesReplaced"/>); other triggers are untouched.
+    /// </summary>
     public static MappingDocument Rebind(MappingDocument imported, IReadOnlyDictionary<GestureId, GestureId> idMap)
     {
         ArgumentNullException.ThrowIfNull(imported);
         ArgumentNullException.ThrowIfNull(idMap);
         var groups = imported.Groups
-            .Select(group => group with { Commands = group.Commands.Select(command => Rebound(command, idMap)).ToArray() })
+            .Select(group => group with { Commands = group.Commands.Select(command => command.WithGesturesReplaced(idMap)).ToArray() })
             .ToArray();
         return imported with { Groups = groups };
     }
@@ -121,10 +124,4 @@ public static class MappingImport
     private static bool IsTaken(Command command, List<Command> commands)
         => CommandNames.SiblingNames(commands, command.HoldRemapId).Contains(command.Name, MappingRules.NameComparer)
             || commands.Any(other => command.Trigger.Overlaps(other.Trigger));
-
-    /// <summary>The command bound to the gesture its source gesture was merged into, keeping what its trigger holds.</summary>
-    private static Command Rebound(Command command, IReadOnlyDictionary<GestureId, GestureId> idMap)
-        => command.Trigger is Trigger.GestureTrigger gesture && idMap.TryGetValue(gesture.GestureId, out var final) && final != gesture.GestureId
-            ? command with { Trigger = gesture with { GestureId = final } }
-            : command;
 }

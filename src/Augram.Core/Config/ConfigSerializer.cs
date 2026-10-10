@@ -59,9 +59,21 @@ public static class ConfigSerializer
     {
         ArgumentNullException.ThrowIfNull(json);
         ArgumentNullException.ThrowIfNull(steps);
+        return Read(ParseObject(json), steps, notice, Configuration);
+    }
 
-        var root = ParseObject(json);
-        int version = ReadSchemaVersion(root);
+    /// <summary>
+    /// A file already parsed by <see cref="ParseObject"/>: version check, migration (in place, so <paramref name="root"/> is
+    /// the current schema afterwards), deserialisation. The export file reader (<c>Transfer/TransferSerializer</c>) comes in
+    /// here too, to see which members the file has.
+    /// </summary>
+    /// <param name="root">The parsed file.</param>
+    /// <param name="steps">The step types the mapping may use.</param>
+    /// <param name="notice">Receives one line per dropped step or override; null to drop silently.</param>
+    /// <param name="what">The subject of the messages ("The configuration", "The file").</param>
+    internal static ConfigDocument Read(JsonObject root, StepRegistry steps, Action<string>? notice, string what)
+    {
+        int version = ReadSchemaVersion(root, what);
         if (version < ConfigDocument.CurrentSchemaVersion)
         {
             root = ConfigMigrations.Migrate(root, version);
@@ -70,13 +82,13 @@ public static class ConfigSerializer
         try
         {
             var document = root.Deserialize(ConfigJsonContext.Default.ConfigDocument)
-                ?? throw new ConfigFormatException("The configuration is empty.");
+                ?? throw new ConfigFormatException($"{what} is empty.");
             var mapping = new MappingJsonReader(steps, notice).Read(root["mapping"]);
             return Validated(document with { Mapping = mapping });
         }
         catch (JsonException ex)
         {
-            throw new ConfigFormatException($"The configuration could not be read: {ex.Message}", ex);
+            throw new ConfigFormatException($"{what} could not be read: {ex.Message}", ex);
         }
     }
 

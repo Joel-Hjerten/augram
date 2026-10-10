@@ -26,6 +26,9 @@ public sealed class ImportedStepType : IStepType
 
     public bool IsPlatformNeutral => true;
 
+    /// <summary>The StrokesPlus.net parameters are kept as text (a SendKeys string, a script), which may type a password: an export says so (plan 0003).</summary>
+    public bool MayHoldPrivateText => true;
+
     /// <summary>The same on every platform: nothing to convert.</summary>
     public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to) => StepConversion.Same(step);
 

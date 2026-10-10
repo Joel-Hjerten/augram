@@ -35,6 +35,9 @@ public sealed class RunStepType : IStepType
 
     public bool IsPlatformNeutral => false;
 
+    /// <summary>The arguments may hold a secret (a token, a password): an export says they travel as written (plan 0003).</summary>
+    public bool MayHoldPrivateText => true;
+
     /// <summary>Cross-platform links (http, https, mailto, ftp) unchanged; anything else needs its own version (<see cref="RunConversion"/>).</summary>
     public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to)
         => RunConversion.Convert(StepParameters.Expect<RunStep>(step, this), from, to);

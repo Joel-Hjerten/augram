@@ -1,5 +1,6 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Xunit;
 using static Augram.Core.Tests.Mapping.Support.MappingFixtures;
@@ -197,5 +198,22 @@ public sealed class TriggerCombinationTests
         Assert.Equal(Trigger.ForGesture(Down, TriggerHold.WithStroke(KeyModifiers.Shift)), moved.OwnVersion!.Trigger);
         Assert.Equal(Trigger.None, unbound.Trigger);
         Assert.Equal(Trigger.None, unbound.OwnVersion!.Trigger);
+    }
+
+    [Fact]
+    public void AnIdMap_MovesTheOriginalAndTheOwnTriggerEachOnItsOwn_AndTheGesturesNamedAreListedOnce()
+    {
+        var other = GestureId.New();
+        var shiftUp = Trigger.ForGesture(Up, TriggerHold.WithStroke(KeyModifiers.Shift));
+        var command = NewCommand("Copy", shiftUp, NewStep("copy")).WithTriggerFor(HostPlatform.MacOS, Trigger.ForGesture(Down), DateTimeOffset.UnixEpoch);
+
+        // Up → Down and Down → other: the original lands on Down, and is not carried on to other by the second entry.
+        var moved = command.WithGesturesReplaced(new Dictionary<GestureId, GestureId> { [Up] = Down, [Down] = other });
+
+        Assert.Equal([Up, Down], command.GestureIds());
+        Assert.Equal(Trigger.ForGesture(Down, TriggerHold.WithStroke(KeyModifiers.Shift)), moved.Trigger);
+        Assert.Equal(Trigger.ForGesture(other), moved.OwnVersion!.Trigger);
+        Assert.Equal([Up], NewCommand("Paste", Trigger.ForGesture(Up), NewStep("paste")).WithTriggerFor(HostPlatform.MacOS, Trigger.ForGesture(Up), DateTimeOffset.UnixEpoch).GestureIds());
+        Assert.Empty(NewCommand("Volume", Trigger.ForWheel(WheelDirection.Up)).GestureIds());
     }
 }

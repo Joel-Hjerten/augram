@@ -33,6 +33,14 @@ public interface IStepType
     /// </summary>
     bool HoldRemapsOnly => false;
 
+    /// <summary>
+    /// True for a type whose parameters are text the user writes freely and that may be private (a typed password, a token
+    /// on a command line): Type text, Run, an imported StrokesPlus.net placeholder. An export counts such steps and warns
+    /// that they travel as written (plan 0003); the log already keeps them out through <see cref="IStep.LogSummary"/>.
+    /// False (the default) for the rest. Nothing names a type to decide this.
+    /// </summary>
+    bool MayHoldPrivateText => false;
+
     IStep CreateDefault();
 
     /// <summary>Reads the step's parameters as written by <see cref="Write"/>; missing members take their defaults, unknown ones are ignored.</summary>

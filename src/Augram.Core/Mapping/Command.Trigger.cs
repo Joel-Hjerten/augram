@@ -73,6 +73,39 @@ public sealed partial record Command
         return command;
     }
 
+    /// <summary>The gestures the original trigger and an own version's name, each once: what an export of the command carries along (plan 0003).</summary>
+    public IReadOnlyList<GestureId> GestureIds()
+    {
+        var ids = new List<GestureId>(2);
+        if (Trigger is Trigger.GestureTrigger gesture)
+        {
+            ids.Add(gesture.GestureId);
+        }
+
+        if (OwnVersion?.Trigger is Trigger.GestureTrigger own && !ids.Contains(own.GestureId))
+        {
+            ids.Add(own.GestureId);
+        }
+
+        return ids;
+    }
+
+    /// <summary>
+    /// The command with each trigger (the original's and an own version's, each on its own, so one replacement never feeds
+    /// another) naming a gesture <paramref name="map"/> has moved to the mapped id, keeping what it holds: an import's id
+    /// map (StrokesPlus.net, Augram JSON, plan 0003).
+    /// </summary>
+    public Command WithGesturesReplaced(IReadOnlyDictionary<GestureId, GestureId> map)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        var command = Trigger is Trigger.GestureTrigger gesture && map.TryGetValue(gesture.GestureId, out var to)
+            ? this with { Trigger = gesture with { GestureId = to } }
+            : this;
+        return OwnVersion is { Trigger: Trigger.GestureTrigger own } version && map.TryGetValue(own.GestureId, out var ownTo)
+            ? command with { OwnVersion = version with { Trigger = own with { GestureId = ownTo } } }
+            : command;
+    }
+
     private static Trigger Replaced(Trigger trigger, GestureId? to)
         => to is { } id && trigger is Trigger.GestureTrigger gesture ? gesture with { GestureId = id } : Trigger.None;
 
