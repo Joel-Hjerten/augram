@@ -135,6 +135,26 @@ public sealed class CommandsViewModelAlsoInTests
     }
 
     [AvaloniaFact]
+    public void ATriggerThatHoldsTheStrokeButton_ClearsTheAlsoIn_AndTheMessageSaysSo_InTheSameUndoStep()
+    {
+        var (vm, store, _) = GlobalWithChords();
+        store.UpdateCommand(GroupId.Global, CommandsTestData.Find(store, "Zoom in") with { AlsoIn = [Blender.Id] });
+        store.ClearHistory();
+        Select(vm, "Zoom in");
+
+        // Ticking the stroke button: Stroke + Right + wheel up, which an excluded app's stroke button would have to draw.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetTriggerHold, command: vm.SelectedCommand, hold: new TriggerHold(HeldButtons.Stroke | HeldButtons.Right)));
+
+        Assert.Empty(CommandsTestData.Find(store, "Zoom in").AlsoIn);
+        Assert.False(vm.SelectedCommand!.CanSetAlsoIn);
+        Assert.Equal($"Cleared the Also in of 'Zoom in': only a trigger that holds a button other than the stroke button works over an excluded app. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Equal([Blender.Id], CommandsTestData.Find(store, "Zoom in").AlsoIn);
+        Assert.False(store.CanUndo);
+    }
+
+    [AvaloniaFact]
     public void TheHeaderShowsTheRowForACommandWithoutTheStrokeButton_AndChangeAsks()
     {
         var (vm, _, _) = GlobalWithChords();

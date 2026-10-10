@@ -124,7 +124,7 @@ public static class TriggerKindExtensions
             Trigger.WheelTrigger wheel => $"Hold {holding} and turn the mouse wheel {(wheel.Direction == WheelDirection.Up ? "up" : "down")}; every notch fires.",
             Trigger.ClickTrigger => $"Click the stroke button while holding {holding}; with nothing else bound here the click goes to the app, keys and all.",
             Trigger.ButtonTrigger button when trigger.Hold.Physical != HeldButtons.None
-                => $"Hold {holding} and press {button.Button}: it fires at the press, and a Remap step's key is held until either button is released.",
+                => $"Hold {holding}, then press {button.Button}: it fires at the press, and a Remap step's key is held until either button is released.",
             _ => null,
         };
     }

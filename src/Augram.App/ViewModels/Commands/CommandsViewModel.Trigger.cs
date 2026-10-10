@@ -120,15 +120,30 @@ public sealed partial class CommandsViewModel
             : trigger.Hold.HoldsStroke ? trigger.Hold
             : TriggerHold.WithStroke(trigger.Hold.Keys, capture: trigger.Hold.Capture);
 
-    /// <summary>One store call (one undo step): this platform's trigger is <paramref name="trigger"/>; says so when that made it this platform's own.</summary>
+    /// <summary>
+    /// One store call (one undo step): this platform's trigger is <paramref name="trigger"/>; says so when that made it this
+    /// platform's own, and when Core's normalisation cleared the command's Also in with it (plan 0005: a trigger holding the
+    /// stroke button on both platforms never works over an excluded app).
+    /// </summary>
     private void SaveTrigger(CommandId id, Trigger trigger)
     {
         var (group, command) = RequireCommand(id);
         var forked = ForksHere(command);
-        _store.UpdateCommand(group.Id, WithTriggerHere(command, trigger));
+        var stored = _store.UpdateCommand(group.Id, WithTriggerHere(command, trigger));
+        var lines = new List<string>(2);
         if (forked)
         {
-            Message = $"'{command.Name}' now has its own trigger and steps here; the original keeps running where it was authored. {CommandsKeymap.Current.Undo} undoes it.";
+            lines.Add($"'{command.Name}' now has its own trigger and steps here; the original keeps running where it was authored.");
+        }
+
+        if (command.AlsoIn.Count > 0 && stored.AlsoIn.Count == 0)
+        {
+            lines.Add($"Cleared the Also in of '{command.Name}': only a trigger that holds a button other than the stroke button works over an excluded app.");
+        }
+
+        if (lines.Count > 0)
+        {
+            Message = $"{string.Join(" ", lines)} {CommandsKeymap.Current.Undo} undoes it.";
         }
     }
 

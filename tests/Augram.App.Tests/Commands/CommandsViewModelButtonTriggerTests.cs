@@ -40,7 +40,7 @@ public sealed class CommandsViewModelButtonTriggerTests
         Assert.Equal(shiftRightLeft, Find(store, "Zoom in").Trigger);
         var header = vm.SelectedCommand!;
         Assert.Equal((TriggerKind.Button, "Shift + Right + Left", null), (header.TriggerKind, header.TriggerText, header.DraftNote));
-        Assert.Equal("Hold Shift and Right and press Left: it fires at the press, and a Remap step's key is held until either button is released.", header.TriggerHint);
+        Assert.Equal("Hold Shift and Right, then press Left: it fires at the press, and a Remap step's key is held until either button is released.", header.TriggerHint);
         Assert.Equal("Right clicks in every app wait until you release or move.", header.AnchorWarning);
         Assert.True(header.ShowsDragDistance);
         Assert.Equal("Shift + Right + Left · Wait 10 ms", Item(vm, "Zoom in").StepSummary);
