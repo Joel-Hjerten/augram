@@ -33,6 +33,7 @@ public static class GalleryNavigation
         new("Commands Global", Key + ".commands.global", CommandGalleryPages.GlobalWorkbenchPage),
         new("Commands Apps", Key + ".commands.apps", CommandGalleryPages.AppsWorkbenchPage),
         new("Hold remaps", Key + ".holdremaps", CommandGalleryPages.HoldRemapsPage),
+        new("Drag distance, Not in", Key + ".dragdistance", CommandGalleryPages.DragDistanceNotInPage),
         new("StepList", Key + ".steplist", CommandGalleryPages.StepListPage),
         new("StepForms", Key + ".stepforms", CommandGalleryPages.StepFormsPage),
         new("StepTypePicker", Key + ".steptypepicker", CommandGalleryPages.StepTypePickerPage),

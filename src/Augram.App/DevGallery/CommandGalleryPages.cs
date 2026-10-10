@@ -1,4 +1,5 @@
 #if DEBUG
+using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.GestureGrid;
 using Augram.App.Components.GesturePicker;
@@ -21,6 +22,7 @@ using Augram.Core.Steps.Run;
 using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
 using Augram.Core.Steps.WindowOp;
+using Avalonia.Data;
 
 namespace Augram.App.DevGallery;
 
@@ -45,6 +47,66 @@ public static class CommandGalleryPages
         vm.ShowCommand(store.Current.AllCommands().Single(pair => pair.Command.Name == "Orbit").Command.Id);
         vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[0]));
         return Screens.CommandsScreen.Declare(vm);
+    }
+
+    /// <summary>
+    /// The header's Drag distance and Not in rows (plan 0004) over <see cref="CommandGalleryFakes.MappingWithZoom"/>, each header
+    /// live over its own throwaway store: Global's Zoom in with its own 3 px and two app groups, Zoom out on the Options value
+    /// (12 px here) and used everywhere, Chrome's Zoom in (an app command: no Not in), Volume up (the stroke button: no drag
+    /// distance), and the Not in dialog for Zoom in.
+    /// </summary>
+    public static ScreenDeclaration DragDistanceNotInPage()
+    {
+        var mapping = MappingRules.ValidDocument(CommandGalleryFakes.MappingWithZoom());
+        var zoomIn = mapping.Global.Commands.Single(command => command.Name == "Zoom in");
+        return new FormScreen("Drag distance and Not in",
+        [
+            new Section("Global › Zoom in: Right + wheel up with its own 3 px; not in Photoshop and Steam games",
+            [
+                new CustomField("Zoom in", () => LiveHeader(CommandsScope.Global, "Zoom in")),
+            ]),
+            new Section("Global › Zoom out: the Options value (12 px here); used in every app",
+            [
+                new CustomField("Zoom out", () => LiveHeader(CommandsScope.Global, "Zoom out", optionsDragDistancePx: 12)),
+            ]),
+            new Section("Chrome › Zoom in: an app command has a drag distance, no Not in",
+            [
+                new CustomField("Chrome", () => LiveHeader(CommandsScope.Apps, "Zoom in")),
+            ]),
+            new Section("Global › Volume up: held with the stroke button, so no drag distance",
+            [
+                new CustomField("Volume up", () => LiveHeader(CommandsScope.Global, "Volume up")),
+            ]),
+            new Section("The Not in dialog for Zoom in: the app groups by name, two ticked",
+            [
+                new CustomField("Not in", () =>
+                {
+                    var request = new FormDialogRequest(NotInEditViewModel.Title, NotInEditViewModel.ConfirmLabel, Screen: NotInEditViewModel.For(zoomIn, mapping).Declare());
+                    var dialog = FormDialogPresenter.Build(request);
+                    dialog.Width = 560;
+                    return dialog;
+                }),
+            ]),
+        ]);
+    }
+
+    /// <summary>A command header bound to a view model over a throwaway store with <paramref name="name"/> selected; its edits go to that store.</summary>
+    private static CommandHeader LiveHeader(CommandsScope scope, string name, int? optionsDragDistancePx = null)
+    {
+        var library = new GestureLibrary(Starter);
+        var store = new MappingStore(CommandGalleryFakes.MappingWithZoom());
+        var vm = new CommandsViewModel(scope, store, library, new CommandGalleryFakes.GesturePicker(library), new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), new CommandClipboard(), HostPlatform.Windows);
+        if (optionsDragDistancePx is { } px)
+        {
+            vm.OptionsDragDistancePx = px;
+        }
+
+        var found = store.Current.AllCommands().First(pair => pair.Command.Name == name && CommandSections.Includes(scope, pair.Group));
+        vm.ShowCommand(found.Command.Id);
+        var header = new CommandHeader { Width = 760 };
+        header.Bind(CommandHeader.ItemProperty, new Binding(nameof(CommandsViewModel.SelectedCommand)) { Source = vm });
+        header.ActionRequested += (_, e) => vm.Handle(e);
+        return header;
     }
 
     /// <summary>A whole sub-tab over a throwaway store: tree, header, step list, with dialogs that answer at once.</summary>

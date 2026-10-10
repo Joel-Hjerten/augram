@@ -35,7 +35,7 @@ internal static class CommandSections
     {
         ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<SectionItem> sections = scope == CommandsScope.Global
-            ? GlobalSections(document.Global, expanded, findGesture, here, showOtherPlatforms)
+            ? GlobalSections(document, expanded, findGesture, here, showOtherPlatforms)
             : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).SelectMany(group => GroupSections(group, expanded, findGesture, here, showOtherPlatforms))];
         return strokeButton is { } stroke
             ? [.. sections.Select(section => section with { Commands = [.. section.Commands.Select(item => WithStrokeButtonNote(item, stroke))] })]
@@ -131,16 +131,38 @@ internal static class CommandSections
     }
 
     /// <summary>
+    /// What the header's Not in row says for a Global command (plan 0004): the app groups it is not used in, by name ("Eyeris,
+    /// Spine"), or <see cref="CommandItem.NoneNotIn"/>.
+    /// </summary>
+    public static string NotInText(MappingDocument document, Command command)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(command);
+        var names = command.NotIn
+            .Select(id => document.Groups.FirstOrDefault(group => group.Id == id && !group.IsGlobal)?.Name)
+            .OfType<string>()
+            .Order(MappingRules.NameComparer)
+            .ToList();
+        return names.Count == 0 ? CommandItem.NoneNotIn : string.Join(", ", names);
+    }
+
+    /// <summary>
     /// Uncategorized (always everywhere: it has no settings), then each category by name; a category not used here
     /// (Joel, 2026-10-08) is left out unless <paramref name="showOtherPlatforms"/>, then greyed with "Windows only", and its
-    /// commands go with it: hidden, or greyed.
+    /// commands go with it: hidden, or greyed. Each command carries what its Not in row says.
     /// </summary>
-    private static List<SectionItem> GlobalSections(AppGroup global, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
+    private static List<SectionItem> GlobalSections(MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
     {
+        var global = document.Global;
         var choices = Choices(global);
         var items = global.Commands
             .Where(command => showOtherPlatforms || global.IsCommandUsedOn(command, here))
-            .Select(command => Item(global, command, findGesture, here) with { Section = SectionOf(CommandsScope.Global, global, command), Categories = choices })
+            .Select(command => Item(global, command, findGesture, here) with
+            {
+                Section = SectionOf(CommandsScope.Global, global, command),
+                Categories = choices,
+                NotInText = NotInText(document, command),
+            })
             .ToList();
         var sections = new List<SectionItem>();
         var uncategorized = items.Where(item => item.Section == SectionId.Uncategorized).ToList();

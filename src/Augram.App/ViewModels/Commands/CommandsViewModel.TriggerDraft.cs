@@ -50,7 +50,7 @@ public sealed partial class CommandsViewModel
         => _draft = new TriggerDraft(id, RequireCommand(id).Command.TriggerFor(_platform), trigger.Normalised());
 
     /// <summary>Shows the selected command in the header again, with the draft over its trigger while one waits.</summary>
-    private void ShowSelected() => SelectedCommand = WithDraft(SelectedRow());
+    private void ShowSelected() => SelectedCommand = HeaderItem(SelectedRow());
 
     /// <summary>
     /// The selected row as the header shows it: with the draft over its trigger and the draft's note while one waits. A draft of

@@ -1,5 +1,6 @@
 using Augram.App.Components.StepList;
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
@@ -26,6 +27,9 @@ public sealed record CommandItem(
     string StepSummary,
     string? PlatformMarker)
 {
+    /// <summary>The header's Not in row for a Global command used in every app group.</summary>
+    public const string NoneNotIn = "none";
+
     /// <summary>The section the row sits in: its group on the Apps tab, its category (or Uncategorized) on the Global tab.</summary>
     public SectionId Section { get; init; }
 
@@ -89,6 +93,27 @@ public sealed record CommandItem(
     /// </summary>
     public string? DraftNote { get; init; }
 
+    /// <summary>
+    /// Options › Capture's button drag distance (plan 0004), what a trigger without its own falls back to: the header's "Options
+    /// value (10 px)". The view model sets it on the header's item; rows keep the default.
+    /// </summary>
+    public int OptionsDragDistancePx { get; init; } = CaptureThresholds.Default.ButtonDragDistancePx;
+
+    /// <summary>
+    /// The header shows "Drag distance" (plan 0004): a bound trigger (or its draft) whose set holds buttons other than the
+    /// stroke button and none of it, so its presses are held back and handed back as drags (<see cref="TriggerHold.HandsBackDrags"/>).
+    /// </summary>
+    public bool ShowsDragDistance => HoldRemap is null && Trigger.IsBound && Trigger.Hold.HandsBackDrags;
+
+    /// <summary>The header shows "Not in" (plan 0004): a Global command; never an app group's, never one under a hold remap.</summary>
+    public bool CanSetNotIn { get; init; }
+
+    /// <summary>The app groups a Global command is not used in (<see cref="Command.NotIn"/>), as stored.</summary>
+    public IReadOnlyList<GroupId> NotIn { get; init; } = [];
+
+    /// <summary>What the header's "Not in" row says: those app groups by name ("Eyeris, Spine"), or <see cref="NoneNotIn"/>.</summary>
+    public string NotInText { get; init; } = NoneNotIn;
+
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
 
     public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
@@ -137,6 +162,8 @@ public sealed record CommandItem(
             VersionText = VersionLine(command, here),
             HasOwnVersionHere = command.OwnVersion?.Platform == here,
             IsOwnVersionStale = command.IsOwnVersionStale,
+            CanSetNotIn = group.IsGlobal && holdRemap is null,
+            NotIn = command.NotIn,
         };
     }
 
