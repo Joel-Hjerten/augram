@@ -4,6 +4,13 @@ You are picking up a project whose first runnable milestone is built and accepte
 
 ## 0. Right now
 
+### Right + wheel without the lag (2026-10-10, PC session)
+
+Joel's Global › Media › Zoom In/Out are Right + wheel on the PC (Stroke + Right on the Mac), so every right press on the PC is held back. **Letting the press through** and closing the context menu its release opens afterwards was weighed and **held off by Joel** (requirements F1: the app would own the release; Windows opens menus on the up, macOS on the down). Instead:
+
+1. **Button drag distance, built (`c1b7ac0`):** a held-back button other than the stroke button is handed back as a drag at `CaptureThresholds.ButtonDragDistancePx` (Options › Capture, default 10 px, per machine), no longer at the stroke's 30 px. Not yet in an installer or tried by Joel (Spine and Eyeris pan with Right).
+2. **Per-command "not in these apps", proposed, waiting for Joel's go:** a Global command lists app groups it does not apply in; over them it is as if absent (no fire, nothing held back). Needs config schema and sync format bumps. Works today without code as an app group with an override to nothing on the same trigger (`Mapping/AnchorPlanner`: it gives Right back to the app).
+
 ### OVERNIGHT 2026-10-10 (PC session; Joel asleep, lead + worktree subagents)
 
 Joel's order (2026-10-10): **start at login on both platforms "as soon as possible", then Augram JSON export/import.** M3 counts as met by his daily use (plan 0001). Parked, not dropped: the Mac window extras (Center, snap halves, set size); the PC checks of the 300 ms tray click and the rest (Joel reports problems as he meets them); the open questions in section 9 and the "later" items stay where they are.
