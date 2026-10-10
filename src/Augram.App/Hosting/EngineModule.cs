@@ -193,11 +193,14 @@ public static class EngineModule
         };
     }
 
-    /// <summary>SharpHook's simulator; on macOS wrapped so the volume and playback keys reach the system (<see cref="MacMediaKeySimulator"/>).</summary>
+    /// <summary>
+    /// SharpHook's simulator; on macOS wrapped so the volume and playback keys reach the system (<see cref="MacMediaKeySimulator"/>)
+    /// and a hold remap's button output, its modifiers and its re-posted drags go through CoreGraphics (<see cref="MacRemapButtonSimulator"/>).
+    /// </summary>
     private static IInputSimulator CreateSimulator(OwnWheelInjections ownWheel, bool adapters)
     {
         var simulator = new SharpHookInputSimulator(ownWheel);
-        return adapters && OperatingSystem.IsMacOS() ? new MacMediaKeySimulator(simulator) : simulator;
+        return adapters && OperatingSystem.IsMacOS() ? new MacRemapButtonSimulator(new MacMediaKeySimulator(simulator)) : simulator;
     }
 
     private static void RegisterPlatform(IServiceCollection services, bool adapters)
