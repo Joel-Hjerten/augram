@@ -5,11 +5,13 @@ using Augram.App.UsedBy;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.Remap;
 using Augram.Core.Steps.WindowOp;
 
 namespace Augram.App.DevGallery;
@@ -19,8 +21,8 @@ namespace Augram.App.DevGallery;
 /// categories Window and Media, "PC tools" (Use on Windows only: its command's header shows the macOS box disabled
 /// with "Set by category") and "Mac tools" (macOS only: listed greyed with Show other platforms), and one
 /// uncategorized command; Chrome (with trigger combinations: Right + wheel up, Shift + gesture, Ctrl + Left + click),
-/// Steam games (an override to nothing) and Photoshop with categories, so every section kind, tag, marker and trigger
-/// badge has a case.
+/// Steam games (an override to nothing), Photoshop with categories and Blender with its Space hold remap (plan 0002), so every
+/// section kind, tag, marker, trigger badge and input has a case.
 /// </summary>
 public static class CommandGalleryFakes
 {
@@ -68,7 +70,30 @@ public static class CommandGalleryFakes
                 Cmd("Brush size", Trigger.ForWheel(WheelDirection.Up), new DelayStep(10)),
             ],
             [general, blend]);
-        return new MappingDocument([global, chrome, steam, photoshop], []);
+        return new MappingDocument([global, chrome, steam, photoshop, Blender()], []);
+    }
+
+    /// <summary>
+    /// Joel's Blender (F9, plan 0002): the Space hold remap with Orbit (Left → Middle), Pan (Right → Shift + Middle), Zoom both
+    /// (Left + Right → Ctrl + Middle) and Grab (W → G), beside one ordinary command; the hold remap is nested in the group.
+    /// </summary>
+    public static AppGroup Blender()
+    {
+        var space = HoldRemap.For(KeyCode.Space);
+        Command Remap(string name, HoldInput input, RemapOutput output)
+            => new Command(CommandId.New(), name, Trigger.ForInput(input), IsActive: true, [new CommandStep(new RemapStep(output), HostPlatform.Windows)]) { HoldRemapId = space.Id };
+        return new AppGroup(GroupId.New(), "Blender", IsActive: true, SuppressGlobals: false,
+            new AppMatcher { WindowsProcessNames = ["blender.exe"], MacProcessNames = ["Blender"] },
+            [
+                Cmd("Undo", Trigger.ForGesture(StarterGestures.IdFor("Left")), new DelayStep(10)),
+                Remap("Orbit", HoldInput.Of(MouseButton.Left), new RemapOutput.Button(MouseButton.Middle)),
+                Remap("Pan", HoldInput.Of(MouseButton.Right), new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift)),
+                Remap("Zoom both", HoldInput.Of(MouseButton.Left, MouseButton.Right), new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Control)),
+                Remap("Grab", new HoldInput.Key(KeyCode.W), new RemapOutput.Key(KeyCode.G)),
+            ])
+        {
+            HoldRemaps = [space],
+        };
     }
 
     /// <summary>A Windows command with its own macOS steps (F8), so the gallery shows the own-version marker.</summary>

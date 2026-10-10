@@ -17,7 +17,8 @@ namespace Augram.App.Components.CommandTree;
 /// picker or a refused category leaves them honest; for the trigger that value is the host's draft while a
 /// combination is not valid yet (<see cref="CommandItem.DraftNote"/>, shown as <c>DraftNote</c>). The Use on
 /// boxes (<c>PART_UseOnWindows</c>, <c>PART_UseOnMac</c>, F8) ask the same way; a platform the command's category or app group leaves out shows its box
-/// unchecked and disabled, with <see cref="UseOnNote"/> saying which one (Joel, 2026-10-08).
+/// unchecked and disabled, with <see cref="UseOnNote"/> saying which one (Joel, 2026-10-08). A command under a hold remap
+/// shows its Input instead of the trigger kind and the "While holding" boxes (<c>CommandHeader.Input.cs</c>, plan 0002).
 /// </summary>
 public sealed partial class CommandHeader : TemplatedControl
 {
@@ -201,6 +202,7 @@ public sealed partial class CommandHeader : TemplatedControl
         _useOnWindows = e.NameScope.Find<CheckBox>("PART_UseOnWindows");
         _useOnMac = e.NameScope.Find<CheckBox>("PART_UseOnMac");
         FindHoldParts(e);
+        FindInputParts(e);
         WireUseOn(_useOnWindows, HostPlatform.Windows);
         WireUseOn(_useOnMac, HostPlatform.MacOS);
         Apply();
@@ -276,6 +278,7 @@ public sealed partial class CommandHeader : TemplatedControl
 
         _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
         ApplyHold();
+        ApplyInput();
         var choices = item?.Categories ?? [];
         _category?.Show([.. choices.Select(choice => choice.Name)], item is null ? -1 : IndexOfCategory(item));
     }

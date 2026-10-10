@@ -16,6 +16,7 @@ using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.DisplayMode;
 using Augram.Core.Steps.Imported;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.Remap;
 using Augram.Core.Steps.Run;
 using Augram.Core.Steps.Scroll;
 using Augram.Core.Steps.TypeText;
@@ -34,13 +35,26 @@ public static class CommandGalleryPages
     /// <summary>The Apps sub-tab over the same fake mapping: Chrome, Photoshop (category tags, the header's Category dropdown), Steam games.</summary>
     public static ScreenDeclaration AppsWorkbenchPage() => WorkbenchPage(CommandsScope.Apps);
 
+    /// <summary>
+    /// The Apps sub-tab with Blender's Space hold remap open and Orbit selected (F9, plan 0002): the hold remap nested in its
+    /// group with its four commands, the header's Input (Left) and the Remap step's form (Middle).
+    /// </summary>
+    public static ScreenDeclaration HoldRemapsPage()
+    {
+        var vm = WorkbenchViewModel(CommandsScope.Apps, out var store);
+        vm.ShowCommand(store.Current.AllCommands().Single(pair => pair.Command.Name == "Orbit").Command.Id);
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[0]));
+        return Screens.CommandsScreen.Declare(vm);
+    }
+
     /// <summary>A whole sub-tab over a throwaway store: tree, header, step list, with dialogs that answer at once.</summary>
-    private static ScreenDeclaration WorkbenchPage(CommandsScope scope)
+    private static ScreenDeclaration WorkbenchPage(CommandsScope scope) => Screens.CommandsScreen.Declare(WorkbenchViewModel(scope, out _));
+
+    private static CommandsViewModel WorkbenchViewModel(CommandsScope scope, out MappingStore store)
     {
         var library = new GestureLibrary(Starter);
-        var store = new MappingStore(CommandGalleryFakes.Mapping());
-        var vm = new CommandsViewModel(scope, store, library, new CommandGalleryFakes.GesturePicker(library), new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), new CommandClipboard(), HostPlatform.Windows);
-        return Screens.CommandsScreen.Declare(vm);
+        store = new MappingStore(CommandGalleryFakes.Mapping());
+        return new CommandsViewModel(scope, store, library, new CommandGalleryFakes.GesturePicker(library), new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), new CommandClipboard(), HostPlatform.Windows);
     }
 
     public static ScreenDeclaration StepListPage()
@@ -73,6 +87,8 @@ public static class CommandGalleryPages
         fields.Add(FormField("Type text, three lines by keys", new TypeTextStep("first line\nsecond line, long enough to wrap inside the field when the window is narrow\nthird", TypeTextMethod.Keys)));
         fields.Add(FormField("Run, as admin and hidden", new RunStep("taskkill.exe", "/f /im yuzu.exe", Elevated: true, Hidden: true)));
         fields.Add(FormField("Scroll, Ctrl held, three notches", new ScrollStep(ScrollDirection.Down, 3, KeyModifiers.Control)));
+        fields.Add(FormField("Remap, a key with Ctrl+Shift+RAlt (Blender's Rotate)", new RemapStep(new RemapOutput.Key(KeyCode.R, KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt, KeyModifiers.Alt))));
+        fields.Add(FormField("Remap, a wheel notch with Ctrl", new RemapStep(new RemapOutput.Wheel(ScrollDirection.Up, KeyModifiers.Control))));
         fields.Add(FormField("Imported, with parameters", new ImportedStep("SendKeys", "Send Ctrl+W", new Dictionary<string, string> { ["Keys"] = "^w", ["Delay"] = "0" })));
         return new FormScreen("Step forms", [new Section("One form per step type (StepFormRegistry)", fields)]);
     }
@@ -80,9 +96,13 @@ public static class CommandGalleryPages
     public static ScreenDeclaration StepTypePickerPage() =>
         new FormScreen("StepTypePicker",
         [
-            new Section("Every built-in type by category; Other is never offered",
+            new Section("Every built-in type by category; Other is never offered, nor Remap outside a hold remap",
             [
                 new CustomField("Picker", () => new StepTypePicker { Types = StepRegistry.BuiltIn.All, Width = 260 }),
+            ]),
+            new Section("Under a hold remap: Remap is offered too (Mouse)",
+            [
+                new CustomField("Picker", () => new StepTypePicker { Types = StepRegistry.BuiltIn.All, UnderHoldRemap = true, Width = 260 }),
             ]),
         ]);
 
@@ -110,6 +130,10 @@ public static class CommandGalleryPages
             new Section("With a message line above the form",
             [
                 new CustomField("Edit app group", () => new FormDialog { Message = "Chrome has 2 commands; they stay as they are.", Screen = GroupEditViewModel.From(CommandGalleryFakes.Mapping().Groups[1]).Declare(), ConfirmLabel = "Save", Width = 560 }),
+            ]),
+            new Section("The hold remap form (the Apps tab's side panel): name, hold key, tap time, active, Use on",
+            [
+                new CustomField("Hold remap", () => new FormDialog { Screen = HoldRemapEditViewModel.From(CommandGalleryFakes.Blender().HoldRemaps[0]).Declare(), ConfirmLabel = "Save", Width = 560 }),
             ]),
             new Section("The category form (the Global tab's side panel): name and Use on, here Windows only",
             [

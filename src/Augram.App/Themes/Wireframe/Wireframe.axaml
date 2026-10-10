@@ -15,7 +15,8 @@
         xmlns:picker="using:Augram.App.Components.StepTypePicker"
         xmlns:gpicker="using:Augram.App.Components.GesturePicker"
         xmlns:dialog="using:Augram.App.Components.FormDialog"
-        xmlns:md="using:Augram.App.Components.MasterDetail">
+        xmlns:md="using:Augram.App.Components.MasterDetail"
+        xmlns:hk="using:Augram.App.Components.HotkeyCapture">
   <!--
     Wireframe theme (ADR-0002 §5b): grey boxes, 1 px borders, system font, text where icons would go.
     Every lookless component's ControlTheme lives here; Tokens.axaml supplies the values. Replacing the
@@ -370,7 +371,8 @@
                                     Steps="{TemplateBinding Steps}"
                                     SelectedIndex="{TemplateBinding SelectedStepIndex}"
                                     StepTypes="{TemplateBinding StepTypes}"
-                                    HasCommand="{TemplateBinding HasCommand}" />
+                                    HasCommand="{TemplateBinding HasCommand}"
+                                    UnderHoldRemap="{TemplateBinding IsUnderHoldRemap}" />
                   </DockPanel>
                   <form:SectionForm Name="PART_GroupForm"
                                     Screen="{TemplateBinding GroupForm}"
@@ -619,7 +621,34 @@
                            IsVisible="{TemplateBinding HasCommand, Converter={x:Static BoolConverters.Not}}" />
                 <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasCommand}">
                   <TextBlock Classes="section-title" Text="{TemplateBinding NameText}" />
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                  <!-- A command under a hold remap (F9, plan 0002): its input in place of the trigger kind and the While holding boxes. -->
+                  <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding IsInputCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                      <TextBlock Classes="field-label header-label" Text="Input" VerticalAlignment="Center" />
+                      <ComboBox Name="PART_InputKind" Classes="field-editor" />
+                      <ComboBox Name="PART_InputWheel" Classes="field-editor" IsVisible="{TemplateBinding IsWheelInput}" />
+                      <StackPanel Name="PART_InputButtons" Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding IsButtonsInput}" />
+                      <Button Name="PART_AddButton"
+                              Classes="toolbar"
+                              Content="Add button…"
+                              IsVisible="{TemplateBinding IsButtonsInput}"
+                              IsEnabled="{TemplateBinding IsDetecting, Converter={x:Static BoolConverters.Not}}"
+                              ToolTip.Tip="Then press the mouse button; add several for buttons held together." />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsKeyInput}">
+                      <TextBlock Classes="field-label header-label" Text="" VerticalAlignment="Center" />
+                      <hk:HotkeyCaptureBox Name="PART_InputKey" />
+                    </StackPanel>
+                    <TextBlock Classes="help"
+                               Text="{TemplateBinding InputStatus}"
+                               TextWrapping="Wrap"
+                               IsVisible="{TemplateBinding InputStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="help"
+                               Text="{TemplateBinding TriggerHint}"
+                               TextWrapping="Wrap"
+                               IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
                     <TextBlock Classes="field-label header-label" Text="Trigger" VerticalAlignment="Center" />
                     <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
                     <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
@@ -636,7 +665,7 @@
                                IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
                   <!-- F1 combinations (Joel, 2026-10-09): the buttons, then the keys (Ctrl / Alt / Shift / Win, Opt and Cmd on a Mac), then when they must go down. -->
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
                     <TextBlock Classes="field-label header-label" Text="While holding" VerticalAlignment="Center" />
                     <CheckBox Name="PART_HoldStroke" Classes="toggle-option" Content="Stroke button" />
                     <CheckBox Name="PART_HoldLeft" Classes="toggle-option" Content="Left" />
@@ -645,7 +674,7 @@
                     <CheckBox Name="PART_HoldX1" Classes="toggle-option" Content="X1" />
                     <CheckBox Name="PART_HoldX2" Classes="toggle-option" Content="X2" />
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
                     <TextBlock Classes="field-label header-label" Text="" VerticalAlignment="Center" />
                     <CheckBox Name="PART_KeyControl" Classes="toggle-option" />
                     <CheckBox Name="PART_KeyAlt" Classes="toggle-option" />
@@ -1067,6 +1096,13 @@
   </Style>
   <Style Selector="Grid.row-line.indented">
     <Setter Property="Margin" Value="{StaticResource Row.IndentedPadding}" />
+  </Style>
+  <!-- A hold remap's header sits at a command's indent inside its app group, and its commands one indent further (F9). -->
+  <Style Selector="tree|SectionRow:nested /template/ Grid.row-line">
+    <Setter Property="Margin" Value="{StaticResource Row.IndentedPadding}" />
+  </Style>
+  <Style Selector="tree|CommandRow:nested /template/ Grid.row-line.indented">
+    <Setter Property="Margin" Value="{StaticResource Row.NestedPadding}" />
   </Style>
   <Style Selector="CheckBox.row-active">
     <Setter Property="MinWidth" Value="0" />

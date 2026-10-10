@@ -4,7 +4,7 @@ using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
 
-/// <summary>The app group half of <see cref="CommandsViewModel"/> (F5, F5a; the Apps tab's sections): the app group form for a new group, rename, and delete with confirmation; the selected group's form lives in <c>.GroupPanel</c>. The Global group is never renamed or deleted.</summary>
+/// <summary>The app group half of <see cref="CommandsViewModel"/> (F5, F5a; the Apps tab's sections): the app group form for a new group, rename, and delete with confirmation (its hold remaps and their commands go with it); the selected group's form lives in <c>.GroupPanel</c>. The Global group is never renamed or deleted.</summary>
 public sealed partial class CommandsViewModel
 {
     private async Task NewGroupAsync()
@@ -42,7 +42,8 @@ public sealed partial class CommandsViewModel
             return;
         }
 
-        var count = section.Commands.Count;
+        // Its commands and those of its hold remaps, which go with it.
+        var count = Sections.Where(listed => listed.Id.GroupId == section.Id.GroupId).Sum(listed => listed.Commands.Count);
         var question = count == 1 ? $"Delete group '{section.Name}' and its command?" : $"Delete group '{section.Name}' and its {count} commands?";
         if (!await _confirm.ConfirmAsync("Delete app group", question, "Delete").ConfigureAwait(true))
         {

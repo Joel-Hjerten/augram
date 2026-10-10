@@ -21,8 +21,9 @@ namespace Augram.App.Components.HotkeyCapture;
 /// outside the field, or the window losing activation keep the latest combination and raise
 /// <see cref="Committed"/>; Clear commits "no key". Every way out gives the keyboard back first: those
 /// three, Clear, being unloaded (keeps nothing), and the engine's own release (idle watchdog, hook reset).
+/// <see cref="SingleKey"/> is the one-key mode (a hold key, a hold remap command's input; <c>HotkeyCaptureBox.SingleKey.cs</c>).
 /// </summary>
-public sealed class HotkeyCaptureBox : TemplatedControl
+public sealed partial class HotkeyCaptureBox : TemplatedControl
 {
     public const string KeyCaptureResourceKey = "Augram.KeyCapture";
     public const string PromptText = "Press a combination…";
@@ -97,7 +98,7 @@ public sealed class HotkeyCaptureBox : TemplatedControl
         _watch = new CaptureWindowWatch(topLevel, this, IsWindowOnly, captured => OnCaptured(session, captured), Accept);
         IsCapturing = true;
         PseudoClasses.Set(":capturing", true);
-        Refresh(IsWindowOnly ? WindowOnlyText : EngineHelpText);
+        Refresh(CaptureHelp);
     }
 
     /// <summary>Keeps the latest combination (if any key was pressed) and gives the keyboard back.</summary>
@@ -129,7 +130,7 @@ public sealed class HotkeyCaptureBox : TemplatedControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ModifiersProperty || change.Property == RightHandProperty || change.Property == KeyProperty)
+        if (change.Property == ModifiersProperty || change.Property == RightHandProperty || change.Property == KeyProperty || change.Property == SingleKeyProperty)
         {
             Refresh(StatusText);
         }
@@ -162,8 +163,18 @@ public sealed class HotkeyCaptureBox : TemplatedControl
 
         switch (captured.Kind)
         {
+            case KeyCaptureEventKind.KeyDown when SingleKey && Refusal(captured.Key) is { } why:
+                // One-key mode (a hold key, an input): a refused key is not recorded, and the field says why.
+                Refresh(why);
+                return;
             case KeyCaptureEventKind.KeyDown:
                 _recorder.Down(captured.Key, captured.Modifiers);
+                if (SingleKey && _recorder.HasCombination)
+                {
+                    Refresh(CaptureHelp);
+                    return;
+                }
+
                 break;
             case KeyCaptureEventKind.KeyUp:
                 _recorder.Up(captured.Key);
@@ -194,10 +205,13 @@ public sealed class HotkeyCaptureBox : TemplatedControl
         PseudoClasses.Set(":capturing", false);
         if (keep && _recorder.HasCombination)
         {
-            Modifiers = _recorder.Modifiers;
-            RightHand = _recorder.RightHand;
+            // One-key mode keeps the key alone, whatever modifiers were held with it.
+            var modifiers = SingleKey ? KeyModifiers.None : _recorder.Modifiers;
+            var rightHand = SingleKey ? KeyModifiers.None : _recorder.RightHand;
+            Modifiers = modifiers;
+            RightHand = rightHand;
             Key = _recorder.Key;
-            Committed?.Invoke(this, new HotkeyCommittedEventArgs(_recorder.Modifiers, _recorder.Key, _recorder.RightHand));
+            Committed?.Invoke(this, new HotkeyCommittedEventArgs(modifiers, _recorder.Key, rightHand));
         }
 
         Refresh(status);
@@ -205,9 +219,10 @@ public sealed class HotkeyCaptureBox : TemplatedControl
 
     private void Refresh(string status)
     {
-        DisplayText = IsCapturing
-            ? _recorder.LiveText ?? PromptText
-            : Key == KeyCode.None ? EmptyText : HotkeyText.Format(Modifiers, Key, RightHand);
+        DisplayText = IsCapturing ? LiveText()
+            : Key == KeyCode.None ? EmptyText
+            : SingleKey ? HotkeyText.KeyName(Key)
+            : HotkeyText.Format(Modifiers, Key, RightHand);
         StatusText = status;
         HasStatus = status.Length > 0;
     }

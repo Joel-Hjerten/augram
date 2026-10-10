@@ -19,6 +19,22 @@ internal static class FreeNames
         }
     }
 
+    /// <summary>The name <see cref="Next"/> (or <paramref name="stem"/> alone) makes: "Hold remap", "Hold remap 2"; compared as the rules compare names.</summary>
+    public static bool IsNumbered(string stem, string name)
+    {
+        ArgumentNullException.ThrowIfNull(stem);
+        ArgumentNullException.ThrowIfNull(name);
+        if (MappingRules.NameComparer.Equals(name, stem))
+        {
+            return true;
+        }
+
+        return name.Length > stem.Length + 1
+            && MappingRules.NameComparer.Equals(name[..stem.Length], stem)
+            && name[stem.Length] == ' '
+            && name[(stem.Length + 1)..].All(char.IsAsciiDigit);
+    }
+
     /// <summary>The name itself when it is free, else "name copy", "name copy 2", …</summary>
     public static string CopyOf(string name, IEnumerable<string> taken)
     {

@@ -24,6 +24,9 @@ public enum CommandTreeAction
     /// <summary>A "New command N" in the selected section, selected and ready to rename.</summary>
     NewCommand,
 
+    /// <summary>A new hold remap in the selected app group (F9, plan 0002; the group's menu), selected so its form shows.</summary>
+    NewHoldRemap,
+
     /// <summary>Show or hide the groups and commands used only on the other platform (F8; the toolbar toggle).</summary>
     ToggleOtherPlatforms,
 
@@ -39,15 +42,15 @@ public enum CommandTreeAction
     /// <summary>Rename the section or command to the name typed in place.</summary>
     Rename,
 
-    /// <summary>Delete the section (an app group with its commands, a category whose commands move to Uncategorized) or the command; the host asks first.</summary>
+    /// <summary>Delete the section (an app group or a hold remap with its commands, a category whose commands move to Uncategorized) or the command; the host asks first.</summary>
     Delete,
 
     ToggleActive,
 
-    /// <summary>Copy the command to the in-memory clipboard.</summary>
+    /// <summary>Copy the command, or a hold remap with its commands, to the in-memory clipboard.</summary>
     Copy,
 
-    /// <summary>Paste the copied command into the section.</summary>
+    /// <summary>Paste the copied command into the section (a hold remap keeps it under it), or a copied hold remap into the section's app group.</summary>
     Paste,
 
     /// <summary>Change the command's trigger kind (the header dropdown); Gesture opens the picker.</summary>
@@ -58,6 +61,12 @@ public enum CommandTreeAction
 
     /// <summary>Change a wheel trigger's direction (the Up / Down choice beside the kind; <see cref="CommandTreeActionEventArgs.Wheel"/>).</summary>
     SetWheelDirection,
+
+    /// <summary>Change the kind of a hold remap command's input (the header's Input dropdown; <see cref="CommandTreeActionEventArgs.InputKind"/>).</summary>
+    SetInputKind,
+
+    /// <summary>Set a hold remap command's input: a detected button added or a chip removed, a wheel direction, a captured key (<see cref="CommandTreeActionEventArgs.Input"/>).</summary>
+    SetInput,
 
     /// <summary>Move the command into another category of its group (the header's Category dropdown); Uncategorized clears it.</summary>
     SetCategory,

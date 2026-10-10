@@ -3,6 +3,7 @@ using Augram.App.Components.StepList;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
@@ -10,13 +11,17 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// How each Commands sub-tab cuts the mapping into sections (Joel, 2026-10-07): the Apps tab has one
 /// section per app group, Global left out, and tags the rows of a group that has categories (Photoshop)
-/// with the category's name; the Global tab has the Global group's categories by name, after an
+/// with the category's name; each of a group's hold remaps (F9, plan 0002) follows its group's section as a section nested
+/// in it, holding the commands under that hold remap; the Global tab has the Global group's categories by name, after an
 /// Uncategorized section that is there only while some Global command has no category (or names one the
 /// group no longer has). The one place that decides which commands a tab holds, which section a command
 /// sits in, what a section header can do and what the header's Category dropdown offers.
 /// </summary>
 internal static class CommandSections
 {
+    /// <summary>What a hold remap's header says after its name: "Space · hold remap · 4 commands".</summary>
+    public const string HoldRemapKind = "hold remap";
+
     /// <summary>The Global tab holds the Global group; the Apps tab every other group.</summary>
     public static bool Includes(CommandsScope scope, AppGroup group) => group.IsGlobal == (scope == CommandsScope.Global);
 
@@ -31,7 +36,7 @@ internal static class CommandSections
         ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<SectionItem> sections = scope == CommandsScope.Global
             ? GlobalSections(document.Global, expanded, findGesture, here, showOtherPlatforms)
-            : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).Select(group => GroupSection(group, expanded, findGesture, here, showOtherPlatforms))];
+            : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).SelectMany(group => GroupSections(group, expanded, findGesture, here, showOtherPlatforms))];
         return strokeButton is { } stroke
             ? [.. sections.Select(section => section with { Commands = [.. section.Commands.Select(item => WithStrokeButtonNote(item, stroke))] })]
             : sections;
@@ -47,7 +52,7 @@ internal static class CommandSections
             : item;
 
     public static SectionId SectionOf(CommandsScope scope, AppGroup group, Command command)
-        => scope == CommandsScope.Apps ? SectionId.ForGroup(group.Id)
+        => scope == CommandsScope.Apps ? (group.HoldRemapOf(command) is { } holdRemap ? SectionId.ForHoldRemap(group.Id, holdRemap.Id) : SectionId.ForGroup(group.Id))
             : command.CategoryId is { } id && group.FindCategory(id) is not null ? SectionId.ForCategory(group.Id, id)
             : SectionId.Uncategorized;
 
@@ -57,12 +62,13 @@ internal static class CommandSections
             ? [CategoryChoice.Uncategorized, .. Sorted(group).Select(category => new CategoryChoice(category.Id, category.Name))]
             : [];
 
-    private static SectionItem GroupSection(AppGroup group, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
+    /// <summary>The group's section (its ordinary commands), then one nested section per hold remap shown here, by name.</summary>
+    private static IEnumerable<SectionItem> GroupSections(AppGroup group, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
     {
         var id = SectionId.ForGroup(group.Id);
         var choices = Choices(group);
         var commands = group.Commands
-            .Where(command => showOtherPlatforms || group.IsCommandUsedOn(command, here))
+            .Where(command => command.HoldRemapId is null && (showOtherPlatforms || group.IsCommandUsedOn(command, here)))
             .Select(command => Item(group, command, findGesture, here) with
             {
                 Section = id,
@@ -70,14 +76,45 @@ internal static class CommandSections
                 Categories = choices,
             })
             .ToList();
-        return new SectionItem(id, group.Name, group.IsActive, expanded.Contains(id), commands)
+        var holdRemaps = group.HoldRemaps.Where(holdRemap => showOtherPlatforms || holdRemap.IsUsedOn(here)).ToList();
+        yield return new SectionItem(id, group.Name, group.IsActive, expanded.Contains(id), commands)
         {
             CanRename = true,
             CanDelete = true,
             CanEditDefinition = true,
             CanToggleActive = true,
+            CanAddHoldRemap = true,
+            HoldRemapCount = holdRemaps.Count,
             IsElsewhere = !group.IsUsedOn(here),
             Note = PlatformNote(group, here),
+        };
+
+        foreach (var holdRemap in holdRemaps)
+        {
+            yield return HoldRemapSection(group, holdRemap, expanded, findGesture, here, showOtherPlatforms);
+        }
+    }
+
+    /// <summary>
+    /// A hold remap as a section nested in its group's ("Space · hold remap · 4 commands"): its commands (no category, no
+    /// Category dropdown), its active box, rename, delete and copy; greyed "Windows only" when it or its group is not used here.
+    /// </summary>
+    private static SectionItem HoldRemapSection(AppGroup group, HoldRemap holdRemap, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
+    {
+        var id = SectionId.ForHoldRemap(group.Id, holdRemap.Id);
+        var commands = group.Commands
+            .Where(command => command.HoldRemapId == holdRemap.Id && (showOtherPlatforms || group.IsCommandUsedOn(command, here)))
+            .Select(command => Item(group, command, findGesture, here) with { Section = id })
+            .ToList();
+        return new SectionItem(id, holdRemap.Name, holdRemap.IsActive, expanded.Contains(id), commands)
+        {
+            KindText = HoldRemapKind,
+            CanRename = true,
+            CanDelete = true,
+            CanToggleActive = true,
+            CanCopy = true,
+            IsElsewhere = !group.IsUsedOn(here) || !holdRemap.IsUsedOn(here),
+            Note = holdRemap.IsUsedOn(here) ? null : StepPlatformMarker.Only(holdRemap.UseOn),
         };
     }
 

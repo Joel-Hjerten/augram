@@ -17,7 +17,7 @@ namespace Augram.App.Components.StepList;
 /// the keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event. Rows are
 /// reused when the count is unchanged, so a form survives the store echoing its own edit back.
 /// </summary>
-public sealed class StepList : TemplatedControl
+public sealed partial class StepList : TemplatedControl
 {
     public static readonly StyledProperty<IReadOnlyList<StepItem>> StepsProperty =
         AvaloniaProperty.Register<StepList, IReadOnlyList<StepItem>>(nameof(Steps), []);
@@ -37,8 +37,6 @@ public sealed class StepList : TemplatedControl
     private readonly StepDragReorder _drag;
     private ListBox? _list;
     private Button? _new;
-    private StepTypePicker.StepTypePicker? _picker;
-    private Flyout? _flyout;
     private bool _applying;
 
     public StepList()
@@ -84,9 +82,6 @@ public sealed class StepList : TemplatedControl
     /// <summary>Swappable for tests and the gallery; defaults to the assembly-scanned registry.</summary>
     public StepFormRegistry Forms { get; init; } = StepFormRegistry.Default;
 
-    /// <summary>The picker "New step…" shows; built on first use so tests can choose a type without a flyout.</summary>
-    public StepTypePicker.StepTypePicker TypePicker => _picker ??= BuildPicker();
-
     public StepItem? SelectedStep => (_list?.SelectedItem as StepRow)?.Item;
 
     /// <summary>True while keyboard focus is inside the expanded step's form; the list's key bindings stand down then.</summary>
@@ -97,17 +92,6 @@ public sealed class StepList : TemplatedControl
             var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Visual;
             return focused is not null && Rows.Any(row => row.Form is { } form && (ReferenceEquals(form, focused) || form.IsVisualAncestorOf(focused)));
         }
-    }
-
-    public void OpenTypePicker()
-    {
-        if (_new is null)
-        {
-            return;
-        }
-
-        _flyout ??= new Flyout { Content = TypePicker, Placement = PlacementMode.BottomEdgeAlignedLeft };
-        _flyout.ShowAt(_new);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -148,21 +132,10 @@ public sealed class StepList : TemplatedControl
         {
             ApplySelection();
         }
-        else if (change.Property == StepTypesProperty && _picker is not null)
+        else
         {
-            _picker.Types = StepTypes;
+            SyncPicker(change);
         }
-    }
-
-    private StepTypePicker.StepTypePicker BuildPicker()
-    {
-        var picker = new StepTypePicker.StepTypePicker { Types = StepTypes };
-        picker.TypeChosen += (_, type) =>
-        {
-            _flyout?.Hide();
-            Raise(StepListAction.Add, null, type: type);
-        };
-        return picker;
     }
 
     private void Rebuild()
@@ -246,8 +219,11 @@ public sealed class StepList : TemplatedControl
             return;
         }
 
+        // Kept while it shows the step: the one it was built for while it has emitted nothing, or its own last edit echoed
+        // back. A step equal to the built one after an emit means the host refused that edit (a rule, plan 0002's Remap
+        // output): rebuild, so the form shows what is stored and not what was refused.
         var step = item.Step.Step;
-        if (row.Form is not null && (Equals(step, row.FormBuiltFor) || Equals(step, row.LastEmitted)))
+        if (row.Form is not null && (Equals(step, row.LastEmitted) || (row.LastEmitted is null && Equals(step, row.FormBuiltFor))))
         {
             return;
         }

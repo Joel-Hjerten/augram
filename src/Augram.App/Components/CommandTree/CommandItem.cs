@@ -1,6 +1,7 @@
 using Augram.App.Components.StepList;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.App.Components.CommandTree;
@@ -10,7 +11,8 @@ namespace Augram.App.Components.CommandTree;
 /// trigger badge when it has none), name, a one-line step summary ("Minimize window", "3 steps",
 /// "Does nothing here" for an override to nothing), the active flag, the F8 platform marker and, in an
 /// app group that has categories, the category as a small tag. It also carries what the header's
-/// Category dropdown offers for it. A projection of a <see cref="Command"/>; the view model resolves
+/// Category dropdown offers for it, and for a command under a hold remap (F9, plan 0002) that hold remap, so the header shows
+/// the Input editor instead of the trigger. A projection of a <see cref="Command"/>; the view model resolves
 /// the gesture and decides the section, the tag and the choices.
 /// </summary>
 public sealed record CommandItem(
@@ -29,6 +31,15 @@ public sealed record CommandItem(
 
     /// <summary>The command's category in its group; null is Uncategorized.</summary>
     public CategoryId? CategoryId { get; init; }
+
+    /// <summary>
+    /// The hold remap the command sits under (F9, plan 0002); null for an ordinary command. Its trigger is then an input (or
+    /// none yet), which the header edits in place of the trigger kind and the "While holding" boxes.
+    /// </summary>
+    public HoldRemap? HoldRemap { get; init; }
+
+    /// <summary>A command under a hold remap: the header shows its Input, the step picker offers the Remap step.</summary>
+    public bool IsUnderHoldRemap => HoldRemap is not null;
 
     /// <summary>The small tag on the row (an app group with categories, e.g. Photoshop); null shows none.</summary>
     public string? CategoryLabel { get; init; }
@@ -95,8 +106,9 @@ public sealed record CommandItem(
         ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(command);
         var trigger = command.TriggerFor(here);
+        var holdRemap = group.HoldRemapOf(command);
         var kind = TriggerKindExtensions.KindOf(trigger);
-        var triggerText = TriggerKindExtensions.Text(trigger, gesture?.Name ?? "Missing gesture", here);
+        var triggerText = holdRemap is null ? TriggerKindExtensions.Text(trigger, gesture?.Name ?? "Missing gesture", here) : InputKindExtensions.Text(trigger);
         var points = gesture is { Samples.Count: > 0 } ? gesture.Samples[0] : null;
         var usedHere = group.IsCommandUsedOn(command, here);
         var steps = Summarise(group, command, here);
@@ -112,11 +124,12 @@ public sealed record CommandItem(
             usedHere ? StepPlatformMarker.ForCommand(command, here) : StepPlatformMarker.Only(group.EffectiveUseOn(command)))
         {
             Trigger = trigger,
-            TriggerHint = TriggerKindExtensions.Hint(trigger, here),
+            TriggerHint = holdRemap is null ? TriggerKindExtensions.Hint(trigger, here) : InputKindExtensions.Hint(holdRemap),
             AnchorWarning = TriggerKindExtensions.AnchorWarning(trigger, group),
             TriggerNote = TriggerLine(command, here),
-            Section = SectionId.ForGroup(group.Id),
+            Section = holdRemap is null ? SectionId.ForGroup(group.Id) : SectionId.ForHoldRemap(group.Id, holdRemap.Id),
             CategoryId = command.CategoryId,
+            HoldRemap = holdRemap,
             UseOn = command.UseOn,
             UseOnLimit = group.UseOnLimitFor(command),
             UseOnLimitText = LimitLine(group, command),
@@ -138,10 +151,10 @@ public sealed record CommandItem(
         return this with
         {
             TriggerKind = TriggerKindExtensions.KindOf(draft),
-            TriggerText = TriggerKindExtensions.Text(draft, gesture?.Name ?? "Missing gesture", here),
+            TriggerText = HoldRemap is null ? TriggerKindExtensions.Text(draft, gesture?.Name ?? "Missing gesture", here) : InputKindExtensions.Text(draft),
             GlyphPoints = gesture is { Samples.Count: > 0 } ? gesture.Samples[0] : null,
             Trigger = draft,
-            TriggerHint = TriggerKindExtensions.Hint(draft, here),
+            TriggerHint = HoldRemap is { } holdRemap ? InputKindExtensions.Hint(holdRemap) : TriggerKindExtensions.Hint(draft, here),
             AnchorWarning = TriggerKindExtensions.AnchorWarning(draft, group),
             DraftNote = note,
         };
@@ -149,7 +162,7 @@ public sealed record CommandItem(
 
     private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 
-    /// <summary>"Set by category 'Personal': Windows only", "Set by app group 'Steam' and category 'Games': …"; null when neither limits the command.</summary>
+    /// <summary>"Set by category 'Personal': Windows only", "Set by app group 'Steam' and hold remap 'Space': …"; null when nothing limits the command.</summary>
     private static string? LimitLine(AppGroup group, Command command)
     {
         var limit = group.UseOnLimitFor(command);
@@ -167,6 +180,11 @@ public sealed record CommandItem(
         if (group.CategoryOf(command) is { } category && category.UseOn != PlatformSet.All)
         {
             by.Add($"category '{category.Name}'");
+        }
+
+        if (group.HoldRemapOf(command) is { } holdRemap && holdRemap.UseOn != PlatformSet.All)
+        {
+            by.Add($"hold remap '{holdRemap.Name}'");
         }
 
         return $"Set by {string.Join(" and ", by)}: {StepPlatformMarker.Only(limit)}";

@@ -10,9 +10,10 @@ namespace Augram.App.Components.CommandTree;
 /// badge ("Wheel up", "No trigger") when there is no glyph to draw, the name (editable in place), the
 /// category tag when the item has one (an app group with categories), the step summary, the F8
 /// platform marker when the command has one, and the active toggle. Marked <c>:elsewhere</c> for a command used only on the
-/// other platform (F8), listed while the list shows other platforms.
+/// other platform (F8), listed while the list shows other platforms, and <c>:nested</c> for a command under a hold remap
+/// (indented one level more, under its hold remap's header).
 /// </summary>
-[PseudoClasses(":elsewhere")]
+[PseudoClasses(":elsewhere", ":nested")]
 public sealed class CommandRow : ItemRow
 {
     public static readonly StyledProperty<CommandItem?> ItemProperty =
@@ -140,6 +141,7 @@ public sealed class CommandRow : ItemRow
             SummaryText = item?.StepSummary ?? string.Empty;
             MarkerText = item?.PlatformMarker;
             PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });
+            PseudoClasses.Set(":nested", item is { IsUnderHoldRemap: true });
             CategoryText = item?.CategoryLabel;
             Points = item?.GlyphPoints;
             HasGlyph = item?.HasGlyph ?? false;

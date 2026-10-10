@@ -1,11 +1,12 @@
 using Augram.Core.Capture;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// One <see cref="CommandTreeAction"/> with the section and command it applies to, the new name for
-/// Rename, the kind for SetTriggerKind, the chosen category for SetCategory, the set for SetTriggerHold and the
-/// direction for SetWheelDirection.
+/// Rename, the kind for SetTriggerKind, the chosen category for SetCategory, the set for SetTriggerHold, the
+/// direction for SetWheelDirection, and for a command under a hold remap the kind for SetInputKind and the input for SetInput.
 /// </summary>
 public sealed class CommandTreeActionEventArgs : EventArgs
 {
@@ -18,7 +19,9 @@ public sealed class CommandTreeActionEventArgs : EventArgs
         CategoryChoice? category = null,
         PlatformSet? useOn = null,
         TriggerHold? hold = null,
-        WheelDirection? wheel = null)
+        WheelDirection? wheel = null,
+        InputKind? inputKind = null,
+        HoldInput? input = null)
     {
         Hold = hold;
         Wheel = wheel;
@@ -29,6 +32,8 @@ public sealed class CommandTreeActionEventArgs : EventArgs
         Name = name;
         Kind = kind;
         Category = category;
+        InputKind = inputKind;
+        Input = input;
     }
 
     public CommandTreeAction Action { get; }
@@ -52,4 +57,10 @@ public sealed class CommandTreeActionEventArgs : EventArgs
 
     /// <summary>The direction a <see cref="CommandTreeAction.SetWheelDirection"/> asks for.</summary>
     public WheelDirection? Wheel { get; }
+
+    /// <summary>The input kind a <see cref="CommandTreeAction.SetInputKind"/> asks for.</summary>
+    public InputKind? InputKind { get; }
+
+    /// <summary>The input a <see cref="CommandTreeAction.SetInput"/> asks for (a button set may be empty, a key unset, while it is composed).</summary>
+    public HoldInput? Input { get; }
 }

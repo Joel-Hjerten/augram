@@ -24,9 +24,10 @@ namespace Augram.App.ViewModels.Commands;
 /// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
 /// process-lifetime singleton, so what the user opened stays open for the running session (tab
 /// switches, closing and reopening the window) and starts collapsed again on the next launch. This file
-/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c> and <c>.CategoryPanel</c> keep
-/// the selected app group's or category's form in step with it, and <c>.Commands</c>,
-/// <c>.Sections</c>, <c>.Groups</c>, <c>.Categories</c>, <c>.Trigger</c> and <c>.Steps</c> hold the intents of each level.
+/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c>, <c>.HoldRemapPanel</c> and
+/// <c>.CategoryPanel</c> keep the selected app group's, hold remap's or category's form in step with it, and <c>.Commands</c>,
+/// <c>.Sections</c>, <c>.Groups</c>, <c>.HoldRemaps</c>, <c>.Categories</c>, <c>.Trigger</c>, <c>.Input</c> and <c>.Steps</c>
+/// hold the intents of each level.
 /// </summary>
 public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 {
@@ -94,7 +95,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     /// <summary>The help line under the tree.</summary>
     public string Help => Scope == CommandsScope.Global
         ? "Global commands fire over every app unless the app's group overrides them. Sections are categories (select one to rename it or choose where it is used); Uncategorized holds the rest. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
-        : "One section per app group; its commands win over Global in that app. Right-click a row for the menu; rename with the rename key. Deleting a group or a command asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
+        : "One section per app group; its commands win over Global in that app. A group's hold remaps sit inside it with their commands (right-click a group: New hold remap). Right-click a row for the menu; rename with the rename key. Deleting a group, a hold remap or a command asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
 
     [ObservableProperty]
     public partial IReadOnlyList<SectionItem> Sections { get; private set; } = [];
@@ -152,7 +153,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         }
 
         var section = CommandSections.SectionOf(Scope, found.Group, found.Command);
-        _expanded.Add(section);
+        Expand(section);
         Select(section, id);
         Project();
         return true;
@@ -185,6 +186,9 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
             case CommandTreeAction.NewCommand:
                 NewCommand(TargetOf(e.Section));
                 break;
+            case CommandTreeAction.NewHoldRemap when e.Section is { } section:
+                NewHoldRemap(section);
+                break;
             case CommandTreeAction.Rename when e.Command is { } command && e.Name is { } name:
                 UpdateCommand(command.Id, stored => stored with { Name = name });
                 break;
@@ -206,6 +210,9 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
             case CommandTreeAction.Copy when e.Command is { } command:
                 CopyCommand(command);
                 break;
+            case CommandTreeAction.Copy when e.Section is { Id.HoldRemapId: { } holdRemap } section:
+                CopyHoldRemap(section.Id.GroupId, holdRemap);
+                break;
             case CommandTreeAction.Paste:
                 PasteCommand(TargetOf(e.Section));
                 break;
@@ -217,6 +224,12 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 break;
             case CommandTreeAction.SetWheelDirection when e.Command is { } command && e.Wheel is { } direction:
                 EditTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
+                break;
+            case CommandTreeAction.SetInputKind when e.Command is { } command && e.InputKind is { } inputKind:
+                SetInputKind(command, inputKind);
+                break;
+            case CommandTreeAction.SetInput when e.Command is { } command && e.Input is { } input:
+                SetInput(command, input);
                 break;
             case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
                 UpdateCommand(command.Id, stored => stored with { UseOn = useOn });
@@ -243,11 +256,13 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void Guard(Action action)
+    /// <summary>Runs an intent; a rule the store refuses (or an item gone meanwhile) shows its message. False when it was refused.</summary>
+    private bool Guard(Action action)
     {
         try
         {
             action();
+            return true;
         }
         catch (MappingValidationException exception)
         {
@@ -257,5 +272,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         {
             Message = exception.Message;
         }
+
+        return false;
     }
 }

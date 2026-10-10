@@ -14,7 +14,7 @@ namespace Augram.App.Components.CommandsWorkbench;
 /// Lookless layout of a Commands sub-tab (F5a, F7; Global and Apps since 2026-10-07): the
 /// <see cref="CommandTree.CommandTree"/> (<c>PART_Tree</c>) beside the selected command's
 /// <see cref="CommandHeader"/> (<c>PART_Header</c>) and <see cref="StepList.StepList"/> (<c>PART_Steps</c>),
-/// or, while an app group or category row is selected, its form (<see cref="GroupForm"/>, <c>PART_GroupForm</c>), with
+/// or, while an app group, hold remap or category row is selected, its form (<see cref="GroupForm"/>, <c>PART_GroupForm</c>), with
 /// the message line. Both sub-tabs use it; what differs (the sections, the tree's heading, the
 /// new-section label, the help line) comes in as properties. Where the step panel sits is the template's
 /// choice (ADR-0002 §5b). It passes properties down and raises its parts' intents up unchanged:
@@ -49,6 +49,9 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public static readonly StyledProperty<bool> HasCommandProperty =
         AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(HasCommand));
+
+    public static readonly StyledProperty<bool> IsUnderHoldRemapProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(IsUnderHoldRemap));
 
     public static readonly StyledProperty<FormScreen?> GroupFormProperty =
         AvaloniaProperty.Register<CommandsWorkbench, FormScreen?>(nameof(GroupForm));
@@ -133,6 +136,13 @@ public sealed class CommandsWorkbench : TemplatedControl
         private set => SetValue(HasCommandProperty, value);
     }
 
+    /// <summary>The selected command is under a hold remap (plan 0002): its step list offers the Remap step.</summary>
+    public bool IsUnderHoldRemap
+    {
+        get => GetValue(IsUnderHoldRemapProperty);
+        private set => SetValue(IsUnderHoldRemapProperty, value);
+    }
+
     /// <summary>The selected app group's or category's form; while set it takes the side panel's place of the command header and steps.</summary>
     public FormScreen? GroupForm
     {
@@ -211,7 +221,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         GroupFormPart = e.NameScope.Find<SectionForm.SectionForm>("PART_GroupForm");
         if (GroupFormPart is not null)
         {
-            Region.Mark(GroupFormPart, "App group or category form");
+            Region.Mark(GroupFormPart, "App group, hold remap or category form");
         }
 
         if (TreePart is not null)
@@ -239,6 +249,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         if (change.Property == SelectedCommandProperty)
         {
             HasCommand = SelectedCommand is not null;
+            IsUnderHoldRemap = SelectedCommand is { IsUnderHoldRemap: true };
         }
         else if (change.Property == GroupFormProperty)
         {

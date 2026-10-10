@@ -6,7 +6,8 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// Builds the <see cref="CommandTree"/>'s one flat list: each section's <see cref="SectionRow"/>, then a
-/// <see cref="CommandRow"/> per command while the section is expanded. Every row's events go to
+/// <see cref="CommandRow"/> per command while the section is expanded. A nested section (a hold remap, listed right after its
+/// app group's section) shows only while the section it is nested in is shown and expanded. Every row's events go to
 /// <c>raise</c> with the section and command they belong to; finding a row by identity is here too.
 /// </summary>
 internal static class CommandTreeRows
@@ -16,8 +17,14 @@ internal static class CommandTreeRows
     public static List<Control> Build(IReadOnlyList<SectionItem> sections, Raise raise, EventHandler<PointerPressedEventArgs> pressed)
     {
         var rows = new List<Control>();
+        var open = new HashSet<SectionId>();
         foreach (var section in sections)
         {
+            if (section.Id.Parent is { } parent && !open.Contains(parent))
+            {
+                continue;
+            }
+
             var header = new SectionRow { Item = section };
             header.ExpandToggled += (_, _) => raise(CommandTreeAction.ToggleExpanded, section, null, null);
             header.RenameCommitted += (_, name) => raise(CommandTreeAction.Rename, section, null, name);
@@ -29,6 +36,7 @@ internal static class CommandTreeRows
                 continue;
             }
 
+            open.Add(section.Id);
             foreach (var command in section.Commands)
             {
                 var row = new CommandRow { Item = command };

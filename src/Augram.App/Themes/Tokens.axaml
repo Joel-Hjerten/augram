@@ -58,6 +58,8 @@
   <Thickness x:Key="Row.Padding">4</Thickness>
   <!-- Row.Padding plus the indent of a command under its section header. -->
   <Thickness x:Key="Row.IndentedPadding">28,4,4,4</Thickness>
+  <!-- Row.IndentedPadding one indent further: a command under a hold remap, whose header sits at the command indent. -->
+  <Thickness x:Key="Row.NestedPadding">52,4,4,4</Thickness>
   <!-- Height of every control inside a row (expander, active check box) and the row's minimum line height. -->
   <x:Double x:Key="Row.ControlSize">24</x:Double>
   <!-- A gesture glyph or trigger badge inside a row. -->

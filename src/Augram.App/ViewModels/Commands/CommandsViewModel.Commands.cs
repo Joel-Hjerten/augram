@@ -1,12 +1,13 @@
 using Augram.App.Components.CommandTree;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The command half of <see cref="CommandsViewModel"/> (F5a, F3): new and paste into the selected section
-/// (its group, and on the Global tab its category), copy, delete with confirmation and the category; the trigger is
-/// <c>CommandsViewModel.Trigger.cs</c>.
+/// (its group, on the Global tab its category, on the Apps tab a hold remap of the group, plan 0002), copy, delete with
+/// confirmation and the category; the trigger is <c>CommandsViewModel.Trigger.cs</c>, an input <c>.Input</c>.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -23,9 +24,10 @@ public sealed partial class CommandsViewModel
         }
 
         var group = RequireGroup(section.GroupId);
-        _expanded.Add(section);
+        Expand(section);
         var name = FreeNames.Next("New command", group.Commands.Select(command => command.Name));
-        var stored = _store.AddCommand(group.Id, new Command(CommandId.New(), name, Trigger.None, IsActive: true, Steps: [], CategoryId: section.CategoryId));
+        var command = new Command(CommandId.New(), name, Trigger.None, IsActive: true, Steps: [], CategoryId: section.CategoryId) { HoldRemapId = section.HoldRemapId };
+        var stored = _store.AddCommand(group.Id, command);
         Select(section, stored.Id);
         ProjectSelection();
         RenameRequested?.Invoke(this, stored.Id);
@@ -37,9 +39,23 @@ public sealed partial class CommandsViewModel
         Message = $"Copied '{command.Name}'. Paste it into a group or a category with {CommandsKeymap.Current.Paste}.";
     }
 
-    /// <summary>A copy with a fresh id and a free name; when the group already uses the trigger (A7) it is pasted unbound rather than refused.</summary>
+    /// <summary>
+    /// A copy with a fresh id and a free name; when the group already uses the trigger (A7) it is pasted unbound rather than
+    /// refused. Into a hold remap (plan 0002) it lands under it, keeping an input but no other trigger; elsewhere it lands an
+    /// ordinary command, without the input it had under a hold remap. A copied hold remap pastes into the target's group.
+    /// </summary>
     private void PasteCommand(SectionId? target)
     {
+        if (_clipboard.HoldRemap is { } copiedHoldRemap)
+        {
+            if (RequireTarget(target) is { } groupTarget)
+            {
+                PasteHoldRemap(copiedHoldRemap, groupTarget);
+            }
+
+            return;
+        }
+
         if (_clipboard.Command is not { } source)
         {
             Message = "Nothing to paste: copy a command first.";
@@ -52,19 +68,21 @@ public sealed partial class CommandsViewModel
         }
 
         var group = RequireGroup(section.GroupId);
-        _expanded.Add(section);
+        Expand(section);
         var name = FreeNames.CopyOf(source.Name, group.Commands.Select(command => command.Name));
-        var copy = source with { Id = CommandId.New(), Name = name, CategoryId = PastedCategory(section, group, source) };
+        var copy = Placed(source with { Id = CommandId.New(), Name = name, CategoryId = PastedCategory(section, group, source), HoldRemapId = section.HoldRemapId }, section);
         Command stored;
         try
         {
             stored = _store.AddCommand(group.Id, copy);
         }
-        catch (MappingValidationException) when (copy.Trigger.IsBound || copy.OwnVersion?.Trigger is not null)
+        catch (MappingValidationException refusal) when (copy.Trigger.IsBound || copy.OwnVersion?.Trigger is not null)
         {
             // Unbound on every platform: the original's trigger and an own version's.
             stored = _store.AddCommand(group.Id, copy with { Trigger = Trigger.None, OwnVersion = copy.OwnVersion is { } own ? own with { Trigger = null } : null });
-            Message = $"Pasted '{stored.Name}' into '{group.Name}' without its trigger: that trigger is already used there.";
+            Message = group.HoldRemapOf(copy) is { } holdRemap
+                ? $"Pasted '{stored.Name}' under '{holdRemap.Name}' without its trigger: {refusal.Message}"
+                : $"Pasted '{stored.Name}' into '{group.Name}' without its trigger: that trigger is already used there.";
         }
 
         Select(section, stored.Id);
@@ -72,14 +90,40 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
+    /// The pasted copy outside a hold remap: an ordinary command, without the input it had under one
+    /// (<see cref="HoldRemapRules.Detached"/>, Core's own move rule); the message says so. Under a hold remap it is pasted as it
+    /// is, and a trigger the rules refuse there (a gesture, an input already used) is dropped with their words.
+    /// </summary>
+    private Command Placed(Command copy, SectionId target)
+    {
+        if (target.HoldRemapId is not null)
+        {
+            return copy;
+        }
+
+        var detached = HoldRemapRules.Detached(copy);
+        if (detached != copy)
+        {
+            Message = $"Pasted '{copy.Name}' without its input: only a command under a hold remap has one.";
+        }
+
+        return detached;
+    }
+
+    /// <summary>
     /// A Global section decides the category (Uncategorized included); an app group keeps the copied
-    /// command's category when it has one of the same name, else the copy is uncategorized there.
+    /// command's category when it has one of the same name, else the copy is uncategorized there; under a hold remap it has none.
     /// </summary>
     private CategoryId? PastedCategory(SectionId target, AppGroup group, Command source)
     {
         if (group.IsGlobal)
         {
             return target.CategoryId;
+        }
+
+        if (target.HoldRemapId is not null)
+        {
+            return null;
         }
 
         var name = source.CategoryId is { } id ? _store.FindCommand(source.Id)?.Group.FindCategory(id)?.Name : null;
@@ -105,7 +149,7 @@ public sealed partial class CommandsViewModel
     {
         var (group, stored) = RequireCommand(command.Id);
         var updated = _store.UpdateCommand(group.Id, stored with { CategoryId = category });
-        if (_expanded.Add(CommandSections.SectionOf(Scope, RequireGroup(group.Id), updated)))
+        if (Expand(CommandSections.SectionOf(Scope, RequireGroup(group.Id), updated)))
         {
             Project();
         }

@@ -115,6 +115,7 @@ public sealed class App : Application
         }
 
         EngineModule.Start(_services);
+        PublishButtonCapture();
         // Sync starts also under --no-engine: it never touches input.
         SyncModule.Start(_services);
         _tray = new AppTray(_services.GetRequiredService<AppState>(), ShowMainWindow, () => desktop.Shutdown(), log, _services.GetService<SyncService>(), _services.GetService<EnginePauseState>());
@@ -154,6 +155,20 @@ public sealed class App : Application
     private static LogProperty[] Who(InstanceRequestEventArgs e) => e.From is { } from
         ? [("from", from.App.Describe()), ("channel", from.App.Channel), ("version", from.App.InformationalVersion), ("path", from.ExecutablePath), ("reason", e.Reason)]
         : [("from", "an Augram from before identities")];
+
+    /// <summary>
+    /// Makes the engine's button detection reachable from the command header's Add button… (a hold remap command's buttons,
+    /// plan 0002 step 4), as <c>EngineModule.Start</c> publishes the key capture for hotkey fields: only with the engine
+    /// running; under <c>--no-engine</c> the header falls back to presses on its own window. Kept here, not in
+    /// <c>EngineModule</c>, while the engine side of plan 0002 is built in parallel there; it can move beside the key capture.
+    /// </summary>
+    private void PublishButtonCapture()
+    {
+        if (!EngineKillSwitch.IsSet())
+        {
+            Resources[Components.ButtonDetect.ButtonDetector.ButtonCaptureResourceKey] = _services.GetRequiredService<Components.ButtonDetect.IButtonCapture>();
+        }
+    }
 
     /// <summary>A development build runs as dotnet, which the Dock shows as "exec"; it gets Augram's icon instead (Joel, 2026-10-09).</summary>
     [System.Runtime.Versioning.SupportedOSPlatform("macos")]

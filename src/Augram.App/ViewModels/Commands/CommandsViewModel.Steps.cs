@@ -16,7 +16,12 @@ public sealed partial class CommandsViewModel
     {
         ArgumentNullException.ThrowIfNull(e);
         Message = null;
-        Guard(() => Dispatch(e));
+        if (!Guard(() => Dispatch(e)) && e.Action == StepListAction.Edit && SelectedCommandId is not null)
+        {
+            // A refused edit (a rule on the Remap output, plan 0002) changed nothing stored: hand the list the stored steps
+            // again, so the form that emitted it is rebuilt on them while the message line says why.
+            Steps = [.. Steps];
+        }
     }
 
     private void Dispatch(StepListActionEventArgs e)

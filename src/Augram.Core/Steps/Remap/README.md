@@ -39,4 +39,4 @@ As Joel's AutoHotkey script has it (`+{MButton Down}`):
 
 `IsPlatformNeutral` is **true** and `Convert` returns the step unchanged both ways (F9: remap outputs are not converted; Blender's Ctrl + Middle zoom is Ctrl on the Mac too). A platform that needs another output gets the command's own version (`Mapping/CommandVersion`), as for any step; `HoldRemapPlan` reads the platform's own steps.
 
-**May reference:** `Abstractions`, `Capture` (`MouseButton`), `Diagnostics`, `Steps`, `Steps/Hotkey` (`HotkeyText`, `HotkeyKeys`, the modifier reader). **Referenced by:** `StepRegistry.BuiltIn` (one line), `HoldRemaps` (rules, plan, machine outcomes), the App's `Components/Steps/Remap/` form (a read-only placeholder until plan 0002 step 4).
+**May reference:** `Abstractions`, `Capture` (`MouseButton`), `Diagnostics`, `Steps`, `Steps/Hotkey` (`HotkeyText`, `HotkeyKeys`, the modifier reader). **Referenced by:** `StepRegistry.BuiltIn` (one line), `HoldRemaps` (rules, plan, machine outcomes), the App's `Components/Steps/Remap/` form (output kind, button, key, wheel direction, modifiers; App README "Step forms").

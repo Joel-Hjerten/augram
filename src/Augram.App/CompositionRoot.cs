@@ -1,3 +1,4 @@
+using Augram.App.Components.ButtonDetect;
 using Augram.App.Hosting;
 using Augram.App.Navigation;
 using Augram.App.ViewModels;
@@ -5,6 +6,8 @@ using Augram.App.Views;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Engine.Diagnostics;
+using Augram.Engine.Hosting;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Augram.App;
@@ -50,6 +53,8 @@ internal static class CompositionRoot
         GesturesModule.Register(services);
         // Commands tab slice, after the Gestures one: pickers, navigator, view model and the ICommandLocator the "Used by…" popup jumps through.
         CommandsModule.Register(services);
+        // Detect-to-assign for a hold remap command's buttons (plan 0002 step 4); App.StartDesktop publishes it once the engine runs.
+        services.AddSingleton<IButtonCapture>(sp => new EngineButtonCapture(sp.GetRequiredService<EngineHost>(), action => Dispatcher.UIThread.Post(action)));
         // Ignored tab slice (F5 ignore list), after the Commands one: its view model over the mapping store and the tab entry.
         IgnoredModule.Register(services);
         // Sync slice (F8), after the engine's stores: git adapter, coordinator, the sync worker, dialogs, Options › Sync (started in App.StartDesktop).

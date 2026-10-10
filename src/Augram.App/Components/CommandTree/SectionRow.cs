@@ -11,9 +11,11 @@ namespace Augram.App.Components.CommandTree;
 /// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count and, when the item
 /// allows it, the active toggle (<see cref="CanToggleActive"/>). Marked <c>:collapsed</c> while its
 /// commands are hidden, <c>:pinned</c> for a section that can be neither renamed nor deleted
-/// (Uncategorized) and <c>:elsewhere</c> for a group or category used only on the other platform (F8). What the header offers comes from the <see cref="SectionItem"/>, never from the tab.
+/// (Uncategorized), <c>:elsewhere</c> for a group or category used only on the other platform (F8) and <c>:nested</c> for a
+/// section inside another one (a hold remap in its app group, indented as a command is). What the header offers comes from
+/// the <see cref="SectionItem"/>, never from the tab.
 /// </summary>
-[PseudoClasses(":collapsed", ":pinned", ":elsewhere")]
+[PseudoClasses(":collapsed", ":pinned", ":elsewhere", ":nested")]
 public sealed class SectionRow : ItemRow
 {
     public static readonly StyledProperty<SectionItem?> ItemProperty =
@@ -98,6 +100,7 @@ public sealed class SectionRow : ItemRow
             CountText = item?.CountText ?? string.Empty;
             PseudoClasses.Set(":pinned", item is { CanRename: false, CanDelete: false });
             PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });
+            PseudoClasses.Set(":nested", item is { IsNested: true });
         }
         else if (change.Property == IsExpandedProperty)
         {

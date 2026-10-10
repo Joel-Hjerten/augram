@@ -51,7 +51,8 @@ public static class TriggerKindExtensions
 
     /// <summary>
     /// The whole trigger as a row and a summary show it: the held keys and buttons (named for <paramref name="names"/>), then
-    /// <paramref name="gestureText"/> for a gesture, "wheel up", "click"; "No trigger" when unbound.
+    /// <paramref name="gestureText"/> for a gesture, "wheel up", "click"; a hold remap command's input ("Left + Right",
+    /// <see cref="InputKindExtensions.Text"/>); "No trigger" when unbound.
     /// </summary>
     public static string Text(Trigger trigger, string gestureText, HostPlatform names)
     {
@@ -60,6 +61,7 @@ public static class TriggerKindExtensions
         return trigger switch
         {
             Trigger.GestureTrigger => held.Length == 0 ? gestureText : $"{held} + {gestureText}",
+            Trigger.InputTrigger => InputKindExtensions.Text(trigger),
             Trigger.NoTrigger => "No trigger",
             _ => held.Length == 0 ? Capitalised(trigger.KindPhrase) : $"{held} + {trigger.KindPhrase}",
         };
@@ -87,6 +89,7 @@ public static class TriggerKindExtensions
     {
         Trigger.WheelTrigger => "Change the direction, a button or a key.",
         Trigger.GestureTrigger => "Change the gesture, a button or a key.",
+        Trigger.InputTrigger => "Choose another input.",
         _ => "Change a button or a key.",
     };
 
