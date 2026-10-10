@@ -21,7 +21,8 @@ public abstract record ExportScope
 
     /// <summary>
     /// These app groups whole (Global may be one), these ignored apps, and what the groups' commands name: the gestures they use
-    /// and the Ignored › Per command entries in their "Not in" (plan 0004).
+    /// and the Ignored › Per command entries in their "Not in" (plan 0004), the Exclusions › Global entries in their "Also in"
+    /// (plan 0005).
     /// </summary>
     public static Selection Of(IEnumerable<GroupId> groups, IEnumerable<GroupId>? ignored = null)
     {

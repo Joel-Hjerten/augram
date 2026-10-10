@@ -10,7 +10,8 @@ namespace Augram.Core.Transfer;
 /// across the whole mapping, so a command matched by id may sit in another group here (a move, which the merge reads as a
 /// change); one matched by name is looked for among its siblings in the matched group only (its hold remap's commands, or
 /// the group's ordinary ones: <see cref="CommandNames"/>). A file group with no counterpart here keeps its ids. A command's
-/// "Not in" (plan 0004) follows the ignored apps' matches: it names Ignored › Per command entries.
+/// "Not in" (plan 0004) and "Also in" (plan 0005) follow the ignored apps' matches: they name Ignored › Per command entries and
+/// Exclusions › Global entries.
 /// </summary>
 internal sealed partial class ImportMatcher
 {
@@ -39,32 +40,37 @@ internal sealed partial class ImportMatcher
         var groups = file.Groups
             .Select(group => group with { Id = groupIds.GetValueOrDefault(group.Id, group.Id) })
             .Select(group => Group(group, localGroups.GetValueOrDefault(group.Id)))
-            .Select(group => WithNotInFollowing(group, ignoredIds))
+            .Select(group => WithIgnoredReferencesFollowing(group, ignoredIds))
             .ToArray();
         var ignored = file.Ignored.Select(app => app with { Id = ignoredIds.GetValueOrDefault(app.Id, app.Id) }).ToArray();
         return new MappingDocument(groups, ignored);
     }
 
     /// <summary>
-    /// The group's commands with their "Not in" (plan 0004) naming the local ids of the file's ignored apps matched here (by name),
-    /// once each and sorted by id as <see cref="MappingRules"/> keeps them, so an unchanged list reads as the same item. A new
-    /// entry keeps its id; an id naming a Per command entry in neither place is dropped by the rules when the result is built.
+    /// The group's commands with their "Not in" (plan 0004) and "Also in" (plan 0005) naming the local ids of the file's ignored
+    /// apps matched here (by name), once each and sorted by id as <see cref="MappingRules"/> keeps them, so an unchanged list
+    /// reads as the same item. A new entry keeps its id; an id naming an entry of the right kind in neither place (a Per command
+    /// entry for "Not in", a plain Exclusions › Global entry for "Also in") is dropped by the rules when the result is built.
     /// </summary>
-    private static AppGroup WithNotInFollowing(AppGroup group, Dictionary<GroupId, GroupId> ignoredIds)
+    private static AppGroup WithIgnoredReferencesFollowing(AppGroup group, Dictionary<GroupId, GroupId> ignoredIds)
     {
-        if (ignoredIds.Count == 0 || group.Commands.All(command => command.NotIn.Count == 0))
+        if (ignoredIds.Count == 0 || group.Commands.All(command => command.NotIn.Count == 0 && command.AlsoIn.Count == 0))
         {
             return group;
         }
 
         return group with
         {
-            Commands = [.. group.Commands.Select(command => command.NotIn.Count == 0 ? command : command with
+            Commands = [.. group.Commands.Select(command => command.NotIn.Count == 0 && command.AlsoIn.Count == 0 ? command : command with
             {
-                NotIn = [.. command.NotIn.Select(id => ignoredIds.GetValueOrDefault(id, id)).Distinct().OrderBy(id => id.Value)],
+                NotIn = Following(command.NotIn, ignoredIds),
+                AlsoIn = Following(command.AlsoIn, ignoredIds),
             })],
         };
     }
+
+    private static IReadOnlyList<GroupId> Following(IReadOnlyList<GroupId> ids, Dictionary<GroupId, GroupId> ignoredIds)
+        => ids.Count == 0 ? ids : [.. ids.Select(id => ignoredIds.GetValueOrDefault(id, id)).Distinct().OrderBy(id => id.Value)];
 
     /// <summary>The file group (already under its local id) with its children lined up against <paramref name="local"/>, the group here; null for a new group.</summary>
     private AppGroup Group(AppGroup group, AppGroup? local)

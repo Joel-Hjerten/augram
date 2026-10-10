@@ -12,7 +12,7 @@ namespace Augram.Core.Config;
 /// its <see cref="IStepType.Write"/> returns, under the envelope F8 names (<c>type</c>, <c>authoredOn</c>,
 /// <c>isActive</c>, <c>params</c>, <c>overrides</c>). Every member is written in full except
 /// <c>overrides</c> (omitted when there are none), <c>note</c>, a command's <c>category</c> and <c>holdRemap</c> (omitted
-/// when null), a group's <c>categories</c> and <c>holdRemaps</c> and a command's <c>notIn</c> (omitted when empty), a hold's
+/// when null), a group's <c>categories</c> and <c>holdRemaps</c> and a command's <c>notIn</c> and <c>alsoIn</c> (omitted when empty), a hold's
 /// <c>dragDistancePx</c> (omitted when null), an ignored app's <c>scope</c> (omitted for Global) and the <c>useOn</c> of a group, a
 /// category, a hold remap or a command (omitted when every platform), so a diff after an edit shows only the
 /// edit and a file without categories looks as it did before they existed. An override is always of
@@ -76,7 +76,8 @@ internal static partial class MappingJsonWriter
         WriteTrigger(writer, command.Trigger);
         writer.WriteBoolean("isActive", command.IsActive);
         WriteUseOn(writer, command.UseOn);
-        WriteNotIn(writer, command.NotIn);
+        WriteIgnoredIds(writer, "notIn", command.NotIn);
+        WriteIgnoredIds(writer, "alsoIn", command.AlsoIn);
         if (command.CategoryId is { } category)
         {
             writer.WriteString("category", category.Value);
@@ -158,9 +159,10 @@ internal static partial class MappingJsonWriter
     }
 
     /// <summary>
-    /// <c>{ "gesture": id }</c>, <c>{ "wheel": "Up" }</c>, <c>{ "click": true }</c>, <c>{ "input": { … } }</c> (schema 4, a command
-    /// under a hold remap) or null, with a <c>hold</c> (schema 2) only when the trigger holds more than the stroke button alone,
-    /// so a plain trigger reads as it did before combinations (an input never has one).
+    /// <c>{ "gesture": id }</c>, <c>{ "wheel": "Up" }</c>, <c>{ "click": true }</c>, <c>{ "button": "Left" }</c> (schema 7, plan
+    /// 0005), <c>{ "input": { … } }</c> (schema 4, a command under a hold remap) or null, with a <c>hold</c> (schema 2) only when
+    /// the trigger holds more than the stroke button alone, so a plain trigger reads as it did before combinations (an input
+    /// never has one; a valid button trigger always has one, since its set holds another button and not the stroke button).
     /// </summary>
     private static void WriteTrigger(Utf8JsonWriter writer, Trigger trigger)
     {
@@ -177,6 +179,10 @@ internal static partial class MappingJsonWriter
             case Trigger.ClickTrigger:
                 writer.WriteStartObject("trigger");
                 writer.WriteBoolean("click", true);
+                break;
+            case Trigger.ButtonTrigger button:
+                writer.WriteStartObject("trigger");
+                writer.WriteString("button", button.Button.ToString());
                 break;
             case Trigger.InputTrigger input:
                 writer.WriteStartObject("trigger");
@@ -219,16 +225,20 @@ internal static partial class MappingJsonWriter
         writer.WriteEndObject();
     }
 
-    /// <summary>A command's "Not in" (plan 0004; schema 6: the ids of its Ignored › Per command entries), omitted when there are none.</summary>
-    private static void WriteNotIn(Utf8JsonWriter writer, IReadOnlyList<GroupId> notIn)
+    /// <summary>
+    /// A command's list of ignored-app ids under <paramref name="name"/>, omitted when there are none: <c>notIn</c> (plan 0004;
+    /// schema 6: the ids of its Ignored › Per command entries) and <c>alsoIn</c> (plan 0005, schema 7: the ids of the Exclusions ›
+    /// Global entries it still works over).
+    /// </summary>
+    private static void WriteIgnoredIds(Utf8JsonWriter writer, string name, IReadOnlyList<GroupId> ids)
     {
-        if (notIn.Count == 0)
+        if (ids.Count == 0)
         {
             return;
         }
 
-        writer.WriteStartArray("notIn");
-        foreach (var app in notIn)
+        writer.WriteStartArray(name);
+        foreach (var app in ids)
         {
             writer.WriteStringValue(app.Value);
         }

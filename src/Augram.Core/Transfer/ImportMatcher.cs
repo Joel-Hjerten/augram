@@ -10,7 +10,7 @@ namespace Augram.Core.Transfer;
 /// here is that item. A file item whose id is unknown here takes the id of the local item it matches (a gesture by name,
 /// then by shape when asked; a group by name; within a matched group a category by name, a hold remap by hold key then
 /// name, a command by name among its siblings; an ignored app by name), and every reference to it in the file follows (a
-/// command's gesture, category, hold remap; a command's "Not in", which names ignored apps). A local item already matched by
+/// command's gesture, category, hold remap; a command's "Not in" and "Also in", which name ignored apps). A local item already matched by
 /// id, or by an earlier file item, is never matched again, so no two file items end up with one key. The result then merges like a re-import of the same items.
 /// Pure. The mapping half is in <c>ImportMatcher.Mapping.cs</c>.
 /// </summary>
