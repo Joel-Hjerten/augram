@@ -29,7 +29,7 @@ Eyeris lets Right through at once and cleans up at the chord (a synthetic releas
 - macOS opens it on the **press**: with Eyeris's own chord the menu was already open when Left came. Holding Right back fixes that.
 - Pass-first needs the fake release that caused section 1.
 
-Requirements F1 already holds pass-first off; this is the evidence from another app.
+Requirements F1 already holds pass-first off; this is the evidence from another app. What pass-first would take in Augram (the release must always reach the app, the menu cleanups per platform and their limits, the spike that would decide it): [learnings 0007](0007-right-wheel-without-the-lag.md) §2.
 
 ## 4. "Dead zone" reports: whose is it?
 
