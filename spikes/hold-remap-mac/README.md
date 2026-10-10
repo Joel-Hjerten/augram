@@ -36,19 +36,21 @@ It quits by itself after 3 minutes (`--minutes 1` to `30`), and on Ctrl+C in the
 
 ## The four runs, in this order
 
+Start it through `~/.dotnet/dotnet`: the SDK lives in the home folder, so the built launcher (`HoldRemapSpike` without `.dll`) cannot find .NET ("You must install .NET to run this application"). Ctrl+C still reaches the spike.
+
 Paste one line, switch to Blender, go through the checklist, come back and press Ctrl+C (or let it time out). Then the next line.
 
 ```
-spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike --variant a --post sharphook
+~/.dotnet/dotnet spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike.dll --variant a --post sharphook
 ```
 ```
-spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike --variant a --post native
+~/.dotnet/dotnet spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike.dll --variant a --post native
 ```
 ```
-spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike --variant b --post sharphook
+~/.dotnet/dotnet spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike.dll --variant b --post sharphook
 ```
 ```
-spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike --variant b --post native
+~/.dotnet/dotnet spikes/hold-remap-mac/bin/Debug/net10.0/HoldRemapSpike.dll --variant b --post native
 ```
 
 Other options: `--tap-ms 250` (tap time), `--anywhere` (Space is claimed in every app: only if the `front:` lines never say Blender while it is in front), `--minutes 5`.
