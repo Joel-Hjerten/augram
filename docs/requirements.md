@@ -134,7 +134,7 @@ App
 
 ### F8. Configuration and portability — LEANING (JSON; Joel inclined, 2026-10-05)
 - Human-readable config + gesture library on disk as **JSON**, safe to hand-edit and diff, with a `schemaVersion` field from day one and forward-only migrations in Core. (SP.net's binary `.spexport` is .NET `BinaryFormatter`, chosen for convenience not size; it is unreadable without the app, version-locked, and the API is removed from modern .NET. Not a model to follow.)
-- **Export is the same format as the on-disk file**, never a second format. Export scopes: everything · gestures only · selected app groups (with the gestures they reference). Import merges rather than replaces, with a per-item conflict choice (keep mine / take theirs / keep both renamed).
+- **Export is the same format as the on-disk file**, never a second format. Export scopes: everything · gestures only · selected app groups (with the gestures they reference). Import merges rather than replaces, with a per-item conflict choice (keep mine / take theirs / keep both renamed). Design and Core layer: [plan 0003](plans/0003-export-import.md) (2026-10-10, night; its "Decided for Joel" list and four questions wait for Joel; no UI yet).
 - **Stable ids, not names, for references.** Gestures and commands get a generated id; commands reference gestures by id and display the name. Renaming never breaks a binding. (SP.net binds by name; two of Joel's commands already point at gestures that no longer exist.)
 - Size is a non-issue: raw template points for 90 gestures are well under 100 KB minified. Write indented for diffability; optional `.augram.gz` later only if ever needed.
 - **Cross-platform commands — DECIDED (Joel, 2026-10-07; replaces the 2026-10-05 per-step override leaning):**

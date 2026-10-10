@@ -51,7 +51,7 @@ M1 acceptance: Joel draws his top ten gestures over any app and the log names th
 6. **App identification page** per group (exe name primary, path, process, title, regex toggles, crosshair picker, ignore-if-fullscreen, suppress globals) and the **Ignored tab** (same form + disable-on-focus).
 7. **Hotkey capture field**: engine keyboard suppression while capturing, Accept and click-outside commit, Clear, watchdog, mouse never suppressed.
 8. **Full SP.net import** per the mapping table below, with a report of what was skipped.
-9. **Export/import of Augram JSON** with scopes and merge.
+9. **Export/import of Augram JSON** with scopes and merge: [plan 0003](0003-export-import.md) (Core built 2026-10-10, night; the App next, after Joel's answers).
 10. **Gesture shape cleanup** (built 2026-10-09; requirements F3 "Shape cleanup", Joel 2026-10-08), after the remaining step types (TypeText, Run). Core: a pure `Recognition/` (or `Gestures/`) cleanup function, corner finding (ShortStraw-style) → per-piece line / arc / circle / smooth fit → a raw point list in the drawn direction; the gesture keeps its original samples beside the cleaned ones, and Restore swaps back (one undo step each). App: **Clean up shape** checkbox in the draw area, ticked by default (Joel), with a preview, **Clean up shape** / **Restore original** on the tile menu. Sync: the original travels with the gesture; raise `SyncFile.CurrentFormatVersion`. Before calling it done, replay the Recognition log's drawn strokes against raw vs cleaned templates of Joel's set and write the numbers to `docs/learnings/`.
 
 ## M3: daily driver

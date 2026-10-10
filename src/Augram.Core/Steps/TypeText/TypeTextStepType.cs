@@ -29,6 +29,9 @@ public sealed class TypeTextStepType : IStepType
 
     public bool IsPlatformNeutral => true;
 
+    /// <summary>The text may be a password: an export says it travels as written (plan 0003).</summary>
+    public bool MayHoldPrivateText => true;
+
     /// <summary>Text is text on every platform, and the US-layout keys of <see cref="TypeTextMethod.Keys"/> are the same keys on both.</summary>
     public StepConversion Convert(IStep step, HostPlatform from, HostPlatform to) => StepConversion.Same(step);
 

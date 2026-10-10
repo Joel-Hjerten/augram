@@ -1,6 +1,6 @@
 # Augram.Core
 
-Pure .NET domain: gestures, recognition, capture state machine, mapping, hold remaps (`HoldRemaps/`, F9), step types, config, machine-to-machine sync (`Sync/`: the item merge; git is behind a port), and the ports (interfaces) everything outside implements. Organised by subsystem, one folder each, every folder with its own README (ADR-0002 §3).
+Pure .NET domain: gestures, recognition, capture state machine, mapping, hold remaps (`HoldRemaps/`, F9), step types, config, machine-to-machine sync (`Sync/`: the item merge; git is behind a port), export and import of Augram JSON (`Transfer/`, plan 0003: the config file's format, merged like a sync without a base), and the ports (interfaces) everything outside implements. Organised by subsystem, one folder each, every folder with its own README (ADR-0002 §3).
 
 **May reference:** nothing but the BCL. No project references, no package references.
 
