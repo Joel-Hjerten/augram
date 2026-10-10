@@ -185,13 +185,13 @@ public sealed class ChordEngineTests
     }
 
     [Fact]
-    public void AGlobalCommandNotInAnApp_LeavesItsButtonAloneOverThatApp()
+    public void ACommandNotInAnApp_LeavesItsButtonAloneOverThatApp()
     {
-        var spine = Mappings.Group("Spine", "spine.exe");
+        var spine = new IgnoredApp(GroupId.New(), "Spine", IsActive: true, new AppMatcher { WindowsProcessNames = ["spine.exe"] }, DisableEntirely: false) { Scope = IgnoreScope.PerCommand };
         var zoom = Mappings.Command("Zoom in", RightWheelUp, new WindowOpStep(WindowOperation.Minimize)) with { NotIn = [spine.Id] };
         using var harness = new EngineHarness(
             new EngineHostOptions(MouseButton.Middle, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1)),
-            mapping: Mappings.Document([zoom], spine));
+            mapping: MappingRules.ValidDocument(new MappingDocument([AppGroup.EmptyGlobal with { Commands = [zoom] }], [spine])));
         harness.Windows.Window = FakeWindowSystem.Identity("chrome.exe");
         harness.Move(100, 100, 0);
         EngineHarness.WaitFor(() => harness.Host.AnchorPlanUnderPointer.IsAnchor(MouseButton.Right), "Right to be an anchor over Chrome");

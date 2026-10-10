@@ -32,11 +32,12 @@ internal sealed class IgnoreLookup
     private bool _pausing;
     private bool _ignoring;
     private bool _anchoring;
+    private bool _excluding;
     private bool _holdRemaps;
     private MouseButton _planStrokeButton;
     private WindowIdentity? _planWindow;
     private bool _planStale = true;
-    private readonly Dictionary<GroupId, (AnchorPlan Plan, AnchorDragDistances Drags)> _plans = [];
+    private readonly Dictionary<(GroupId Group, string PerCommand), (AnchorPlan Plan, AnchorDragDistances Drags)> _plans = [];
     private WindowIdentity? _holdWindow;
     private bool _holdStale = true;
     private readonly Dictionary<GroupId, HoldRemapPlan> _holdPlans = [];
@@ -110,6 +111,7 @@ internal sealed class IgnoreLookup
             _seen = mapping;
             _ignoring = IgnoreList.WatchesPointer(mapping, _platform);
             _anchoring = AnchorPlanner.UsesButtons(mapping, _platform);
+            _excluding = IgnoreList.UsesPerCommand(mapping, _platform);
             WatchesPointer = _ignoring || _anchoring;
             _pausing = IgnoreList.WatchesFocus(mapping, _platform);
             _holdRemaps = HoldRemapPlan.WatchesFocus(mapping, _platform);
@@ -175,10 +177,13 @@ internal sealed class IgnoreLookup
 
         _planWindow = window;
         var group = CommandResolver.FindGroup(mapping, window, _platform);
-        var key = group?.Id ?? GroupId.Global;
+        // A command's "Not in" (plan 0004) makes the plan depend on the Per command entries claiming the window too: they are part
+        // of the key, worked out only while some command names one.
+        var perCommand = _excluding ? IgnoreList.PerCommandUnder(mapping, window, _platform) : [];
+        var key = (group?.Id ?? GroupId.Global, perCommand.Count == 0 ? string.Empty : string.Join(',', perCommand));
         if (!_plans.TryGetValue(key, out var answer))
         {
-            answer = AnchorPlanner.AnswerForGroup(mapping, group, _platform, _planStrokeButton);
+            answer = AnchorPlanner.AnswerForGroup(mapping, group, _platform, _planStrokeButton, perCommand);
             _plans[key] = answer;
         }
 

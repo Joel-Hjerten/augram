@@ -34,8 +34,6 @@ public static class MappingRules
         }
 
         EnsureCommandIdsUnique(groups);
-        var appGroups = groups.Where(group => !group.IsGlobal).Select(group => group.Id).ToHashSet();
-        groups = [.. groups.Select(group => group.IsGlobal ? WithKnownNotIn(group, appGroups) : group)];
 
         var ignored = new List<IgnoredApp>();
         foreach (var app in document.Ignored)
@@ -44,6 +42,9 @@ public static class MappingRules
             EnsureValid(normalised, ignored);
             ignored.Add(normalised);
         }
+
+        var perCommand = ignored.Where(app => app.IsPerCommand).Select(app => app.Id).ToHashSet();
+        groups = [.. groups.Select(group => WithKnownNotIn(group, perCommand))];
 
         var sortedGroups = groups
             .OrderBy(group => group.IsGlobal ? 0 : 1)
@@ -59,9 +60,7 @@ public static class MappingRules
     public static AppGroup Normalised(AppGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
-        var commands = group.Commands.Select(Normalised)
-            .Select(command => group.IsGlobal || command.NotIn.Count == 0 ? command : command with { NotIn = [] })
-            .OrderBy(command => command.Name, NameComparer).ToArray();
+        var commands = group.Commands.Select(Normalised).OrderBy(command => command.Name, NameComparer).ToArray();
         return HoldRemapRules.Normalised(CategoryRules.Normalised(group.IsGlobal
             ? group with { Name = Trimmed(group.Name), Matcher = null, SuppressGlobals = false, UseOn = PlatformSet.All, Commands = commands }
             : group with { Name = Trimmed(group.Name), Commands = commands }));
@@ -75,27 +74,31 @@ public static class MappingRules
         return command with { Name = Trimmed(command.Name), Trigger = command.Trigger.Normalised(), OwnVersion = own };
     }
 
-    /// <summary>A Global group whose commands' "Not in" lists name only app groups in <paramref name="appGroups"/>, once each, sorted by id (plan 0004).</summary>
-    private static AppGroup WithKnownNotIn(AppGroup global, HashSet<GroupId> appGroups)
+    /// <summary>
+    /// The group with its commands' "Not in" lists naming only Per command entries in <paramref name="perCommand"/>, once each,
+    /// sorted by id, and empty under a hold remap (its hold remap plays it, never the resolver; plan 0004).
+    /// </summary>
+    private static AppGroup WithKnownNotIn(AppGroup group, HashSet<GroupId> perCommand)
     {
-        if (global.Commands.All(command => command.NotIn.Count == 0))
+        if (group.Commands.All(command => command.NotIn.Count == 0))
         {
-            return global;
+            return group;
         }
 
-        return global with
+        return group with
         {
-            Commands = [.. global.Commands.Select(command => command.NotIn.Count == 0 ? command : command with
+            Commands = [.. group.Commands.Select(command => command.NotIn.Count == 0 ? command : command with
             {
-                NotIn = [.. command.NotIn.Where(appGroups.Contains).Distinct().OrderBy(id => id.Value)],
+                NotIn = command.HoldRemapId is not null ? [] : [.. command.NotIn.Where(perCommand.Contains).Distinct().OrderBy(id => id.Value)],
             })],
         };
     }
 
+    /// <summary>Trims the name; a Per command entry never disables Augram while focused (it stops only the commands that name it).</summary>
     public static IgnoredApp Normalised(IgnoredApp app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        return app with { Name = Trimmed(app.Name) };
+        return app with { Name = Trimmed(app.Name), DisableEntirely = app.DisableEntirely && !app.IsPerCommand };
     }
 
     /// <summary>Checks a normalised group, its categories and each of its commands against the groups it will sit beside.</summary>
