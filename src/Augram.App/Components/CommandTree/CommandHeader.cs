@@ -20,7 +20,8 @@ namespace Augram.App.Components.CommandTree;
 /// unchecked and disabled, with <see cref="UseOnNote"/> saying which one (Joel, 2026-10-08). A command under a hold remap
 /// shows its Input instead of the trigger kind and the "While holding" boxes (<c>CommandHeader.Input.cs</c>, plan 0002). A
 /// trigger whose held buttons are handed back as drags has a Drag distance row (<c>CommandHeader.DragDistance.cs</c>), and a
-/// command not under a hold remap a Not in row (<c>CommandHeader.NotIn.cs</c>; both plan 0004).
+/// command not under a hold remap a Not in row (<c>CommandHeader.NotIn.cs</c>; both plan 0004). A draft another command uses
+/// here has Take it and Swap in its note (<c>CommandHeader.Conflict.cs</c>, Joel 2026-10-10).
 /// </summary>
 public sealed partial class CommandHeader : TemplatedControl
 {
@@ -207,6 +208,7 @@ public sealed partial class CommandHeader : TemplatedControl
         FindDragDistanceParts(e);
         FindNotInParts(e);
         FindInputParts(e);
+        FindConflictParts(e);
         WireUseOn(_useOnWindows, HostPlatform.Windows);
         WireUseOn(_useOnMac, HostPlatform.MacOS);
         Apply();
@@ -239,6 +241,7 @@ public sealed partial class CommandHeader : TemplatedControl
             AnchorWarning = item?.AnchorWarning;
             TriggerNote = item?.TriggerNote;
             DraftNote = item?.DraftNote;
+            ShowConflict(item);
             HasCategories = item is { Categories.Count: > 0 };
             VersionText = item?.VersionText;
             UseOnNote = item?.UseOnLimitText;

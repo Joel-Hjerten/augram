@@ -74,6 +74,18 @@ public enum CommandTreeAction
     /// <summary>Set a hold remap command's input: a detected button added or a chip removed, a wheel direction, a captured key (<see cref="CommandTreeActionEventArgs.Input"/>).</summary>
     SetInput,
 
+    /// <summary>
+    /// Swap (the draft note's button, Joel 2026-10-10): the command takes its draft trigger (or input), and the command that
+    /// uses it here (<see cref="CommandItem.ConflictName"/>) takes the command's stored one; one undo step.
+    /// </summary>
+    SwapTrigger,
+
+    /// <summary>
+    /// Take it (the draft note's button, Joel 2026-10-10): the command takes its draft trigger (or input), the command that uses
+    /// it here is left with none and is selected so it can be given a new one; one undo step.
+    /// </summary>
+    TakeTrigger,
+
     /// <summary>Move the command into another category of its group (the header's Category dropdown); Uncategorized clears it.</summary>
     SetCategory,
 

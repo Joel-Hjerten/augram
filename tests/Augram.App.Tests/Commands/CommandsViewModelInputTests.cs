@@ -46,6 +46,43 @@ public sealed class CommandsViewModelInputTests
         Assert.Same(Trigger.None, Find(store, command.Name).Trigger);
     }
 
+    /// <summary>Swap and Take it on a draft input another command of the hold remap uses (Joel, 2026-10-10), as for a trigger.</summary>
+    [AvaloniaFact]
+    public void AnInputAnotherCommandUses_SwapExchangesTheInputs_TakeItLeavesTheOtherWithoutOne()
+    {
+        var (vm, store, _) = CreateBlender();
+        var left = Trigger.ForInput(HoldInput.Of(MouseButton.Left));
+        var right = Trigger.ForInput(HoldInput.Of(MouseButton.Right));
+        Select(vm, "Pan");
+
+        Handle(vm, CommandTreeAction.SetInput, input: HoldInput.Of(MouseButton.Left));
+
+        Assert.Equal("Not saved yet: 'Orbit' already uses Left here. Choose another input.", vm.SelectedCommand!.DraftNote);
+        Assert.Equal(("Orbit", true, true), (vm.SelectedCommand.ConflictName, vm.SelectedCommand.CanSwapTrigger, vm.SelectedCommand.CanTakeTrigger));
+
+        Handle(vm, CommandTreeAction.SwapTrigger);
+
+        Assert.Equal((left, right), (Find(store, "Pan").Trigger, Find(store, "Orbit").Trigger));
+        Assert.Equal((new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift), new RemapOutput.Button(MouseButton.Middle)), (RemapOf(store, "Pan"), RemapOf(store, "Orbit")));
+        Assert.Equal($"Swapped with 'Orbit', which now uses Right. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Equal((right, left), (Find(store, "Pan").Trigger, Find(store, "Orbit").Trigger));
+        Assert.False(vm.CanUndo);
+
+        Handle(vm, CommandTreeAction.SetInput, input: HoldInput.Of(MouseButton.Left));
+        Handle(vm, CommandTreeAction.TakeTrigger);
+
+        Assert.Equal(left, Find(store, "Pan").Trigger);
+        Assert.Same(Trigger.None, Find(store, "Orbit").Trigger);
+        Assert.Equal("Orbit", vm.SelectedCommand!.Name);
+        Assert.Equal($"'Orbit' has no input now: give it one. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Equal((right, left), (Find(store, "Pan").Trigger, Find(store, "Orbit").Trigger));
+        Assert.False(vm.CanUndo);
+    }
+
     [AvaloniaFact]
     public void AKeyInputIsAKeyThatIsNotTheHoldKey_AWheelTakesAFreeDirection()
     {

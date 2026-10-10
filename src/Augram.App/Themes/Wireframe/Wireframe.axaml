@@ -695,9 +695,24 @@
                       <TextBlock Text="px" VerticalAlignment="Center" />
                     </StackPanel>
                   </StackPanel>
-                  <!-- A combination the rules refuse waits as a draft (Joel, 2026-10-09): what is wrong and how to fix it. Below the boxes, so they never move under the pointer. -->
+                  <!-- A combination the rules refuse waits as a draft (Joel, 2026-10-09): what is wrong and how to fix it. Below the boxes, so they never move under the pointer.
+                       When another command uses it here, the note's box offers Take it and, beside it, Swap (Joel, 2026-10-10). -->
                   <Border Classes="warning-note" IsVisible="{TemplateBinding DraftNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                    <TextBlock Name="PART_DraftNote" Classes="error" Text="{TemplateBinding DraftNote}" />
+                    <StackPanel Spacing="{StaticResource Space.S}">
+                      <TextBlock Name="PART_DraftNote" Classes="error" Text="{TemplateBinding DraftNote}" />
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasConflictActions}">
+                        <Button Name="PART_TakeTrigger"
+                                Classes="toolbar"
+                                Content="{TemplateBinding TakeText}"
+                                ToolTip.Tip="{TemplateBinding TakeTip}"
+                                IsVisible="{TemplateBinding CanTakeTrigger}" />
+                        <Button Name="PART_SwapTrigger"
+                                Classes="toolbar"
+                                Content="{TemplateBinding SwapText}"
+                                ToolTip.Tip="{TemplateBinding SwapTip}"
+                                IsVisible="{TemplateBinding CanSwapTrigger}" />
+                      </StackPanel>
+                    </StackPanel>
                   </Border>
                   <TextBlock Classes="help"
                              Text="{TemplateBinding AnchorWarning}"
