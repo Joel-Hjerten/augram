@@ -192,7 +192,7 @@ The `IEventLog` implementation and its sinks. BCL only: `System.Threading.Channe
 
 | Type | Role |
 |---|---|
-| `ChannelEventLog` | the `IEventLog`: level check, `TryWrite` onto a bounded channel (4,096, `DropWrite`), return. One drain task delivers to every sink in order and flushes them when the queue empties. `MinimumLevel` is a runtime property (Diagnostics tab). `Dispose` completes the channel, drains what is queued (10 s cap), then disposes the sinks it owns. |
+| `ChannelEventLog` | the `IEventLog`: level check, `TryWrite` onto a bounded channel (4,096, `DropWrite`), return. One drain task delivers to every sink in order and flushes them when the queue empties. `MinimumLevel` is a runtime property, but nothing in the App sets it yet (checked 2026-10-11): an installed build always logs at Info, so Debug lines (`hold` per hold, `capture` details) cannot be switched on without a code change. `Dispose` completes the channel, drains what is queued (10 s cap), then disposes the sinks it owns. |
 | `ILogSink` | `Write(event)`, `Flush()`, `Dispose()`; called from the drain task only |
 | `RollingFileSink` | `augram-yyyyMMdd.log` in a directory (`logs/` beside the config), UTF-8 without BOM, one line per event, exception on indented lines, file chosen by each event's own date, files older than 7 days deleted at startup and at rotation, buffered with a 500 ms flush timer, opened with read-write sharing so a viewer can tail it |
 | `InMemorySink` | `RingLog<LogEvent>` of the last 2,000 events for the Diagnostics tab's live tail; poll `Version` or subscribe to `Changed` |

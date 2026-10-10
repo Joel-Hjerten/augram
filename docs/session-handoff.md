@@ -18,6 +18,13 @@ What this session learned (a stuck button read from the log, other programs' hoo
 
 **Then the Mac goes straight to 0.10.3** (the 0.9.1 section below still describes its checks; sync stays paused there until then). Mac points for the magnifier, which syncs over as Right + Left with no Mac version: (1) if the Mac's stroke button is Right, the set names the stroke button there and the magnifier holds nothing back (correct, by decision 2; Joel would need a Mac version of the trigger); (2) otherwise Right is held back on the Mac too, which fixes the context menu Eyeris's own chord opened at the press (macOS opens it on the down), and a plain right-click's menu then opens at release; (3) its Remap key output Shift + Win + X is Shift + Cmd + X on the Mac (Meta): check what Eyeris's Mac shortcut is.
 
+### Open from Joel's questions (2026-10-11, PC session of 2026-10-10; all awaiting Joel)
+
+- **Start at login has never run on a real login.** On the PC it is still off (every 0.10.x start logs `Start at login checked {setting=false status=NotRegistered}`, no Run value); Joel has not ticked it. Check lists: App README "Windows check list", Platform.MacOS README "Start at login on macOS".
+- **Export/import follow-ups** (accumulation, a redrawn gesture's Keep mine / Keep both, per-group Replace): plan 0003 "Follow-ups from Joel's questions".
+- **Sync conflicts are visible only in Options › Sync** (the Conflicts row and Resolve…); no pop-up (by design) and nothing in the tray, whose tooltip only says "synced 14:32". Proposed: "· 1 conflict" in the tray tooltip and Resolve… in the tray menu while one is pending.
+- **Debug logging cannot be switched on** in any build (Engine README, `ChannelEventLog`). Joel: not needed now; logs rotate daily, 7 days kept, a few hundred KB.
+
 ### NEXT: Mac session, bring the Mac to 0.9.1 (written 2026-10-10 night, PC session)
 
 **Nothing to implement:** everything below is shared code (Core, Engine, App) already in the Mac build. The job is to build, install and check it on macOS, then fix only what a check shows. Main is **0.9.1** (`78de2d9`), CI green on both runners. The PC runs 0.9.1. Joel: "it works really well" for Swap / Take it, and "working" for the rest. The Mac still runs **0.7.0**, and sync is paused there ("uses a newer Augram"): the PC now writes **config schema 6, sync format 13**. Nothing is lost; the Mac catches up when it runs 0.9.1.

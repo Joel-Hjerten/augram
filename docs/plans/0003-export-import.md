@@ -1,6 +1,6 @@
 # Plan 0003: Export and import of Augram JSON
 
-**Status: PROPOSED (2026-10-10, night).** Written by an agent while Joel slept; the decisions marked "Decided for Joel" below were taken on his behalf and wait for him. **Progress:** steps 1–2 (Core) **built, reviewed and merged** (`5de531b` groundwork, `6a0b1fd` `Core/Transfer` with 47 tests; merge `0734bd8`); steps 3–4 (App) **built** to the sketch below (`cc86f06` export, `9fede87` import; 2026-10-10 night), waiting for the lead's review and Joel's check (step 5). What the App build decided on Joel's behalf is decisions 19–28 below. This is plan 0001 M2 step 9. The *what* is [requirements F8](../requirements.md) ("Export is the same format as the on-disk file…", read the sync section too) and F5a's Copy leaning; this plan says how, where the code goes and in what order. Structure rules: [ADR-0002](../adr/0002-code-and-repo-structure.md).
+**Status: PROPOSED (2026-10-10, night).** Written by an agent while Joel slept; the decisions marked "Decided for Joel" below were taken on his behalf and wait for him. **Progress:** steps 1–2 (Core) **built, reviewed and merged** (`5de531b` groundwork, `6a0b1fd` `Core/Transfer` with 47 tests; merge `0734bd8`); steps 3–4 (App) **built** to the sketch below (`cc86f06` export, `9fede87` import; 2026-10-10 night), **reviewed by the lead and merged** (`3fed683`); since then plans 0004 and 0005 carried their new data through it (schemas 5–7). Joel's check (step 5) not done yet; follow-ups from his questions of 2026-10-11 below. What the App build decided on Joel's behalf is decisions 19–28 below. This is plan 0001 M2 step 9. The *what* is [requirements F8](../requirements.md) ("Export is the same format as the on-disk file…", read the sync section too) and F5a's Copy leaning; this plan says how, where the code goes and in what order. Structure rules: [ADR-0002](../adr/0002-code-and-repo-structure.md).
 
 ## Done when
 
@@ -61,6 +61,19 @@ Decided while building the App (steps 3–4, 2026-10-10 night):
 2. **Options in an import: opt-in (built, decision 2), or never?** And is the list right (stroke button and ignore keys yes; start at login, enabled and the menu-bar icon no)?
 3. **Match by name and shape (built, decision 5), or by id only?** By id only would make a friend's file arrive as "Chrome (2)" beside your Chrome; by name it shows one "Chrome: yours / theirs" row instead.
 4. **Where should Export… and Import… live?** *Built as proposed (steps 3–4; decisions 19–20):* both in a new **Options › Configuration** section (before About), with the StrokesPlus.net import beside them (it also stays on the Gestures toolbar until you say otherwise), plus "Export…" on an app group's right-click menu in Commands (that group preselected) and on the Gestures toolbar (gestures only preselected). SP.net has one Import/Export button in its top bar.
+
+## Follow-ups from Joel's questions (2026-10-11, proposed, awaiting his yes)
+
+What the questions established (answered from the code, not yet run by Joel):
+- **No pile-up from repeated imports:** ids match first, then names (a hold remap by its key, a gesture optionally by shape), so the same file twice changes nothing the second time. New items arrive only when they are new here or when Keep both makes a renamed copy. An import never removes anything, so it cannot tidy either.
+- **A redrawn gesture keeps its id**, so a file from Joel's other machine matches it by id (shape matching is only for ids unknown here). Keep mine (the default) leaves the old shape without a word; Take theirs gives every command here the new shape; **Keep both adds a copy nothing uses** when the file's commands already exist here unchanged: `ImportResolution.Take` returns for an identical item before `Rebound`, so only commands new to this config bind to the copy.
+- **By sync a one-sided redraw needs no choice:** the three-way merge takes it on the other machine's next sync; only a change on both sides is a conflict (Core Sync README "Conflicts show on one machine").
+
+Proposed (Joel has not said yes yet):
+1. **Replace, per group, in the import review** ("make my Blender exactly what the file holds", removing what the file lacks; one undo step; groups not in the file untouched). The narrow answer to Question 1.
+2. **A "Shape differs" mark on a redrawn gesture's row**, so a quick Import does not skip a redraw unnoticed (rather than defaulting to Take theirs, which is risky for files from other people).
+3. **No Keep both on a gesture nothing in the file would bind to**, or a warning that the copy would be unused.
+4. **A warning when Keep both on a command gives an unbound copy** (its trigger is taken here).
 
 ## Design
 
