@@ -663,8 +663,9 @@
                         <TextBlock Classes="help" Text="Change…" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
-                    <TextBlock Classes="help"
-                               Text="{TemplateBinding TriggerHint}"
+                    <!-- How the trigger fires, as an ⓘ (Joel, 2026-10-11: the line ran off the side panel; the help rule). -->
+                    <TextBlock Classes="help-icon"
+                               ToolTip.Tip="{TemplateBinding TriggerHint}"
                                VerticalAlignment="Center"
                                IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
