@@ -235,5 +235,60 @@ public sealed class IgnoreLookupTests
         Assert.Same(Blender, lookup.Over);
     }
 
+    [Fact]
+    public void HoldRemaps_WatchTheFocusOnly_AndFollowTheAppInFront()
+    {
+        var lookup = NewLookup();
+        var mapping = BlenderHold.Document();
+        _windows.Window = NotepadWindow;
+        _windows.ForegroundWindow = NotepadWindow;
+
+        lookup.Pass(mapping, At(10, 10), forget: false);
+        Assert.True(lookup.WatchesHoldRemaps);
+        Assert.False(lookup.WatchesPointer);
+        Assert.True(lookup.HoldPlan.IsEmpty);
+        Assert.Equal(0, _windows.KeyLookups);
+
+        _windows.ForegroundWindow = BlenderHold.Window;
+        lookup.Pass(mapping, At(10, 10), forget: false);
+        var plan = lookup.HoldPlan;
+        Assert.Equal("Blender", plan.GroupName);
+        Assert.NotNull(plan.Find(KeyCode.Space));
+
+        // The same window: nothing worked out again. Away and back: the group's plan from the cache, the same instance.
+        lookup.Pass(mapping, At(10, 10), forget: false);
+        _windows.ForegroundWindow = NotepadWindow;
+        lookup.Pass(mapping, At(10, 10), forget: false);
+        Assert.True(lookup.HoldPlan.IsEmpty);
+        _windows.ForegroundWindow = BlenderHold.Window;
+        lookup.Pass(mapping, At(10, 10), forget: false);
+        Assert.Same(plan, lookup.HoldPlan);
+        Assert.Equal(0, _windows.KeyLookups);
+        Assert.Equal(4, _windows.ForegroundLookups);
+    }
+
+    [Fact]
+    public void HoldRemaps_AreNotWatched_WhenNoneCanMatchHere_AndAMappingChangeBuildsTheirPlanAgain()
+    {
+        var lookup = NewLookup();
+        _windows.ForegroundWindow = BlenderHold.Window;
+        var blender = BlenderHold.Document();
+        var inactive = blender with { Groups = [.. blender.Groups.Select(group => group.IsGlobal ? group : group with { HoldRemaps = [.. group.HoldRemaps.Select(holdRemap => holdRemap with { IsActive = false })] })] };
+
+        lookup.Pass(inactive, At(10, 10), forget: false);
+        Assert.False(lookup.WatchesHoldRemaps);
+        Assert.False(lookup.Watches);
+        Assert.True(lookup.HoldPlan.IsEmpty);
+        Assert.Equal(0, _windows.ForegroundKeyLookups);
+
+        lookup.Pass(blender, At(10, 10), forget: false);
+        var first = lookup.HoldPlan;
+        Assert.False(first.IsEmpty);
+
+        lookup.Pass(BlenderHold.Document(), At(10, 10), forget: false);
+        Assert.NotSame(first, lookup.HoldPlan);
+        Assert.False(lookup.HoldPlan.IsEmpty);
+    }
+
     private IgnoreLookup NewLookup() => new(_windows, HostPlatform.Windows, _clock, TimeSpan.FromMilliseconds(100));
 }

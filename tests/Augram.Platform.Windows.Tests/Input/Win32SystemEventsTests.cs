@@ -29,8 +29,17 @@ public sealed class Win32SystemEventsTests
     }
 
     [Fact]
+    public void MapsTheForegroundWinEvent_AndNothingElse()
+    {
+        Assert.Equal(SystemEventKind.ForegroundChanged, Win32SystemEvents.MapWinEvent(0x0003));
+        Assert.Null(Win32SystemEvents.MapWinEvent(0x8005));
+        Assert.Null(Win32SystemEvents.MapWinEvent(0x0016));
+    }
+
+    [Fact]
     public void SubscribesAndUnsubscribesWithoutError()
     {
+        // The foreground hook installs on this thread, which never pumps: nothing is delivered, and Dispose unhooks it.
         using var events = new Win32SystemEvents();
         events.Occurred += (_, _) => { };
     }

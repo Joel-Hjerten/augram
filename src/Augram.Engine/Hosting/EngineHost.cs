@@ -77,7 +77,7 @@ public sealed partial class EngineHost : IDisposable
         _executor = ports.Mapping is null ? null : new CommandExecutor(ports, options);
         if (ports.Mapping is not null)
         {
-            _ignoreWatch = new IgnoreListWatch(_gate, ports, ports.Mapping, OnPauseChanged);
+            _ignoreWatch = new IgnoreListWatch(_gate, ports, ports.Mapping, OnPauseChanged, options.FocusPollInterval);
             _gate.Attach(_ignoreWatch);
         }
 

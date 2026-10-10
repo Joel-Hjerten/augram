@@ -174,6 +174,23 @@ public sealed class HookHealthMonitorTests
     }
 
     [Fact]
+    public void ForegroundChanges_AreNotHookEvents_NothingLoggedNoReset()
+    {
+        var source = new FakeInputSource();
+        var log = new ListEventLog();
+        var system = new FakeSystemEvents();
+        using var monitor = new HookHealthMonitor(source, new FakeClock(), log, system: system, pollInterval: LongPoll);
+        var resets = new List<string>();
+        monitor.ResetRequested += (_, reason) => resets.Add(reason);
+        monitor.Start((in RawInput _) => false);
+
+        system.Raise(SystemEventKind.ForegroundChanged);
+
+        Assert.Empty(resets);
+        Assert.False(log.Has(LogSources.Hook, "System event"));
+    }
+
+    [Fact]
     public void HealthContributor_ReportsAliveSinceAndReinstalls()
     {
         var source = new FakeInputSource();

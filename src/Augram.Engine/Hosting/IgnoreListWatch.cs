@@ -1,20 +1,26 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
+using Augram.Core.Steps.Hotkey;
 
 namespace Augram.Engine.Hosting;
 
 /// <summary>
 /// Keeps the pointer's answer current for the hook, on its own thread (<c>augram-ignore-watch</c>): the ignore list's (F5;
 /// SP.net's Ignore List) and the anchor plan for the window under the pointer (trigger combinations, per app: Joel
-/// 2026-10-09), so the hook reads one volatile at button-down and never looks a window up (CLAUDE.md invariant 1). The hook
+/// 2026-10-09), so the hook reads one volatile at button-down and never looks a window up (CLAUDE.md invariant 1); and the
+/// foreground's hold remaps (F9), which the hook reads at a hold key's press. The hook
 /// hands it each move's position (<see cref="PointerAt"/>: one volatile write, and one wake per batch of moves); it also
 /// wakes on <see cref="Wake"/> (the mapping or the stroke button changed), on resume, unlock and display changes (every key
-/// is dropped), and every <see cref="FocusPollInterval"/> while anything is watched, to see focus move (focus is asked at
-/// that pace only, however busy the pointer). Each pass (at most one per <see cref="PassInterval"/>, so a busy pointer costs
-/// a bounded number of passes) is an <see cref="IgnoreLookup"/>; its answer goes to <see cref="InputGate.PublishPointer"/>. The pointer entering and leaving an ignored app is logged at Debug, a pause
-/// starting and stopping at Info, and a pause (or its app's name) changing raises the callback the host turns into
+/// is dropped), on a new foreground the platform reports (<see cref="SystemEventKind.ForegroundChanged"/>: focus is checked at
+/// once, plan 0002 decision 5), and every <see cref="FocusPollInterval"/> while anything is watched, to see focus move (focus
+/// is asked at that pace only, however busy the pointer; the poll stays as the backstop). Each pass (at most one per
+/// <see cref="PassInterval"/>, so a busy pointer costs a bounded number of passes) is an <see cref="IgnoreLookup"/>; its
+/// answers go to <see cref="InputGate.PublishPointer"/> and <see cref="InputGate.PublishForeground"/>. The pointer entering
+/// and leaving an ignored app is logged at Debug, a pause starting and stopping at Info, the foreground's hold remaps changing
+/// at Debug, and a pause (or its app's name) changing raises the callback the host turns into
 /// <c>EngineHost.PauseChanged</c>. Present only when the engine has a mapping.
 /// </summary>
 internal sealed class IgnoreListWatch : IDisposable
@@ -43,16 +49,25 @@ internal sealed class IgnoreListWatch : IDisposable
     private long _pointer = IgnoreLookup.NoPointer;
     private int _wakePending;
     private int _forget;
+    private int _focusNow;
     private int _watchesPointer;
     private int _started;
     private volatile bool _stopping;
     private IgnoredApp? _over;
     private IgnoredApp? _pausedBy;
     private bool _failing;
-    private long _focusCheckedAt = -(long)FocusPollInterval.TotalMilliseconds;
+    private readonly long _focusPollMs;
+    private long _focusCheckedAt;
 
-    public IgnoreListWatch(InputGate gate, EnginePorts ports, Func<MappingDocument> mapping, Action<IgnoredApp?> pauseChanged)
+    /// <param name="gate">Where the answers go.</param>
+    /// <param name="ports">The window system, clock, log, cursor probe and system events.</param>
+    /// <param name="mapping">The current mapping snapshot.</param>
+    /// <param name="pauseChanged">Called on this thread when a "disable while focused" pause starts, stops or renames.</param>
+    /// <param name="focusPollInterval">How often focus is asked while anything is watched; null for <see cref="FocusPollInterval"/>. Tests lengthen it to prove the platform's foreground notification alone updates the answer.</param>
+    public IgnoreListWatch(InputGate gate, EnginePorts ports, Func<MappingDocument> mapping, Action<IgnoredApp?> pauseChanged, TimeSpan? focusPollInterval = null)
     {
+        _focusPollMs = (long)(focusPollInterval ?? FocusPollInterval).TotalMilliseconds;
+        _focusCheckedAt = -_focusPollMs;
         _gate = gate;
         _mapping = mapping;
         _log = ports.Log;
@@ -132,6 +147,7 @@ internal sealed class IgnoreListWatch : IDisposable
         }
 
         _gate.PublishPointer(0, AnchorPlan.None);
+        _gate.PublishForeground(HoldRemapPlan.Empty);
         Volatile.Write(ref _over, null);
         if (Interlocked.Exchange(ref _pausedBy, null) is not null)
         {
@@ -164,13 +180,13 @@ internal sealed class IgnoreListWatch : IDisposable
 
     private int WaitMs()
     {
-        if (!_lookup.WatchesPointer)
+        if (!_lookup.Watches)
         {
             return Timeout.Infinite;
         }
 
         // Until the next focus check is due, or the put-off pointer lookup.
-        var poll = (long)FocusPollInterval.TotalMilliseconds;
+        var poll = _focusPollMs;
         var wait = Math.Clamp(poll - (Environment.TickCount64 - _focusCheckedAt), 0, poll);
         if (_lookup.RetryAtMs is { } retryAt)
         {
@@ -189,10 +205,12 @@ internal sealed class IgnoreListWatch : IDisposable
             pointer = IgnoreLookup.Pack(x, y);
         }
 
-        // Focus is asked at the polling pace, not on every pass a busy pointer causes (on macOS each ask is an Accessibility call).
+        // Focus is asked at the polling pace, not on every pass a busy pointer causes (on macOS each ask is an Accessibility
+        // call), and at once when the platform reported a new foreground.
         var now = Environment.TickCount64;
-        var focusDue = now - _focusCheckedAt >= (long)FocusPollInterval.TotalMilliseconds;
+        var focusDue = Interlocked.Exchange(ref _focusNow, 0) != 0 || now - _focusCheckedAt >= _focusPollMs;
         var watched = _lookup.WatchesPointer;
+        var holdWatched = _lookup.WatchesHoldRemaps;
         try
         {
             _lookup.Pass(_mapping(), pointer, Interlocked.Exchange(ref _forget, 0) != 0, focusDue, _gate.StrokeButton);
@@ -220,7 +238,24 @@ internal sealed class IgnoreListWatch : IDisposable
             _log.Info(LogSources.Ignore, _lookup.WatchesPointer ? "Ignore list watched" : "Ignore list not watched", ("focus", _lookup.WatchesFocus), ("anchors", _lookup.WatchesAnchors));
         }
 
+        if (holdWatched != _lookup.WatchesHoldRemaps)
+        {
+            _log.Info(LogSources.Hold, _lookup.WatchesHoldRemaps ? "Hold remaps watched" : "Hold remaps not watched");
+        }
+
         Publish(_lookup.Over, _lookup.PausedBy, _lookup.Plan);
+        PublishForeground(_lookup.HoldPlan);
+    }
+
+    /// <summary>The foreground's hold remaps for the hook; a change of app group (or of its hold keys) is logged at Debug.</summary>
+    private void PublishForeground(HoldRemapPlan plan)
+    {
+        var last = _gate.ForegroundPlan;
+        _gate.PublishForeground(plan);
+        if (!ReferenceEquals(plan, last) && _log.IsEnabled(EventLevel.Debug))
+        {
+            _log.Debug(LogSources.Hold, "Foreground hold remaps", ("app", plan.GroupName), ("keys", string.Join(", ", plan.Entries.Select(entry => HotkeyText.KeyName(entry.HoldKey)))));
+        }
     }
 
     private void Publish(IgnoredApp? over, IgnoredApp? pausedBy, AnchorPlan plan)
@@ -263,11 +298,18 @@ internal sealed class IgnoreListWatch : IDisposable
         }
     }
 
+    /// <summary>Whatever thread the platform raises on (the UI thread on both today): a flag and a wake, nothing else.</summary>
     private void OnSystemEvent(object? sender, SystemEventKind kind)
     {
         if (kind is SystemEventKind.SessionUnlocked or SystemEventKind.Resumed or SystemEventKind.DisplayChanged)
         {
             Volatile.Write(ref _forget, 1);
+            Wake();
+        }
+        else if (kind == SystemEventKind.ForegroundChanged)
+        {
+            // Plan 0002 decision 5: a hold key pressed right after switching into an app must already belong to it.
+            Volatile.Write(ref _focusNow, 1);
             Wake();
         }
     }

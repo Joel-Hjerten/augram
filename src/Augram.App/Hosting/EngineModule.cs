@@ -244,13 +244,16 @@ public static class EngineModule
 
     /// <summary>
     /// The macOS adapters: Accessibility-API window system and operations (close, minimize, maximize/restore so far), a
-    /// verified click-through overlay (the trail's own panel, <see cref="MacTrailPanel"/>), the cursor probe. Start at login and
-    /// system events have no Mac adapter yet.
+    /// verified click-through overlay (the trail's own panel, <see cref="MacTrailPanel"/>), the cursor probe, and the system
+    /// events (<see cref="MacSystemEvents"/>: a new frontmost app for hold remaps, sleep and wake, lock and unlock; resolved
+    /// with the host in <see cref="Start"/>, on the main thread, where its observers must be registered). Start at login has
+    /// no Mac adapter yet.
     /// </summary>
     [SupportedOSPlatform("macos")]
     private static void RegisterMacOS(IServiceCollection services)
     {
         services.AddSingleton<ICursorProbe, MacCursorProbe>();
+        services.AddSingleton<ISystemEvents, MacSystemEvents>();
         // The trail is the panel; no IOverlayWindowStyle, so the Avalonia trail window cannot be built here by mistake.
         services.AddSingleton<ITrailSurface, MacTrailPanel>();
         services.AddSingleton<IStartupRegistration, NullStartupRegistration>();

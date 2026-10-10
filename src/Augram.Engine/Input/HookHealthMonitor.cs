@@ -266,6 +266,12 @@ public sealed class HookHealthMonitor : IDisposable
 
     private void OnSystemEvent(object? sender, SystemEventKind kind)
     {
+        if (kind == SystemEventKind.ForegroundChanged)
+        {
+            // Focus moving is the ignore-list watch's business (hold remaps); it says nothing about the hook and comes often.
+            return;
+        }
+
         _log.Info(LogSources.Hook, "System event", ("kind", kind));
         Volatile.Write(ref _lastEventMs, _clock.MonotonicMs);
         if (kind is SystemEventKind.Resumed or SystemEventKind.SessionUnlocked)

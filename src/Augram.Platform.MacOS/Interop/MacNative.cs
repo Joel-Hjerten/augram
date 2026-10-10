@@ -250,6 +250,10 @@ internal static partial class MacNative
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial void SendVoid(nint receiver, nint selector);
 
+    /// <summary><c>-[NSNotificationCenter addObserver:selector:name:object:]</c> and the like: four object arguments.</summary>
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial void SendVoid(nint receiver, nint selector, nint first, nint second, nint third, nint fourth);
+
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial void SendVoid(nint receiver, nint selector, CGSize size);
 

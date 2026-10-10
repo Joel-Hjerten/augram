@@ -38,6 +38,8 @@ internal static partial class NativeMethods
     public const uint GwOwner = 4;
     public const uint WmSysCommand = 0x0112;
     public const nuint ScClose = 0xF060;
+    public const uint EventSystemForeground = 0x0003;
+    public const uint WinEventOutOfContext = 0x0000;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Point
@@ -212,6 +214,17 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", EntryPoint = "PostMessageW", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool PostMessage(nint hwnd, uint message, nuint wParam, nint lParam);
+
+    /// <summary>
+    /// A WinEvent hook (the foreground for hold remaps). Out of context, the callback runs on the calling thread while it pumps
+    /// messages; a static <c>UnmanagedCallersOnly</c> function pointer, so there is no delegate for the GC to collect.
+    /// </summary>
+    [LibraryImport("user32.dll")]
+    public static unsafe partial nint SetWinEventHook(uint eventMin, uint eventMax, nint module, delegate* unmanaged<nint, uint, nint, int, int, uint, uint, void> callback, uint processId, uint threadId, uint flags);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool UnhookWinEvent(nint hook);
 
     // The clipboard (Clear clipboard step). OpenClipboard(0) needs no window; it fails while another app holds the clipboard.
     [LibraryImport("user32.dll", SetLastError = true)]

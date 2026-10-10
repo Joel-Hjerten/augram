@@ -116,6 +116,21 @@ public sealed class HoldRemapPlanTests
         Assert.True(HoldRemapPlan.For(document, null, HostPlatform.Windows).IsEmpty);
     }
 
+    [Fact]
+    public void TheFocusIsWorthWatching_OnlyWhileSomeActiveHoldRemapCanMatchHere()
+    {
+        var space = NewSpace();
+        var blender = Group(space);
+
+        Assert.True(HoldRemapPlan.WatchesFocus(Document(blender), HostPlatform.Windows));
+        Assert.True(HoldRemapPlan.WatchesFocus(Document(blender), HostPlatform.MacOS), "Blender.exe has a known Mac name");
+        Assert.False(HoldRemapPlan.WatchesFocus(Document(blender with { IsActive = false }), HostPlatform.Windows));
+        Assert.False(HoldRemapPlan.WatchesFocus(Document(blender with { HoldRemaps = [space with { IsActive = false }] }), HostPlatform.Windows));
+        Assert.False(HoldRemapPlan.WatchesFocus(Document(blender with { HoldRemaps = [space with { UseOn = PlatformSet.Windows }] }), HostPlatform.MacOS));
+        Assert.False(HoldRemapPlan.WatchesFocus(Document(blender with { Matcher = ByProcess("nothing-known.exe") }), HostPlatform.MacOS), "no name to match on a Mac");
+        Assert.False(HoldRemapPlan.WatchesFocus(Document(NewGroup("Chrome", ByProcess("chrome.exe"))), HostPlatform.Windows));
+    }
+
     [Theory]
     [InlineData(KeyCode.None)]
     [InlineData(KeyCode.A)]

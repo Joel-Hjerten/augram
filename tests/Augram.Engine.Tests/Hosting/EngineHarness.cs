@@ -50,6 +50,7 @@ internal sealed class EngineHarness : IDisposable
                 Trail = Trail,
                 RecognitionLog = RecognitionLog,
                 Health = Health,
+                SystemEvents = SystemEvents,
                 Windows = Windows,
                 WindowOperations = WindowOperations,
                 Mapping = mapping is null ? null : () => Mapping!,
@@ -86,6 +87,9 @@ internal sealed class EngineHarness : IDisposable
 
     public FakeWindowOperations WindowOperations { get; } = new();
 
+    /// <summary>Session, power and foreground events a test raises (the watch and the hook health monitor listen).</summary>
+    public FakeSystemEvents SystemEvents { get; } = new();
+
     public EngineHost Host { get; }
 
     public IReadOnlyList<Gesture> Gestures { get; set; }
@@ -118,6 +122,11 @@ internal sealed class EngineHarness : IDisposable
     public void Move(int x, int y, long t) => Source.Deliver(RawInput.Move(x, y, t));
 
     public bool Wheel(WheelDirection direction, int x, int y, long t) => Source.Deliver(RawInput.WheelTick(direction, x, y, t));
+
+    /// <summary>A key going down (again, for an auto-repeat); returns the hook's decision.</summary>
+    public bool KeyDown(KeyCode key, long t, KeyModifiers modifiers = KeyModifiers.None) => Source.Deliver(RawInput.KeyDown(key, t, modifiers));
+
+    public bool KeyUp(KeyCode key, long t, KeyModifiers modifiers = KeyModifiers.None) => Source.Deliver(RawInput.KeyUp(key, t, modifiers));
 
     /// <summary>A press at (100,100), moves in a straight line by (dx, dy) in 20 steps, release; returns the press and release decisions.</summary>
     public (bool Down, bool Up) Stroke(int dx, int dy, long startMs = 0)

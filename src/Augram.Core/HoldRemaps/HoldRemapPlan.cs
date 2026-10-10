@@ -50,6 +50,22 @@ public sealed class HoldRemapPlan
     }
 
     /// <summary>
+    /// True when some app group could give the foreground a non-empty plan on <paramref name="platform"/>: an active group used
+    /// here, whose matcher can match a window here (<see cref="IgnoreList.CanMatchOn"/>), with an active hold remap used here
+    /// and a hold key chosen. The engine watches focus for hold remaps only then.
+    /// </summary>
+    public static bool WatchesFocus(MappingDocument mapping, HostPlatform platform)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        return mapping.Groups.Any(group => !group.IsGlobal
+            && group.IsActive
+            && group.IsUsedOn(platform)
+            && group.Matcher is { } matcher
+            && IgnoreList.CanMatchOn(matcher, platform)
+            && group.HoldRemaps.Any(holdRemap => holdRemap.IsActive && holdRemap.IsUsedOn(platform) && holdRemap.HoldKey != KeyCode.None));
+    }
+
+    /// <summary>
     /// The plan for the app group whose window is <paramref name="foreground"/> (F9: the hold key belongs to the app in front
     /// when it goes down, plan 0002 decision 8): the first active app group that claims it, as the resolver finds it.
     /// </summary>
