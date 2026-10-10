@@ -176,7 +176,7 @@ public sealed class ConfigSession : IDisposable
                 Try(() => store.AddIgnored(app), $"Ignored app '{app.Name}' ({app.Id})");
             }
 
-            RestoreNotIn(store, mapping);
+            RestoreIgnoredReferences(store, mapping);
             store.ClearHistory();
             return store;
         }
@@ -212,17 +212,26 @@ public sealed class ConfigSession : IDisposable
     }
 
     /// <summary>
-    /// The "Not in" of every command that loaded (plan 0004): it names Ignored › Per command entries, which load after every
-    /// group, so the store dropped those ids then. Now that the ignored apps are in, each list is put back on the command loaded
-    /// from that group; an entry that did not load stays out.
+    /// The "Not in" (plan 0004) and "Also in" (plan 0005) of every command that loaded: they name ignored apps (Ignored › Per
+    /// command entries, plain Exclusions › Global entries), which load after every group, so the store dropped those ids then.
+    /// Now that the ignored apps are in, both lists are put back on the command loaded from that group; an entry that did not
+    /// load stays out.
     /// </summary>
-    private void RestoreNotIn(MappingStore store, MappingDocument mapping)
+    private void RestoreIgnoredReferences(MappingStore store, MappingDocument mapping)
     {
-        foreach (var (group, command) in mapping.AllCommands().Where(pair => pair.Command.NotIn.Count > 0))
+        foreach (var (group, command) in mapping.AllCommands().Where(pair => pair.Command.NotIn.Count > 0 || pair.Command.AlsoIn.Count > 0))
         {
             if (store.FindCommand(command.Id) is { } loaded && loaded.Group.Id == group.Id)
             {
-                Try(() => store.UpdateCommand(group.Id, loaded.Command with { NotIn = command.NotIn }), $"The 'Not in' of command '{command.Name}' ({command.Id}) in '{group.Name}'");
+                var lists = (command.NotIn.Count > 0, command.AlsoIn.Count > 0) switch
+                {
+                    (true, true) => "'Not in' and 'Also in'",
+                    (true, false) => "'Not in'",
+                    _ => "'Also in'",
+                };
+                Try(
+                    () => store.UpdateCommand(group.Id, loaded.Command with { NotIn = command.NotIn, AlsoIn = command.AlsoIn }),
+                    $"The {lists} of command '{command.Name}' ({command.Id}) in '{group.Name}'");
             }
         }
     }

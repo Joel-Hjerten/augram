@@ -59,6 +59,12 @@ public static class ConfigMigrations
                 // The bump exists so that a version 5 build refuses a version 6 file instead of reading a Per command entry as an
                 // ignore of the whole app.
                 break;
+            case 6:
+                // 6 → 7 (plan 0005, 2026-10-10): the button trigger { "button": … } and a command's alsoIn are new and optional;
+                // absent means no button trigger and no "Also in", as in version 6. The bump exists so that a version 6 build
+                // refuses a version 7 file by its version, rather than failing at its first button trigger or ignoring a command's
+                // "Also in" and saving the file back without it.
+                break;
             default:
                 throw new ConfigFormatException($"No migration from schema version {version} to {version + 1} exists.");
         }

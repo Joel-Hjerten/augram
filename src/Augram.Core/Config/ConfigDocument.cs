@@ -25,8 +25,12 @@ public sealed record ConfigDocument
     /// 6 (2026-10-10, plan 0004 revised): Ignored › Per command entries (an ignored app's <c>"scope": "PerCommand"</c>), and a
     /// command's <c>notIn</c> names them instead of app groups; a version 5 build would read a Per command entry as an ignore of
     /// the whole app and switch Augram off over it, and its "Not in" ids would name no app group, so it must refuse the file.
+    /// 7 (2026-10-10, plan 0005): button triggers (<c>{ "button": "Left", "hold": … }</c>, a command's and an own version's) and a
+    /// command's "Also in" (<c>alsoIn</c>, the Exclusions › Global entries it still works over); a version 6 build would refuse
+    /// the whole file at the first button trigger, and would ignore <c>alsoIn</c> and save the file back without it, so it must
+    /// refuse the file.
     /// </summary>
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public ConfigDocument(int schemaVersion = CurrentSchemaVersion, Settings? settings = null, IReadOnlyList<Gesture>? gestures = null)
     {

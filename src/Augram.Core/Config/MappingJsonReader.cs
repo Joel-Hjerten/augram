@@ -18,8 +18,9 @@ namespace Augram.Core.Config;
 /// whose <c>useOn</c> is not a list of strings is used on every platform with a notice, a command
 /// <c>category</c> that is not a Guid string reads as null with a notice, and one that names no category of
 /// its group is left for <see cref="CategoryRules"/> to clear silently. A command's <c>notIn</c> (schema 5; ignored-app ids
-/// since schema 6) likewise: an entry that is not a Guid string is dropped with a notice, one naming no Ignored › Per command
-/// entry is left for <see cref="MappingRules"/>. An ignored app's <c>scope</c> (schema 6) is an enum member like any other.
+/// since schema 6) and <c>alsoIn</c> (schema 7, plan 0005) likewise: an entry that is not a Guid string is dropped with a notice,
+/// one naming no Ignored › Per command entry (for <c>notIn</c>) or no plain Exclusions › Global entry (for <c>alsoIn</c>) is left
+/// for <see cref="MappingRules"/>. An ignored app's <c>scope</c> (schema 6) is an enum member like any other.
 /// Triggers are read in <c>MappingJsonReader.Triggers.cs</c>, hold remaps in <c>MappingJsonReader.HoldRemaps.cs</c>.
 /// </summary>
 internal sealed partial class MappingJsonReader
@@ -157,7 +158,8 @@ internal sealed partial class MappingJsonReader
             ReadCategoryReference(command, where))
         {
             UseOn = ReadUseOn(command, where),
-            NotIn = ReadNotIn(command, where),
+            NotIn = ReadIgnoredIds(command, "notIn", where),
+            AlsoIn = ReadIgnoredIds(command, "alsoIn", where),
             OwnVersion = ReadOwnVersion(command, where),
             HoldRemapId = ReadHoldRemapReference(command, where),
         };
@@ -208,14 +210,17 @@ internal sealed partial class MappingJsonReader
     }
 
     /// <summary>
-    /// A command's "Not in" (plan 0004; schema 6: the ids of Ignored › Per command entries): missing or null is none; not an
-    /// array of strings is a format error; an entry that is not a Guid string is dropped with a notice. Ids naming no Per command
-    /// entry (an app group's, from a schema 5 file, or a deleted entry's) are left for <see cref="MappingRules"/>, which drops
-    /// them silently (and the whole list under a hold remap).
+    /// A command's list of ignored-app ids under <paramref name="name"/>: its "Not in" (<c>notIn</c>, plan 0004; schema 6: the
+    /// ids of Ignored › Per command entries) or its "Also in" (<c>alsoIn</c>, plan 0005, schema 7: the ids of Exclusions › Global
+    /// entries). Missing or null is none; not an array of strings is a format error; an entry that is not a Guid string is
+    /// dropped with a notice. Ids naming no entry of the right kind (an app group's, from a schema 5 <c>notIn</c>, a deleted
+    /// entry's, one in the other list or, for <c>alsoIn</c>, one that disables Augram while focused) are left for
+    /// <see cref="MappingRules"/>, which drops them silently (and the whole list under a hold remap, and an "Also in" on a command
+    /// whose trigger holds the stroke button on both platforms).
     /// </summary>
-    private List<GroupId> ReadNotIn(JsonObject command, string where)
+    private List<GroupId> ReadIgnoredIds(JsonObject command, string name, string where)
     {
-        var entries = JsonMembers.OptionalStrings(command, "notIn", where);
+        var entries = JsonMembers.OptionalStrings(command, name, where);
         var apps = new List<GroupId>(entries.Count);
         foreach (var entry in entries)
         {
@@ -225,7 +230,7 @@ internal sealed partial class MappingJsonReader
             }
             else
             {
-                _notice?.Invoke($"An entry of 'notIn' of {where} dropped: \"{entry}\" is not a Guid string.");
+                _notice?.Invoke($"An entry of '{name}' of {where} dropped: \"{entry}\" is not a Guid string.");
             }
         }
 

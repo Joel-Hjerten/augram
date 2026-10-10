@@ -12,8 +12,8 @@ namespace Augram.Core.Transfer;
 /// its app groups whole (header, categories, hold remaps, commands with their own versions), its ignored apps, and the
 /// gestures those commands' triggers name, original and own version, in library order. A selection without Global still
 /// writes Global, as an empty shell, because every Augram file has one; an import ignores the shell. A selection also takes
-/// the Ignored › Per command entries its commands' "Not in" names (plan 0004), selected or not: the file is validated like
-/// any mapping, and without them it would drop those ticks.
+/// the Ignored › Per command entries its commands' "Not in" names (plan 0004) and the Exclusions › Global entries their "Also
+/// in" names (plan 0005), selected or not: the file is validated like any mapping, and without them it would drop those ticks.
 /// </summary>
 public static class Exporter
 {
@@ -59,7 +59,10 @@ public static class Exporter
         }
 
         var notIn = groups.SelectMany(group => group.Commands).SelectMany(command => command.NotIn).ToHashSet();
-        var ignored = mapping.Ignored.Where(app => selection.Ignored.Contains(app.Id) || (app.IsPerCommand && notIn.Contains(app.Id))).ToArray();
+        var alsoIn = groups.SelectMany(group => group.Commands).SelectMany(command => command.AlsoIn).ToHashSet();
+        var ignored = mapping.Ignored
+            .Where(app => selection.Ignored.Contains(app.Id) || (app.IsPerCommand ? notIn.Contains(app.Id) : alsoIn.Contains(app.Id)))
+            .ToArray();
         var used = groups.SelectMany(group => group.Commands).SelectMany(command => command.GestureIds()).ToHashSet();
         var gestures = current.Gestures.Where(gesture => used.Contains(gesture.Id)).ToArray();
         return new TransferFile(gestures, MappingRules.ValidDocument(new MappingDocument(groups, ignored)));

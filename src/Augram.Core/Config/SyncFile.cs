@@ -45,8 +45,12 @@ public sealed record SyncFile(
     /// 13 (2026-10-10, plan 0004 revised): Ignored › Per command entries (an ignored app item's <c>"scope": "PerCommand"</c>), and
     /// a command item's <c>notIn</c> names them instead of app groups; a format 12 build would read a Per command entry as an
     /// ignore of the whole app and switch Augram off over it, and would drop every "Not in" naming one (the config schema went to 6).
+    /// 14 (2026-10-10, plan 0005): button triggers (<c>{ "button": "Left", "hold": … }</c>, in a command item and an own-steps
+    /// item's trigger) and a command item's <c>alsoIn</c> (Exclusions › Global entries); a format 13 build could not read a file
+    /// holding a button trigger and would skip it, and would drop every "Also in" and publish the commands without it (the
+    /// config schema went to 7).
     /// </summary>
-    public const int CurrentFormatVersion = 13;
+    public const int CurrentFormatVersion = 14;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;
