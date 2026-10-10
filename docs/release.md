@@ -123,7 +123,10 @@ Dock icon, no app menu, no Cmd+Tab entry): Joel's decision.
 
 The config folder is the same for the installed app and for dev builds, so both read and write Joel's real gestures and
 commands, and an uninstall leaves it alone (delete the folder by hand for a clean slate). Start at login stores the
-running exe's path (`%LocalAppData%\Augram\current\Augram.App.exe` when installed), which stays the same across updates.
+running exe's path followed by `--hidden` (`"%LocalAppData%\Augram\current\Augram.App.exe" --hidden` when installed),
+which stays the same across updates; on macOS it registers `Augram.app` itself as a login item (`SMAppService`), so the
+app should stay where it was installed (Applications). Both start Augram in the tray and menu bar with no window (App
+README, "Hidden launch").
 
 **SmartScreen.** The Windows installer is not code-signed yet, so a downloaded `Augram-win-Setup.exe` gets "Windows
 protected your PC" with "Unknown publisher": More info › Run anyway. With Smart App Control on, Windows may refuse it
@@ -155,5 +158,7 @@ grant (session handoff §8a); the bundle needs its own.
   output folder so `vpk pack` also writes a small delta package, and `package.mjs` should stop emptying
   `artifacts/releases`. Open for Joel: when to check, ask or silent, prereleases or not.
 - **Windows code signing** (above).
-- **Start at login after an uninstall.** The Run-key entry stays behind pointing at a deleted exe (Windows skips it).
-  Velopack's uninstall hook (`VelopackApp.Build().OnBeforeUninstallFastCallback(...)`) could remove it.
+- **Start at login after an uninstall.** The Run-key entry (and Task Manager's StartupApproved record, if it was ever
+  switched) stays behind pointing at a deleted exe (Windows skips it). Velopack's uninstall hook
+  (`VelopackApp.Build().OnBeforeUninstallFastCallback(...)`) could remove it. On macOS, untick Start at login before
+  deleting `Augram.app`, or remove it under System Settings › General › Login Items.

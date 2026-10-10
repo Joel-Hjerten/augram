@@ -21,7 +21,6 @@ namespace Augram.Platform.MacOS.Input;
 [SupportedOSPlatform("macos")]
 public sealed unsafe class MacSystemEvents : ISystemEvents, IDisposable
 {
-    private const string AppKitLibrary = "/System/Library/Frameworks/AppKit.framework/AppKit";
     private const string ObserverClassName = "AugramSystemEventsObserver";
 
     private static readonly ConcurrentDictionary<nint, MacSystemEvents> ByObserver = new();
@@ -95,21 +94,10 @@ public sealed unsafe class MacSystemEvents : ISystemEvents, IDisposable
         _centers.Add(center);
         foreach (var symbol in symbols)
         {
-            var name = NotificationName(symbol);
+            var name = ObjC.AppKitString(symbol);
             _byName[Cf.ReadString(name) ?? symbol] = MacWorkspaceEvents.Map(symbol)!.Value;
             MacNative.SendVoid(center, ObjC.Selector("addObserver:selector:name:object:"), observer, ObjC.Selector("augramNotified:"), name, 0);
         }
-    }
-
-    /// <summary>AppKit's exported <c>NSNotificationName</c> constant when it has one, else a constant string with the same text (the screen-lock names have no symbol).</summary>
-    private static nint NotificationName(string symbol)
-    {
-        if (NativeLibrary.TryLoad(AppKitLibrary, out var appKit) && NativeLibrary.TryGetExport(appKit, symbol, out var address) && Marshal.ReadIntPtr(address) is var value and not 0)
-        {
-            return value;
-        }
-
-        return Cf.Constant(symbol);
     }
 
     private static nint RegisterObserverClass()

@@ -18,6 +18,7 @@ using Augram.Platform.MacOS.Display;
 using Augram.Platform.MacOS.Input;
 using Augram.Platform.MacOS.Launch;
 using Augram.Platform.MacOS.Overlay;
+using Augram.Platform.MacOS.Startup;
 using Augram.Platform.MacOS.WindowSystem;
 using Augram.Platform.Windows.Apps;
 using Augram.Platform.Windows.Clipboard;
@@ -235,7 +236,8 @@ public static class EngineModule
         services.AddSingleton<ICursorProbe, Win32CursorProbe>();
         services.AddSingleton<ISystemEvents, Win32SystemEvents>();
         services.AddSingleton<IOverlayWindowStyle, OverlayWindowStyle>();
-        services.AddSingleton<IStartupRegistration>(_ => new RunKeyStartupRegistration());
+        // The Run entry carries --hidden, so a login launch starts in the tray (LaunchVisibility).
+        services.AddSingleton<IStartupRegistration>(_ => new RunKeyStartupRegistration(LaunchVisibility.HiddenArgument));
         // Constructing these touches no window and installs nothing; every call they make runs on the engine worker.
         services.AddSingleton<IWindowSystem>(sp => new Win32WindowSystem(sp.GetRequiredService<IEventLog>()));
         services.AddSingleton<IWindowOperations>(_ => new Win32WindowOperations());
@@ -249,8 +251,8 @@ public static class EngineModule
     /// The macOS adapters: Accessibility-API window system and operations (close, minimize, maximize/restore so far), a
     /// verified click-through overlay (the trail's own panel, <see cref="MacTrailPanel"/>), the cursor probe, and the system
     /// events (<see cref="MacSystemEvents"/>: a new frontmost app for hold remaps, sleep and wake, lock and unlock; resolved
-    /// with the host in <see cref="Start"/>, on the main thread, where its observers must be registered). Start at login has
-    /// no Mac adapter yet.
+    /// with the host in <see cref="Start"/>, on the main thread, where its observers must be registered), and start at login as
+    /// a login item (<see cref="MacLoginItemRegistration"/>, SMAppService).
     /// </summary>
     [SupportedOSPlatform("macos")]
     private static void RegisterMacOS(IServiceCollection services)
@@ -259,7 +261,7 @@ public static class EngineModule
         services.AddSingleton<ISystemEvents, MacSystemEvents>();
         // The trail is the panel; no IOverlayWindowStyle, so the Avalonia trail window cannot be built here by mistake.
         services.AddSingleton<ITrailSurface, MacTrailPanel>();
-        services.AddSingleton<IStartupRegistration, NullStartupRegistration>();
+        services.AddSingleton<IStartupRegistration, MacLoginItemRegistration>();
         services.AddSingleton<IWindowSystem, MacWindowSystem>();
         services.AddSingleton<IWindowOperations, MacWindowOperations>();
         services.AddSingleton<IProcessLauncher>(_ => new MacProcessLauncher());

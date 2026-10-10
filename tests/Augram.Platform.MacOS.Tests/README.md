@@ -8,4 +8,6 @@ AUGRAM_MAC_LIVE=1 dotnet test tests/Augram.Platform.MacOS.Tests
 
 `Launch/` tests the process launcher the same way on every OS: `MacStartInfo` (what would be started for a link, an executable, an app, a document) and `MacProcessLauncher` over a fake runner. No test starts a process, and there is no live launcher test.
 
+`Startup/` tests `MacLoginItems` on every OS: what each `SMAppService` status means, which statuses can be unregistered, and which launch Apple event is a login-item launch. **No test calls `MacLoginItemRegistration` or `MacLaunchEvent`**: a test must never register a login item (CI runs on a clean Mac), and the launch event exists only at a real launch; both are checked by Joel on his Mac (`src/Augram.Platform.MacOS/README.md`, "Start at login on macOS").
+
 **May reference:** `Augram.Platform.MacOS` (internals via `InternalsVisibleTo`), `Augram.Core`, xunit.

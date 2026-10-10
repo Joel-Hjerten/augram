@@ -13,13 +13,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Augram.App;
 
-public sealed class App : Application
+public sealed partial class App : Application
 {
     private const string LogSource = "app";
     private readonly IServiceProvider _services;
     private readonly InstanceStartup? _startup;
     private AppTray? _tray;
     private AppHealthContributor? _health;
+
+    /// <summary>macOS: the launch event, observed from before the main loop (<see cref="ObserveLaunchEvent"/>); null elsewhere.</summary>
+    private IDisposable? _launchEvent;
 
     /// <summary>The headless tests' app. Keeps the one-argument public signature the XAML runtime loader looks for (AVLN3001).</summary>
     public App(IServiceProvider services)
@@ -48,13 +51,18 @@ public sealed class App : Application
         {
             // Closing the window hides it (F7); only Quit ends the process. Also keeps the process alive while a take-over dialog closes.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            if (OperatingSystem.IsMacOS())
+            {
+                ObserveLaunchEvent();
+            }
+
             if (_startup is { NeedsChoice: true } startup)
             {
                 ChooseThenStart(desktop, startup);
             }
             else
             {
-                StartDesktop(desktop);
+                StartDesktop(desktop, lifetimeShowsWindow: true);
             }
         }
 
@@ -70,9 +78,8 @@ public sealed class App : Application
     {
         if (await startup.ChooseAsync(_services.GetRequiredService<ITakeOverPresenter>()).ConfigureAwait(true))
         {
-            StartDesktop(desktop);
-            // The lifetime showed MainWindow when it started, while it was still null: show it now, as a plain launch would.
-            ShowMainWindow();
+            // The lifetime showed MainWindow when it started, while it was still null: this launch shows it itself (unless hidden).
+            StartDesktop(desktop, lifetimeShowsWindow: false);
         }
         else
         {
@@ -80,16 +87,24 @@ public sealed class App : Application
         }
     }
 
-    private void StartDesktop(IClassicDesktopStyleApplicationLifetime desktop)
+    /// <param name="desktop">The lifetime.</param>
+    /// <param name="lifetimeShowsWindow">True while the lifetime's own show of MainWindow is still ahead (a plain launch); false after a take-over choice.</param>
+    private void StartDesktop(IClassicDesktopStyleApplicationLifetime desktop, bool lifetimeShowsWindow)
     {
         var log = _services.GetRequiredService<IEventLog>();
         var app = _services.GetRequiredService<AppInfo>();
+        var args = desktop.Args ?? [];
+        // Windows: known now. macOS: --hidden is; a login-item launch only once launching has finished (LaunchVisibility.AtStart).
+        var launch = LaunchVisibility.AtStart(args, waitsForLaunchEvent: _launchEvent is not null);
         log.Info(LogSource, "App started",
+        [
             ("version", app.Version),
             ("commit", app.Commit),
             ("channel", app.Channel),
             ("theme", ThemeSelector.Active),
-            ("os", Environment.OSVersion.VersionString));
+            ("os", Environment.OSVersion.VersionString),
+            .. launch?.LogProperties ?? [("hidden", "pending")],
+        ]);
         // What happened before the log existed: a take-over of another build, a wait for a silent one.
         _startup?.LogNotes(log);
         _health = _services.GetRequiredService<AppHealthContributor>();
@@ -101,11 +116,12 @@ public sealed class App : Application
 #endif
         // Gesture pictures follow the trail colour; set before the first window builds its glyphs.
         GlyphColourLink.Follow(_services.GetRequiredService<Core.Config.SettingsStore>(), Resources);
-        desktop.MainWindow = _services.GetRequiredService<MainWindow>();
+        var window = _services.GetRequiredService<MainWindow>();
+        HandOver(desktop, window, now: !lifetimeShowsWindow || (_launchEvent is null && launch is { Hidden: false }));
         if (OperatingSystem.IsMacOS())
         {
             ShowOwnDockIconWhenUnbundled();
-            MacDockPresence.Follow(desktop.MainWindow);
+            MacDockPresence.Follow(window);
         }
 
         // The Open app step's "This app (Augram)" opens the window as the tray does.
@@ -124,12 +140,23 @@ public sealed class App : Application
             ListenToOtherLaunches(guard, desktop, log);
         }
 
+        ShowOnReopen(log);
         desktop.Exit += (_, _) =>
         {
             log.Info(LogSource, "App stopping");
             _tray?.Dispose();
             _health?.Dispose();
+            _launchEvent?.Dispose();
         };
+
+        if (OperatingSystem.IsMacOS() && _launchEvent is not null)
+        {
+            WaitForLaunchEvent(args, log);
+        }
+        else
+        {
+            OpenAsLaunched(launch ?? LaunchVisibility.Shown, showsItself: !lifetimeShowsWindow);
+        }
     }
 
     /// <summary>

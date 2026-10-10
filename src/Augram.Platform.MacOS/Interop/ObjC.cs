@@ -12,6 +12,8 @@ namespace Augram.Platform.MacOS.Interop;
 [SupportedOSPlatform("macos")]
 internal static class ObjC
 {
+    private const string AppKitLibrary = "/System/Library/Frameworks/AppKit.framework/AppKit";
+
     private static readonly ConcurrentDictionary<string, nint> Selectors = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, nint> Classes = new(StringComparer.Ordinal);
 
@@ -19,6 +21,20 @@ internal static class ObjC
 
     /// <summary>Zero when the class is not loaded (AppKit is absent in a process without a UI).</summary>
     public static nint Class(string name) => Classes.GetOrAdd(name, MacNative.objc_getClass);
+
+    /// <summary>
+    /// AppKit's exported <c>NSString</c> constant named <paramref name="symbol"/> (a notification name) when it has one, else a
+    /// constant string with the same text (names such as the screen-lock notifications have no symbol; the values are the text).
+    /// </summary>
+    public static nint AppKitString(string symbol)
+    {
+        if (NativeLibrary.TryLoad(AppKitLibrary, out var appKit) && NativeLibrary.TryGetExport(appKit, symbol, out var address) && Marshal.ReadIntPtr(address) is var value and not 0)
+        {
+            return value;
+        }
+
+        return Cf.Constant(symbol);
+    }
 
     public static bool RespondsTo(nint receiver, string selector) =>
         receiver != 0 && MacNative.SendBool(receiver, Selector("respondsToSelector:"), Selector(selector)) != 0;

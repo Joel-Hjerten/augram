@@ -52,6 +52,13 @@ public sealed class InstanceStartup : IDisposable
 
     public TimeSpan QuitTimeout { get; }
 
+    /// <summary>
+    /// A launch that starts in the tray (<c>--hidden</c>, <see cref="LaunchVisibility"/>; 2026-10-10) never brings anything up:
+    /// finding Augram running it exits without asking the same install to show its window or offering a take-over. The
+    /// Windows Run entry fires some seconds after sign-in, maybe after the user already started Augram.
+    /// </summary>
+    public bool IsHiddenLaunch { get; init; }
+
     /// <summary>This launch's guard once it holds the name; null before, and for a launch that exits.</summary>
     public SingleInstanceGuard? Guard { get; private set; }
 
@@ -97,7 +104,13 @@ public sealed class InstanceStartup : IDisposable
         switch (answer.Kind)
         {
             case PeerAnswerKind.Answered when answer.Running!.IsSameInstallAs(Self):
-                SingleInstanceGuard.Send(_name, new InstanceRequest(InstanceRequestKind.Show, Self, SameInstallReason), ContactTimeout);
+                if (!IsHiddenLaunch)
+                {
+                    SingleInstanceGuard.Send(_name, new InstanceRequest(InstanceRequestKind.Show, Self, SameInstallReason), ContactTimeout);
+                }
+
+                return InstanceStartupStep.Exit;
+            case PeerAnswerKind.Answered when IsHiddenLaunch:
                 return InstanceStartupStep.Exit;
             case PeerAnswerKind.Answered:
                 Running = answer.Running;

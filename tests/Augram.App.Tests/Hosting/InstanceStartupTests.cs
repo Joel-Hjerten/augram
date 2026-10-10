@@ -52,6 +52,43 @@ public sealed class InstanceStartupTests
     }
 
     [Fact]
+    public void AHiddenLaunchOfTheSameInstall_ExitsWithoutShowingTheRunningOne()
+    {
+        // The Windows Run entry (--hidden) fires some seconds after sign-in, maybe after the user started Augram and closed its window.
+        var name = UniqueName();
+        using var running = SingleInstanceGuard.TryAcquire(name, Dev);
+        Assert.NotNull(running);
+        using var introduced = new ManualResetEventSlim();
+        var shows = 0;
+        running.Introduced += (_, _) => introduced.Set();
+        running.ShowRequested += (_, _) => Interlocked.Increment(ref shows);
+        using var startup = new InstanceStartup(name, Dev) { IsHiddenLaunch = true };
+
+        Assert.Equal(InstanceStartupStep.Exit, startup.Begin());
+
+        Assert.True(introduced.Wait(Wait));
+        Assert.Equal(0, Volatile.Read(ref shows));
+        Assert.Null(startup.Guard);
+    }
+
+    [Fact]
+    public void AHiddenLaunch_WithADifferentBuildRunning_ExitsWithoutAsking()
+    {
+        var name = UniqueName();
+        using var running = SingleInstanceGuard.TryAcquire(name, Dev);
+        Assert.NotNull(running);
+        var shows = 0;
+        running.ShowRequested += (_, _) => Interlocked.Increment(ref shows);
+        using var startup = new InstanceStartup(name, Installed) { IsHiddenLaunch = true };
+
+        Assert.Equal(InstanceStartupStep.Exit, startup.Begin());
+
+        Assert.False(startup.NeedsChoice);
+        Assert.Null(startup.Guard);
+        Assert.Equal(0, Volatile.Read(ref shows));
+    }
+
+    [Fact]
     public void ADifferentChannel_IsAskedAbout_AndNothingIsShownYet()
     {
         var name = UniqueName();
