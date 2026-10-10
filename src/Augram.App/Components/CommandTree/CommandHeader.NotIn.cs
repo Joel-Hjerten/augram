@@ -6,14 +6,14 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// The "Not in" row of <see cref="CommandHeader"/> (Joel, 2026-10-10, plan 0004), on every command not under a hold remap
-/// (<see cref="CommandItem.CanSetNotIn"/>): the Ignored › Per command entries it is not used over, by name ("Eyeris, Spine",
+/// (<see cref="CommandItem.CanSetNotIn"/>): the Exclusions › Per command entries it is not used over, by name ("Eyeris, Spine",
 /// or "none"; <see cref="CommandItem.NotInText"/>), after <c>PART_NotInEdit</c> ("Change…"), which asks the host to open the
 /// check list (<see cref="CommandTreeAction.EditNotIn"/>). The button sits before the names so a longer list never moves it.
 /// </summary>
 public sealed partial class CommandHeader
 {
     /// <summary>The ⓘ beside "Not in".</summary>
-    public const string NotInHelp = "Over these apps the command does nothing and holds no button back. The apps are the ones on Ignored › Per command.";
+    public const string NotInHelp = "Over these apps the command does nothing and holds no button back. The apps are the ones on Exclusions › Per command.";
 
     public static readonly StyledProperty<bool> CanSetNotInProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(CanSetNotIn));

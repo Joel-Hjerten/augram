@@ -22,7 +22,7 @@ public sealed class IgnoredViewModelTests
     {
         var (vm, _, _, _) = Create();
 
-        Assert.Equal(("Ignored apps", "New ignored app"), (vm.Heading, vm.NewLabel));
+        Assert.Equal(("Excluded apps", "New excluded app"), (vm.Heading, vm.NewLabel));
         Assert.Equal(["Blender", "Spine", "VMware"], vm.Items.Select(item => item.Name));
         Assert.Equal(
             ["Gestures off over this app · blender.exe", "Gestures off over this app · Spine", "Disable while focused · vmware.exe"],
@@ -50,7 +50,7 @@ public sealed class IgnoredViewModelTests
         var form = vm.Detail!;
 
         Assert.Equal(Blender.Id.Value, vm.SelectedId);
-        Assert.Equal(["Ignored app", Augram.App.ViewModels.AppMatcherEditViewModel.SectionTitle], form.Sections.Select(section => section.Title));
+        Assert.Equal([IgnoredEditViewModel.GlobalTitle, Augram.App.ViewModels.AppMatcherEditViewModel.SectionTitle], form.Sections.Select(section => section.Title));
         IdentificationForm.On(form, HostPlatform.Windows);
         Assert.Equal("blender.exe", Text("Executable", form).Get());
         IdentificationForm.On(form, HostPlatform.MacOS);
@@ -116,7 +116,7 @@ public sealed class IgnoredViewModelTests
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.New));
 
-        Assert.Equal(("New ignored app", "Create"), (dialogs.Last.Title, dialogs.Last.ConfirmLabel));
+        Assert.Equal(("New excluded app", "Create"), (dialogs.Last.Title, dialogs.Last.ConfirmLabel));
         var resolve = store.Current.Ignored.Single(app => app.Name == "DaVinci Resolve");
         Assert.Equal(["Resolve.exe"], resolve.Matcher.WindowsProcessNames);
         Assert.False(resolve.DisableEntirely);
@@ -160,7 +160,7 @@ public sealed class IgnoredViewModelTests
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Delete, Item(vm, "VMware")));
 
         Assert.Equal(2, confirm.Requests.Count);
-        Assert.Equal(("Delete ignored app", "Delete"), (confirm.Requests[^1].Title, confirm.Requests[^1].ConfirmLabel));
+        Assert.Equal(("Delete excluded app", "Delete"), (confirm.Requests[^1].Title, confirm.Requests[^1].ConfirmLabel));
         Assert.Null(store.FindIgnored(VMware.Id));
         Assert.Null(vm.SelectedId);
         Assert.Null(vm.Detail);

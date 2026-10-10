@@ -36,7 +36,7 @@ public sealed class NotInEditViewModelTests
 
         // Names compare as the rules compare them: "vmware" is taken by "VMware".
         Assert.Equal("vmware 2", added.Name);
-        Assert.Equal("Added 'vmware 2' (vmware.exe), ticked. 'VMware' on Ignored › Global stops all of Augram over it already.", edit.AddStatus);
+        Assert.Equal("Added 'vmware 2' (vmware.exe), ticked. 'VMware' on Exclusions › Global stops all of Augram over it already.", edit.AddStatus);
     }
 
     [Fact]

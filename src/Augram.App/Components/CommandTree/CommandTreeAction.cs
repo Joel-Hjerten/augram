@@ -33,8 +33,11 @@ public enum CommandTreeAction
     /// <summary>Set where the command takes part (F8 "Use on"; the header's two check boxes; <see cref="CommandTreeActionEventArgs.UseOn"/>).</summary>
     SetUseOn,
 
-    /// <summary>Choose the app groups a Global command is not used in (plan 0004; the header's Not in › Change…): the host opens the check list.</summary>
+    /// <summary>Choose the Exclusions › Per command entries a command is not used over (plan 0004; the header's Not in › Change…): the host opens the check list.</summary>
     EditNotIn,
+
+    /// <summary>Choose the Exclusions › Global entries a command still works over (plan 0005; the header's Also in › Change…): the host opens the check list.</summary>
+    EditAlsoIn,
 
     /// <summary>Drop this platform's own steps; it runs the converted original again (F8).</summary>
     UseConvertedOriginal,
@@ -67,6 +70,9 @@ public enum CommandTreeAction
 
     /// <summary>Change a wheel trigger's direction (the Up / Down choice beside the kind; <see cref="CommandTreeActionEventArgs.Wheel"/>).</summary>
     SetWheelDirection,
+
+    /// <summary>Change a button trigger's pressed button (plan 0005; the button choice beside the kind; <see cref="CommandTreeActionEventArgs.Button"/>).</summary>
+    SetTriggerButton,
 
     /// <summary>Change the kind of a hold remap command's input (the header's Input dropdown; <see cref="CommandTreeActionEventArgs.InputKind"/>).</summary>
     SetInputKind,

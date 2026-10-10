@@ -27,8 +27,10 @@ public sealed class IgnoredModuleTests
 
         var entry = IgnoredModule.NavEntry(provider);
 
-        Assert.Equal(AppNavigation.IgnoredKey, entry.Key);
+        // Plan 0005: the UI word is Exclusions; the keys keep the code's.
+        Assert.Equal(("Exclusions", AppNavigation.IgnoredKey), (entry.Title, entry.Key));
         Assert.Null(entry.Screen);
+        Assert.Equal(["Exclusions › Global", "Exclusions › Per command"], entry.SubEntries!.Select(sub => sub.Screen!().Title));
         Assert.Equal([("Global", AppNavigation.IgnoredGlobalKey), ("Per command", AppNavigation.IgnoredPerCommandKey)], entry.SubEntries!.Select(sub => (sub.Title, sub.Key)));
         Assert.Equal(["VMware"], Build(entry.SubEntries![0]).Items.Select(item => item.Name));
         var perCommand = Build(entry.SubEntries[1]);

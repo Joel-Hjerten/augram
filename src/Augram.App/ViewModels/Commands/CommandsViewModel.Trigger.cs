@@ -8,7 +8,8 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The trigger half of <see cref="CommandsViewModel"/> (F1 "Triggers as combinations", Joel 2026-10-09): the kind (Gesture
-/// through the Select Gesture picker, Wheel, No trigger), the wheel direction and the "While holding" set. What is edited is
+/// through the Select Gesture picker, Wheel, Button (plan 0005), No trigger), the wheel direction, a button trigger's pressed
+/// button and the "While holding" set. What is edited is
 /// this platform's trigger (<see cref="Command.TriggerFor"/>): the original where the command was authored, else its own; the
 /// first edit on the other platform makes it that platform's own, the way steps work (<see cref="Command.WithTriggerFor"/>).
 /// Changing between gesture and wheel keeps the keys and buttons held; choosing "No trigger" unbinds, and ticking keys or
@@ -18,6 +19,43 @@ namespace Augram.App.ViewModels.Commands;
 /// </summary>
 public sealed partial class CommandsViewModel
 {
+    /// <summary>The header's trigger and input intents: the kind, the set, the wheel direction, the pressed button, an input, and the draft's Swap and Take it.</summary>
+    private void DispatchTrigger(CommandTreeActionEventArgs e)
+    {
+        if (e.Command is not { } command)
+        {
+            return;
+        }
+
+        switch (e.Action)
+        {
+            case CommandTreeAction.SetTriggerKind when e.Kind is { } kind:
+                SetTriggerKind(command, kind);
+                break;
+            case CommandTreeAction.SetTriggerHold when e.Hold is { } hold:
+                EditTrigger(command.Id, current => current.WithHold(hold));
+                break;
+            case CommandTreeAction.SetWheelDirection when e.Wheel is { } direction:
+                EditTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
+                break;
+            case CommandTreeAction.SetTriggerButton when e.Button is { } pressed:
+                EditTrigger(command.Id, current => Trigger.ForButton(pressed, current.Hold));
+                break;
+            case CommandTreeAction.SetInputKind when e.InputKind is { } inputKind:
+                SetInputKind(command, inputKind);
+                break;
+            case CommandTreeAction.SetInput when e.Input is { } input:
+                SetInput(command, input);
+                break;
+            case CommandTreeAction.SwapTrigger:
+                SettleConflict(command.Id, take: false);
+                break;
+            case CommandTreeAction.TakeTrigger:
+                SettleConflict(command.Id, take: true);
+                break;
+        }
+    }
+
     private void SetTriggerKind(CommandItem command, TriggerKind kind)
     {
         switch (kind)
@@ -28,6 +66,9 @@ public sealed partial class CommandsViewModel
             case TriggerKind.Wheel:
                 ChooseWheel(command.Id);
                 break;
+            case TriggerKind.Button:
+                ChooseButton(command.Id);
+                break;
             case TriggerKind.Gesture:
                 _ = PickGestureAsync(command);
                 break;
@@ -35,8 +76,9 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// Wheel up with the keys and buttons held now (the stroke button alone by default). When the rules refuse it (wheel up is
-    /// the volume's here, say) the free direction is saved instead; when both are taken, wheel up waits as the draft with its note.
+    /// Wheel up with the keys and buttons held now (the stroke button alone by default; a button trigger's set as it is, so
+    /// Right + Left becomes Right + wheel up). When the rules refuse it (wheel up is the volume's here, say) the free direction is
+    /// saved instead; when both are taken, wheel up waits as the draft with its note.
     /// </summary>
     private void ChooseWheel(CommandId id)
     {
@@ -46,13 +88,31 @@ public sealed partial class CommandsViewModel
             return;
         }
 
-        var up = Trigger.ForWheel(WheelDirection.Up, Held(current));
-        if (!TrySaveTrigger(id, up) && !TrySaveTrigger(id, Trigger.ForWheel(WheelDirection.Down, Held(current))))
+        var held = current is Trigger.ButtonTrigger ? current.Hold : Held(current);
+        var up = Trigger.ForWheel(WheelDirection.Up, held);
+        if (!TrySaveTrigger(id, up) && !TrySaveTrigger(id, Trigger.ForWheel(WheelDirection.Down, held)))
         {
             KeepDraft(id, up);
         }
 
         ShowSelected();
+    }
+
+    /// <summary>
+    /// A button trigger (plan 0005) pressed with Left, holding the keys and the buttons other than the stroke button held now
+    /// (decision 2: never the stroke button; never the pressed button, <see cref="Trigger.ForButton"/> drops it). Saved when the
+    /// rules take it; otherwise (no button left to hold, or the chord is another command's) it waits as the draft with its note.
+    /// </summary>
+    private void ChooseButton(CommandId id)
+    {
+        var current = DraftedTrigger(id);
+        if (current is Trigger.ButtonTrigger)
+        {
+            return;
+        }
+
+        var held = current.IsBound ? current.Hold with { Buttons = current.Hold.Physical } : new TriggerHold(HeldButtons.None);
+        EditTrigger(id, _ => Trigger.ForButton(MouseButton.Left, held));
     }
 
     private async Task PickGestureAsync(CommandItem command)
@@ -97,15 +157,30 @@ public sealed partial class CommandsViewModel
             : trigger.Hold.HoldsStroke ? trigger.Hold
             : TriggerHold.WithStroke(trigger.Hold.Keys, capture: trigger.Hold.Capture);
 
-    /// <summary>One store call (one undo step): this platform's trigger is <paramref name="trigger"/>; says so when that made it this platform's own.</summary>
+    /// <summary>
+    /// One store call (one undo step): this platform's trigger is <paramref name="trigger"/>; says so when that made it this
+    /// platform's own, and when Core's normalisation cleared the command's Also in with it (plan 0005: a trigger holding the
+    /// stroke button on both platforms never works over an excluded app).
+    /// </summary>
     private void SaveTrigger(CommandId id, Trigger trigger)
     {
         var (group, command) = RequireCommand(id);
         var forked = ForksHere(command);
-        _store.UpdateCommand(group.Id, WithTriggerHere(command, trigger));
+        var stored = _store.UpdateCommand(group.Id, WithTriggerHere(command, trigger));
+        var lines = new List<string>(2);
         if (forked)
         {
-            Message = $"'{command.Name}' now has its own trigger and steps here; the original keeps running where it was authored. {CommandsKeymap.Current.Undo} undoes it.";
+            lines.Add($"'{command.Name}' now has its own trigger and steps here; the original keeps running where it was authored.");
+        }
+
+        if (command.AlsoIn.Count > 0 && stored.AlsoIn.Count == 0)
+        {
+            lines.Add($"Cleared the Also in of '{command.Name}': only a trigger that holds a button other than the stroke button works over an excluded app.");
+        }
+
+        if (lines.Count > 0)
+        {
+            Message = $"{string.Join(" ", lines)} {CommandsKeymap.Current.Undo} undoes it.";
         }
     }
 

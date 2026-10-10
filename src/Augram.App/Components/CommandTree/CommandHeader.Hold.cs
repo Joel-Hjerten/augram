@@ -182,13 +182,18 @@ public sealed partial class CommandHeader
         }
     }
 
-    /// <summary>Puts the boxes and the two choices on the command's real trigger; the stroke box is locked unless it is a wheel trigger.</summary>
+    /// <summary>
+    /// Puts the boxes and the choices on the command's real trigger: the stroke box is locked ticked for a gesture or a click,
+    /// free for a wheel trigger, and locked unticked for a button trigger (plan 0005 decision 2), whose pressed button's box is
+    /// locked unticked too (it is never a member of its own set).
+    /// </summary>
     private void ApplyHold()
     {
         var item = Item;
         var trigger = item?.Trigger ?? Trigger.None;
         var hold = trigger.Hold;
         var isWheel = trigger is Trigger.WheelTrigger;
+        var pressed = trigger is Trigger.ButtonTrigger button ? button.Button.Flag() : (HeldButtons?)null;
         IsWheelKind = isWheel;
         HasHoldMembers = trigger.IsBound && hold.HasMembers;
         _applying = true;
@@ -197,8 +202,9 @@ public sealed partial class CommandHeader
             foreach (var (flag, box) in _buttonBoxes)
             {
                 var stroke = flag == HeldButtons.Stroke;
-                box.IsEnabled = item is not null && (!stroke || isWheel);
-                box.IsChecked = (stroke && !isWheel) || (hold.Buttons & flag) != 0;
+                var locked = pressed is { } own ? stroke || flag == own : stroke && !isWheel;
+                box.IsEnabled = item is not null && !locked;
+                box.IsChecked = (stroke && !isWheel && pressed is null) || (!locked && (hold.Buttons & flag) != 0);
             }
 
             foreach (var (flag, box) in _keyBoxes)
@@ -214,5 +220,6 @@ public sealed partial class CommandHeader
 
         _wheel?.Show(DirectionLabels, trigger is Trigger.WheelTrigger wheel ? TriggerKindExtensions.Directions.ToList().IndexOf(wheel.Direction) : -1);
         _capture?.Show(CaptureLabels, item is null ? -1 : TriggerKindExtensions.Captures.ToList().IndexOf(hold.Capture));
+        ApplyPressedButton(trigger);
     }
 }

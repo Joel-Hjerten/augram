@@ -44,7 +44,7 @@ public sealed class ExportViewModelTests
         var vm = new ExportViewModel(Configuration(), ExportScope.Everything);
 
         Assert.Equal(["Global", "Blender", "Chrome", "Game"], vm.Items.Select(item => item.Name));
-        Assert.Equal(["2 commands", "2 commands · 1 hold remap · Windows only", "2 commands", "ignored app"], vm.Items.Select(item => item.Detail));
+        Assert.Equal(["2 commands", "2 commands · 1 hold remap · Windows only", "2 commands", "excluded app"], vm.Items.Select(item => item.Detail));
         Assert.Equal([false, false, false, true], vm.Items.Select(item => item.IsIgnoredApp));
         Assert.DoesNotContain(vm.Items, vm.IsChecked);
     }

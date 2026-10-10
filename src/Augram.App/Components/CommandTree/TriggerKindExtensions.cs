@@ -6,17 +6,20 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// The one place a <see cref="Trigger"/> becomes a <see cref="TriggerKind"/> and the words the header, the row badge and the
-/// summary show for it: "Gesture" / "Wheel" / "No trigger" in the dropdown (Joel's order), "Right + wheel up", "Shift + Undo",
-/// "Shift + click" for a whole trigger, the hint beside the kind, and the trigger's words in the header's note on a draft
-/// ("Stroke button + wheel up", "Change the direction, a button or a key.").
+/// summary show for it: "Gesture" / "Wheel" / "Button" / "No trigger" in the dropdown (Joel's order; Button since plan 0005),
+/// "Right + wheel up", "Right + Left", "Shift + Undo", "Shift + click" for a whole trigger, the hint beside the kind, and the
+/// trigger's words in the header's note on a draft ("Stroke button + wheel up", "Change the direction, a button or a key.").
 /// </summary>
 public static class TriggerKindExtensions
 {
-    /// <summary>The dropdown's entries, in Joel's order (2026-10-09).</summary>
-    public static IReadOnlyList<TriggerKind> All { get; } = [TriggerKind.Gesture, TriggerKind.Wheel, TriggerKind.None];
+    /// <summary>The dropdown's entries, in Joel's order (2026-10-09; Button after Wheel, plan 0005, the lead's order).</summary>
+    public static IReadOnlyList<TriggerKind> All { get; } = [TriggerKind.Gesture, TriggerKind.Wheel, TriggerKind.Button, TriggerKind.None];
 
     /// <summary>The wheel direction choice beside the kind, in this order.</summary>
     public static IReadOnlyList<WheelDirection> Directions { get; } = [WheelDirection.Up, WheelDirection.Down];
+
+    /// <summary>A button trigger's pressed button, chosen beside the kind (plan 0005), in this order; Left by default.</summary>
+    public static IReadOnlyList<MouseButton> PressedButtons { get; } = HeldButtonsExtensions.DisplayOrder;
 
     /// <summary>The capture-mode choice, in this order (learnings 0003 §3.1: Either by default).</summary>
     public static IReadOnlyList<HoldCapture> Captures { get; } = [HoldCapture.Either, HoldCapture.Before, HoldCapture.After];
@@ -25,6 +28,7 @@ public static class TriggerKindExtensions
     {
         TriggerKind.Gesture => "Gesture",
         TriggerKind.Wheel => "Wheel",
+        TriggerKind.Button => "Button",
         _ => "No trigger",
     };
 
@@ -45,6 +49,7 @@ public static class TriggerKindExtensions
         {
             Trigger.GestureTrigger => TriggerKind.Gesture,
             Trigger.WheelTrigger => TriggerKind.Wheel,
+            Trigger.ButtonTrigger => TriggerKind.Button,
             _ => TriggerKind.None,
         };
     }
@@ -90,12 +95,25 @@ public static class TriggerKindExtensions
         Trigger.WheelTrigger => "Change the direction, a button or a key.",
         Trigger.GestureTrigger => "Change the gesture, a button or a key.",
         Trigger.InputTrigger => "Choose another input.",
+        Trigger.ButtonTrigger => "Change the button pressed, a button held or a key.",
         _ => "Change a button or a key.",
     };
 
     /// <summary>
-    /// One line on how the trigger fires, for the kinds a user cannot guess from the name: the wheel and the click work only while
-    /// the buttons are held. Null for a plain gesture and for no trigger.
+    /// What a button trigger that holds no button lacks (plan 0005 decision 2), for the header's note: "tick a button to hold, as
+    /// Right for Right + Left." (Left for Left + Right when Right is the button pressed).
+    /// </summary>
+    public static string HoldAButton(Trigger.ButtonTrigger trigger)
+    {
+        ArgumentNullException.ThrowIfNull(trigger);
+        var example = trigger.Button == MouseButton.Right ? MouseButton.Left : MouseButton.Right;
+        return $"tick a button to hold, as {example} for {example} + {trigger.Button}.";
+    }
+
+    /// <summary>
+    /// One line on how the trigger fires, for the kinds a user cannot guess from the name: the wheel, the click and a button
+    /// trigger work only while the buttons are held. Null for a plain gesture, for no trigger, and for a button trigger that
+    /// holds no button yet (the draft's note says what it lacks).
     /// </summary>
     public static string? Hint(Trigger trigger, HostPlatform names)
     {
@@ -105,6 +123,8 @@ public static class TriggerKindExtensions
         {
             Trigger.WheelTrigger wheel => $"Hold {holding} and turn the mouse wheel {(wheel.Direction == WheelDirection.Up ? "up" : "down")}; every notch fires.",
             Trigger.ClickTrigger => $"Click the stroke button while holding {holding}; with nothing else bound here the click goes to the app, keys and all.",
+            Trigger.ButtonTrigger button when trigger.Hold.Physical != HeldButtons.None
+                => $"Hold {holding}, then press {button.Button}: it fires at the press, and a Remap step's key is held until either button is released.",
             _ => null,
         };
     }

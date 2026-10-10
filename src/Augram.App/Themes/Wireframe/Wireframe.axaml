@@ -373,7 +373,8 @@
                                     SelectedIndex="{TemplateBinding SelectedStepIndex}"
                                     StepTypes="{TemplateBinding StepTypes}"
                                     HasCommand="{TemplateBinding HasCommand}"
-                                    UnderHoldRemap="{TemplateBinding IsUnderHoldRemap}" />
+                                    UnderHoldRemap="{TemplateBinding OffersRemapStep}"
+                                    FormContext="{TemplateBinding StepFormContext}" />
                   </DockPanel>
                   <form:SectionForm Name="PART_GroupForm"
                                     Screen="{TemplateBinding GroupForm}"
@@ -515,7 +516,7 @@
         </Style>
       </ControlTheme>
 
-      <!-- A list beside the selected item's form (the Ignored tab): the Commands tab's look, its column widths and its row metrics. -->
+      <!-- A list beside the selected item's form (the Exclusions tab): the Commands tab's look, its column widths and its row metrics. -->
       <ControlTheme x:Key="{x:Type md:MasterDetail}" TargetType="md:MasterDetail">
         <Setter Property="Template">
           <ControlTemplate>
@@ -653,6 +654,8 @@
                     <TextBlock Classes="field-label header-label" Text="Trigger" VerticalAlignment="Center" />
                     <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
                     <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
+                    <!-- Plan 0005: a button trigger's pressed button (Left in Right + Left); the buttons held are the While holding boxes. -->
+                    <ComboBox Name="PART_TriggerButton" Classes="field-editor" IsVisible="{TemplateBinding IsButtonKind}" />
                     <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                         <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />
@@ -735,7 +738,7 @@
                                VerticalAlignment="Center"
                                IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
-                  <!-- Plan 0004: the Ignored › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
+                  <!-- Plan 0004: the Exclusions › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
                   <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
                     <StackPanel DockPanel.Dock="Left" Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                       <TextBlock Classes="field-label" Text="Not in" />
@@ -743,6 +746,15 @@
                     </StackPanel>
                     <Button DockPanel.Dock="Left" Name="PART_NotInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
                     <TextBlock Name="PART_NotInText" Text="{TemplateBinding NotInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </DockPanel>
+                  <!-- Plan 0005 decision 7: the Exclusions › Global entries a command whose trigger holds no stroke button still works over. Laid out as Not in. -->
+                  <DockPanel IsVisible="{TemplateBinding CanSetAlsoIn}">
+                    <StackPanel DockPanel.Dock="Left" Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                      <TextBlock Classes="field-label" Text="Also in" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.AlsoInHelp}" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
+                    <TextBlock Name="PART_AlsoInText" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
                   </DockPanel>
                   <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <TextBlock Classes="help" Text="{TemplateBinding VersionText}" TextWrapping="Wrap" />

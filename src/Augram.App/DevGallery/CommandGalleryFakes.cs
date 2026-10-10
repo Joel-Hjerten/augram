@@ -75,10 +75,10 @@ public static class CommandGalleryFakes
     }
 
     /// <summary>
-    /// <see cref="Mapping"/> with Joel's Global zoom commands in Media and the Ignored › Per command entries they leave alone
+    /// <see cref="Mapping"/> with Joel's Global zoom commands in Media and the Exclusions › Per command entries they leave alone
     /// (plan 0004): Zoom in on Right + wheel up with its own 3 px drag distance, not used over Spine and Eyeris; Zoom out on Right +
     /// wheel down with the Options value, used everywhere; Chrome's Zoom in not used over Eyeris. The ignore list also has Krita
-    /// (Per command, inactive, used by nothing) and VMware (Ignored › Global, never offered in a Not in).
+    /// (Per command, inactive, used by nothing) and VMware (Exclusions › Global, never offered in a Not in).
     /// </summary>
     public static MappingDocument MappingWithZoom()
     {
@@ -105,9 +105,40 @@ public static class CommandGalleryFakes
         return new MappingDocument([global, .. groups], [spine, eyeris, krita, vmware]);
     }
 
-    /// <summary>An Ignored › Per command entry on one Windows executable (plan 0004).</summary>
+    /// <summary>An Exclusions › Per command entry on one Windows executable (plan 0004).</summary>
     public static IgnoredApp PerCommand(string name, string executable)
         => new(GroupId.New(), name, IsActive: true, new AppMatcher { WindowsProcessNames = [executable] }, DisableEntirely: false) { Scope = IgnoreScope.PerCommand };
+
+    /// <summary>
+    /// <see cref="MappingWithZoom"/> with Joel's magnifier (plan 0005): Global › Media › Magnifier on Right + Left, its one Remap
+    /// step holding Win+Shift+X, Also in Blender; Back on Right + Middle; and on Exclusions › Global, in the plain mode, Blender,
+    /// DaVinci Resolve and A Plague Tale (inactive) beside VMware (disable while focused, so never offered in an Also in).
+    /// </summary>
+    public static MappingDocument MappingWithMagnifier()
+    {
+        var mapping = MappingWithZoom();
+        var blender = Excluded("Blender", "blender.exe");
+        var resolve = Excluded("DaVinci Resolve", "Resolve.exe");
+        var game = Excluded("A Plague Tale", "APlagueTaleRequiem_x64.exe") with { IsActive = false };
+        var global = mapping.Global;
+        var media = global.Categories.Single(category => category.Name == "Media").Id;
+        var right = new TriggerHold(HeldButtons.Right);
+        var loupe = new RemapStep(new RemapOutput.Key(KeyCode.X, KeyModifiers.Meta | KeyModifiers.Shift));
+        global = global with
+        {
+            Commands =
+            [
+                .. global.Commands,
+                Cmd("Magnifier", Trigger.ForButton(MouseButton.Left, right), loupe) with { CategoryId = media, AlsoIn = [blender.Id] },
+                Cmd("Back", Trigger.ForButton(MouseButton.Middle, right), new DelayStep(10)) with { CategoryId = media },
+            ],
+        };
+        return new MappingDocument([global, .. mapping.Groups.Where(group => !group.IsGlobal)], [.. mapping.Ignored, blender, resolve, game]);
+    }
+
+    /// <summary>An Exclusions › Global entry in the plain mode ("Gestures off over this app") on one Windows executable.</summary>
+    public static IgnoredApp Excluded(string name, string executable)
+        => new(GroupId.New(), name, IsActive: true, new AppMatcher { WindowsProcessNames = [executable] }, DisableEntirely: false);
 
     /// <summary>
     /// Joel's Blender (F9, plan 0002): the Space hold remap with Orbit (Left → Middle), Pan (Right → Shift + Middle), Zoom both

@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
+using Augram.App.Components.Steps;
 using Augram.App.Declarations;
 using Augram.App.Inspector;
 using Augram.Core.Mapping;
@@ -52,6 +53,12 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public static readonly StyledProperty<bool> IsUnderHoldRemapProperty =
         AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(IsUnderHoldRemap));
+
+    public static readonly StyledProperty<bool> OffersRemapStepProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(OffersRemapStep));
+
+    public static readonly StyledProperty<StepFormContext> StepFormContextProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, StepFormContext>(nameof(StepFormContext), StepFormContext.None);
 
     public static readonly StyledProperty<FormScreen?> GroupFormProperty =
         AvaloniaProperty.Register<CommandsWorkbench, FormScreen?>(nameof(GroupForm));
@@ -136,11 +143,28 @@ public sealed class CommandsWorkbench : TemplatedControl
         private set => SetValue(HasCommandProperty, value);
     }
 
-    /// <summary>The selected command is under a hold remap (plan 0002): its step list offers the Remap step.</summary>
+    /// <summary>The selected command is under a hold remap (plan 0002).</summary>
     public bool IsUnderHoldRemap
     {
         get => GetValue(IsUnderHoldRemapProperty);
         private set => SetValue(IsUnderHoldRemapProperty, value);
+    }
+
+    /// <summary>
+    /// The selected command's step list offers the Remap step (<see cref="CommandItem.OffersRemapStep"/>): it is under a hold
+    /// remap (plan 0002) or has a button trigger here (plan 0005).
+    /// </summary>
+    public bool OffersRemapStep
+    {
+        get => GetValue(OffersRemapStepProperty);
+        private set => SetValue(OffersRemapStepProperty, value);
+    }
+
+    /// <summary>The selected command as its step forms see it (<see cref="StepList.StepList.FormContext"/>: its trigger here).</summary>
+    public StepFormContext StepFormContext
+    {
+        get => GetValue(StepFormContextProperty);
+        private set => SetValue(StepFormContextProperty, value);
     }
 
     /// <summary>The selected app group's or category's form; while set it takes the side panel's place of the command header and steps.</summary>
@@ -250,6 +274,14 @@ public sealed class CommandsWorkbench : TemplatedControl
         {
             HasCommand = SelectedCommand is not null;
             IsUnderHoldRemap = SelectedCommand is { IsUnderHoldRemap: true };
+            OffersRemapStep = SelectedCommand is { OffersRemapStep: true };
+
+            // A new context rebuilds the expanded step form; an equal one (the same trigger) must not.
+            var context = StepFormContext.For(SelectedCommand?.Trigger);
+            if (context != StepFormContext)
+            {
+                StepFormContext = context;
+            }
         }
         else if (change.Property == GroupFormProperty)
         {

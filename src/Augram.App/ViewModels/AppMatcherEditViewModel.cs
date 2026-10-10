@@ -8,7 +8,7 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// The app identification form, one for both hosts (F5 app identification, F8 per platform; plan 0001 M2 step 6): an app
-/// group on Commands › Apps (<c>GroupEditViewModel</c>) and an ignored app on the Ignored tab (<c>IgnoredEditViewModel</c>).
+/// group on Commands › Apps (<c>GroupEditViewModel</c>) and an ignored app on the Exclusions tab (<c>IgnoredEditViewModel</c>).
 /// Laid out as StrokesPlus.net's App Definition (Joel, 2026-10-09): one row per field, each a text box, a magnifier and a
 /// Use Regex check box (<see cref="PatternField"/>), under a Windows | macOS switch (<see cref="View"/>) that flips the same
 /// rows between the two platforms' values: the executable names (comma-separated; the known-app guess shows in an empty

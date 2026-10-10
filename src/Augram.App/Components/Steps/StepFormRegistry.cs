@@ -6,7 +6,7 @@ namespace Augram.App.Components.Steps;
 /// <summary>
 /// Step type key → form. <see cref="Default"/> is filled by scanning this assembly for
 /// <see cref="IStepForm"/> implementations, like the field renderers, so adding a step type's form is
-/// adding a folder. The step list only ever calls <see cref="Build"/>; it never names a type.
+/// adding a folder. The step list only ever calls <see cref="Build(IStep, Action{IStep}, StepFormContext)"/>; it never names a type.
 /// </summary>
 public sealed class StepFormRegistry
 {
@@ -34,17 +34,21 @@ public sealed class StepFormRegistry
         return _forms.ContainsKey(type.Key);
     }
 
-    public Control Build(IStep step, Action<IStep> changed)
+    public Control Build(IStep step, Action<IStep> changed) => Build(step, changed, StepFormContext.None);
+
+    /// <summary>The form of <paramref name="step"/> for a command in <paramref name="context"/> (plan 0005: the Remap form on a button trigger).</summary>
+    public Control Build(IStep step, Action<IStep> changed, StepFormContext context)
     {
         ArgumentNullException.ThrowIfNull(step);
         ArgumentNullException.ThrowIfNull(changed);
+        ArgumentNullException.ThrowIfNull(context);
         if (!_forms.TryGetValue(step.Type.Key, out var form))
         {
             throw new InvalidOperationException(
                 $"No form for step type '{step.Type.Key}'. Add one under Components/Steps/<Name>/ implementing IStepForm.");
         }
 
-        return form.Build(step, changed);
+        return form.Build(step, changed, context);
     }
 
     private static IEnumerable<IStepForm> ScanAssembly() =>

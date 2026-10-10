@@ -55,7 +55,7 @@ internal static class CompositionRoot
         CommandsModule.Register(services);
         // Detect-to-assign for a hold remap command's buttons (plan 0002 step 4); App.StartDesktop publishes it once the engine runs.
         services.AddSingleton<IButtonCapture>(sp => new EngineButtonCapture(sp.GetRequiredService<EngineHost>(), action => Dispatcher.UIThread.Post(action)));
-        // Ignored tab slice (F5 ignore list), after the Commands one: its view model over the mapping store and the tab entry.
+        // Exclusions tab slice (F5 ignore list), after the Commands one: its view model over the mapping store and the tab entry.
         IgnoredModule.Register(services);
         // Export and import of Augram files (plan 0003), after the Gestures and Commands slices: presenters, file picker, Options › Configuration.
         TransferModule.Register(services);

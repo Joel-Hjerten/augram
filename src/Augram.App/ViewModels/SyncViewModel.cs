@@ -263,7 +263,7 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
         Add(parts, counts.Categories.Total, "category", "categories");
         Add(parts, counts.HoldRemaps.Total, "hold remap");
         Add(parts, counts.Commands.Total, "command");
-        Add(parts, counts.Ignored.Total, "ignored app");
+        Add(parts, counts.Ignored.Total, "excluded app");
         if (parts.Count == 0)
         {
             return "nothing changed";

@@ -9,7 +9,7 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// The app group form's edit state (F5 app identification, F5a "edit app definition", F8 per platform): name, active,
 /// where the group is used ("Use on" Windows and macOS), suppress globals, and the app identification
-/// (<see cref="Identification"/>, the form the Ignored tab shares: executable names per platform with the known-app guess for
+/// (<see cref="Identification"/>, the form the Exclusions tab shares: executable names per platform with the known-app guess for
 /// the platforms the group is used on, and out of the way path, title, classes and the full-screen rule). Its property
 /// changes are raised as this view model's own, so a host listens in one place. <see cref="Declare"/> is the form as a
 /// <see cref="FormScreen"/> (ADR-0002 §5c), shown in a <c>FormDialog</c> for a new group and in the Apps tab's side panel

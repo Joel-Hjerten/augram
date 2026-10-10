@@ -132,6 +132,10 @@ public sealed partial class StepList : TemplatedControl
         {
             ApplySelection();
         }
+        else if (change.Property == FormContextProperty)
+        {
+            RebuildForms();
+        }
         else
         {
             SyncPicker(change);
@@ -230,11 +234,14 @@ public sealed partial class StepList : TemplatedControl
 
         row.FormBuiltFor = step;
         row.LastEmitted = null;
-        row.Form = Forms.Build(step, next =>
-        {
-            row.LastEmitted = next;
-            Raise(StepListAction.Edit, row.Item, edited: next);
-        });
+        row.Form = Forms.Build(
+            step,
+            next =>
+            {
+                row.LastEmitted = next;
+                Raise(StepListAction.Edit, row.Item, edited: next);
+            },
+            FormContext);
     }
 
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)

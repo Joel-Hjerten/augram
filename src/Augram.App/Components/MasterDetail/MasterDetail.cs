@@ -10,7 +10,7 @@ using Avalonia.Threading;
 namespace Augram.App.Components.MasterDetail;
 
 /// <summary>
-/// Lookless list-beside-form layout (ADR-0002 §5 <c>MasterDetail</c>; the Ignored tab, F5): a list of
+/// Lookless list-beside-form layout (ADR-0002 §5 <c>MasterDetail</c>; the Exclusions tab, F5): a list of
 /// <see cref="MasterItem"/>s as <see cref="MasterRow"/>s (<c>PART_Rows</c>) under a heading and the new button
 /// (<c>PART_New</c>, labelled <see cref="NewLabel"/>), the selected item's declared form (<see cref="Detail"/>, rendered by
 /// a <c>SectionForm</c> in <c>PART_Detail</c>) beside it, the help line under the list and the message line at the bottom.

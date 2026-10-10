@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.Core.Capture;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
@@ -87,7 +88,8 @@ public sealed partial class CommandsViewModel
     /// <summary>
     /// Why the rules refuse <paramref name="trigger"/> as the command's trigger here, in plain words with how to fix it; null when
     /// they accept it. The rule is Core's (<see cref="MappingRules.EnsureValid(Command, AppGroup, IEnumerable{Command})"/>); this
-    /// only finds the words: the button a wheel trigger lacks, or the command that already uses the trigger in the group (A7),
+    /// only finds the words: the button a wheel trigger lacks, the button a button trigger holds (plan 0005: "tick a button to
+    /// hold, as Right for Right + Left."), or the command that already uses the trigger in the group (A7),
     /// which is also what the note's Swap and Take it act on when it uses it on this platform (<c>.TriggerConflict</c>).
     /// </summary>
     private DraftRefusal? RefusalOf(AppGroup group, Command command, Trigger trigger)
@@ -101,6 +103,11 @@ public sealed partial class CommandsViewModel
         }
         catch (MappingValidationException refusal)
         {
+            if (trigger is Trigger.ButtonTrigger button && trigger.Hold.Physical == HeldButtons.None)
+            {
+                return new DraftRefusal($"Not saved yet: {TriggerKindExtensions.HoldAButton(button)}", null);
+            }
+
             if (trigger.IsBound && !trigger.Hold.HasAnchor)
             {
                 return new DraftRefusal("Not saved yet: a wheel trigger needs the stroke button or another button held.", null);

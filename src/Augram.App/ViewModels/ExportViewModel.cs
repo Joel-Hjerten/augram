@@ -21,9 +21,9 @@ public sealed partial class ExportViewModel : ObservableObject
 {
     public const string Title = "Export";
     public const string ConfirmLabel = "Save…";
-    public const string NothingSelectedText = "Nothing selected yet: tick an app group or an ignored app.";
+    public const string NothingSelectedText = "Nothing selected yet: tick an app group or an excluded app.";
     public const string ScopeHelp =
-        "Everything: the options (not Sync), every gesture and every command. Gestures only: the gesture library. Selected: the app groups and ignored apps ticked below, with the gestures their commands use.";
+        "Everything: the options (not Sync), every gesture and every command. Gestures only: the gesture library. Selected: the app groups and excluded apps ticked below, with the gestures their commands use.";
     public const string SelectionHelp = "A group goes whole, with its categories, hold remaps and commands. Global holds the global commands.";
     public const string ContentsHelp = "The file is Augram's own format (.augram.json): Import… on any Augram reads it, merging rather than replacing.";
 
@@ -155,7 +155,7 @@ public sealed partial class ExportViewModel : ObservableObject
     private static IEnumerable<ExportItem> IgnoredItems(MappingDocument mapping)
         => mapping.Ignored
             .OrderBy(app => app.Name, MappingRules.NameComparer)
-            .Select(app => new ExportItem(app.Id, IsIgnoredApp: true, app.Name, "ignored app"));
+            .Select(app => new ExportItem(app.Id, IsIgnoredApp: true, app.Name, "excluded app"));
 
     /// <summary>"8 commands · 1 hold remap · Windows only".</summary>
     private static string GroupDetail(AppGroup group)

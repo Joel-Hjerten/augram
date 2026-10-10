@@ -1,4 +1,5 @@
 using Augram.App.Components.StepList;
+using Augram.App.Components.Steps;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
@@ -49,6 +50,23 @@ public sealed class StepListHoldRemapTests
         list.UpdateLayout();
         Assert.Equal("Button", list.Rows[0].Form!.GetVisualDescendants().OfType<ComboBox>().First().SelectedItem);
     }
+
+    /// <summary>Plan 0005: the form follows the command's trigger; a new one rebuilds the expanded form (a button trigger offers a key output only).</summary>
+    [AvaloniaFact]
+    public void ANewFormContextRebuildsTheExpandedForm()
+    {
+        var (list, _) = Show(new RemapOutput.Key(KeyCode.None));
+        var form = list.Rows[0].Form!;
+        Assert.Equal(["Button", "Key", "Wheel"], OutputChoices(form));
+
+        list.FormContext = StepFormContext.For(Trigger.ForButton(MouseButton.Left, new TriggerHold(HeldButtons.Right)));
+
+        Assert.NotSame(form, list.Rows[0].Form);
+        list.UpdateLayout();
+        Assert.Equal(["Key"], OutputChoices(list.Rows[0].Form!));
+    }
+
+    private static IEnumerable<string> OutputChoices(Control form) => form.GetVisualDescendants().OfType<ComboBox>().First().ItemsSource!.Cast<string>();
 
     private static (StepList List, List<StepListActionEventArgs> Actions) Show(RemapOutput output)
     {

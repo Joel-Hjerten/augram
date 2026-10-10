@@ -18,7 +18,7 @@ public sealed class MainWindowTests
         var shell = window.GetVisualDescendants().OfType<Shell>().Single();
         var titles = shell.Tabs.Select(tab => (string)tab.Header!).ToList();
 
-        Assert.Equal(["Commands", "Ignored", "Gestures", "Options", "Diagnostics"], titles.Take(5));
+        Assert.Equal(["Commands", "Exclusions", "Gestures", "Options", "Diagnostics"], titles.Take(5));
     }
 
     [AvaloniaFact]
