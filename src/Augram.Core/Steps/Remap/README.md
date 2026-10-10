@@ -8,7 +8,7 @@ The **Remap** step (key `remap`, category Mouse, platform-neutral, **offered onl
 | `RemapOutput` | closed set with value equality: `Button(MouseButton, Modifiers)`, `Key(KeyCode, Modifiers, RightHand)`, `Wheel(ScrollDirection, Modifiers)`; `Kind` (`RemapOutputKind`), `IsSet` (false only for a key output with no key), `Describe(names)` |
 | `RemapStepType` | metadata and JSON (below); `HoldRemapsOnly` true (`IStepType.HoldRemapsOnly`: the picker offers it under a hold remap and nowhere else); `CreateDefault()` is Middle with nothing held (Joel's orbit); `Convert` is always the same step; `Execute` skips (below) |
 
-There is no executor: the **engine worker** plays the output (plan 0002 step 3), not the command executor.
+There is no executor: the **engine worker** plays the output (plan 0002 step 3, `Engine/Hosting/EngineWorker.HoldRemaps.cs`), not the command executor.
 
 ## What the modifiers mean
 
