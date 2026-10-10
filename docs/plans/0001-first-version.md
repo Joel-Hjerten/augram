@@ -9,7 +9,7 @@
 | **M0** | Scaffold + risk spike 2 | Solution builds on CI with architecture tests; the four B-risks have a measured answer and a fallback decision |
 | **M1** | Joel's "first version" (A5): window, tray, recognition testable | Wireframe window opens from the tray; chosen button captured with a trail; strokes matched against trained or imported gestures; recognition log shows the result; training popup works |
 | **M2** | Commands and steps | Commands page (groups › commands › steps) edits real config; Hotkey, Type text, Run, Media key, Delay steps execute; per-app override and ignore list work; SP.net import brings in Joel's whole config |
-| **M3** | Daily-driver | Joel runs Augram instead of SP.net for a full day; polish list from that day becomes plan 0002 |
+| **M3** | Daily-driver | Joel runs Augram instead of SP.net for a full day; polish list from that day becomes plan 0002. **Met (Joel, 2026-10-10):** he has run Augram instead of SP.net continuously for more than a day; friction goes straight to Joel's requests, no separate list |
 
 Each milestone ends with a commit tagged `m0`…`m3` and a short entry in `docs/learnings/` for anything that surprised us.
 
@@ -55,6 +55,8 @@ M1 acceptance: Joel draws his top ten gestures over any app and the log names th
 10. **Gesture shape cleanup** (built 2026-10-09; requirements F3 "Shape cleanup", Joel 2026-10-08), after the remaining step types (TypeText, Run). Core: a pure `Recognition/` (or `Gestures/`) cleanup function, corner finding (ShortStraw-style) → per-piece line / arc / circle / smooth fit → a raw point list in the drawn direction; the gesture keeps its original samples beside the cleaned ones, and Restore swaps back (one undo step each). App: **Clean up shape** checkbox in the draw area, ticked by default (Joel), with a preview, **Clean up shape** / **Restore original** on the tile menu. Sync: the original travels with the gesture; raise `SyncFile.CurrentFormatVersion`. Before calling it done, replay the Recognition log's drawn strokes against raw vs cleaned templates of Joel's set and write the numbers to `docs/learnings/`.
 
 ## M3: daily driver
+
+**Met (Joel, 2026-10-10):** "M3 is kind of pointless because I have already been running it for more than a day, and I use it continuously." No separate M3 pass. His order after hold remaps: start at login on both platforms, then Augram JSON export/import (M2 step 9). Parked, not dropped: the Mac window extras (Center, snap halves, set size); the PC checks of the 300 ms tray click and the rest (Joel reports problems as he meets them).
 
 Switch Joel's stroke button to Middle, retire SP.net for a day, collect the friction list, fix what blocks daily use, write the next plan from the rest (macOS adapter, cross-platform conversion UI, hold-modifier wheel step, exclusion zones if ever needed).
 
