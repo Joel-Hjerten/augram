@@ -7,7 +7,9 @@ namespace Augram.Engine.Tests.Fakes;
 /// Records every injection; thread-safe because the worker and the executor call it. Clicks are in <see cref="Clicks"/>,
 /// keys and text in <see cref="Keys"/>, and every mouse injection (clicks included) in order in <see cref="Mouse"/>
 /// ("click Right@10,20", "down Right@10,20", "move 50,20", "scroll Down x1@10,20", "up Right"), so a test can check that every injected down got
-/// its up (A19).
+/// its up (A19). <see cref="All"/> has both in the one order they were made (hold remaps interleave keys and buttons).
+/// <see cref="BlockOn"/> holds the calling thread inside the injection of that entry until <see cref="Unblock"/>, so a test
+/// can keep the worker busy while the hook decides.
 /// </summary>
 internal sealed class FakeInputSimulator : IInputSimulator
 {
@@ -15,6 +17,9 @@ internal sealed class FakeInputSimulator : IInputSimulator
     private readonly List<(MouseButton Button, int X, int Y)> _clicks = [];
     private readonly List<string> _keys = [];
     private readonly List<string> _mouse = [];
+    private readonly List<string> _all = [];
+    private readonly ManualResetEventSlim _released = new(true);
+    private string? _blockOn;
 
     public IReadOnlyList<(MouseButton Button, int X, int Y)> Clicks
     {
@@ -49,15 +54,43 @@ internal sealed class FakeInputSimulator : IInputSimulator
         }
     }
 
+    /// <summary>Every injection, keys and mouse together, in order.</summary>
+    public IReadOnlyList<string> All
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _all];
+            }
+        }
+    }
+
+    /// <summary>The next injection recorded as this entry ("press Space") waits, after recording, until <see cref="Unblock"/>.</summary>
+    public string? BlockOn
+    {
+        get => Volatile.Read(ref _blockOn);
+        set
+        {
+            _released.Reset();
+            Volatile.Write(ref _blockOn, value);
+        }
+    }
+
+    public void Unblock()
+    {
+        Volatile.Write(ref _blockOn, null);
+        _released.Set();
+    }
+
     public SimulationResult Click(MouseButton button, int x, int y)
     {
         lock (_gate)
         {
             _clicks.Add((button, x, y));
-            _mouse.Add($"click {button}@{x},{y}");
         }
 
-        return SimulationResult.Success;
+        return RecordMouse($"click {button}@{x},{y}");
     }
 
     public SimulationResult Press(MouseButton button, int x, int y) => RecordMouse($"down {button}@{x},{y}");
@@ -85,8 +118,10 @@ internal sealed class FakeInputSimulator : IInputSimulator
         lock (_gate)
         {
             _keys.Add(entry);
+            _all.Add(entry);
         }
 
+        Wait(entry);
         return SimulationResult.Success;
     }
 
@@ -95,8 +130,18 @@ internal sealed class FakeInputSimulator : IInputSimulator
         lock (_gate)
         {
             _mouse.Add(entry);
+            _all.Add(entry);
         }
 
+        Wait(entry);
         return SimulationResult.Success;
+    }
+
+    private void Wait(string entry)
+    {
+        if (entry == Volatile.Read(ref _blockOn))
+        {
+            _released.Wait(TimeSpan.FromSeconds(30));
+        }
     }
 }

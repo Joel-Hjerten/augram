@@ -1,5 +1,6 @@
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.Engine.Hosting;
@@ -24,6 +25,12 @@ public sealed partial class EngineHost
 
     /// <summary>For tests: the anchor plan the hook reads for the window under the pointer, as the watch last published it.</summary>
     internal AnchorPlan AnchorPlanUnderPointer => _gate.Plan;
+
+    /// <summary>For tests: the hold remaps the hook reads at a hold key's press, the app in front's as the watch last published them (F9).</summary>
+    internal HoldRemapPlan ForegroundHoldPlan => _gate.ForegroundPlan;
+
+    /// <summary>For tests: messages whose replays the worker has not made yet (the hook keeps keys in order behind them).</summary>
+    internal int PendingHoldReplays => _gate.Hold.PendingReplays;
 
     /// <summary>The mapping changed (an edit, undo, a sync): the ignore list's answer is worked out again without waiting for the pointer. Any thread; never blocks.</summary>
     public void MappingChanged()

@@ -9,8 +9,10 @@ namespace Augram.Engine.Execution;
 /// held), where the press started (the window under that point is the target, F5), and, for a gesture, the recognition log
 /// entry the recognizer drafted but did not add. The executor completes the draft with the resolution (group, command, or why
 /// nothing fired) and adds it; a wheel tick and a click have none. <see cref="Relay"/> is the click to hand to the app when
-/// a click trigger fires nothing there. <see cref="EnqueuedAt"/> is a <see cref="System.Diagnostics.Stopwatch"/> timestamp
-/// the executor stamps on enqueue, so "Command fired" can report release-to-done latency.
+/// a click trigger fires nothing there. A Steps command under a hold remap (F9) names its command in
+/// <see cref="HoldCommand"/> instead: nothing is resolved, the command runs with the foreground window as its target.
+/// <see cref="EnqueuedAt"/> is a <see cref="System.Diagnostics.Stopwatch"/> timestamp the executor stamps on enqueue, so
+/// "Command fired" can report release-to-done latency.
 /// </summary>
 internal sealed record ExecutionRequest(PressedTrigger Trigger, CapturePoint Start, RecognitionLogEntry? Draft)
 {
@@ -19,10 +21,24 @@ internal sealed record ExecutionRequest(PressedTrigger Trigger, CapturePoint Sta
     /// <summary>For a click trigger: the click relayed when nothing fires (none when a button joined the press).</summary>
     public ClickRelay? Relay { get; init; }
 
-    /// <summary>For the log: the recognised gesture's name ("Shift + gesture '/Down'") when there is one, else the trigger's own phrase ("Right + wheel up").</summary>
+    /// <summary>A Steps command under a hold remap whose input was pressed (F9): run as is, target the foreground window (plan 0002 decision 8).</summary>
+    public CommandId? HoldCommand { get; init; }
+
+    /// <summary>The hold remap's name ("Space") for the log, with <see cref="HoldCommand"/>.</summary>
+    public string? HoldRemapName { get; init; }
+
+    /// <summary>
+    /// For the log: the recognised gesture's name ("Shift + gesture '/Down'") when there is one, "Space + W" for a hold remap's
+    /// input, else the trigger's own phrase ("Right + wheel up").
+    /// </summary>
     public string Describe()
     {
         var text = Trigger.Describe();
+        if (HoldRemapName is { } holdRemap)
+        {
+            return $"{holdRemap} + {text}";
+        }
+
         return Trigger.Kind is Trigger.GestureTrigger && Draft is { TopMatches.Count: > 0 } draft
             ? text.Replace(Trigger.Kind.KindPhrase, $"gesture '{draft.TopMatches[0].Name}'", StringComparison.Ordinal)
             : text;

@@ -3,20 +3,22 @@ using Augram.Core.Abstractions;
 namespace Augram.Engine.Input;
 
 /// <summary>
-/// The hook thread's record of each key's press as the OS saw it, so hotkey capture (F5) and a held mouse press
-/// (trigger combinations: a Ctrl/Alt/Shift/Win press during it is an After key) can swallow
-/// keys without ever leaving the OS with a key it thinks is held (A19, applied to keys). Per key: up,
-/// <em>passed</em> (the OS saw the press) or <em>owed</em> (the press was suppressed, so its repeats and
-/// its release must be too). A press is suppressed iff capture is armed, or the held mouse press claims it, when it starts; a repeat or a
-/// release follows its press, whatever capture does in between: a key held from before capture began
-/// reaches the OS to its release, and a key pressed during capture stays swallowed to its release even
-/// after capture ended.
+/// The hook thread's record of each key's press as the OS saw it, so hotkey capture (F5), a held mouse press
+/// (trigger combinations: a Ctrl/Alt/Shift/Win press during it is an After key) and a hold remap (F9: its hold key, an
+/// input key, a key replayed in order) can swallow keys without ever leaving the OS with a key it thinks is held (A19,
+/// applied to keys). Per key: up, <em>passed</em> (the OS saw the press) or <em>owed</em> (the press was suppressed, so its
+/// repeats and its release must be too). A press is suppressed iff capture is armed, the held mouse press claims it, or the
+/// caller claims it (<c>claim</c>: the hold remap shadow's decision), when it starts; a repeat or a release follows its
+/// press, whatever capture does in between: a key held from before capture began reaches the OS to its release, and a key
+/// pressed during capture stays swallowed to its release even after capture ended.
 /// <para>
 /// A held key repeats at least once a second (the slowest Windows typematic delay), so a state older
 /// than <see cref="LostReleaseAfterMs"/> means the hook missed the release (secure desktop, session
 /// switch) and the next press starts fresh. Mistaking a stalled repeat for a fresh press is safe both
-/// ways: a press and its release are always decided alike. Single writer (the hook thread);
-/// <see cref="Reset"/> may race it once after a reinstall, which costs one key's record at most.
+/// ways: a press and its release are always decided alike. Not so with key repeat off (macOS allows it) and a key the
+/// hold remap owns, which can be held far longer without an event: <see cref="HoldRemapShadow"/> keeps its own record
+/// of those, which never ages, and the gate takes its decision over this one (Engine README, "Hold remaps"). Single writer
+/// (the hook thread); <see cref="Reset"/> may race it once after a reinstall, which costs one key's record at most.
 /// </para>
 /// </summary>
 public sealed class KeySuppressionShadow
@@ -69,15 +71,33 @@ public sealed class KeySuppressionShadow
         return held;
     }
 
+    /// <summary>
+    /// True when <paramref name="input"/> is a key press that starts fresh: the key is up as far as this record knows (or its
+    /// record is older than <see cref="LostReleaseAfterMs"/>), so the OS has not seen it go down. A key-down that is not fresh
+    /// is an auto-repeat. Reads only; hook thread.
+    /// </summary>
+    public bool IsFreshPress(in RawInput input)
+    {
+        if (input.Kind != RawInputKind.KeyDown)
+        {
+            return false;
+        }
+
+        var slot = Slot(input.Key);
+        return Volatile.Read(ref _state[slot]) == Up || input.TimestampMs - _lastMs[slot] > LostReleaseAfterMs;
+    }
+
     /// <summary>Decides for one key event and records it; anything but a key event is never suppressed.</summary>
     public bool Decide(in RawInput input, bool captureArmed) => Decide(in input, captureArmed, KeyModifiers.None);
 
     /// <summary>
-    /// Decides for one key event and records it. A press is suppressed when it starts while a hotkey capture is armed, or when
+    /// Decides for one key event and records it. A press is suppressed when it starts while a hotkey capture is armed, when
     /// it is a modifier in <paramref name="pressClaims"/>: a mouse press is held and takes it as an After key (trigger
-    /// combinations, learnings 0003 §3.2; <see cref="SuppressionShadow.KeyClaim"/>). Its repeats and release follow it.
+    /// combinations, learnings 0003 §3.2; <see cref="SuppressionShadow.KeyClaim"/>), or when <paramref name="claim"/> is set:
+    /// the caller claims this press for a reason of its own (a hold remap's hold key, input key or replayed key,
+    /// <see cref="HoldRemapShadow"/>). Its repeats and release follow it.
     /// </summary>
-    public bool Decide(in RawInput input, bool captureArmed, KeyModifiers pressClaims)
+    public bool Decide(in RawInput input, bool captureArmed, KeyModifiers pressClaims, bool claim = false)
     {
         if (input.Kind is not (RawInputKind.KeyDown or RawInputKind.KeyUp))
         {
@@ -100,7 +120,7 @@ public sealed class KeySuppressionShadow
 
         if (state == Up)
         {
-            state = captureArmed || (ModifierOf(input.Key) & pressClaims) != 0 ? Owed : Passed;
+            state = captureArmed || claim || (ModifierOf(input.Key) & pressClaims) != 0 ? Owed : Passed;
         }
 
         Volatile.Write(ref _state[slot], state);

@@ -23,4 +23,7 @@ public static class LogSources
 
     /// <summary>The ignore list's watch: what it watches, the pointer entering and leaving an ignored app, pauses while a "disable while focused" app has focus.</summary>
     public const string Ignore = "ignore";
+
+    /// <summary>Hold remaps (F9): whether the foreground is watched for them, each hold and its tap, rollovers, outputs pressed and released, failed injections.</summary>
+    public const string Hold = "hold";
 }

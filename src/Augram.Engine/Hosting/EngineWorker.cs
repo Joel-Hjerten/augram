@@ -7,13 +7,16 @@ using Augram.Engine.Execution;
 namespace Augram.Engine.Hosting;
 
 /// <summary>
-/// The engine worker thread's loop: the only code that calls <see cref="CaptureStateMachine.Handle"/>.
+/// The engine worker thread's loop: the only code that calls <see cref="CaptureStateMachine.Handle"/> and
+/// <see cref="Core.HoldRemaps.HoldRemapMachine.Handle"/>.
 /// Drains the channel, runs the machine, publishes its state for the hook thread, and acts on the
 /// outcomes (<c>EngineWorker.Outcomes.cs</c>): trail, click replay and hand-back (the only place that injects
 /// mouse input for a press, A19), recognition, events, log. A recognised gesture, a wheel tick or a click trigger
 /// is then offered to the App's intercept (the training popup), else enqueued to the <see cref="CommandExecutor"/>;
-/// the worker itself never runs a step. Also cross-checks every button and wheel decision the hook made against the
-/// machine's own. Hotkey-capture key events and release notices pass straight through to the
+/// the worker itself never runs a step. Hold remaps (F9) run the same way on their own machine
+/// (<c>EngineWorker.HoldRemaps.cs</c>): the worker injects their outputs, taps and replays itself, in order with the input,
+/// and enqueues a Steps command. Also cross-checks every button and wheel decision the hook made against the
+/// machine's own, and every hold remap decision. Hotkey-capture key events and release notices pass straight through to the
 /// <see cref="KeyCaptureController"/>'s caller.
 /// </summary>
 internal sealed partial class EngineWorker
@@ -70,6 +73,8 @@ internal sealed partial class EngineWorker
         }
 
         EndTrail();
+        // The engine stops: nothing a hold remap pressed may stay down (A19).
+        ResetHold("engine stopped");
     }
 
     private void Process(WorkerMessage message)
@@ -93,8 +98,9 @@ internal sealed partial class EngineWorker
                 _log.Info(LogSources.Engine, "Capture thresholds changed", ("startDistancePx", thresholds.StartDistancePx), ("minSegmentPx", thresholds.MinSegmentPx), ("cancelDelayMs", thresholds.CancelDelayMs), ("resetOnMovement", thresholds.ResetCancelDelayOnMovement));
                 break;
             case WorkerMessage.MessageKind.Reset:
-                ResetMachine();
-                _log.Info(LogSources.Capture, "Capture reset", ("reason", (string)message.Payload!));
+                var reason = (string)message.Payload!;
+                ResetMachine(reason);
+                _log.Info(LogSources.Capture, "Capture reset", ("reason", reason));
                 break;
             case WorkerMessage.MessageKind.ButtonObserved:
                 _host.OnButtonObserved((MouseButton)message.Payload!);
@@ -104,6 +110,12 @@ internal sealed partial class EngineWorker
                 return;
             case WorkerMessage.MessageKind.Notify:
                 ((Action)message.Payload!)();
+                return;
+            case WorkerMessage.MessageKind.Hold:
+                OnHold(message);
+                return;
+            case WorkerMessage.MessageKind.HoldReplay:
+                OnHoldReplay(message);
                 return;
         }
 
@@ -158,8 +170,11 @@ internal sealed partial class EngineWorker
         _host.ArmTick(state is CaptureState.Held or CaptureState.Drawing);
     }
 
-    /// <summary>The hard reset; a handed-back press's injected down gets its up first, so the app is never left holding it.</summary>
-    private void ResetMachine()
+    /// <summary>
+    /// The hard reset; a handed-back press's injected down gets its up first, so the app is never left holding it, and the
+    /// hold remap releases every output and replayed key it holds.
+    /// </summary>
+    private void ResetMachine(string reason)
     {
         if (_machine.HandedBackButton is { } button)
         {
@@ -168,6 +183,7 @@ internal sealed partial class EngineWorker
 
         _machine.Reset();
         EndTrail();
+        ResetHold(reason);
     }
 
     private void CrossCheck(CaptureEvent e, bool hookSuppressed, IReadOnlyList<CaptureOutcome> outcomes, MouseButton activeBefore)
@@ -232,7 +248,7 @@ internal sealed partial class EngineWorker
         if (buttons > 0)
         {
             _log.Error(LogSources.Capture, "Input queue full: button or wheel events dropped; capture reset", ("dropped", buttons));
-            ResetMachine();
+            ResetMachine("events dropped");
             AfterMachineChange();
         }
     }

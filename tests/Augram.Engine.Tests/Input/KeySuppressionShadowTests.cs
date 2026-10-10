@@ -82,6 +82,30 @@ public sealed class KeySuppressionShadowTests
     }
 
     [Fact]
+    public void APressClaimedForAnotherReason_IsSwallowedWithItsRepeatsAndRelease()
+    {
+        // A hold remap's hold key: claimed at its press, not by capture and not as a modifier.
+        Assert.True(_shadow.Decide(RawInput.KeyDown(KeyCode.Space, 0), captureArmed: false, KeyModifiers.None, claim: true));
+        Assert.True(Down(KeyCode.Space, 30, capturing: false));
+        Assert.True(Up(KeyCode.Space, 60, capturing: false));
+
+        Assert.False(_shadow.Decide(RawInput.KeyDown(KeyCode.Space, 100), captureArmed: false, KeyModifiers.None, claim: false));
+        Assert.False(Up(KeyCode.Space, 110, capturing: false));
+    }
+
+    [Fact]
+    public void AFreshPress_IsOneTheOsHasNotSeenGoDown()
+    {
+        Assert.True(_shadow.IsFreshPress(RawInput.KeyDown(KeyCode.A, 0)));
+        Down(KeyCode.A, 0, capturing: false);
+        Assert.False(_shadow.IsFreshPress(RawInput.KeyDown(KeyCode.A, 30)), "a repeat");
+        Assert.True(_shadow.IsFreshPress(RawInput.KeyDown(KeyCode.A, KeySuppressionShadow.LostReleaseAfterMs + 1)), "the release was missed");
+        Assert.False(_shadow.IsFreshPress(RawInput.KeyUp(KeyCode.A, 40)));
+        Up(KeyCode.A, 40, capturing: false);
+        Assert.True(_shadow.IsFreshPress(RawInput.KeyDown(KeyCode.A, 50)));
+    }
+
+    [Fact]
     public void KeysWithoutACoreNameShareOneSlotAndStillPair()
     {
         Assert.True(Down(KeyCode.None, 0, capturing: true));
