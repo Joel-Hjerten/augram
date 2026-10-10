@@ -44,6 +44,7 @@ public static class GalleryNavigation
         new("FormDialog", Key + ".formdialog", CommandGalleryPages.FormDialogPage),
         new("Ignored", Key + ".ignored", IgnoredGalleryPages.IgnoredPage),
         new("Ignored per command", Key + ".ignored.percommand", IgnoredGalleryPages.PerCommandPage),
+        new("Exclusions allowed for", Key + ".ignored.allowedfor", IgnoredGalleryPages.AllowedForPage),
         new("MasterDetail", Key + ".masterdetail", IgnoredGalleryPages.MasterDetailPage),
         new("WindowFinder", Key + ".windowfinder", IgnoredGalleryPages.WindowFinderPage),
         new("Sync join", Key + ".syncjoin", SyncGalleryPages.JoinPage),

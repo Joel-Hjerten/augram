@@ -75,6 +75,7 @@ internal static class CommandSections
                 CategoryLabel = command.CategoryId is { } category ? group.FindCategory(category)?.Name : null,
                 Categories = choices,
                 NotInText = NotInText(document, command),
+                AlsoInText = AlsoInText(document, command),
             })
             .ToList();
         var holdRemaps = group.HoldRemaps.Where(holdRemap => showOtherPlatforms || holdRemap.IsUsedOn(here)).ToList();
@@ -148,9 +149,25 @@ internal static class CommandSections
     }
 
     /// <summary>
+    /// What the header's Also in row says (plan 0005 decision 7): the Exclusions › Global entries the command still works over,
+    /// by name ("Blender"), or <see cref="CommandItem.NoneNotIn"/>.
+    /// </summary>
+    public static string AlsoInText(MappingDocument document, Command command)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(command);
+        var names = command.AlsoIn
+            .Select(id => document.Ignored.FirstOrDefault(app => app.Id == id && !app.IsPerCommand)?.Name)
+            .OfType<string>()
+            .Order(MappingRules.NameComparer)
+            .ToList();
+        return names.Count == 0 ? CommandItem.NoneNotIn : string.Join(", ", names);
+    }
+
+    /// <summary>
     /// Uncategorized (always everywhere: it has no settings), then each category by name; a category not used here
     /// (Joel, 2026-10-08) is left out unless <paramref name="showOtherPlatforms"/>, then greyed with "Windows only", and its
-    /// commands go with it: hidden, or greyed. Each command carries what its Not in row says.
+    /// commands go with it: hidden, or greyed. Each command carries what its Not in and Also in rows say.
     /// </summary>
     private static List<SectionItem> GlobalSections(MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
     {
@@ -163,6 +180,7 @@ internal static class CommandSections
                 Section = SectionOf(CommandsScope.Global, global, command),
                 Categories = choices,
                 NotInText = NotInText(document, command),
+                AlsoInText = AlsoInText(document, command),
             })
             .ToList();
         var sections = new List<SectionItem>();

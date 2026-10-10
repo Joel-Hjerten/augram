@@ -28,6 +28,12 @@ public sealed partial class IgnoredViewModel
             return;
         }
 
+        if (!app.IsPerCommand && AllowedUsersOf(app.Id) is { Count: > 0 } allowed
+            && !await _confirm.ConfirmAsync("Move to Per command", MoveAllowedQuestion(app, allowed.Count), "Move").ConfigureAwait(true))
+        {
+            return;
+        }
+
         Guard(() =>
         {
             var current = Require(item.Id);
@@ -58,8 +64,11 @@ public sealed partial class IgnoredViewModel
     /// The entry's "Used by" as links, "Global › Media › Zoom in" (<see cref="UsedByRow.Label"/>, the Gestures tab's words), each
     /// opening its command on the Commands tab when there is a locator, "inactive" after a command that is switched off.
     /// </summary>
-    private List<LinkItem> UsedByLinks(GroupId id)
-        => [.. UsersOf(id).Select(pair =>
+    private List<LinkItem> UsedByLinks(GroupId id) => Links(UsersOf(id));
+
+    /// <summary>Each command as a link, "Global › Media › Zoom in", opening it on the Commands tab when there is a locator; "inactive" after one switched off.</summary>
+    private List<LinkItem> Links(IEnumerable<(AppGroup Group, Command Command)> users)
+        => [.. users.Select(pair =>
         {
             var commandId = pair.Command.Id;
             return new LinkItem(

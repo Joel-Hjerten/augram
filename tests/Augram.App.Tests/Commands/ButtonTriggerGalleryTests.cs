@@ -1,10 +1,12 @@
 #if DEBUG
 using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.FormDialog;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.Steps.Remap;
 using Augram.App.Declarations;
 using Augram.App.DevGallery;
+using Augram.App.ViewModels.Commands;
 using Augram.Core.Steps.Remap;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -53,6 +55,26 @@ public sealed class ButtonTriggerGalleryTests
             headers.Select(header => header.DraftNote));
         Assert.Equal([false, false, true], headers.Select(header => header.CanTakeTrigger));
         Assert.Equal([false, false, true], headers.Select(header => header.CanSwapTrigger));
+        Assert.Equal([true, true, true], headers.Select(header => header.CanSetAlsoIn));
+        Assert.Equal(["Blender", "Blender", CommandItem.NoneNotIn], headers.Select(header => header.AlsoInText));
+
+        var dialogs = form.GetVisualDescendants().OfType<FormDialog>().ToList();
+        Assert.Equal(2, dialogs.Count);
+        var boxes = dialogs[0].GetVisualDescendants().OfType<CheckBox>().ToList();
+        Assert.Equal(["A Plague Tale", "Blender", "DaVinci Resolve"], boxes.Select(box => box.GetVisualDescendants().OfType<TextBlock>().First().Text));
+        Assert.Equal([false, true, false], boxes.Select(box => box.IsChecked == true));
+        Assert.Empty(dialogs[1].GetVisualDescendants().OfType<CheckBox>());
+        Assert.Contains(dialogs[1].GetVisualDescendants().OfType<TextBlock>(), text => text.Text == AlsoInEditViewModel.NoAppsText);
+    }
+
+    [AvaloniaFact]
+    public void TheWorkbenchHeaderNamesBlenderInMagnifiersAlsoIn()
+    {
+        var bench = Assert.IsType<CommandsWorkbench>(Assert.IsType<ComponentScreen>(ButtonTriggerGalleryPage.WorkbenchPage()).Build());
+        new Window { Content = bench, Width = 1400, Height = 900 }.Show();
+
+        Assert.True(bench.HeaderPart!.CanSetAlsoIn);
+        Assert.Equal("Blender", bench.HeaderPart.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "PART_AlsoInText").Text);
     }
 }
 #endif

@@ -34,6 +34,19 @@ public static class IgnoredGalleryPages
         return Screens.IgnoredScreen.Declare(vm);
     }
 
+    /// <summary>
+    /// Exclusions › Global (plan 0005) over <see cref="CommandGalleryFakes.MappingWithMagnifier"/>: Blender selected, its form with
+    /// "Allowed for" Global › Media › Magnifier as a link (the gallery's locator opens nothing); VMware's form, in the
+    /// disable-while-focused mode, has none.
+    /// </summary>
+    public static ScreenDeclaration AllowedForPage()
+    {
+        var store = new MappingStore(CommandGalleryFakes.MappingWithMagnifier());
+        var vm = new IgnoredViewModel(store, new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), HostPlatform.Windows, IgnoreScope.Global, new CommandGalleryFakes.Locator());
+        vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, vm.Items.Single(item => item.Name == "Blender")));
+        return Screens.IgnoredScreen.Declare(vm);
+    }
+
     /// <summary>The bare component: nothing in the list, then three items with the second selected and its form beside it.</summary>
     public static ScreenDeclaration MasterDetailPage()
     {

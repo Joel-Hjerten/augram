@@ -89,10 +89,18 @@ public sealed partial class CommandsViewModel
 
     /// <summary>
     /// The selected row as the header shows it: with the trigger draft over it while one waits (<c>.TriggerDraft</c>) and the
-    /// Options value its drag distance falls back to.
+    /// Options value its drag distance falls back to; without the Also in row where the button its stored trigger holds is this
+    /// machine's stroke button (it holds nothing back here, as for the drag distance).
     /// </summary>
     private CommandItem? HeaderItem(CommandItem? row)
-        => WithDraft(row) is { } item ? item with { OptionsDragDistancePx = OptionsDragDistancePx, StrokeButton = StrokeButton } : null;
+        => WithDraft(row) is { } item
+            ? item with
+            {
+                OptionsDragDistancePx = OptionsDragDistancePx,
+                StrokeButton = StrokeButton,
+                CanSetAlsoIn = item.CanSetAlsoIn && (StrokeButton is not { } stroke || row!.Trigger.Hold.ForStrokeButton(stroke).HandsBackDrags),
+            }
+            : null;
 
     /// <summary>The selected command's row in the current projection; null without one.</summary>
     private CommandItem? SelectedRow()

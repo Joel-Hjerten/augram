@@ -747,6 +747,15 @@
                     <Button DockPanel.Dock="Left" Name="PART_NotInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
                     <TextBlock Name="PART_NotInText" Text="{TemplateBinding NotInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
                   </DockPanel>
+                  <!-- Plan 0005 decision 7: the Exclusions › Global entries a command whose trigger holds no stroke button still works over. Laid out as Not in. -->
+                  <DockPanel IsVisible="{TemplateBinding CanSetAlsoIn}">
+                    <StackPanel DockPanel.Dock="Left" Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                      <TextBlock Classes="field-label" Text="Also in" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.AlsoInHelp}" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
+                    <TextBlock Name="PART_AlsoInText" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </DockPanel>
                   <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <TextBlock Classes="help" Text="{TemplateBinding VersionText}" TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">

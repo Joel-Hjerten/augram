@@ -27,5 +27,19 @@ public sealed class IgnoredGalleryTests
         var link = Assert.Single(row.GetVisualDescendants().OfType<Button>(), button => button.Classes.Contains("link"));
         Assert.Equal("Global › Media › Zoom in", link.Content);
     }
+
+    /// <summary>Plan 0005: Blender on Exclusions › Global shows "Allowed for: Magnifier" (Joel's done-when).</summary>
+    [AvaloniaFact]
+    public void TheAllowedForPageShowsBlenderAllowedForTheMagnifier()
+    {
+        var view = Assert.IsType<MasterDetail>(Assert.IsType<ComponentScreen>(IgnoredGalleryPages.AllowedForPage()).Build());
+        new Window { Content = view, Width = 1200, Height = 1400 }.Show();
+
+        Assert.Equal("Blender", view.SelectedItem!.Name);
+        Assert.DoesNotContain(view.Items, item => item.Name is "Spine" or "Eyeris");
+        var row = view.GetVisualDescendants().OfType<FieldRow>().Single(candidate => candidate.Label == IgnoredEditViewModel.AllowedForLabel);
+        var link = Assert.Single(row.GetVisualDescendants().OfType<Button>(), button => button.Classes.Contains("link"));
+        Assert.Equal("Global › Media › Magnifier", link.Content);
+    }
 }
 #endif

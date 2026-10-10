@@ -27,7 +27,7 @@ public sealed partial record CommandItem(
     string StepSummary,
     string? PlatformMarker)
 {
-    /// <summary>The header's Not in row for a command that names no Ignored › Per command entry.</summary>
+    /// <summary>The header's Not in (or Also in) row for a command that names no Exclusions › Per command (or Global) entry.</summary>
     public const string NoneNotIn = "none";
 
     /// <summary>The section the row sits in: its group on the Apps tab, its category (or Uncategorized) on the Global tab.</summary>
@@ -119,6 +119,20 @@ public sealed partial record CommandItem(
     /// <summary>What the header's "Not in" row says: those entries by name ("Eyeris, Spine"), or <see cref="NoneNotIn"/>.</summary>
     public string NotInText { get; init; } = NoneNotIn;
 
+    /// <summary>
+    /// The header shows "Also in" (plan 0005 decision 7): a command not under a hold remap whose stored trigger here holds a button
+    /// other than the stroke button and not the stroke button (<see cref="TriggerHold.HandsBackDrags"/>: a button trigger, Right +
+    /// wheel), the only kind that may still work over an Exclusions › Global entry. The header's item also leaves it out where the
+    /// button held is this machine's stroke button. Follows the stored trigger, not a draft: Core keeps the list only on such a one.
+    /// </summary>
+    public bool CanSetAlsoIn { get; init; }
+
+    /// <summary>The Exclusions › Global entries the command still works over (<see cref="Command.AlsoIn"/>), as stored.</summary>
+    public IReadOnlyList<GroupId> AlsoIn { get; init; } = [];
+
+    /// <summary>What the header's "Also in" row says: those entries by name ("Blender"), or <see cref="NoneNotIn"/> ("none").</summary>
+    public string AlsoInText { get; init; } = NoneNotIn;
+
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
 
     public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
@@ -169,6 +183,8 @@ public sealed partial record CommandItem(
             IsOwnVersionStale = command.IsOwnVersionStale,
             CanSetNotIn = holdRemap is null,
             NotIn = command.NotIn,
+            CanSetAlsoIn = holdRemap is null && trigger.IsBound && trigger.Hold.HandsBackDrags,
+            AlsoIn = command.AlsoIn,
         };
     }
 
