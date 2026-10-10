@@ -76,4 +76,4 @@ Joel shapes the details when he sees it running.
 
 ## Not in this plan
 
-Global hold remaps; a hold-time threshold for letter keys; a step that runs another command; leader-key sequences (tap Space, then W); marking-menu style radial menus; hold keys that are modifiers.
+Global hold remaps; a hold-time threshold for letter keys; re-posted drags on macOS for a **key** input held as a button output (W → Middle: step 3a covers button inputs only); a step that runs another command; leader-key sequences (tap Space, then W); marking-menu style radial menus; hold keys that are modifiers.
