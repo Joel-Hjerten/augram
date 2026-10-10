@@ -43,6 +43,7 @@ public sealed partial class CaptureStateMachine
     private bool _ownerIsStroke;
     private MouseButton _pressStrokeButton;
     private AnchorPlan _plan;
+    private AnchorDragDistances _drags;
     private HeldButtons _down;
     private HeldButtons _owed;
     private HeldButtons _before;
@@ -167,6 +168,7 @@ public sealed partial class CaptureStateMachine
         _ownerIsStroke = down.Button == _strokeButton;
         _pressStrokeButton = _strokeButton;
         _plan = down.Plan;
+        _drags = down.Drags;
         _owed |= flag;
         _before = _down & ~flag;
         _beforeKeys = down.Modifiers & PressHold.TrackedKeys;

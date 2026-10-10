@@ -36,7 +36,7 @@ internal sealed class IgnoreLookup
     private MouseButton _planStrokeButton;
     private WindowIdentity? _planWindow;
     private bool _planStale = true;
-    private readonly Dictionary<GroupId, AnchorPlan> _plans = [];
+    private readonly Dictionary<GroupId, (AnchorPlan Plan, AnchorDragDistances Drags)> _plans = [];
     private WindowIdentity? _holdWindow;
     private bool _holdStale = true;
     private readonly Dictionary<GroupId, HoldRemapPlan> _holdPlans = [];
@@ -69,6 +69,9 @@ internal sealed class IgnoreLookup
 
     /// <summary>The anchor plan over the window under the pointer as of the last pass (<see cref="AnchorPlanner"/>); <see cref="AnchorPlan.None"/> while no command holds another button.</summary>
     public AnchorPlan Plan { get; private set; }
+
+    /// <summary>The drag distance per anchor over the same window, worked out with <see cref="Plan"/> (plan 0004).</summary>
+    public AnchorDragDistances Drags { get; private set; }
 
     /// <summary>The hold remaps of the app in front as of the last pass (F9); <see cref="HoldRemapPlan.Empty"/> while none can match or the foreground has none.</summary>
     public HoldRemapPlan HoldPlan { get; private set; } = HoldRemapPlan.Empty;
@@ -139,6 +142,7 @@ internal sealed class IgnoreLookup
             Over = null;
             PausedBy = null;
             Plan = AnchorPlan.None;
+            Drags = AnchorDragDistances.None;
             HoldPlan = HoldRemapPlan.Empty;
             return;
         }
@@ -152,12 +156,12 @@ internal sealed class IgnoreLookup
 
         Over = _ignoring ? IgnoreList.Under(mapping, _pointerWindow, _platform) : null;
         PausedBy = _ignoring ? IgnoreList.PausedBy(mapping, _focusWindow, _platform) : null;
-        Plan = _anchoring ? PlanFor(mapping, _pointerWindow) : AnchorPlan.None;
+        (Plan, Drags) = _anchoring ? AnswerFor(mapping, _pointerWindow) : (AnchorPlan.None, AnchorDragDistances.None);
         HoldPlan = _holdRemaps ? HoldPlanFor(mapping, _focusWindow) : HoldRemapPlan.Empty;
     }
 
-    /// <summary>The plan over the window, worked out again only when the window, the mapping or the stroke button changed; cached per app group.</summary>
-    private AnchorPlan PlanFor(MappingDocument mapping, WindowIdentity? window)
+    /// <summary>The plan and drag distances over the window, worked out again only when the window, the mapping or the stroke button changed; cached per app group.</summary>
+    private (AnchorPlan Plan, AnchorDragDistances Drags) AnswerFor(MappingDocument mapping, WindowIdentity? window)
     {
         if (_planStale)
         {
@@ -166,19 +170,19 @@ internal sealed class IgnoreLookup
         }
         else if (ReferenceEquals(window, _planWindow))
         {
-            return Plan;
+            return (Plan, Drags);
         }
 
         _planWindow = window;
         var group = CommandResolver.FindGroup(mapping, window, _platform);
         var key = group?.Id ?? GroupId.Global;
-        if (!_plans.TryGetValue(key, out var plan))
+        if (!_plans.TryGetValue(key, out var answer))
         {
-            plan = AnchorPlanner.ForGroup(mapping, group, _platform, _planStrokeButton);
-            _plans[key] = plan;
+            answer = AnchorPlanner.AnswerForGroup(mapping, group, _platform, _planStrokeButton);
+            _plans[key] = answer;
         }
 
-        return plan;
+        return answer;
     }
 
     /// <summary>The hold remaps of the app group the focused window belongs to (plan 0002 decision 8), worked out again only when that window or the mapping changed; cached per app group.</summary>

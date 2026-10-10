@@ -34,6 +34,8 @@ public static class MappingRules
         }
 
         EnsureCommandIdsUnique(groups);
+        var appGroups = groups.Where(group => !group.IsGlobal).Select(group => group.Id).ToHashSet();
+        groups = [.. groups.Select(group => group.IsGlobal ? WithKnownNotIn(group, appGroups) : group)];
 
         var ignored = new List<IgnoredApp>();
         foreach (var app in document.Ignored)
@@ -57,7 +59,9 @@ public static class MappingRules
     public static AppGroup Normalised(AppGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
-        var commands = group.Commands.Select(Normalised).OrderBy(command => command.Name, NameComparer).ToArray();
+        var commands = group.Commands.Select(Normalised)
+            .Select(command => group.IsGlobal || command.NotIn.Count == 0 ? command : command with { NotIn = [] })
+            .OrderBy(command => command.Name, NameComparer).ToArray();
         return HoldRemapRules.Normalised(CategoryRules.Normalised(group.IsGlobal
             ? group with { Name = Trimmed(group.Name), Matcher = null, SuppressGlobals = false, UseOn = PlatformSet.All, Commands = commands }
             : group with { Name = Trimmed(group.Name), Commands = commands }));
@@ -69,6 +73,23 @@ public static class MappingRules
         ArgumentNullException.ThrowIfNull(command);
         var own = command.OwnVersion is { Trigger: { } trigger } version ? version with { Trigger = trigger.Normalised() } : command.OwnVersion;
         return command with { Name = Trimmed(command.Name), Trigger = command.Trigger.Normalised(), OwnVersion = own };
+    }
+
+    /// <summary>A Global group whose commands' "Not in" lists name only app groups in <paramref name="appGroups"/>, once each, sorted by id (plan 0004).</summary>
+    private static AppGroup WithKnownNotIn(AppGroup global, HashSet<GroupId> appGroups)
+    {
+        if (global.Commands.All(command => command.NotIn.Count == 0))
+        {
+            return global;
+        }
+
+        return global with
+        {
+            Commands = [.. global.Commands.Select(command => command.NotIn.Count == 0 ? command : command with
+            {
+                NotIn = [.. command.NotIn.Where(appGroups.Contains).Distinct().OrderBy(id => id.Value)],
+            })],
+        };
     }
 
     public static IgnoredApp Normalised(IgnoredApp app)
@@ -212,6 +233,11 @@ public static class MappingRules
         if (trigger.IsBound && !trigger.Hold.HasAnchor)
         {
             throw new MappingValidationException($"'{command.Name}' holds no button: a wheel trigger needs the stroke button or another button to hold.");
+        }
+
+        if (trigger.Hold.DragDistancePx is { } distance && distance is < 1 or > TriggerHold.MaxDragDistancePx)
+        {
+            throw new MappingValidationException($"The drag distance of '{command.Name}' must be between 1 and {TriggerHold.MaxDragDistancePx} px.");
         }
     }
 

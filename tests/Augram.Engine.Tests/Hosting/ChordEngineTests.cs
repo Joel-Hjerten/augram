@@ -168,9 +168,47 @@ public sealed class ChordEngineTests
     }
 
     /// <summary>Middle is the stroke button; Chrome has "Right + wheel up = minimize"; the pointer is over Chrome and the watch has said so.</summary>
-    private static EngineHarness ChromeWithRightWheel()
+    [Fact]
+    public void ACommandsOwnDragDistance_HandsTheAnchorBackAtThatDistance()
     {
-        var mapping = Mappings.Document([], Mappings.Group("Chrome", "chrome.exe", commands: Mappings.Command("Zoom in", RightWheelUp, new WindowOpStep(WindowOperation.Minimize))));
+        var zoom = Mappings.Command("Zoom in", Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right, DragDistancePx: 3)), new WindowOpStep(WindowOperation.Minimize));
+        using var harness = ChromeWithRightWheel(zoom);
+
+        Assert.True(harness.Down(MouseButton.Right, 100, 100, 10));
+        harness.Move(102, 100, 20);
+        harness.Move(103, 100, 30);
+        EngineHarness.WaitFor(() => harness.Simulator.Mouse.Count == 2, "the hand-back at 3 px");
+        Assert.True(harness.Up(MouseButton.Right, 103, 100, 40));
+        EngineHarness.WaitFor(() => harness.Simulator.Mouse.Count == 3, "the injected release");
+
+        Assert.Equal(["down Right@100,100", "move 103,100", "up Right"], harness.Simulator.Mouse);
+    }
+
+    [Fact]
+    public void AGlobalCommandNotInAnApp_LeavesItsButtonAloneOverThatApp()
+    {
+        var spine = Mappings.Group("Spine", "spine.exe");
+        var zoom = Mappings.Command("Zoom in", RightWheelUp, new WindowOpStep(WindowOperation.Minimize)) with { NotIn = [spine.Id] };
+        using var harness = new EngineHarness(
+            new EngineHostOptions(MouseButton.Middle, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1)),
+            mapping: Mappings.Document([zoom], spine));
+        harness.Windows.Window = FakeWindowSystem.Identity("chrome.exe");
+        harness.Move(100, 100, 0);
+        EngineHarness.WaitFor(() => harness.Host.AnchorPlanUnderPointer.IsAnchor(MouseButton.Right), "Right to be an anchor over Chrome");
+
+        harness.Windows.Window = FakeWindowSystem.Identity("spine.exe", handle: 0x9999, root: 0x9000);
+        harness.Move(60, 60, 10);
+        EngineHarness.WaitFor(() => !harness.Host.AnchorPlanUnderPointer.IsAnchor(MouseButton.Right), "Right to be no anchor over Spine");
+        Assert.False(harness.Down(MouseButton.Right, 60, 60, 20));
+        Assert.False(harness.Wheel(WheelDirection.Up, 60, 60, 30));
+        Assert.False(harness.Up(MouseButton.Right, 60, 60, 40));
+        Assert.Empty(harness.Simulator.Mouse);
+        Assert.Empty(harness.WindowOperations.Calls);
+    }
+
+    private static EngineHarness ChromeWithRightWheel(Command? zoom = null)
+    {
+        var mapping = Mappings.Document([], Mappings.Group("Chrome", "chrome.exe", commands: zoom ?? Mappings.Command("Zoom in", RightWheelUp, new WindowOpStep(WindowOperation.Minimize))));
         var harness = new EngineHarness(
             new EngineHostOptions(MouseButton.Middle, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1)),
             mapping: mapping);

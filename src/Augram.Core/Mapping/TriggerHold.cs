@@ -16,8 +16,16 @@ namespace Augram.Core.Mapping;
 /// <param name="Buttons">The buttons held; <see cref="HeldButtons.Stroke"/> is the stroke button wherever the trigger runs.</param>
 /// <param name="Keys">Ctrl, Alt, Shift and Win (Meta) held; left and right count as one.</param>
 /// <param name="Capture">Before, After or Either, for the members besides the anchor.</param>
-public sealed record TriggerHold(HeldButtons Buttons, KeyModifiers Keys = KeyModifiers.None, HoldCapture Capture = HoldCapture.Either)
+/// <param name="DragDistancePx">
+/// The command's own button drag distance (Joel, 2026-10-10, plan 0004): how far a press of one of its anchors may move before it
+/// is handed back to the app as a drag; null uses Options › Capture's (<c>CaptureThresholds.ButtonDragDistancePx</c>). Only a set
+/// without the stroke button has anchors that are handed back, so the stored form drops it everywhere else (<see cref="Normalised"/>).
+/// </param>
+public sealed record TriggerHold(HeldButtons Buttons, KeyModifiers Keys = KeyModifiers.None, HoldCapture Capture = HoldCapture.Either, int? DragDistancePx = null)
 {
+    /// <summary>The largest own drag distance a command may set, in pixels (the Options value has the same bound).</summary>
+    public const int MaxDragDistancePx = CaptureThresholds.MaxButtonDragDistancePx;
+
     /// <summary>The stroke button alone: every trigger before combinations existed, and still the usual one.</summary>
     public static TriggerHold Default { get; } = new(HeldButtons.Stroke);
 
@@ -40,15 +48,28 @@ public sealed record TriggerHold(HeldButtons Buttons, KeyModifiers Keys = KeyMod
     public bool HasAnchor => HoldsStroke || Physical != HeldButtons.None;
 
     /// <summary>
+    /// True when its anchors are buttons other than the stroke button, held back and handed back as a drag (Right in
+    /// Right + wheel): the only sets a <see cref="DragDistancePx"/> means anything for.
+    /// </summary>
+    public bool HandsBackDrags => !HoldsStroke && Physical != HeldButtons.None;
+
+    /// <summary>
     /// The stored form: unknown bits dropped, the stroke button added when <paramref name="strokeRequired"/> (a gesture or a
-    /// click), and <see cref="HoldCapture.Either"/> when there is nothing besides the anchor.
+    /// click), <see cref="HoldCapture.Either"/> when there is nothing besides the anchor, and no own drag distance unless it
+    /// <see cref="HandsBackDrags"/>.
     /// </summary>
     public TriggerHold Normalised(bool strokeRequired)
     {
         var hold = new TriggerHold(
             (Buttons & HeldButtonsExtensions.All) | (strokeRequired ? HeldButtons.Stroke : HeldButtons.None),
             Keys & PressHold.TrackedKeys,
-            Capture);
+            Capture,
+            DragDistancePx);
+        if (!hold.HandsBackDrags)
+        {
+            hold = hold with { DragDistancePx = null };
+        }
+
         return hold.HasMembers ? hold : hold with { Capture = HoldCapture.Either };
     }
 

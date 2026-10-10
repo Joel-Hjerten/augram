@@ -17,5 +17,8 @@ public sealed record CaptureThresholds(
     bool ResetCancelDelayOnMovement = true,
     int ButtonDragDistancePx = 10)
 {
+    /// <summary>The largest button drag distance, here and on a command (<c>Mapping.TriggerHold.DragDistancePx</c>); <see cref="AnchorDragDistances"/> packs it in 8 bits.</summary>
+    public const int MaxButtonDragDistancePx = 200;
+
     public static CaptureThresholds Default { get; } = new();
 }

@@ -52,6 +52,7 @@ internal sealed class InputGate
     private int _captureKeys;
     private const int IgnoreBits = 2;
     private long _pointerAnswer;
+    private long _pointerDrags;
     private HoldRemapPlan _foreground = HoldRemapPlan.Empty;
     private int _pointerX;
     private int _pointerY;
@@ -103,6 +104,9 @@ internal sealed class InputGate
     /// <summary>The anchor plan for the window under the pointer as of the watch's last pass (per app, Joel 2026-10-09); <see cref="AnchorPlan.None"/> while nothing holds a button besides the stroke button.</summary>
     public AnchorPlan Plan => new(Volatile.Read(ref _pointerAnswer) >> IgnoreBits);
 
+    /// <summary>The drag distance per anchor over the same window (plan 0004), handed to the machine with each press.</summary>
+    public AnchorDragDistances Drags => new(Volatile.Read(ref _pointerDrags));
+
     /// <summary>The hold remaps of the app in front as of the watch's last pass (F9); <see cref="HoldRemapPlan.Empty"/> while none can match.</summary>
     public HoldRemapPlan ForegroundPlan => Volatile.Read(ref _foreground);
 
@@ -110,14 +114,18 @@ internal sealed class InputGate
     public HoldRemapShadow Hold => _hold;
 
     /// <summary>The watch's ignore answer, keeping the plan: read at the next press only, so a press already consumed still gets its release consumed (A19).</summary>
-    public void PublishIgnore(int state) => PublishPointer(state, Plan);
+    public void PublishIgnore(int state) => PublishPointer(state, Plan, Drags);
 
     /// <summary>
     /// The watch's whole answer for the window under the pointer, as one volatile the hook reads at a press: the ignore bits
-    /// and the anchor plan. Single writer (the watch's thread).
+    /// and the anchor plan. Single writer (the watch's thread). The drag distances go in a second volatile, written first: a
+    /// press that reads them from another pass than its plan only hands back at another distance, it decides nothing else.
     /// </summary>
-    public void PublishPointer(int ignoreState, AnchorPlan plan)
-        => Volatile.Write(ref _pointerAnswer, (plan.Bits << IgnoreBits) | (uint)(ignoreState & ((1 << IgnoreBits) - 1)));
+    public void PublishPointer(int ignoreState, AnchorPlan plan, AnchorDragDistances drags = default)
+    {
+        Volatile.Write(ref _pointerDrags, drags.Bits);
+        Volatile.Write(ref _pointerAnswer, (plan.Bits << IgnoreBits) | (uint)(ignoreState & ((1 << IgnoreBits) - 1)));
+    }
 
     /// <summary>
     /// The watch's answer for the app in front: its hold remaps, read by the hook at a hold key's press only (plan 0002
@@ -212,12 +220,13 @@ internal sealed class InputGate
                     var answer = Volatile.Read(ref _pointerAnswer);
                     var allowed = Enabled && (answer & ((1 << IgnoreBits) - 1)) == 0;
                     var plan = new AnchorPlan(answer >> IgnoreBits);
+                    var drags = new AnchorDragDistances(Volatile.Read(ref _pointerDrags));
                     var ignore = (input.Modifiers & IgnoreKey) != 0;
                     // The press's Before keys: the library's mask, limited to keys this hook saw go down (a stale mask holds no phantom key).
                     var press = input with { Modifiers = input.Modifiers & _keys.HeldModifiers() };
                     var before = _shadow.Save();
                     suppress = _shadow.Decide(in press, state, StrokeButton, allowed, ignore, plan);
-                    var down = new CaptureEvent.ButtonDown(input.Button, input.X, input.Y, input.TimestampMs, allowed, ignore, press.Modifiers, plan);
+                    var down = new CaptureEvent.ButtonDown(input.Button, input.X, input.Y, input.TimestampMs, allowed, ignore, press.Modifiers, plan, drags);
                     if (!Post(WorkerMessage.Input(down, suppress), critical: true))
                     {
                         _shadow.Restore(before);

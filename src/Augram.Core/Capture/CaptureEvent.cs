@@ -15,7 +15,9 @@ public abstract record CaptureEvent(long TimestampMs)
     /// is the modifier state re-read at this press, never tracked across events (reference §9).
     /// <paramref name="Modifiers"/> are the keys held at the press (a press's Before keys);
     /// <paramref name="Plan"/> is the anchor plan the hook read for the window under the pointer
-    /// at this press, so the machine decides from what the hook decided from.
+    /// at this press, so the machine decides from what the hook decided from. <paramref name="Drags"/>
+    /// is that window's drag distance per anchor (plan 0004), read with it; it never changes a
+    /// decision of the hook's, only when the machine hands an anchor's press back.
     /// </summary>
     public sealed record ButtonDown(
         MouseButton Button,
@@ -25,7 +27,8 @@ public abstract record CaptureEvent(long TimestampMs)
         bool CaptureAllowed = true,
         bool IgnoreKeyHeld = false,
         KeyModifiers Modifiers = KeyModifiers.None,
-        AnchorPlan Plan = default) : CaptureEvent(TimestampMs);
+        AnchorPlan Plan = default,
+        AnchorDragDistances Drags = default) : CaptureEvent(TimestampMs);
 
     /// <summary>A physical button release.</summary>
     public sealed record ButtonUp(MouseButton Button, int X, int Y, long TimestampMs) : CaptureEvent(TimestampMs);

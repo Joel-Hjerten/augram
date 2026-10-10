@@ -14,7 +14,7 @@ namespace Augram.Core.Mapping;
 /// <item>the first active app group (in document order) whose matcher matches the window is the app group;</item>
 /// <item>an active command in that group whose trigger on this platform matches the press exactly (the keys and buttons held, learnings 0003 §3.4; there is no fallback to a trigger holding fewer) → matched ("app override in 'Chrome'", or "override to nothing in 'Steam'" when it has no steps);</item>
 /// <item>else, if that group suppresses globals → none ("globals suppressed by 'FF7'");</item>
-/// <item>else the Global group's active command for the trigger → matched ("global");</item>
+/// <item>else the Global group's active command for the trigger → matched ("global"), unless its "Not in" names the app group → none ("'Zoom In' is not used in 'Spine'", plan 0004);</item>
 /// <item>else none ("no command for this gesture").</item>
 /// </list>
 /// A null window (nothing under the point) skips 1 and 2 and resolves against Global alone. Commands under a hold remap
@@ -70,6 +70,11 @@ public static class CommandResolver
         }
 
         var globalCommand = ActiveCommandFor(global, trigger, platform);
+        if (globalCommand is not null && globalCommand.IsNotIn(group))
+        {
+            return CommandResolution.None($"'{globalCommand.Name}' is not used in '{group!.Name}'");
+        }
+
         return globalCommand is not null
             ? CommandResolution.Matched(global, globalCommand, "global")
             : CommandResolution.None($"no command for {trigger.Describe()}");

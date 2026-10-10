@@ -34,6 +34,16 @@ public sealed partial record Command(
     public bool IsUsedOn(HostPlatform platform) => UseOn.Includes(platform);
 
     /// <summary>
+    /// The app groups a Global command is not used in (Joel, 2026-10-10, plan 0004: "Not in"): over a window of one of them it is
+    /// as if it did not exist, so it fires nothing and holds no button back there. Empty for every command outside Global, and
+    /// it names only app groups that exist (<see cref="MappingRules.ValidDocument"/>); sorted by id.
+    /// </summary>
+    public IReadOnlyList<GroupId> NotIn { get; init; } = [];
+
+    /// <summary>True when <see cref="NotIn"/> names <paramref name="group"/> (null, no app group, never).</summary>
+    public bool IsNotIn(AppGroup? group) => group is not null && NotIn.Contains(group.Id);
+
+    /// <summary>
     /// The hold remap of its group the command sits under (F9, plan 0002), as <see cref="CategoryId"/> names a category; null
     /// for an ordinary command. A command under a hold remap has an input (<see cref="Trigger.InputTrigger"/>) or no trigger
     /// yet, and no category; the resolver never fires it. <see cref="HoldRemapRules"/> keeps all of that true.

@@ -1,3 +1,5 @@
+using Augram.Core.Capture;
+
 namespace Augram.Core.Config;
 
 /// <summary>
@@ -22,7 +24,9 @@ public static class SettingsRules
         Require(capture.StartDistancePx >= 1, "Start distance must be at least 1 px.");
         Require(capture.MinSegmentPx >= 1, "Minimum segment must be at least 1 px.");
         Require(capture.CancelDelayMs >= 0, "Cancel delay cannot be negative.");
-        Require(capture.ButtonDragDistancePx >= 1, "Button drag distance must be at least 1 px.");
+        Require(
+            capture.ButtonDragDistancePx is >= 1 and <= CaptureThresholds.MaxButtonDragDistancePx,
+            $"Button drag distance must be between 1 and {CaptureThresholds.MaxButtonDragDistancePx} px.");
 
         var recognition = settings.Recognition;
         Require(recognition.Precision >= MinPrecision, $"Precision must be at least {MinPrecision}.");

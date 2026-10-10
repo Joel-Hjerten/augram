@@ -243,7 +243,7 @@ internal sealed class IgnoreListWatch : IDisposable
             _log.Info(LogSources.Hold, _lookup.WatchesHoldRemaps ? "Hold remaps watched" : "Hold remaps not watched");
         }
 
-        Publish(_lookup.Over, _lookup.PausedBy, _lookup.Plan);
+        Publish(_lookup.Over, _lookup.PausedBy, _lookup.Plan, _lookup.Drags);
         PublishForeground(_lookup.HoldPlan);
     }
 
@@ -258,9 +258,9 @@ internal sealed class IgnoreListWatch : IDisposable
         }
     }
 
-    private void Publish(IgnoredApp? over, IgnoredApp? pausedBy, AnchorPlan plan)
+    private void Publish(IgnoredApp? over, IgnoredApp? pausedBy, AnchorPlan plan, AnchorDragDistances drags)
     {
-        _gate.PublishPointer((over is null ? 0 : InputGate.OverIgnoredApp) | (pausedBy is null ? 0 : InputGate.PausedByFocus), plan);
+        _gate.PublishPointer((over is null ? 0 : InputGate.OverIgnoredApp) | (pausedBy is null ? 0 : InputGate.PausedByFocus), plan, drags);
 
         var lastOver = Volatile.Read(ref _over);
         Volatile.Write(ref _over, over);
