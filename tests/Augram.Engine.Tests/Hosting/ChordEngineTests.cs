@@ -91,14 +91,15 @@ public sealed class ChordEngineTests
         using var harness = ChromeWithRightWheel();
 
         Assert.True(harness.Down(MouseButton.Right, 100, 100, 10));
-        harness.Move(120, 100, 20);
-        harness.Move(140, 100, 30);
+        harness.Move(105, 100, 20);
+        harness.Move(112, 100, 30);
         harness.Move(180, 100, 40);
         EngineHarness.WaitFor(() => harness.Simulator.Mouse.Count == 2, "the hand-back");
         Assert.True(harness.Up(MouseButton.Right, 180, 100, 50), "the physical release is swallowed; its injected release pairs the injected press");
         EngineHarness.WaitFor(() => harness.Simulator.Mouse.Count == 3, "the injected release");
 
-        Assert.Equal(["down Right@100,100", "move 140,100", "up Right"], harness.Simulator.Mouse);
+        // Handed back at the button drag distance (10 px by default), not the stroke's 30 px start distance.
+        Assert.Equal(["down Right@100,100", "move 112,100", "up Right"], harness.Simulator.Mouse);
         Assert.Empty(harness.WindowOperations.Calls);
     }
 

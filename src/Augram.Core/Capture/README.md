@@ -15,7 +15,7 @@ Since 2026-10-09 a press can hold keys and other buttons (F1 "Triggers as combin
 | `PressHold` | what a press held: its anchor (`Stroke` or a physical button), the stroke button then, Before (keys and buttons already held when the anchor went down) and After (pressed while held, and swallowed); `IsEmpty`, `TrackedKeys` (Ctrl, Alt, Shift, Win) |
 | `CaptureEvent` | closed set: `ButtonDown(button, x, y, t, captureAllowed, ignoreKeyHeld, modifiers, plan)`, `ButtonUp`, `Move`, `Wheel`, `Tick(t)`, `Key(modifier, consumed, t)`. The Engine sets `captureAllowed` false when Augram is disabled, paused by a focused "disable while focused" app, or the pointer is over an ignored app (F5): the press passes through like one with the ignore key held. `modifiers` are the keys held at the press; `plan` is the anchor plan the hook decided this press with. `Key` is a Ctrl/Alt/Shift/Win press while a press is held, with the hook's decision (keys are paired by the Engine's key shadow) |
 | `CaptureOutcome` | closed set: `Suppress`, `PassThrough` (the synchronous input decision), `BeginStroke`, `StrokeProgress`, `EndStroke` (trail), `ReplayClick` (with `AfterKeys` to press around it), `ClickTrigger` (a stroke-button click holding something: resolve it, relay the click when nothing fires), `StrokeComplete` (with `Hold`), `WheelTrigger` (with `Hold` and `AfterDrawing`), `HandBack` (inject an anchor's down at the start point, put the pointer back), `ReleaseHandedBack` (inject its up), `Cancelled(reason)` (worker) |
-| `CaptureThresholds` | `StartDistancePx 30`, `MinSegmentPx 6`, `CancelDelayMs 1000`, `ResetCancelDelayOnMovement true`; swappable at any time |
+| `CaptureThresholds` | `StartDistancePx 30`, `MinSegmentPx 6`, `CancelDelayMs 1000`, `ResetCancelDelayOnMovement true`, `ButtonDragDistancePx 10` (a press owned by an anchor other than the stroke button never draws, so it is handed back at this distance instead of the start distance; Joel, 2026-10-10: Spine and Eyeris pan with Right); swappable at any time |
 | `CaptureState` | `Idle`, `Held`, `Drawing`, `WheelFiring`, `Cancelled`, `HandedBack` |
 | `CaptureStateMachine` | `Handle(event)`, `State`, `StrokeButton`, `ActiveButton`, `HandedBackButton`, `OwedButtons`, `Thresholds`, `Reset()`; split in `CaptureStateMachine.cs` (buttons) and `CaptureStateMachine.Motion.cs` (moves, wheel, ticks, keys) |
 
@@ -35,9 +35,9 @@ Rows follow the classic-source table ([reference §2](../../../docs/reference/st
 | ButtonDown (another button), Cancelled or HandedBack | PassThrough | unchanged |
 | ButtonDown (the owner again: its release was missed) | as from Idle; first EndStroke (if Drawing) or ReleaseHandedBack (if HandedBack) | Held or Idle |
 | Key (consumed), Held or Drawing, not already held | an After key; the deadline is pushed. Nothing otherwise; never a decision | unchanged |
-| Move, Held, under StartDistancePx from start | nothing (point recorded if at least MinSegmentPx from the last recorded one; each recorded point pushes the deadline when ResetCancelDelayOnMovement) | Held |
+| Move, Held, under the press's distance from start (StartDistancePx for a stroke owner, ButtonDragDistancePx for another) | nothing (point recorded if at least MinSegmentPx from the last recorded one; each recorded point pushes the deadline when ResetCancelDelayOnMovement) | Held |
 | Move, Held, at least StartDistancePx from start, stroke owner | BeginStroke(start), StrokeProgress for each recorded point after start | Drawing |
-| Move, Held, at least StartDistancePx from start, another owner | HandBack(owner, start, here): a drag or a selection starts at once | HandedBack |
+| Move, Held, at least ButtonDragDistancePx from start, another owner | HandBack(owner, start, here): a drag or a selection starts at once | HandedBack |
 | Move, Drawing | StrokeProgress(point) if recorded (same decimation), else nothing | Drawing |
 | Tick, Held or Drawing, t at or past deadline, stroke owner | EndStroke (if Drawing), Cancelled(HoldStill) | Cancelled |
 | Tick, Held, t at or past deadline, another owner | HandBack(owner, start, last position): a long press reaches the app | HandedBack |

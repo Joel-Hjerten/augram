@@ -97,13 +97,30 @@ public sealed class ChordTests
     public void AnAnchorDragged_IsHandedBackAtOnce_AndItsReleaseIsInjected()
     {
         var machine = new CaptureStateMachine(Stroke);
-        var results = new EventScript().WithPlan(Plan).Down(MouseButton.Right, 100, 100).Move(110, 100).Move(140, 100).Move(200, 100).Up(MouseButton.Right).RunOn(machine);
+        var results = new EventScript().WithPlan(Plan).Down(MouseButton.Right, 100, 100).Move(105, 100).Move(110, 100).Move(200, 100).Up(MouseButton.Right).RunOn(machine);
 
         Assert.Empty(results[1]);
-        Assert.Equal([new CaptureOutcome.HandBack(MouseButton.Right, new CapturePoint(100, 100, 0), 140, 100)], results[2]);
+        Assert.Equal([new CaptureOutcome.HandBack(MouseButton.Right, new CapturePoint(100, 100, 0), 110, 100)], results[2]);
         Assert.Empty(results[3]);
         Assert.Equal([CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReleaseHandedBack(MouseButton.Right, 200, 100)], results[4]);
         Assert.Equal(CaptureState.Idle, machine.State);
+    }
+
+    [Fact]
+    public void AnAnchorIsHandedBackAtTheButtonDragDistance_WhileTheStrokeButtonKeepsTheStartDistance()
+    {
+        var thresholds = new CaptureThresholds(StartDistancePx: 30, ButtonDragDistancePx: 3);
+
+        var anchor = new CaptureStateMachine(Stroke, thresholds);
+        var dragged = new EventScript().WithPlan(Plan).Down(MouseButton.Right, 100, 100).Move(102, 100).Move(103, 100).RunOn(anchor);
+        Assert.Empty(dragged[1]);
+        Assert.Equal([new CaptureOutcome.HandBack(MouseButton.Right, new CapturePoint(100, 100, 0), 103, 100)], dragged[2]);
+
+        var stroke = new CaptureStateMachine(Stroke, thresholds);
+        var held = new EventScript().WithPlan(Plan).Down(Stroke, 100, 100).Move(110, 100).Move(129, 100).RunOn(stroke);
+        Assert.Empty(held[1]);
+        Assert.Empty(held[2]);
+        Assert.Equal(CaptureState.Held, stroke.State);
     }
 
     [Fact]

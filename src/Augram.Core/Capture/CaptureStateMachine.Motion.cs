@@ -13,7 +13,8 @@ public sealed partial class CaptureStateMachine
                 var point = new CapturePoint(move.X, move.Y, move.TimestampMs);
                 _pointer = (move.X, move.Y);
                 TryRecord(point);
-                if (point.DistanceSquaredTo(_start) < Squared(Thresholds.StartDistancePx))
+                var distance = _ownerIsStroke ? Thresholds.StartDistancePx : Thresholds.ButtonDragDistancePx;
+                if (point.DistanceSquaredTo(_start) < Squared(distance))
                 {
                     return None;
                 }
@@ -21,6 +22,7 @@ public sealed partial class CaptureStateMachine
                 if (!_ownerIsStroke)
                 {
                     // A drag of a held-back button: give it back at once, so the drag or the selection starts where it began.
+                    // It never draws, so its own (shorter) distance decides.
                     return HandBackNow(move.X, move.Y, null);
                 }
 

@@ -65,6 +65,7 @@ public sealed class SettingsStoreTests
 
         Assert.Throws<SettingsValidationException>(() => store.SetCapture(new CaptureThresholds(StartDistancePx: 0)));
         Assert.Throws<SettingsValidationException>(() => store.SetCapture(new CaptureThresholds(CancelDelayMs: -1)));
+        Assert.Throws<SettingsValidationException>(() => store.SetCapture(new CaptureThresholds(ButtonDragDistancePx: 0)));
         Assert.Throws<SettingsValidationException>(() => store.SetRecognition(new Core.Recognition.RecognitionOptions(Precision: 1)));
         Assert.Throws<SettingsValidationException>(() => store.SetRecognition(new Core.Recognition.RecognitionOptions(Threshold: 101)));
         Assert.Throws<SettingsValidationException>(() => new SettingsStore(Settings.Default with { Trail = new TrailSettings { Opacity = 2 } }));

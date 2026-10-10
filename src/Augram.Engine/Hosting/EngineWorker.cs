@@ -95,7 +95,7 @@ internal sealed partial class EngineWorker
             case WorkerMessage.MessageKind.SetThresholds:
                 var thresholds = (CaptureThresholds)message.Payload!;
                 _machine.Thresholds = thresholds;
-                _log.Info(LogSources.Engine, "Capture thresholds changed", ("startDistancePx", thresholds.StartDistancePx), ("minSegmentPx", thresholds.MinSegmentPx), ("cancelDelayMs", thresholds.CancelDelayMs), ("resetOnMovement", thresholds.ResetCancelDelayOnMovement));
+                _log.Info(LogSources.Engine, "Capture thresholds changed", ("startDistancePx", thresholds.StartDistancePx), ("buttonDragDistancePx", thresholds.ButtonDragDistancePx), ("minSegmentPx", thresholds.MinSegmentPx), ("cancelDelayMs", thresholds.CancelDelayMs), ("resetOnMovement", thresholds.ResetCancelDelayOnMovement));
                 break;
             case WorkerMessage.MessageKind.Reset:
                 var reason = (string)message.Payload!;

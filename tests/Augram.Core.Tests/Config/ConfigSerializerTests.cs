@@ -79,6 +79,7 @@ public sealed class ConfigSerializerTests
         Assert.Equal(GeneralSettings.Default, back.Settings.General);
         Assert.Equal(4, back.Settings.Capture.MinSegmentPx);
         Assert.Equal(Core.Capture.CaptureThresholds.Default.StartDistancePx, back.Settings.Capture.StartDistancePx);
+        Assert.Equal(10, back.Settings.Capture.ButtonDragDistancePx);
         Assert.Equal(Core.Recognition.RecognitionOptions.Default, back.Settings.Recognition);
         Assert.Empty(back.Gestures);
 

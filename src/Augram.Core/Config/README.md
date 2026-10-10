@@ -30,7 +30,7 @@ The on-disk configuration (requirements F8, checklist A3/A17) and the session th
   "schemaVersion": 4,
   "settings": {
     "general": { "strokeButton": "Right", "ignoreKey": "None", "startAtLogin": false, "enabled": true },
-    "capture": { "startDistancePx": 30, "minSegmentPx": 6, "cancelDelayMs": 1000, "resetCancelDelayOnMovement": true },
+    "capture": { "startDistancePx": 30, "minSegmentPx": 6, "cancelDelayMs": 1000, "resetCancelDelayOnMovement": true, "buttonDragDistancePx": 10 },
     "trail": { "widthPx": 5, "opacity": 0.5, "colour": "#00FF40" },
     "recognition": { "precision": 100, "threshold": 75, "scoringMode": "Legacy", "sampleAggregation": "Average" },
     "noMatch": "DoNothing",

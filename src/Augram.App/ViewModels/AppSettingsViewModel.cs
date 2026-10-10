@@ -82,6 +82,12 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
         set => Apply(s => s with { Capture = s.Capture with { StartDistancePx = (int)Math.Round(value) } });
     }
 
+    public double ButtonDragDistancePx
+    {
+        get => Current.Capture.ButtonDragDistancePx;
+        set => Apply(s => s with { Capture = s.Capture with { ButtonDragDistancePx = (int)Math.Round(value) } });
+    }
+
     public double CancelDelayMs
     {
         get => Current.Capture.CancelDelayMs;
