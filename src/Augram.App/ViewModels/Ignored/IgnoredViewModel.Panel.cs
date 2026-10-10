@@ -42,6 +42,8 @@ public sealed partial class IgnoredViewModel
             _editId = app.Id;
             _edit.UsedBy = app.IsPerCommand ? UsedByLinks(app.Id) : [];
             _edit.AllowedFor = app.IsPerCommand ? [] : AllowedForLinks(app.Id);
+            var allowedId = app.Id;
+            _edit.EditAllowedFor = app.IsPerCommand ? null : () => _ = EditAllowedForAsync(allowedId);
             _edit.PropertyChanged += OnEdited;
             Detail = _edit.Declare();
         }

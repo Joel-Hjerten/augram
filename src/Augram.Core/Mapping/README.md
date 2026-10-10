@@ -31,7 +31,7 @@ The mapping model (requirements F5, F5a): **app group › command › step**, th
 | `CategoryRules` | the category part of those rules, called by `MappingRules` for every group; also `FindByName(group, name)` and `Carried(id, from, to)` (the category a command takes into another group) for the store and the importer's merge |
 | `MappingValidationException` | a rule was broken; the message is fit to show the user |
 | `CommandResolver`, `CommandResolution`, `ResolutionOutcome` | the decision on button-up, see below |
-| `MappingStore` | the store: the single mutable owner of the mapping for the running app |
+| `MappingStore` | the store: the single mutable owner of the mapping for the running app; `SetAllowedFor(entry, commands)` (plan 0005, Joel 2026-10-11) makes exactly those commands name an Exclusions › Global entry in their Also in, one undo step, never giving it to a command that cannot work over an excluded app (`MappingRules.CanWorkOverExcluded`) |
 
 ## Resolver rule (`CommandResolver.Resolve(mapping, window, trigger)`), in order
 

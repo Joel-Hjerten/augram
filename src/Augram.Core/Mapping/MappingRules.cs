@@ -112,17 +112,25 @@ public static class MappingRules
         {
             Commands = [.. group.Commands.Select(command => command.AlsoIn.Count == 0 ? command : command with
             {
-                AlsoIn = command.HoldRemapId is not null || !HoldsBackWithoutStroke(command)
+                AlsoIn = !CanWorkOverExcluded(command)
                     ? []
                     : [.. command.AlsoIn.Where(plainGlobal.Contains).Distinct().OrderBy(id => id.Value)],
             })],
         };
     }
 
-    /// <summary>The command's trigger holds a button other than the stroke button, without it, on Windows or on macOS.</summary>
-    private static bool HoldsBackWithoutStroke(Command command)
-        => command.TriggerFor(HostPlatform.Windows) is { IsBound: true, Hold.HandsBackDrags: true }
-            || command.TriggerFor(HostPlatform.MacOS) is { IsBound: true, Hold.HandsBackDrags: true };
+    /// <summary>
+    /// True when the command may keep an "Also in" (plan 0005 decision 7): not under a hold remap, and its trigger holds a button
+    /// other than the stroke button, without it, on Windows or on macOS. The Also in dialog's row and an excluded app's Allowed
+    /// for list offer exactly these commands.
+    /// </summary>
+    public static bool CanWorkOverExcluded(Command command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return command.HoldRemapId is null
+            && (command.TriggerFor(HostPlatform.Windows) is { IsBound: true, Hold.HandsBackDrags: true }
+                || command.TriggerFor(HostPlatform.MacOS) is { IsBound: true, Hold.HandsBackDrags: true });
+    }
 
     /// <summary>Trims the name; a Per command entry never disables Augram while focused (it stops only the commands that name it).</summary>
     public static IgnoredApp Normalised(IgnoredApp app)

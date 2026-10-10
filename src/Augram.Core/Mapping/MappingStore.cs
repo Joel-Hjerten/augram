@@ -131,6 +131,38 @@ public sealed partial class MappingStore
         return FindCommand(command.Id)!.Value.Command;
     }
 
+    /// <summary>
+    /// Makes <paramref name="commands"/> exactly the commands whose "Also in" names the Exclusions › Global entry
+    /// <paramref name="excluded"/> (plan 0005: its "Allowed for", edited from the entry's side; Joel, 2026-10-11), as one change and
+    /// one undo step; returns how many commands changed, and commits nothing when none did. Refused as a whole when the result
+    /// breaks a rule; a command that cannot work over an excluded app (<see cref="MappingRules.CanWorkOverExcluded"/>) is never
+    /// given it.
+    /// </summary>
+    public int SetAllowedFor(GroupId excluded, IReadOnlyCollection<CommandId> commands)
+    {
+        ArgumentNullException.ThrowIfNull(commands);
+        var changed = 0;
+        Command Allowed(Command command)
+        {
+            var wanted = commands.Contains(command.Id) && MappingRules.CanWorkOverExcluded(command);
+            if (wanted == command.AlsoIn.Contains(excluded))
+            {
+                return command;
+            }
+
+            changed++;
+            return command with { AlsoIn = wanted ? [.. command.AlsoIn, excluded] : [.. command.AlsoIn.Where(id => id != excluded)] };
+        }
+
+        var groups = Current.Groups.Select(group => group with { Commands = [.. group.Commands.Select(Allowed)] }).ToArray();
+        if (changed > 0)
+        {
+            Commit(Current with { Groups = groups });
+        }
+
+        return changed;
+    }
+
     public Command RemoveCommand(CommandId id)
     {
         var (group, removed) = RequireCommand(id);

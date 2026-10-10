@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Augram.App.Components.Fields.Links;
 using Augram.App.Declarations;
 using Augram.Core.Mapping;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -27,7 +28,7 @@ public sealed partial class IgnoredEditViewModel : ObservableObject
     public const string AllowedForLabel = "Allowed for";
     public const string AllowedForNone = "none";
     public const string AllowedForHelp = "The commands that name this app in their Also in: over it they still work, holding only their own buttons back; the stroke button stays the app's. "
-        + "Click one to open it on the Commands tab; its Also in row's Change… ticks or unticks the app.";
+        + "Change… ticks or unticks commands here; a command's own Also in row does the same from its side. Click one to open it on the Commands tab.";
 
     /// <summary>The Global form's title and section: the UI word is "Exclusions" (plan 0005), the code's "Ignored".</summary>
     public const string GlobalTitle = "Excluded app";
@@ -65,6 +66,9 @@ public sealed partial class IgnoredEditViewModel : ObservableObject
     /// <summary>A Global entry's "Allowed for" (plan 0005): the commands whose Also in names it, as links; set by the host, never an edit.</summary>
     [ObservableProperty]
     public partial IReadOnlyList<LinkItem> AllowedFor { get; set; } = [];
+
+    /// <summary>What the Allowed for row's Change… does (the host opens its dialog; Joel, 2026-10-11); nothing while unset (a new entry's dialog).</summary>
+    public Action? EditAllowedFor { get; set; }
 
     /// <summary>The app identification, shared with app groups; its changes are raised as this view model's own.</summary>
     public AppMatcherEditViewModel Identification { get; }
@@ -133,6 +137,7 @@ public sealed partial class IgnoredEditViewModel : ObservableObject
                 new LinksField(AllowedForLabel, new DelegateBinding<IReadOnlyList<LinkItem>>(() => AllowedFor, owner: this, propertyName: nameof(AllowedFor)), AllowedForNone, AllowedForHelp)
                 {
                     Visible = new DelegateBinding<bool>(() => !DisableWhileFocused, owner: this, propertyName: nameof(DisableWhileFocused)),
+                    Accessory = EditAllowedFor is null ? null : LinksAccessory.Change(() => EditAllowedFor?.Invoke()),
                 },
             ]),
             .. Identification.Sections(),

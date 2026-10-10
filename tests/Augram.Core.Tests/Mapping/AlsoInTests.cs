@@ -96,6 +96,32 @@ public sealed class AlsoInTests
     }
 
     [Fact]
+    public void AllowedFor_SetFromTheEntrysSide_IsOneUndoStep_AndKeepsOnlyCommandsThatCanWorkThere()
+    {
+        var blender = Excluded("Blender");
+        var resolve = Excluded("Resolve");
+        var magnifier = NewCommand("Magnifier", RightLeft, NewStep("loupe")) with { AlsoIn = [resolve.Id] };
+        var zoom = NewCommand("Zoom In", RightWheelUp, NewStep("zoom")) with { AlsoIn = [blender.Id] };
+        var close = NewCommand("Close", Up, NewStep("close"));
+        var store = new MappingStore(new MappingDocument([NewGlobal(magnifier, zoom, close)], [blender, resolve]));
+
+        Assert.False(MappingRules.CanWorkOverExcluded(close));
+        Assert.True(MappingRules.CanWorkOverExcluded(magnifier));
+
+        var changed = store.SetAllowedFor(blender.Id, [magnifier.Id, close.Id]);
+
+        Assert.Equal(2, changed);
+        Assert.Equal(new[] { blender.Id, resolve.Id }.OrderBy(id => id.Value), store.FindCommand(magnifier.Id)!.Value.Command.AlsoIn);
+        Assert.Empty(store.FindCommand(zoom.Id)!.Value.Command.AlsoIn);
+        Assert.Empty(store.FindCommand(close.Id)!.Value.Command.AlsoIn);
+
+        Assert.Equal(0, store.SetAllowedFor(blender.Id, [magnifier.Id]));
+        Assert.True(store.Undo());
+        Assert.Equal([blender.Id], store.FindCommand(zoom.Id)!.Value.Command.AlsoIn);
+        Assert.Equal([resolve.Id], store.FindCommand(magnifier.Id)!.Value.Command.AlsoIn);
+    }
+
+    [Fact]
     public void ADisableWhileFocusedEntry_StopsEvenACommandThatWasAlsoInIt()
     {
         var vmware = Excluded("VMware", disableEntirely: true);

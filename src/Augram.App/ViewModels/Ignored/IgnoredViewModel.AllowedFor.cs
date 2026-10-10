@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.FormDialog;
 using Augram.App.Declarations;
 using Augram.Core.Mapping;
 
@@ -19,6 +20,33 @@ public sealed partial class IgnoredViewModel
 
     /// <summary>The entry's "Allowed for" as links, "Global › Media › Magnifier", each opening its command (the Per command entries' "Used by" words).</summary>
     private List<LinkItem> AllowedForLinks(GroupId id) => Links(AllowedUsersOf(id));
+
+    /// <summary>
+    /// The Allowed for row's Change… (Joel, 2026-10-11: from the excluded app's side too): the commands that can work over an
+    /// excluded app as a check list (<see cref="AllowedForEditViewModel"/>); Save stores what is ticked as one
+    /// <see cref="MappingStore.SetAllowedFor"/>, one undo step, and nothing when nothing changed. Cancel stores nothing.
+    /// </summary>
+    private async Task EditAllowedForAsync(GroupId id)
+    {
+        if (_store.FindIgnored(id) is not { IsPerCommand: false, DisableEntirely: false } app)
+        {
+            return;
+        }
+
+        var edit = AllowedForEditViewModel.For(app, _store.Current, _platform);
+        if (!await _dialogs.ShowAsync(new FormDialogRequest(AllowedForEditViewModel.Title, AllowedForEditViewModel.ConfirmLabel, Screen: edit.Declare())).ConfigureAwait(true))
+        {
+            return;
+        }
+
+        Guard(() =>
+        {
+            if (_store.SetAllowedFor(id, edit.Allowed) > 0 && _store.FindIgnored(id) is { } stored)
+            {
+                Message = $"'{stored.Name}' is allowed for {Commands(AllowedUsersOf(id).Count)} now. {CommandsKeymap.Current.Undo} undoes it.";
+            }
+        });
+    }
 
     /// <summary>"'Blender' is allowed for 1 command; on Per command it leaves their Also in, and Augram works over Blender again. Move?"</summary>
     private static string MoveAllowedQuestion(IgnoredApp app, int count)
