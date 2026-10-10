@@ -7,7 +7,7 @@ namespace Augram.App.Components.CommandTree;
 /// app group on the Apps tab, a category or Uncategorized on the Global tab, or a hold remap (F9, plan 0002) nested in its
 /// app group's section (<see cref="IsNested"/>, listed right after it). The item says what its header offers, so the tree
 /// never asks which tab it is on: <see cref="CanRename"/>, <see cref="CanDelete"/>, <see cref="CanEditDefinition"/> (the app
-/// group form), <see cref="CanToggleActive"/>, <see cref="CanCopy"/> and <see cref="CanAddHoldRemap"/>. It carries all its
+/// group form), <see cref="CanToggleActive"/>, <see cref="CanCopy"/>, <see cref="CanAddHoldRemap"/> and <see cref="CanExport"/>. It carries all its
 /// commands, sorted by the store; the tree hides them while the section (or the section it is nested in) is collapsed.
 /// </summary>
 public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool IsExpanded, IReadOnlyList<CommandItem> Commands)
@@ -27,6 +27,9 @@ public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool 
 
     /// <summary>The menu offers New hold remap here: an app group on the Apps tab (never Global, plan 0002 decision 1).</summary>
     public bool CanAddHoldRemap { get; init; }
+
+    /// <summary>The menu offers Export… here (plan 0003): an app group, or a category of Global (which exports Global whole).</summary>
+    public bool CanExport { get; init; }
 
     /// <summary>F8: a group or a category used only on the other platform ("Windows only"), shown greyed when the list shows other platforms.</summary>
     public bool IsElsewhere { get; init; }

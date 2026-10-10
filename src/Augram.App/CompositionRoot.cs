@@ -57,6 +57,8 @@ internal static class CompositionRoot
         services.AddSingleton<IButtonCapture>(sp => new EngineButtonCapture(sp.GetRequiredService<EngineHost>(), action => Dispatcher.UIThread.Post(action)));
         // Ignored tab slice (F5 ignore list), after the Commands one: its view model over the mapping store and the tab entry.
         IgnoredModule.Register(services);
+        // Export and import of Augram files (plan 0003), after the Gestures and Commands slices: presenters, file picker, Options › Configuration.
+        TransferModule.Register(services);
         // Sync slice (F8), after the engine's stores: git adapter, coordinator, the sync worker, dialogs, Options › Sync (started in App.StartDesktop).
         SyncModule.Register(services, new SyncModuleOptions { ConfigFolder = configFolder });
 

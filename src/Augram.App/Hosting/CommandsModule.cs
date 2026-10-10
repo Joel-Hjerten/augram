@@ -4,6 +4,7 @@ using Augram.App.Declarations;
 using Augram.App.Navigation;
 using Augram.App.Screens;
 using Augram.App.Training;
+using Augram.App.Transfer;
 using Augram.App.UsedBy;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
@@ -83,7 +84,8 @@ public static class CommandsModule
             sp.GetRequiredService<IFormDialogPresenter>(),
             sp.GetRequiredService<IConfirmPresenter>(),
             sp.GetRequiredService<CommandClipboard>(),
-            CurrentPlatform);
+            CurrentPlatform,
+            sp.GetService<IExportPresenter>());
         if (sp.GetService<SettingsStore>() is { } settings)
         {
             // This machine's stroke button: a trigger naming it means the stroke button here, which the header says.

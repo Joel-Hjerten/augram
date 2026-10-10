@@ -3,6 +3,7 @@ using Augram.App.Components.FormDialog;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Components.StepList;
 using Augram.App.Declarations;
+using Augram.App.Transfer;
 using Augram.App.UsedBy;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
@@ -38,10 +39,14 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     private readonly IConfirmPresenter _confirm;
     private readonly CommandClipboard _clipboard;
     private readonly HostPlatform _platform;
+    private readonly IExportPresenter? _export;
     private readonly HashSet<SectionId> _expanded = [];
     private CommandId? _stepsOf;
 
-    /// <summary><paramref name="clipboard"/> is shared by both tabs; <paramref name="platform"/> is what a new step is authored on (F8).</summary>
+    /// <summary>
+    /// <paramref name="clipboard"/> is shared by both tabs; <paramref name="platform"/> is what a new step is authored on (F8);
+    /// <paramref name="export"/> runs a section menu's Export… (plan 0003), null where there is none (tests, the gallery).
+    /// </summary>
     public CommandsViewModel(
         CommandsScope scope,
         MappingStore store,
@@ -50,7 +55,8 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         IFormDialogPresenter dialogs,
         IConfirmPresenter confirm,
         CommandClipboard clipboard,
-        HostPlatform platform)
+        HostPlatform platform,
+        IExportPresenter? export = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(gestures);
@@ -66,6 +72,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         _confirm = confirm;
         _clipboard = clipboard;
         _platform = platform;
+        _export = export;
         _store.Changed += OnStoreChanged;
         _gestures.Changed += OnStoreChanged;
         Project();
@@ -215,6 +222,9 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 break;
             case CommandTreeAction.Paste:
                 PasteCommand(TargetOf(e.Section));
+                break;
+            case CommandTreeAction.Export when e.Section is { CanExport: true } section:
+                _ = ExportAsync(section);
                 break;
             case CommandTreeAction.SetTriggerKind when e.Command is { } command && e.Kind is { } kind:
                 SetTriggerKind(command, kind);

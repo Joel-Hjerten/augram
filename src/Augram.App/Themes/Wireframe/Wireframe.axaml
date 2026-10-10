@@ -275,6 +275,7 @@
                     <TextBlock Classes="help-icon" Margin="0,0,8,0" ToolTip.Tip="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
                     <Button Name="PART_New" Classes="toolbar" Content="Add new gesture…" />
                     <Button Name="PART_Import" Classes="toolbar" Content="Import from StrokesPlus.net…" />
+                    <Button Name="PART_Export" Classes="toolbar" Content="Export…" />
                     <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
                     <Button Name="PART_Redo" Classes="toolbar" Content="Redo" IsEnabled="{TemplateBinding CanRedo}" />
                   </StackPanel>
@@ -844,7 +845,7 @@
               <DockPanel Classes="dialog">
                 <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
                   <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
-                  <Button Name="PART_Confirm" Classes="toolbar" Content="{TemplateBinding ConfirmLabel}" IsDefault="True" />
+                  <Button Name="PART_Confirm" Classes="toolbar" Content="{TemplateBinding ConfirmLabel}" IsDefault="True" IsEnabled="{TemplateBinding CanConfirm}" />
                 </StackPanel>
                 <TextBlock DockPanel.Dock="Top"
                            Classes="note"
@@ -959,6 +960,17 @@
   </Style>
   <Style Selector="CheckBox.toggle-option">
     <Setter Property="Margin" Value="0,0,16,0" />
+  </Style>
+  <!-- A check list field (the export dialog's selection): framed, one box per line, scrolls past its maximum height. -->
+  <Style Selector="Border.check-list">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+    <Setter Property="MinWidth" Value="{StaticResource Editor.MinWidth}" />
+    <Setter Property="MaxHeight" Value="{StaticResource Editor.CheckListMaxHeight}" />
+  </Style>
+  <Style Selector="TextBlock.check-list-detail">
+    <Setter Property="Margin" Value="8,0,0,0" />
   </Style>
   <Style Selector="Button.toolbar">
     <Setter Property="CornerRadius" Value="0" />

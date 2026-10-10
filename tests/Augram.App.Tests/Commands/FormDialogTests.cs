@@ -34,6 +34,29 @@ public sealed class FormDialogTests
         Assert.Equal(["confirmed", "cancelled"], outcomes);
     }
 
+    /// <summary>A request's CanConfirm (the export dialog with nothing selected) disables the confirm button and makes Confirm a no-op until it reads true.</summary>
+    [AvaloniaFact]
+    public void WhileTheRequestSaysItCannotConfirm_TheButtonIsDisabledAndConfirmDoesNothing()
+    {
+        var can = false;
+        var binding = new Declarations.DelegateBinding<bool>(() => can);
+        var dialog = FormDialogPresenter.Build(new FormDialogRequest("Export", "Save…", "Pick something.") { CanConfirm = binding });
+        var confirmed = 0;
+        dialog.Confirmed += (_, _) => confirmed++;
+        new Window { Content = dialog }.Show();
+        var save = dialog.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "Save…"));
+
+        Assert.False(save.IsEnabled);
+        dialog.Confirm();
+        Assert.Equal(0, confirmed);
+
+        can = true;
+        binding.NotifyChanged();
+        Assert.True(save.IsEnabled);
+        dialog.Confirm();
+        Assert.Equal(1, confirmed);
+    }
+
     [AvaloniaFact]
     public void TheGroupFormRendersItsDeclaredFieldsAndWritesBackToTheEditState()
     {

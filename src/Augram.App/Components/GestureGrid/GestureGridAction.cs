@@ -30,6 +30,9 @@ public enum GestureGridAction
     /// <summary>Start the StrokesPlus.net import flow (toolbar button).</summary>
     Import,
 
+    /// <summary>Export to an Augram file with "gestures only" preselected (toolbar button; plan 0003).</summary>
+    Export,
+
     Undo,
 
     Redo,
