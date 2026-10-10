@@ -99,11 +99,16 @@ public sealed record CommandItem(
     /// </summary>
     public int OptionsDragDistancePx { get; init; } = CaptureThresholds.Default.ButtonDragDistancePx;
 
+    /// <summary>This machine's stroke button, set on the header's item with <see cref="OptionsDragDistancePx"/>; null in rows, tests and the gallery.</summary>
+    public MouseButton? StrokeButton { get; init; }
+
     /// <summary>
     /// The header shows "Drag distance" (plan 0004): a bound trigger (or its draft) whose set holds buttons other than the
     /// stroke button and none of it, so its presses are held back and handed back as drags (<see cref="TriggerHold.HandsBackDrags"/>).
+    /// Not where the button it holds is this machine's stroke button: there it draws, and the distance does nothing.
     /// </summary>
-    public bool ShowsDragDistance => HoldRemap is null && Trigger.IsBound && Trigger.Hold.HandsBackDrags;
+    public bool ShowsDragDistance => HoldRemap is null && Trigger.IsBound && Trigger.Hold.HandsBackDrags
+        && (StrokeButton is not { } stroke || Trigger.Hold.ForStrokeButton(stroke).HandsBackDrags);
 
     /// <summary>The header shows "Not in" (plan 0004): a Global command; never an app group's, never one under a hold remap.</summary>
     public bool CanSetNotIn { get; init; }

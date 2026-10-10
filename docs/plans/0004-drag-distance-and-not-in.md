@@ -1,6 +1,6 @@
 # Plan 0004: a command's own drag distance, and "Not in" for Global commands
 
-**Status: IN PROGRESS (2026-10-10, PC session).** Step 1 built (Core and engine, `eadb13d`). Step 2 built by a worktree agent and merged (`804c5ae`, merge `b27876b`). Step 3 (App) with a worktree agent. Origin: Joel, 2026-10-10. His Global › Media › Zoom In/Out are Right + wheel on the PC, so every right press is held back. Right-drags then started only after 30 px, which lags in Spine and in Eyeris, which pan with Right. He weighed letting the press through and closing the context menu afterwards, then **held it off** (requirements F1). He asked for these two instead. The Options › Capture **Button drag distance** (default 10 px, `c1b7ac0`) came first and becomes the default the per-command value overrides.
+**Status: IN PROGRESS (2026-10-10, PC session).** Step 1 built (Core and engine, `eadb13d`). Step 2 built by a worktree agent and merged (`804c5ae`, merge `b27876b`). Step 3 (App) built by a worktree agent and merged (`2de9c31`), plus the lead's fix hiding Drag distance where the held button is this machine's stroke button. **Version 0.8.0** (config schema 5, sync format 12). Next: step 4, Joel's check. Origin: Joel, 2026-10-10. His Global › Media › Zoom In/Out are Right + wheel on the PC, so every right press is held back. Right-drags then started only after 30 px, which lags in Spine and in Eyeris, which pan with Right. He weighed letting the press through and closing the context menu afterwards, then **held it off** (requirements F1). He asked for these two instead. The Options › Capture **Button drag distance** (default 10 px, `c1b7ac0`) came first and becomes the default the per-command value overrides.
 
 ## Done when
 
@@ -30,6 +30,7 @@ On the PC (Joel):
    - In the command's trigger area, for a trigger whose set `HandsBackDrags` on the platform shown: "Drag distance". Either the Options value ("Options value, 10 px") or its own (1–200 px), with an ⓘ.
    - On a Global command: "Not in", the app groups as a check list (existing check-list field kind), with an ⓘ ("Over these apps the command does nothing and holds no button back").
    - The command row shows nothing new. Dev gallery entries. App README.
+   - **Built:** Drag distance is a row under "While holding" with a dropdown, "Options value (10 px)" or "Own distance" plus a 1–200 px box (it starts at the Options value). Not in is a row after Use on: a Change… button, then the group names or "none". Change… opens a dialog with the app groups as a check list; Save is one undo step. Typing a number saves as it is read, as in other number fields, so "15" is two undo steps. Gallery page "Drag distance, Not in".
 4. **Joel's check (PC, then Mac).** Install the build (Joel runs Setup.exe). Create app groups for Spine and Eyeris (an executable each). Tick both in Zoom In's and Zoom Out's "Not in". Set the zoom commands' drag distance and try Chrome. Then the Mac build, so sync resumes.
 
 ## Not in this plan

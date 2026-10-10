@@ -92,7 +92,7 @@ public sealed partial class CommandsViewModel
     /// Options value its drag distance falls back to.
     /// </summary>
     private CommandItem? HeaderItem(CommandItem? row)
-        => WithDraft(row) is { } item ? item with { OptionsDragDistancePx = OptionsDragDistancePx } : null;
+        => WithDraft(row) is { } item ? item with { OptionsDragDistancePx = OptionsDragDistancePx, StrokeButton = StrokeButton } : null;
 
     /// <summary>The selected command's row in the current projection; null without one.</summary>
     private CommandItem? SelectedRow()

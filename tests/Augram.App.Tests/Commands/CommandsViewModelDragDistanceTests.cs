@@ -52,6 +52,21 @@ public sealed class CommandsViewModelDragDistanceTests
     }
 
     [AvaloniaFact]
+    public void TheDragDistanceHides_WhereTheHeldButtonIsThisMachinesStrokeButton()
+    {
+        var (vm, _) = GlobalWithRightWheelVolume();
+        Select(vm, "Volume up");
+        Assert.True(vm.SelectedCommand!.ShowsDragDistance);
+
+        // Right + wheel on a machine whose stroke button is Right: Right draws there, so no drag distance applies.
+        vm.StrokeButton = MouseButton.Right;
+        Assert.False(vm.SelectedCommand!.ShowsDragDistance);
+
+        vm.StrokeButton = MouseButton.Middle;
+        Assert.True(vm.SelectedCommand!.ShowsDragDistance);
+    }
+
+    [AvaloniaFact]
     public void SettingAndClearingTheOwnDistanceIsOneUndoStepEach()
     {
         var (vm, store) = GlobalWithRightWheelVolume();
