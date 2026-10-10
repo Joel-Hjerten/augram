@@ -51,6 +51,14 @@ public static class ConfigMigrations
                 // means the Options value and no "Not in", as in version 4. The bump exists so that a version 4 build refuses a
                 // version 5 file instead of ignoring a command's own drag distance and its "Not in" and saving it back without them.
                 break;
+            case 5:
+                // 5 → 6 (plan 0004 revised, 2026-10-10): an ignored app's scope is optional and absent means Global, the only list
+                // version 5 had. A command's notIn keeps its shape but now names Ignored › Per command entries; a version 5 notIn
+                // named app groups, so its ids name no Per command entry and MappingRules drops them when the file is validated.
+                // That is accepted (plan 0004, decision 6: the 0.8.0 ticks are dropped; Joel had made none), so no node changes.
+                // The bump exists so that a version 5 build refuses a version 6 file instead of reading a Per command entry as an
+                // ignore of the whole app.
+                break;
             default:
                 throw new ConfigFormatException($"No migration from schema version {version} to {version + 1} exists.");
         }

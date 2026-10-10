@@ -13,7 +13,7 @@ namespace Augram.Core.Config;
 /// <c>isActive</c>, <c>params</c>, <c>overrides</c>). Every member is written in full except
 /// <c>overrides</c> (omitted when there are none), <c>note</c>, a command's <c>category</c> and <c>holdRemap</c> (omitted
 /// when null), a group's <c>categories</c> and <c>holdRemaps</c> and a command's <c>notIn</c> (omitted when empty), a hold's
-/// <c>dragDistancePx</c> (omitted when null) and the <c>useOn</c> of a group, a
+/// <c>dragDistancePx</c> (omitted when null), an ignored app's <c>scope</c> (omitted for Global) and the <c>useOn</c> of a group, a
 /// category, a hold remap or a command (omitted when every platform), so a diff after an edit shows only the
 /// edit and a file without categories looks as it did before they existed. An override is always of
 /// the same type as its step and is written as that type's parameters under the platform's camelCase
@@ -219,7 +219,7 @@ internal static partial class MappingJsonWriter
         writer.WriteEndObject();
     }
 
-    /// <summary>A Global command's "Not in" (schema 5, plan 0004): its app groups' ids, omitted when there are none.</summary>
+    /// <summary>A command's "Not in" (plan 0004; schema 6: the ids of its Ignored › Per command entries), omitted when there are none.</summary>
     private static void WriteNotIn(Utf8JsonWriter writer, IReadOnlyList<GroupId> notIn)
     {
         if (notIn.Count == 0)
@@ -228,9 +228,9 @@ internal static partial class MappingJsonWriter
         }
 
         writer.WriteStartArray("notIn");
-        foreach (var group in notIn)
+        foreach (var app in notIn)
         {
-            writer.WriteStringValue(group.Value);
+            writer.WriteStringValue(app.Value);
         }
 
         writer.WriteEndArray();
@@ -273,11 +273,20 @@ internal static partial class MappingJsonWriter
         writer.WriteEndArray();
     }
 
+    /// <summary>
+    /// An ignored app; its <c>scope</c> (schema 6, plan 0004) only for an Ignored › Per command entry, so a Global entry, the
+    /// file and its sync item read as before.
+    /// </summary>
     public static void WriteIgnored(Utf8JsonWriter writer, IgnoredApp app)
     {
         writer.WriteStartObject();
         writer.WriteString("id", app.Id.Value);
         writer.WriteString("name", app.Name);
+        if (app.Scope != IgnoreScope.Global)
+        {
+            writer.WriteString("scope", app.Scope.ToString());
+        }
+
         writer.WriteBoolean("isActive", app.IsActive);
         WriteMatcher(writer, app.Matcher);
         writer.WriteBoolean("disableEntirely", app.DisableEntirely);

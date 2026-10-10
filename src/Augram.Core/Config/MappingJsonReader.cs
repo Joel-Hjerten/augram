@@ -17,8 +17,9 @@ namespace Augram.Core.Config;
 /// entry never fails a load: a category without a Guid <c>id</c> or a name is dropped with a notice, one
 /// whose <c>useOn</c> is not a list of strings is used on every platform with a notice, a command
 /// <c>category</c> that is not a Guid string reads as null with a notice, and one that names no category of
-/// its group is left for <see cref="CategoryRules"/> to clear silently. A command's <c>notIn</c> (schema 5) likewise: an
-/// entry that is not a Guid string is dropped with a notice, one naming no app group is left for <see cref="MappingRules"/>.
+/// its group is left for <see cref="CategoryRules"/> to clear silently. A command's <c>notIn</c> (schema 5; ignored-app ids
+/// since schema 6) likewise: an entry that is not a Guid string is dropped with a notice, one naming no Ignored › Per command
+/// entry is left for <see cref="MappingRules"/>. An ignored app's <c>scope</c> (schema 6) is an enum member like any other.
 /// Triggers are read in <c>MappingJsonReader.Triggers.cs</c>, hold remaps in <c>MappingJsonReader.HoldRemaps.cs</c>.
 /// </summary>
 internal sealed partial class MappingJsonReader
@@ -207,19 +208,20 @@ internal sealed partial class MappingJsonReader
     }
 
     /// <summary>
-    /// A Global command's "Not in" (schema 5, plan 0004): missing or null is none; not an array of strings is a format error; an
-    /// entry that is not a Guid string is dropped with a notice. Ids naming no app group are left for <see cref="MappingRules"/>,
-    /// which drops them silently (and the whole list outside Global).
+    /// A command's "Not in" (plan 0004; schema 6: the ids of Ignored › Per command entries): missing or null is none; not an
+    /// array of strings is a format error; an entry that is not a Guid string is dropped with a notice. Ids naming no Per command
+    /// entry (an app group's, from a schema 5 file, or a deleted entry's) are left for <see cref="MappingRules"/>, which drops
+    /// them silently (and the whole list under a hold remap).
     /// </summary>
     private List<GroupId> ReadNotIn(JsonObject command, string where)
     {
         var entries = JsonMembers.OptionalStrings(command, "notIn", where);
-        var groups = new List<GroupId>(entries.Count);
+        var apps = new List<GroupId>(entries.Count);
         foreach (var entry in entries)
         {
             if (Guid.TryParse(entry, out var id))
             {
-                groups.Add(new GroupId(id));
+                apps.Add(new GroupId(id));
             }
             else
             {
@@ -227,9 +229,10 @@ internal sealed partial class MappingJsonReader
             }
         }
 
-        return groups;
+        return apps;
     }
 
+    /// <summary>An ignored app; its <c>scope</c> (schema 6, plan 0004) missing or null is Ignored › Global, as before.</summary>
     public static IgnoredApp ReadIgnored(JsonNode? node)
     {
         var app = JsonMembers.RequireObject(node, "An ignored app");
@@ -241,6 +244,9 @@ internal sealed partial class MappingJsonReader
             name,
             JsonMembers.OptionalBool(app, "isActive", fallback: true, where),
             app["matcher"] is null ? AppMatcher.Empty : ReadMatcher(app["matcher"], where),
-            JsonMembers.OptionalBool(app, "disableEntirely", fallback: false, where));
+            JsonMembers.OptionalBool(app, "disableEntirely", fallback: false, where))
+        {
+            Scope = JsonMembers.OptionalEnum(app, "scope", IgnoreScope.Global, where),
+        };
     }
 }
