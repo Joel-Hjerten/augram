@@ -9,7 +9,8 @@ namespace Augram.Core.Transfer;
 /// then within each matched group its categories, hold remaps and commands, then the ignored apps. Command ids are unique
 /// across the whole mapping, so a command matched by id may sit in another group here (a move, which the merge reads as a
 /// change); one matched by name is looked for among its siblings in the matched group only (its hold remap's commands, or
-/// the group's ordinary ones: <see cref="CommandNames"/>). A file group with no counterpart here keeps its ids.
+/// the group's ordinary ones: <see cref="CommandNames"/>). A file group with no counterpart here keeps its ids. A Global
+/// command's "Not in" follows its groups' matches (plan 0004).
 /// </summary>
 internal sealed partial class ImportMatcher
 {
@@ -31,8 +32,30 @@ internal sealed partial class ImportMatcher
         var groups = file.Groups
             .Select(group => group with { Id = groupIds.GetValueOrDefault(group.Id, group.Id) })
             .Select(group => Group(group, localGroups.GetValueOrDefault(group.Id)))
+            .Select(group => group.IsGlobal ? WithNotInFollowing(group, groupIds) : group)
             .ToArray();
         return new MappingDocument(groups, Ignored(file.Ignored, local.Ignored));
+    }
+
+    /// <summary>
+    /// Global's commands with their "Not in" (plan 0004) naming the local ids of the file's app groups matched here, once each and
+    /// sorted by id as <see cref="MappingRules"/> keeps them, so an unchanged list reads as the same item. An id naming a group
+    /// in neither place is dropped by the rules when the result is built.
+    /// </summary>
+    private static AppGroup WithNotInFollowing(AppGroup global, Dictionary<GroupId, GroupId> groupIds)
+    {
+        if (groupIds.Count == 0 || global.Commands.All(command => command.NotIn.Count == 0))
+        {
+            return global;
+        }
+
+        return global with
+        {
+            Commands = [.. global.Commands.Select(command => command.NotIn.Count == 0 ? command : command with
+            {
+                NotIn = [.. command.NotIn.Select(id => groupIds.GetValueOrDefault(id, id)).Distinct().OrderBy(id => id.Value)],
+            })],
+        };
     }
 
     /// <summary>The file group (already under its local id) with its children lined up against <paramref name="local"/>, the group here; null for a new group.</summary>

@@ -57,11 +57,15 @@ internal static class JsonMembers
 
     /// <summary>Missing or null → the fallback; otherwise an integer (a string such as "180" is refused).</summary>
     public static int OptionalInt32(JsonObject owner, string name, int fallback, string where)
+        => OptionalInt32(owner, name, where) ?? fallback;
+
+    /// <summary>Missing or null → null; otherwise an integer (a string such as "4" is refused).</summary>
+    public static int? OptionalInt32(JsonObject owner, string name, string where)
     {
         var node = owner[name];
         if (node is null)
         {
-            return fallback;
+            return null;
         }
 
         return node is JsonValue value && value.TryGetValue(out int number) ? number : throw Refuse(name, where, "an integer");

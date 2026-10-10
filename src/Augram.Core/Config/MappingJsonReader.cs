@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Augram.Core.Abstractions;
-using Augram.Core.Capture;
-using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 
@@ -19,7 +17,9 @@ namespace Augram.Core.Config;
 /// entry never fails a load: a category without a Guid <c>id</c> or a name is dropped with a notice, one
 /// whose <c>useOn</c> is not a list of strings is used on every platform with a notice, a command
 /// <c>category</c> that is not a Guid string reads as null with a notice, and one that names no category of
-/// its group is left for <see cref="CategoryRules"/> to clear silently.
+/// its group is left for <see cref="CategoryRules"/> to clear silently. A command's <c>notIn</c> (schema 5) likewise: an
+/// entry that is not a Guid string is dropped with a notice, one naming no app group is left for <see cref="MappingRules"/>.
+/// Triggers are read in <c>MappingJsonReader.Triggers.cs</c>, hold remaps in <c>MappingJsonReader.HoldRemaps.cs</c>.
 /// </summary>
 internal sealed partial class MappingJsonReader
 {
@@ -156,6 +156,7 @@ internal sealed partial class MappingJsonReader
             ReadCategoryReference(command, where))
         {
             UseOn = ReadUseOn(command, where),
+            NotIn = ReadNotIn(command, where),
             OwnVersion = ReadOwnVersion(command, where),
             HoldRemapId = ReadHoldRemapReference(command, where),
         };
@@ -205,54 +206,28 @@ internal sealed partial class MappingJsonReader
         return null;
     }
 
-    /// <summary>A trigger as <see cref="MappingJsonWriter"/> writes it: null, an input (schema 4), or a gesture, wheel or click object with an optional <c>hold</c>.</summary>
-    private static Trigger ReadTrigger(JsonNode? node, string where)
+    /// <summary>
+    /// A Global command's "Not in" (schema 5, plan 0004): missing or null is none; not an array of strings is a format error; an
+    /// entry that is not a Guid string is dropped with a notice. Ids naming no app group are left for <see cref="MappingRules"/>,
+    /// which drops them silently (and the whole list outside Global).
+    /// </summary>
+    private List<GroupId> ReadNotIn(JsonObject command, string where)
     {
-        if (node is null)
+        var entries = JsonMembers.OptionalStrings(command, "notIn", where);
+        var groups = new List<GroupId>(entries.Count);
+        foreach (var entry in entries)
         {
-            return Trigger.None;
+            if (Guid.TryParse(entry, out var id))
+            {
+                groups.Add(new GroupId(id));
+            }
+            else
+            {
+                _notice?.Invoke($"An entry of 'notIn' of {where} dropped: \"{entry}\" is not a Guid string.");
+            }
         }
 
-        var what = $"'trigger' of {where}";
-        var trigger = JsonMembers.RequireObject(node, what);
-        if (trigger["input"] is not null)
-        {
-            return Trigger.ForInput(ReadInput(trigger["input"], what));
-        }
-
-        var hold = ReadHold(trigger, what);
-        if (trigger["gesture"] is not null)
-        {
-            return Trigger.ForGesture(new GestureId(JsonMembers.RequireGuid(trigger, "gesture", what)), hold);
-        }
-
-        if (trigger["wheel"] is not null)
-        {
-            return Trigger.ForWheel(JsonMembers.OptionalEnum(trigger, "wheel", WheelDirection.Up, what), hold);
-        }
-
-        if (JsonMembers.OptionalBool(trigger, "click", fallback: false, what))
-        {
-            return Trigger.ForClick(hold);
-        }
-
-        throw new ConfigFormatException($"{what} must be null, {{ \"gesture\": \"<id>\" }}, {{ \"wheel\": \"Up\" | \"Down\" }} or {{ \"click\": true }}, each with an optional \"hold\", or {{ \"input\": {{ … }} }}.");
-    }
-
-    /// <summary>F1 combinations (schema 2): the "while holding" set; missing or null is the stroke button alone.</summary>
-    private static TriggerHold ReadHold(JsonObject trigger, string what)
-    {
-        if (trigger["hold"] is null)
-        {
-            return TriggerHold.Default;
-        }
-
-        var where = $"'hold' of {what}";
-        var hold = JsonMembers.RequireObject(trigger["hold"], where);
-        return new TriggerHold(
-            JsonMembers.OptionalFlags(hold, "buttons", HeldButtons.Stroke, where),
-            JsonMembers.OptionalFlags(hold, "keys", KeyModifiers.None, where),
-            JsonMembers.OptionalEnum(hold, "capture", HoldCapture.Either, where));
+        return groups;
     }
 
     public static IgnoredApp ReadIgnored(JsonNode? node)

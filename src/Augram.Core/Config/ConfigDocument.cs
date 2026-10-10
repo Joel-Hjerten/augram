@@ -19,9 +19,11 @@ public sealed record ConfigDocument
     /// 3 (2026-10-09): the StrokesPlus.net app definition's matcher fields; a version 2 build would ignore them and match too
     /// many windows. 4 (2026-10-10): hold remaps (a group's <c>holdRemaps</c>, a command's <c>holdRemap</c>, the input trigger
     /// <c>{ "input": … }</c>); a version 3 build would read the commands under a hold remap as ordinary ones and save the file
-    /// back without its hold remaps, or refuse the whole file at the first input, so it must refuse the file.
+    /// back without its hold remaps, or refuse the whole file at the first input, so it must refuse the file. 5 (2026-10-10,
+    /// plan 0004): a command's own drag distance (its trigger hold's <c>dragDistancePx</c>) and a Global command's "Not in"
+    /// (a command's <c>notIn</c>); a version 4 build would ignore both and save the file back without them, so it must refuse the file.
     /// </summary>
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public ConfigDocument(int schemaVersion = CurrentSchemaVersion, Settings? settings = null, IReadOnlyList<Gesture>? gestures = null)
     {
