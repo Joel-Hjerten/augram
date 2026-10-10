@@ -1,4 +1,3 @@
-using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
@@ -65,9 +64,6 @@ public sealed partial class CommandHeader : TemplatedControl
 
     private AskingDropdown? _kind;
     private AskingDropdown? _category;
-
-    private CheckBox? _useOnWindows;
-    private CheckBox? _useOnMac;
     private bool _applying;
 
     public event EventHandler<CommandTreeActionEventArgs>? ActionRequested;
@@ -204,8 +200,6 @@ public sealed partial class CommandHeader : TemplatedControl
             });
         }
 
-        _useOnWindows = e.NameScope.Find<CheckBox>("PART_UseOnWindows");
-        _useOnMac = e.NameScope.Find<CheckBox>("PART_UseOnMac");
         FindHoldParts(e);
         FindButtonParts(e);
         FindDragDistanceParts(e);
@@ -213,8 +207,7 @@ public sealed partial class CommandHeader : TemplatedControl
         FindAlsoInParts(e);
         FindInputParts(e);
         FindConflictParts(e);
-        WireUseOn(_useOnWindows, HostPlatform.Windows);
-        WireUseOn(_useOnMac, HostPlatform.MacOS);
+        FindUseOnParts(e);
         Apply();
         WireAction(e, "PART_UseConverted", CommandTreeAction.UseConvertedOriginal);
         WireAction(e, "PART_MarkChecked", CommandTreeAction.MarkOwnVersionChecked);
@@ -276,17 +269,7 @@ public sealed partial class CommandHeader : TemplatedControl
     private void Apply()
     {
         var item = Item;
-        _applying = true;
-        try
-        {
-            ShowUseOn(_useOnWindows, item, HostPlatform.Windows);
-            ShowUseOn(_useOnMac, item, HostPlatform.MacOS);
-        }
-        finally
-        {
-            _applying = false;
-        }
-
+        ApplyUseOn(item);
         _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
         ApplyHold();
         ApplyDragDistance();

@@ -226,29 +226,9 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
             case CommandTreeAction.Export when e.Section is { CanExport: true } section:
                 _ = ExportAsync(section);
                 break;
-            case CommandTreeAction.SetTriggerKind when e.Command is { } command && e.Kind is { } kind:
-                SetTriggerKind(command, kind);
-                break;
-            case CommandTreeAction.SetTriggerHold when e.Command is { } command && e.Hold is { } hold:
-                EditTrigger(command.Id, current => current.WithHold(hold));
-                break;
-            case CommandTreeAction.SetWheelDirection when e.Command is { } command && e.Wheel is { } direction:
-                EditTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
-                break;
-            case CommandTreeAction.SetTriggerButton when e.Command is { } command && e.Button is { } pressed:
-                EditTrigger(command.Id, current => Trigger.ForButton(pressed, current.Hold));
-                break;
-            case CommandTreeAction.SetInputKind when e.Command is { } command && e.InputKind is { } inputKind:
-                SetInputKind(command, inputKind);
-                break;
-            case CommandTreeAction.SetInput when e.Command is { } command && e.Input is { } input:
-                SetInput(command, input);
-                break;
-            case CommandTreeAction.SwapTrigger when e.Command is { } command:
-                SettleConflict(command.Id, take: false);
-                break;
-            case CommandTreeAction.TakeTrigger when e.Command is { } command:
-                SettleConflict(command.Id, take: true);
+            case CommandTreeAction.SetTriggerKind or CommandTreeAction.SetTriggerHold or CommandTreeAction.SetWheelDirection or CommandTreeAction.SetTriggerButton
+                or CommandTreeAction.SetInputKind or CommandTreeAction.SetInput or CommandTreeAction.SwapTrigger or CommandTreeAction.TakeTrigger:
+                DispatchTrigger(e);
                 break;
             case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
                 UpdateCommand(command.Id, stored => stored with { UseOn = useOn });

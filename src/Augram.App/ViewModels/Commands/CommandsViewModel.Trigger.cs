@@ -19,6 +19,43 @@ namespace Augram.App.ViewModels.Commands;
 /// </summary>
 public sealed partial class CommandsViewModel
 {
+    /// <summary>The header's trigger and input intents: the kind, the set, the wheel direction, the pressed button, an input, and the draft's Swap and Take it.</summary>
+    private void DispatchTrigger(CommandTreeActionEventArgs e)
+    {
+        if (e.Command is not { } command)
+        {
+            return;
+        }
+
+        switch (e.Action)
+        {
+            case CommandTreeAction.SetTriggerKind when e.Kind is { } kind:
+                SetTriggerKind(command, kind);
+                break;
+            case CommandTreeAction.SetTriggerHold when e.Hold is { } hold:
+                EditTrigger(command.Id, current => current.WithHold(hold));
+                break;
+            case CommandTreeAction.SetWheelDirection when e.Wheel is { } direction:
+                EditTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
+                break;
+            case CommandTreeAction.SetTriggerButton when e.Button is { } pressed:
+                EditTrigger(command.Id, current => Trigger.ForButton(pressed, current.Hold));
+                break;
+            case CommandTreeAction.SetInputKind when e.InputKind is { } inputKind:
+                SetInputKind(command, inputKind);
+                break;
+            case CommandTreeAction.SetInput when e.Input is { } input:
+                SetInput(command, input);
+                break;
+            case CommandTreeAction.SwapTrigger:
+                SettleConflict(command.Id, take: false);
+                break;
+            case CommandTreeAction.TakeTrigger:
+                SettleConflict(command.Id, take: true);
+                break;
+        }
+    }
+
     private void SetTriggerKind(CommandItem command, TriggerKind kind)
     {
         switch (kind)

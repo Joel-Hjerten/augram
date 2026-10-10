@@ -1,6 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -10,6 +11,9 @@ namespace Augram.App.Components.CommandTree;
 /// </summary>
 public sealed partial class CommandHeader
 {
+    private CheckBox? _useOnWindows;
+    private CheckBox? _useOnMac;
+
     /// <summary>
     /// What a Use on box does (F8): asks the host for the command's own platforms with this one flipped; the boxes then show
     /// the answer. A platform its group or category leaves out (<see cref="CommandItem.UseOnLimit"/>) asks nothing: its box is
@@ -23,6 +27,29 @@ public sealed partial class CommandHeader
         }
 
         Apply();
+    }
+
+    private void FindUseOnParts(TemplateAppliedEventArgs e)
+    {
+        _useOnWindows = e.NameScope.Find<CheckBox>("PART_UseOnWindows");
+        _useOnMac = e.NameScope.Find<CheckBox>("PART_UseOnMac");
+        WireUseOn(_useOnWindows, HostPlatform.Windows);
+        WireUseOn(_useOnMac, HostPlatform.MacOS);
+    }
+
+    /// <summary>Puts the boxes on the command's real values: checked where it is used, disabled (unchecked) where its group or category leaves the platform out.</summary>
+    private void ApplyUseOn(CommandItem? item)
+    {
+        _applying = true;
+        try
+        {
+            ShowUseOn(_useOnWindows, item, HostPlatform.Windows);
+            ShowUseOn(_useOnMac, item, HostPlatform.MacOS);
+        }
+        finally
+        {
+            _applying = false;
+        }
     }
 
     private static void ShowUseOn(CheckBox? box, CommandItem? item, HostPlatform platform)
