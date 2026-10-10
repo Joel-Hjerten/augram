@@ -16,6 +16,9 @@ public static class OptionsScreen
 {
     public const string StartAtLoginHelp = "Also in the tray menu.";
     public const string StartAtLoginDevHelp = "Start at login applies to the installed Augram; this is a development build.";
+    public const string StartAtLoginNoteLabel = "At login";
+    public const string StartAtLoginNoteHelp =
+        "Start at login was changed outside Augram, or the system has not accepted it yet. When Augram starts it follows a switch-off made there; ticking Start at login turns it on again.";
     public const string AboutTitle = "About";
     public const string IgnoreKeysHelp = "Hold any ticked key when you press the stroke button to use the button normally, with no gesture.";
     public const string MenuBarIconHelp = "The app icon in colour instead of the single-colour shape macOS tints for light and dark menu bars.";
@@ -41,6 +44,16 @@ public static class OptionsScreen
     private static ToggleField StartAtLogin(AppSettingsViewModel vm) => vm.CanChangeStartAtLogin
         ? new ToggleField("Start at login", new DelegateBinding<bool>(() => vm.StartAtLogin, v => vm.StartAtLogin = v, vm), StartAtLoginHelp)
         : new ToggleField("Start at login", new DelegateBinding<bool>(() => vm.StartAtLogin, owner: vm), StartAtLoginDevHelp);
+
+    /// <summary>
+    /// A state note under the toggle, shown only while there is one (Turned off in Task Manager › Startup apps; Waiting for
+    /// approval in System Settings › General › Login Items): plain text, since it must be seen without hovering (Help rule).
+    /// </summary>
+    private static NoteField StartAtLoginNote(AppSettingsViewModel vm) =>
+        new(StartAtLoginNoteLabel, new DelegateBinding<string>(() => vm.StartAtLoginNote, owner: vm), StartAtLoginNoteHelp)
+        {
+            Visible = new DelegateBinding<bool>(() => vm.HasStartAtLoginNote, owner: vm),
+        };
 
     /// <summary>macOS only (<see cref="Hosting.AppState.CanChooseMenuBarIcon"/>): the colour icon or the tinted template, as in Eyeris.</summary>
     private static Field[] MenuBarIcon(AppSettingsViewModel vm) => Hosting.AppState.CanChooseMenuBarIcon
@@ -77,6 +90,7 @@ public static class OptionsScreen
                     "Press the button you want within 5 seconds. If nothing is seen, its vendor software consumes it before Augram can."),
                 IgnoreKeyToggles(vm),
                 StartAtLogin(vm),
+                StartAtLoginNote(vm),
                 .. MenuBarIcon(vm),
                 new TextField("Config folder",
                     new DelegateBinding<string>(() => vm.ConfigFolder, owner: vm),

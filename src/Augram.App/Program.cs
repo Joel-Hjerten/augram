@@ -22,7 +22,7 @@ internal static class Program
     {
         VelopackApp.Build().Run(); // First, always: answers the installer's hooks and exits for them (docs/release.md).
         var app = AppInfo.Current;
-        using var startup = new InstanceStartup(InstanceName, InstanceIdentity.Current(app));
+        using var startup = new InstanceStartup(InstanceName, InstanceIdentity.Current(app)) { IsHiddenLaunch = LaunchVisibility.HasHiddenArgument(args) };
         if (startup.Begin() == InstanceStartupStep.Exit)
         {
             return;

@@ -65,6 +65,11 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
     /// <summary>False in a development build: Options shows the toggle disabled, with why (<see cref="AppState.CanChangeStartAtLogin"/>).</summary>
     public bool CanChangeStartAtLogin => _state.CanChangeStartAtLogin;
 
+    /// <summary>The state note under the toggle (<see cref="AppState.StartAtLoginNote"/>); empty hides the row.</summary>
+    public string StartAtLoginNote => _state.StartAtLoginNote;
+
+    public bool HasStartAtLoginNote => StartAtLoginNote.Length > 0;
+
     /// <summary>This build, for Options › About.</summary>
     public AppInfo App => _state.App;
 
@@ -168,6 +173,11 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
         if (e.PropertyName is nameof(AppState.StartAtLogin) or nameof(AppState.ColourMenuBarIcon))
         {
             OnPropertyChanged(e.PropertyName);
+        }
+        else if (e.PropertyName == nameof(AppState.StartAtLoginNote))
+        {
+            OnPropertyChanged(nameof(StartAtLoginNote));
+            OnPropertyChanged(nameof(HasStartAtLoginNote));
         }
     }
 

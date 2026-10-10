@@ -223,6 +223,18 @@ internal static partial class MacNative
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial byte SendBool(nint receiver, nint selector, nint argument);
 
+    /// <summary><c>-(BOOL)somethingAndReturnError:(NSError **)error</c>: <paramref name="error"/> is set (autoreleased) only when NO comes back.</summary>
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial byte SendBoolWithError(nint receiver, nint selector, out nint error);
+
+    /// <summary>A method returning a 32-bit value (a <c>FourCharCode</c> such as <c>AEEventClass</c> or <c>OSType</c>).</summary>
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial uint SendUInt32(nint receiver, nint selector);
+
+    /// <summary>A method taking one 32-bit value (<c>-[NSAppleEventDescriptor paramDescriptorForKeyword:]</c>) and returning an object.</summary>
+    [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
+    public static partial nint SendPtrUInt32(nint receiver, nint selector, uint argument);
+
     [LibraryImport(ObjCLibrary, EntryPoint = "objc_msgSend")]
     public static partial void SendVoid(nint receiver, nint selector, byte argument);
 

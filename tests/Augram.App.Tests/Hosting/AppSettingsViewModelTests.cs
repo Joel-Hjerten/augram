@@ -94,6 +94,33 @@ public sealed class AppSettingsViewModelTests
     }
 
     [Fact]
+    public void TheStartAtLoginNote_IsARowUnderTheToggle_ShownOnlyWhileThereIsOne()
+    {
+        using var engine = new EngineFixture(start: false);
+        engine.Settings.SetGeneral(engine.Settings.Current.General with { StartAtLogin = true });
+        var registration = new RecordingStartupRegistration(StartupStatus.DisabledByUser);
+        using var state = new AppState(engine.Settings, registration, NullEventLog.Instance, TestBuilds.Release);
+        using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
+        using var vm = new AppSettingsViewModel(engine.Settings, state, detection);
+        var fields = Assert.IsType<FormScreen>(OptionsScreen.Declare(vm)).Sections.Single(section => section.Title == "General").Fields.ToList();
+        var toggle = fields.FindIndex(field => field.Label == "Start at login");
+        var note = Assert.IsType<NoteField>(fields[toggle + 1]);
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        Assert.Equal(OptionsScreen.StartAtLoginNoteLabel, note.Label);
+        Assert.False(note.Visible!.Get());
+
+        state.SyncStartupRegistration();
+
+        Assert.True(note.Visible.Get());
+        Assert.Equal(state.StartAtLoginNote, note.Text.Get());
+        Assert.False(vm.StartAtLogin);
+        Assert.Contains(nameof(AppSettingsViewModel.StartAtLoginNote), raised);
+        Assert.Contains(nameof(AppSettingsViewModel.HasStartAtLoginNote), raised);
+    }
+
+    [Fact]
     public void ConfigFolderIsTheAppPath()
     {
         using var engine = new EngineFixture(start: false);
