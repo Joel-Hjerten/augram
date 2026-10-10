@@ -95,11 +95,12 @@ public sealed class ExportEntryPointsTests
     }
 
     [AvaloniaFact]
-    public void OptionsHasAConfigurationSectionBeforeAbout_ThatExportsEverything()
+    public void OptionsHasAConfigurationSectionBeforeAbout_ThatExportsEverything_AndImports()
     {
         var export = new FakeExportPresenter { Outcome = "Exported everything." };
+        var import = new FakeAugramImportPresenter { Outcome = "Imported from Blender.augram.json: 1 app group added." };
         var strokesPlus = new FakeImportPresenter();
-        var configuration = new ConfigurationViewModel(export, strokesPlus);
+        var configuration = new ConfigurationViewModel(export, import, strokesPlus);
         var settings = TestAppBuilder.Services.GetRequiredService<AppSettingsViewModel>();
 
         var screen = Assert.IsType<FormScreen>(OptionsScreen.Declare(settings, configuration: configuration));
@@ -118,6 +119,13 @@ public sealed class ExportEntryPointsTests
         Assert.Equal(1, strokesPlus.Opened);
         Assert.Equal("Exported everything.", configuration.Status);
         Assert.True(section.Fields[2].Visible!.Get());
+
+        Assert.True(configuration.ImportAsync().IsCompletedSuccessfully);
+        Assert.Equal(1, import.Opened);
+        Assert.Equal(import.Outcome, configuration.Status);
+        import.Outcome = null;
+        Assert.True(configuration.ImportAsync().IsCompletedSuccessfully);
+        Assert.Equal("Imported from Blender.augram.json: 1 app group added.", configuration.Status);
         Assert.DoesNotContain(Assert.IsType<FormScreen>(OptionsScreen.Declare(settings)).Sections, candidate => candidate.Title == OptionsConfigurationSection.Title);
     }
 
@@ -127,6 +135,7 @@ public sealed class ExportEntryPointsTests
         var services = TestAppBuilder.Services;
 
         Assert.NotNull(services.GetService<IExportPresenter>());
+        Assert.NotNull(services.GetService<IAugramImportPresenter>());
         Assert.NotNull(services.GetService<ConfigurationViewModel>());
     }
 

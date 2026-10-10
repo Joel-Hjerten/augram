@@ -112,6 +112,37 @@ public sealed class SyncConflictsTests
         Assert.Equal([new SyncResolution(gesture, SyncChoice.KeepBoth), new SyncResolution(group, SyncChoice.TakeTheirs)], vm.Resolutions());
     }
 
+    /// <summary>"Apply to all" (the Augram file import, plan 0003): each conflict that offers the choice takes it, the rest keep theirs, and the entries show it.</summary>
+    [Fact]
+    public void ChooseAllSetsEveryConflictThatOffersTheChoice_AndRebuildsTheEntries()
+    {
+        var vm = ViewModel(GestureConflict(), GroupConflict(), CommandConflict());
+        var before = vm.Entries;
+
+        Assert.True(vm.ChooseAll(SyncChoice.KeepBoth));
+
+        Assert.Equal([SyncChoice.KeepBoth, SyncChoice.KeepMine, SyncChoice.KeepBoth], vm.Choices);
+        Assert.NotSame(before, vm.Entries);
+        Assert.Equal([SyncChoice.KeepBoth, SyncChoice.KeepMine, SyncChoice.KeepBoth], vm.Entries.Select(entry => entry.Selected));
+        Assert.True(vm.ChooseAll(SyncChoice.TakeTheirs));
+        Assert.All(vm.Choices, choice => Assert.Equal(SyncChoice.TakeTheirs, choice));
+        Assert.False(vm.ChooseAll(SyncChoice.TakeTheirs));
+    }
+
+    /// <summary>The dialog's help is a parameter: the sync's by default, the import's own when it reuses the list.</summary>
+    [AvaloniaFact]
+    public void TheHelpIsTheSyncsUnlessTheHostGivesItsOwn()
+    {
+        Assert.Equal(SyncConflictsViewModel.SyncHelp, ViewModel(GestureConflict()).Help);
+        var own = new SyncConflictsViewModel([GestureConflict()], [Zig], MappingDocument.Empty, help: "Import help.");
+        Assert.Equal("Import help.", own.Help);
+
+        var window = new SyncConflictWindow(own);
+        window.Show();
+        Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), text => text.Classes.Contains("help-icon") && Equals(ToolTip.GetTip(text), "Import help."));
+        window.Close();
+    }
+
     [AvaloniaFact]
     public void TheListShowsOneRowPerConflictWithGlyphsForGesturesAndReportsChoices()
     {
@@ -122,6 +153,8 @@ public sealed class SyncConflictsTests
 
         var rows = list.GetVisualDescendants().OfType<SyncConflictRow>().ToList();
         Assert.Equal(2, rows.Count);
+        var headers = list.GetVisualDescendants().OfType<TextBlock>().Where(text => text.Classes.Contains("column-header")).Select(text => text.Text);
+        Assert.Equal(["Item", SyncConflictList.ThisMachineHeader, SyncConflictList.OtherMachineHeader, "Choice"], headers);
         Assert.True(rows[0].HasMineGlyph && rows[0].HasTheirsGlyph);
         Assert.False(rows[1].HasMineGlyph || rows[1].HasTheirsGlyph);
         Assert.Equal(2, rows[0].GetVisualDescendants().OfType<GestureGlyph>().Count(glyph => glyph.IsVisible && glyph.Classes.Contains("row-glyph")));

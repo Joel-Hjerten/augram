@@ -6,20 +6,23 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Augram.App.ViewModels;
 
 /// <summary>
-/// Options › Configuration (plan 0003, Question 4 as proposed): Export… (everything preselected) and the StrokesPlus.net
-/// import beside it (it stays on the Gestures toolbar too). Forwards each to its presenter and keeps the last outcome line
-/// for the page; the flows themselves are the presenters'.
+/// Options › Configuration (plan 0003, Question 4 as proposed): Export… (everything preselected), Import… of an Augram file,
+/// and the StrokesPlus.net import beside them (it stays on the Gestures toolbar too). Forwards each to its presenter and
+/// keeps the last outcome line for the page; the flows themselves are the presenters'.
 /// </summary>
 public sealed partial class ConfigurationViewModel : ObservableObject
 {
     private readonly IExportPresenter _export;
+    private readonly IAugramImportPresenter _import;
     private readonly IImportPresenter _strokesPlus;
 
-    public ConfigurationViewModel(IExportPresenter export, IImportPresenter strokesPlus)
+    public ConfigurationViewModel(IExportPresenter export, IAugramImportPresenter import, IImportPresenter strokesPlus)
     {
         ArgumentNullException.ThrowIfNull(export);
+        ArgumentNullException.ThrowIfNull(import);
         ArgumentNullException.ThrowIfNull(strokesPlus);
         _export = export;
+        _import = import;
         _strokesPlus = strokesPlus;
     }
 
@@ -31,6 +34,8 @@ public sealed partial class ConfigurationViewModel : ObservableObject
     public bool HasStatus => Status.Length > 0;
 
     public Task ExportAsync() => RunAsync(() => _export.ExportAsync(ExportScope.Everything));
+
+    public Task ImportAsync() => RunAsync(_import.OpenAsync);
 
     public Task ImportStrokesPlusAsync() => RunAsync(async () =>
     {

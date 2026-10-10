@@ -14,6 +14,7 @@ public static class OptionsConfigurationSection
     public const string AugramFileLabel = "Augram file";
     public const string StrokesPlusLabel = "StrokesPlus.net";
     public const string ExportLabel = "Export…";
+    public const string ImportLabel = "Import…";
     public const string StrokesPlusImportLabel = "Import from StrokesPlus.net…";
 
     public const string SectionHelp =
@@ -29,7 +30,7 @@ public static class OptionsConfigurationSection
         ArgumentNullException.ThrowIfNull(vm);
         return new Section(Title,
         [
-            new CustomField(AugramFileLabel, () => Buttons((ExportLabel, () => _ = vm.ExportAsync())), vm, AugramFileHelp),
+            new CustomField(AugramFileLabel, () => Buttons((ExportLabel, () => _ = vm.ExportAsync()), (ImportLabel, () => _ = vm.ImportAsync())), vm, AugramFileHelp),
             new CustomField(StrokesPlusLabel, () => Buttons((StrokesPlusImportLabel, () => _ = vm.ImportStrokesPlusAsync())), vm, StrokesPlusHelp),
             new NoteField("Last result", new DelegateBinding<string>(() => vm.Status, owner: vm))
             {
@@ -39,16 +40,15 @@ public static class OptionsConfigurationSection
     }
 
     /// <summary>Toolbar buttons side by side on one form line.</summary>
-    private static DockPanel Buttons(params (string Label, Action Click)[] buttons)
+    private static StackPanel Buttons(params (string Label, Action Click)[] buttons)
     {
-        var line = new DockPanel { LastChildFill = false };
-        line.Classes.Add("field-line");
+        var line = new StackPanel();
+        line.Classes.Add("field-buttons");
         foreach (var (label, click) in buttons)
         {
             var button = new Button { Content = label };
             button.Classes.Add("toolbar");
             button.Click += (_, _) => click();
-            DockPanel.SetDock(button, Dock.Left);
             line.Children.Add(button);
         }
 

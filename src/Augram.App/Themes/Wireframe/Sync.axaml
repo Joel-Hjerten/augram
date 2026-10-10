@@ -30,8 +30,8 @@
                   <ColumnDefinition Width="{StaticResource SyncConflict.ChoiceColumn}" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Classes="column-header" Text="Item" />
-                <TextBlock Grid.Column="1" Classes="column-header" Text="This machine" />
-                <TextBlock Grid.Column="2" Classes="column-header" Text="Other machine" />
+                <TextBlock Grid.Column="1" Classes="column-header" Text="{TemplateBinding MineHeader}" />
+                <TextBlock Grid.Column="2" Classes="column-header" Text="{TemplateBinding TheirsHeader}" />
                 <TextBlock Grid.Column="3" Classes="column-header" Text="Choice" />
               </Grid>
             </Border>

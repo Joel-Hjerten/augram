@@ -951,6 +951,11 @@
   <Style Selector="DockPanel.field-line > Button">
     <Setter Property="Margin" Value="0,0,8,0" />
   </Style>
+  <!-- Several controls side by side on one form line (Options › Configuration's buttons, the import review's Apply to all). -->
+  <Style Selector="StackPanel.field-buttons">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
+  </Style>
   <Style Selector="NumericUpDown.channel">
     <Setter Property="Width" Value="130" />
     <Setter Property="CornerRadius" Value="0" />

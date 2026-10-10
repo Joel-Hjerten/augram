@@ -3,6 +3,7 @@ using Augram.App.Components.FormDialog;
 using Augram.App.Components.SectionForm;
 using Augram.App.Declarations;
 using Augram.App.DevGallery;
+using Augram.App.Transfer;
 using Augram.App.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -25,6 +26,28 @@ public sealed class TransferGalleryTests
         Assert.Equal([true, false, false, true, false], dialogs.Select(NoteShown));
         Assert.Equal([true, true, true, true, false], dialogs.Select(dialog => dialog.CanConfirm));
         Assert.False(dialogs[4].GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, ExportViewModel.ConfirmLabel)).IsEnabled);
+    }
+
+    /// <summary>The changed copy shows every case the review has; the configuration's own export has nothing to import.</summary>
+    [AvaloniaFact]
+    public void TheImportReviewShowsAChangedCopy_AndAFileWithNothingToImport()
+    {
+        var form = Render(TransferGalleryPages.Page());
+
+        var reviews = form.GetVisualDescendants().OfType<AugramImportView>().ToList();
+        Assert.Equal(2, reviews.Count);
+        var changed = reviews[0].ViewModel;
+        Assert.NotEmpty(reviews[0].List.Entries);
+        Assert.True(reviews[0].ImportButton.IsEnabled);
+        Assert.Contains("New: ", changed.CountsText, StringComparison.Ordinal);
+        Assert.Contains("Same as yours: ", changed.CountsText, StringComparison.Ordinal);
+        Assert.Contains("Different: ", changed.CountsText, StringComparison.Ordinal);
+        Assert.Contains("in the file is your 'Steam games'", changed.MatchesText, StringComparison.Ordinal);
+        Assert.Contains("has the shape of your 'Up'", changed.MatchesText, StringComparison.Ordinal);
+        Assert.True(changed.HasOutcome);
+        Assert.True(changed.HasSettings);
+        Assert.False(reviews[1].ImportButton.IsEnabled);
+        Assert.False(reviews[1].List.IsVisible);
     }
 
     private static bool NoteShown(FormDialog dialog)

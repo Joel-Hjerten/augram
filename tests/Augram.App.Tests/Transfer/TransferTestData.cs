@@ -73,6 +73,23 @@ internal static class TransferTestData
 
     public static AppGroup GroupNamed(MappingDocument mapping, string name) => mapping.Groups.Single(group => group.Name == name);
 
+    public static Command CommandNamed(MappingDocument mapping, string group, string name) => GroupNamed(mapping, group).Commands.Single(command => command.Name == name);
+
+    /// <summary>The document with <paramref name="change"/> applied to the group named <paramref name="name"/>, validated.</summary>
+    public static ConfigDocument WithGroup(ConfigDocument document, string name, Func<AppGroup, AppGroup> change)
+        => document with { Mapping = MappingRules.ValidDocument(document.Mapping with { Groups = [.. document.Mapping.Groups.Select(group => group.Name == name ? change(group) : group)] }) };
+
+    /// <summary>The document without the group named <paramref name="name"/>: a configuration that lacks it.</summary>
+    public static ConfigDocument WithoutGroup(ConfigDocument document, string name)
+        => document with { Mapping = MappingRules.ValidDocument(document.Mapping with { Groups = [.. document.Mapping.Groups.Where(group => group.Name != name)] }) };
+
+    /// <summary>The document with the starter gesture <paramref name="name"/> drawn as the starter <paramref name="drawnAs"/> (same id, other samples).</summary>
+    public static ConfigDocument Redrawn(ConfigDocument document, string name, string drawnAs)
+    {
+        var samples = document.Gestures.Single(gesture => gesture.Name == drawnAs).Samples;
+        return document with { Gestures = [.. document.Gestures.Select(gesture => gesture.Name == name ? gesture with { Samples = samples } : gesture)] };
+    }
+
     public static Command Cmd(string name, Trigger trigger, params IStep[] steps)
         => new(CommandId.New(), name, trigger, IsActive: true, [.. steps.Select(step => new CommandStep(step, HostPlatform.Windows))]);
 
