@@ -6,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Augram.App.Navigation;
 
 /// <summary>
-/// The app's tabs (F7): Gestures · Commands (Global / Apps) · Ignored (Global / Per command) · Options · Diagnostics
-/// (Health / Log / Recognition), plus the dev Gallery in Debug builds. Adding a tab is adding an entry
-/// here and a screen under <c>Screens/</c>.
+/// The app's tabs (F7): Commands (Global / Apps) · Ignored (Global / Per command) · Gestures · Options · Diagnostics
+/// (Health / Log / Recognition), plus the dev Gallery in Debug builds (Joel, 2026-10-10: Commands and Ignored before
+/// Gestures). Adding a tab is adding an entry here and a screen under <c>Screens/</c>.
 /// </summary>
 public static class AppNavigation
 {
@@ -27,9 +27,9 @@ public static class AppNavigation
         ArgumentNullException.ThrowIfNull(services);
         var entries = new List<NavEntry>
         {
-            GesturesModule.NavEntry(services),
             CommandsModule.NavEntry(services),
             IgnoredModule.NavEntry(services),
+            GesturesModule.NavEntry(services),
             new("Options", OptionsKey, () => OptionsScreen.Declare(services.GetRequiredService<AppSettingsViewModel>(), services.GetService<SyncViewModel>(), services.GetService<ConfigurationViewModel>())),
             new("Diagnostics", DiagnosticsKey, SubEntries:
             [

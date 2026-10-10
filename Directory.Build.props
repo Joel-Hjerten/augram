@@ -20,7 +20,7 @@
   <!-- The product version, in one place (M1 accepted, M2 under way). The SDK appends "+<commit>" to the informational
        version from git (source control information is on by default), which Augram.App reads back as AppInfo. -->
   <PropertyGroup>
-    <Version>0.9.1</Version>
+    <Version>0.9.2</Version>
     <!-- The build channel: Dev for every local and CI build; the release script passes -p:AugramChannel=Release.
          Augram.App embeds it as assembly metadata: the title says "Augram (Dev)" and start at login stays with the installed build. -->
     <AugramChannel Condition="'$(AugramChannel)' == ''">Dev</AugramChannel>
