@@ -99,7 +99,7 @@ public sealed class TriggerSerializationTests : IDisposable
     }
 
     /// <summary>
-    /// An older build (schema 3) cannot read a schema 4 file: it loads the newest backup it can read and saves over the newer
+    /// An older build (schema 4) cannot read a schema 5 file: it loads the newest backup it can read and saves over the newer
     /// file at its first change. The newer build then says where the newer file went instead of quietly losing what it held.
     /// </summary>
     [Fact]
@@ -109,14 +109,14 @@ public sealed class TriggerSerializationTests : IDisposable
         store.Save(new ConfigDocument());
         store.Save(new ConfigDocument());
         var current = File.ReadAllText(store.Location);
-        var older = current.Replace("\"schemaVersion\": 4", "\"schemaVersion\": 3", StringComparison.Ordinal);
+        var older = current.Replace("\"schemaVersion\": 5", "\"schemaVersion\": 4", StringComparison.Ordinal);
         File.Copy(store.Location, Path.Combine(store.Backups.Folder, "augram-20261009-130000.json"));
         File.WriteAllText(store.Location, older);
 
         store.Load();
 
         var notice = Assert.Single(_notices);
-        Assert.Contains("saved by an older Augram (schema 3) over a newer one (schema 4)", notice, StringComparison.Ordinal);
+        Assert.Contains("saved by an older Augram (schema 4) over a newer one (schema 5)", notice, StringComparison.Ordinal);
         Assert.Contains("augram-20261009-130000.json", notice, StringComparison.Ordinal);
     }
 }

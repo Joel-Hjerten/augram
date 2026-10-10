@@ -23,13 +23,14 @@ Why a folder of its own: it sits on `Config` (the format: reader, writer, migrat
 
 - **Everything:** the options without `sync`, every gesture, the whole mapping. **Gestures only:** the library. **A selection:** its groups whole (header, categories, hold remaps, commands with their own versions; Global is selectable), its ignored apps, and the gestures its commands' triggers name (original and own version), in library order.
 - **Every file has a Global group**, because the format requires one: when Global was not selected it is written as an empty shell (its header only). So an export always reads as a valid config file too.
-- Ids, names, active flags and everything else are written exactly as on disk. Nothing is stripped from steps: the dialog warns with `TransferContents.PrivateTextSteps`.
+- Ids, names, active flags and everything else are written exactly as on disk (a command's own drag distance and a Global command's "Not in" too, schema 5, plan 0004). Nothing is stripped from steps: the dialog warns with `TransferContents.PrivateTextSteps`.
+- **A selection's "Not in" keeps only the app groups the file carries**: a selection is validated like any mapping, so a Global command not used in Spine loses Spine from its "Not in" unless Spine is selected too (the file has no group to name). Select the groups with Global to keep it.
 
 ## Import
 
-**Reading:** a newer schema is refused ("The file was written by a newer Augram (schema version 5); this build reads up to version 4."), an older one migrated, a file breaking a rule refused whole ("The file breaks a rule: …"), a step of a type this build lacks kept as is with a notice (`../Steps/Unknown/`). Any Augram JSON reads: an export, `augram.json`, a file from `backup/`, a sync machine file (its machine header is passed over).
+**Reading:** a newer schema is refused ("The file was written by a newer Augram (schema version 6); this build reads up to version 5."), an older one migrated, a file breaking a rule refused whole ("The file breaks a rule: …"), a step of a type this build lacks kept as is with a notice (`../Steps/Unknown/`). Any Augram JSON reads: an export, `augram.json`, a file from `backup/`, a sync machine file (its machine header is passed over).
 
-**Matching (`ImportMatcher`).** Ids are kept: a file item whose id is here is that item. A file item whose id is unknown here takes the id of the local item it matches, and the file's references to it follow (a command's gesture, original and own trigger; its category; its hold remap):
+**Matching (`ImportMatcher`).** Ids are kept: a file item whose id is here is that item. A file item whose id is unknown here takes the id of the local item it matches, and the file's references to it follow (a command's gesture, original and own trigger; its category; its hold remap; a Global command's "Not in", plan 0004: each file app group's id becomes the local group's it matched by name, a new group keeps its id, and the list is sorted as the rules keep it so an unchanged one reads Same):
 
 | Kind | By, in order | Within |
 |---|---|---|

@@ -171,6 +171,11 @@ public sealed class ConfigSession : IDisposable
                 LoadGroup(store, group);
             }
 
+            if (mapping.Groups.FirstOrDefault(group => group.IsGlobal) is { } global)
+            {
+                RestoreNotIn(store, global);
+            }
+
             foreach (var app in mapping.Ignored)
             {
                 Try(() => store.AddIgnored(app), $"Ignored app '{app.Name}' ({app.Id})");
@@ -207,6 +212,21 @@ public sealed class ConfigSession : IDisposable
         foreach (var command in group.Commands)
         {
             Try(() => store.AddCommand(group.Id, command), $"Command '{command.Name}' ({command.Id}) in '{group.Name}'");
+        }
+    }
+
+    /// <summary>
+    /// The "Not in" of the Global commands that loaded (plan 0004): Global loads first, before the app groups its commands name,
+    /// so the store dropped those ids then. Now that the groups are in, each list is put back; a group that did not load stays out.
+    /// </summary>
+    private void RestoreNotIn(MappingStore store, AppGroup global)
+    {
+        foreach (var command in global.Commands.Where(command => command.NotIn.Count > 0))
+        {
+            if (store.FindCommand(command.Id) is { } loaded && loaded.Group.IsGlobal)
+            {
+                Try(() => store.UpdateCommand(GroupId.Global, loaded.Command with { NotIn = command.NotIn }), $"The 'Not in' of command '{command.Name}' ({command.Id}) in '{global.Name}'");
+            }
         }
     }
 

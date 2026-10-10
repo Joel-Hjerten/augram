@@ -12,7 +12,8 @@ namespace Augram.Core.Config;
 /// its <see cref="IStepType.Write"/> returns, under the envelope F8 names (<c>type</c>, <c>authoredOn</c>,
 /// <c>isActive</c>, <c>params</c>, <c>overrides</c>). Every member is written in full except
 /// <c>overrides</c> (omitted when there are none), <c>note</c>, a command's <c>category</c> and <c>holdRemap</c> (omitted
-/// when null), a group's <c>categories</c> and <c>holdRemaps</c> (omitted when empty) and the <c>useOn</c> of a group, a
+/// when null), a group's <c>categories</c> and <c>holdRemaps</c> and a command's <c>notIn</c> (omitted when empty), a hold's
+/// <c>dragDistancePx</c> (omitted when null) and the <c>useOn</c> of a group, a
 /// category, a hold remap or a command (omitted when every platform), so a diff after an edit shows only the
 /// edit and a file without categories looks as it did before they existed. An override is always of
 /// the same type as its step and is written as that type's parameters under the platform's camelCase
@@ -75,6 +76,7 @@ internal static partial class MappingJsonWriter
         WriteTrigger(writer, command.Trigger);
         writer.WriteBoolean("isActive", command.IsActive);
         WriteUseOn(writer, command.UseOn);
+        WriteNotIn(writer, command.NotIn);
         if (command.CategoryId is { } category)
         {
             writer.WriteString("category", category.Value);
@@ -208,7 +210,30 @@ internal static partial class MappingJsonWriter
             writer.WriteString("capture", hold.Capture.ToString());
         }
 
+        if (hold.DragDistancePx is { } distance)
+        {
+            // Schema 5 (plan 0004): only a set without the stroke button keeps one (TriggerHold.Normalised), never a default set.
+            writer.WriteNumber("dragDistancePx", distance);
+        }
+
         writer.WriteEndObject();
+    }
+
+    /// <summary>A Global command's "Not in" (schema 5, plan 0004): its app groups' ids, omitted when there are none.</summary>
+    private static void WriteNotIn(Utf8JsonWriter writer, IReadOnlyList<GroupId> notIn)
+    {
+        if (notIn.Count == 0)
+        {
+            return;
+        }
+
+        writer.WriteStartArray("notIn");
+        foreach (var group in notIn)
+        {
+            writer.WriteStringValue(group.Value);
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WriteStep(Utf8JsonWriter writer, CommandStep step)

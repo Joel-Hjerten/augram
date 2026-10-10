@@ -46,6 +46,11 @@ public static class ConfigMigrations
                 // optional and absent means no hold remaps, as in version 3. The bump exists so that a version 3 build refuses a
                 // version 4 file instead of reading the commands under a hold remap as ordinary ones and saving them back so.
                 break;
+            case 4:
+                // 4 → 5 (plan 0004, 2026-10-10): a trigger hold's dragDistancePx and a command's notIn are optional and absent
+                // means the Options value and no "Not in", as in version 4. The bump exists so that a version 4 build refuses a
+                // version 5 file instead of ignoring a command's own drag distance and its "Not in" and saving it back without them.
+                break;
             default:
                 throw new ConfigFormatException($"No migration from schema version {version} to {version + 1} exists.");
         }

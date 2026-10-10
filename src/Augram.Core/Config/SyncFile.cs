@@ -39,8 +39,11 @@ public sealed record SyncFile(
     /// gesture without its original. 11 (2026-10-10): hold remaps (F9: the <c>holdRemap</c> item kind, a command item's
     /// <c>holdRemap</c>, the input trigger, the Remap step); a format 10 build would drop the hold remaps and publish the group
     /// without them, could not read an input trigger and would keep a Remap step only as is (the config schema went to 4).
+    /// 12 (2026-10-10, plan 0004): a command's own drag distance (its trigger hold's <c>dragDistancePx</c>, in a command item
+    /// and an own-steps item's trigger) and a Global command's <c>notIn</c>; a format 11 build would drop both and publish the
+    /// commands without their drag distance and "Not in" (the config schema went to 5).
     /// </summary>
-    public const int CurrentFormatVersion = 11;
+    public const int CurrentFormatVersion = 12;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;
