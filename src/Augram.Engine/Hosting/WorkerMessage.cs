@@ -1,5 +1,6 @@
 using Augram.Core.Capture;
 using Augram.Core.HoldRemaps;
+using Augram.Core.Mapping;
 
 namespace Augram.Engine.Hosting;
 
@@ -31,6 +32,9 @@ internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, Ca
     }
 
     public static WorkerMessage Input(CaptureEvent e, bool hookSuppressed) => new(MessageKind.Input, e, hookSuppressed);
+
+    /// <summary>A press with the button trigger outputs of the window it went down over (plan 0005 decision 9), in <see cref="Payload"/>.</summary>
+    public static WorkerMessage Press(CaptureEvent.ButtonDown e, bool hookSuppressed, ButtonOutputs outputs) => new(MessageKind.Input, e, hookSuppressed, outputs);
 
     public static WorkerMessage StrokeButton(MouseButton button) => new(MessageKind.SetStrokeButton, Payload: button);
 

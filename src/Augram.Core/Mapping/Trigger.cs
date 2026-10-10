@@ -7,12 +7,13 @@ using Augram.Core.Steps.Hotkey;
 namespace Augram.Core.Mapping;
 
 /// <summary>
-/// What fires a <see cref="Command"/>: a recognised gesture, a wheel tick, a click, or nothing yet, each with a "while
-/// holding" set (<see cref="Hold"/>, F1 "Triggers as combinations", Joel 2026-10-09): "Shift + gesture", "Right + wheel up",
-/// "Shift + click" (SP.net's no-gesture action, fired at the stroke button's release); or, for a command under a hold remap
-/// (F9, plan 0002), the <see cref="InputTrigger"/> that fires it while the hold key is held. A closed set of records with
-/// value equality; <see cref="Overlaps"/> is the A7 rule ("bound twice in this group", per hold remap for an input) and a
-/// <see cref="PressedTrigger"/> says whether a press fires it (never an input). The constructor is private: the five nested
+/// What fires a <see cref="Command"/>: a recognised gesture, a wheel tick, a click, a button pressed while others are held, or
+/// nothing yet, each with a "while holding" set (<see cref="Hold"/>, F1 "Triggers as combinations", Joel 2026-10-09):
+/// "Shift + gesture", "Right + wheel up", "Shift + click" (SP.net's no-gesture action, fired at the stroke button's release),
+/// "Right + Left" (<see cref="ButtonTrigger"/>, plan 0005: fired at Left's press while Right is held); or, for a command under a
+/// hold remap (F9, plan 0002), the <see cref="InputTrigger"/> that fires it while the hold key is held. A closed set of records
+/// with value equality; <see cref="Overlaps"/> is the A7 rule ("bound twice in this group", per hold remap for an input) and a
+/// <see cref="PressedTrigger"/> says whether a press fires it (never an input). The constructor is private: the six nested
 /// records are the whole set.
 /// </summary>
 public abstract record Trigger
@@ -44,6 +45,16 @@ public abstract record Trigger
 
     public static WheelTrigger ForWheel(WheelDirection direction, TriggerHold? hold = null)
         => new(direction) { Hold = (hold ?? TriggerHold.Default).Normalised(strokeRequired: false) };
+
+    /// <summary>
+    /// A button trigger (plan 0005): <paramref name="button"/> pressed while <paramref name="hold"/> is held. The pressed button is
+    /// never a member of its own set (dropped here); the set's stroke button and its anchors are <see cref="MappingRules"/>' to check.
+    /// </summary>
+    public static ButtonTrigger ForButton(MouseButton button, TriggerHold hold)
+    {
+        ArgumentNullException.ThrowIfNull(hold);
+        return new(button) { Hold = (hold with { Buttons = hold.Buttons & ~button.Flag() }).Normalised(strokeRequired: false) };
+    }
 
     /// <summary>A click trigger: the stroke button released with <paramref name="hold"/>'s members held; nothing beyond the stroke button is <see cref="None"/>.</summary>
     public static Trigger ForClick(TriggerHold hold)
@@ -78,6 +89,7 @@ public abstract record Trigger
         {
             NoTrigger or ClickTrigger => ForClick(hold),
             InputTrigger input => ForInput(input.Input),
+            ButtonTrigger button => ForButton(button.Button, hold),
             _ => this with { Hold = hold.Normalised(NeedsStroke) },
         };
     }
@@ -95,6 +107,7 @@ public abstract record Trigger
             WheelTrigger wheel => other is WheelTrigger o && o.Direction == wheel.Direction,
             ClickTrigger => other is ClickTrigger,
             InputTrigger input => other is InputTrigger o && o.Input == input.Input,
+            ButtonTrigger button => other is ButtonTrigger o && o.Button == button.Button,
             _ => other is NoTrigger,
         };
     }
@@ -117,6 +130,21 @@ public abstract record Trigger
         public override bool NeedsStroke => false;
 
         public override string KindPhrase => Direction == WheelDirection.Up ? "wheel up" : "wheel down";
+    }
+
+    /// <summary>
+    /// <see cref="Button"/> pressed while the set is held (plan 0005, Joel 2026-10-10: Eyeris's loupe chord "hold Right, press
+    /// Left" moved into Augram, the classic rocker). Fires at that press, from a press held back by one of the set's anchors; the
+    /// set holds a button other than the stroke button and not the stroke button (<see cref="MappingRules"/>), and never the
+    /// pressed button itself. A Remap step's key output is held while both are down (the engine plays it); ordinary steps run once
+    /// at the press. "Right + Left".
+    /// </summary>
+    public sealed record ButtonTrigger(MouseButton Button) : Trigger
+    {
+        public override bool NeedsStroke => false;
+
+        /// <summary>The pressed button's name: "Left", so the whole reads "Right + Left".</summary>
+        public override string KindPhrase => Button.ToString();
     }
 
     /// <summary>The stroke button released without moving, with keys or buttons held (SP.net's no-gesture action, learnings 0003 §2.6).</summary>

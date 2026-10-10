@@ -61,6 +61,9 @@ public sealed partial class CaptureStateMachine
     private long _deadlineMs;
     private List<CapturePoint> _points = [];
 
+    // The button whose button trigger fired and whose chord is not over yet (plan 0005): its end releases what it holds.
+    private MouseButton? _firing;
+
     public CaptureStateMachine(MouseButton strokeButton, CaptureThresholds? thresholds = null)
     {
         _strokeButton = strokeButton;
@@ -112,6 +115,7 @@ public sealed partial class CaptureStateMachine
         _down = HeldButtons.None;
         _owed = HeldButtons.None;
         _points = [];
+        _firing = null;
     }
 
     public IReadOnlyList<CaptureOutcome> Handle(CaptureEvent e) => e switch
@@ -137,10 +141,22 @@ public sealed partial class CaptureStateMachine
             return OnAnchorDown(down, flag);
         }
 
+        if (State == CaptureState.ButtonFiring)
+        {
+            return OnButtonWhileFiring(down, flag);
+        }
+
         if (State is CaptureState.Held or CaptureState.Drawing && _plan.Claims(_owner, _ownerIsStroke, down.Button))
         {
-            // An After button: it joins the press, its click never reaches the app (A19: its up will be consumed too).
             _owed |= flag;
+            if (State == CaptureState.Held && !_ownerIsStroke && _plan.Fires(_owner, down.Button))
+            {
+                // A button trigger (plan 0005): it fires at this press, and the press is frozen until the anchor's release.
+                State = CaptureState.ButtonFiring;
+                return Fire(down.Button, null);
+            }
+
+            // An After button: it joins the press, its click never reaches the app (A19: its up will be consumed too).
             _after |= flag;
             Push(down.TimestampMs);
             return SuppressOnly;
@@ -161,7 +177,8 @@ public sealed partial class CaptureStateMachine
     {
         var prior = State;
         var isAnchor = down.Button == _strokeButton || down.Plan.IsAnchor(down.Button);
-        CaptureOutcome? release = prior == CaptureState.HandedBack ? new CaptureOutcome.ReleaseHandedBack(_owner, down.X, down.Y) : null;
+        // The owner again while its press was handed back or firing: what the missed release would have ended ends first.
+        CaptureOutcome? release = prior == CaptureState.HandedBack ? new CaptureOutcome.ReleaseHandedBack(_owner, down.X, down.Y) : Ended();
         if (!isAnchor || !down.CaptureAllowed || down.IgnoreKeyHeld)
         {
             _owed &= ~flag;
@@ -188,9 +205,49 @@ public sealed partial class CaptureStateMachine
         return prior switch
         {
             CaptureState.Drawing => AbandonDrawing,
-            CaptureState.HandedBack => [release!, CaptureOutcome.Suppress.Instance],
+            _ when release is not null => [release, CaptureOutcome.Suppress.Instance],
             _ => SuppressOnly,
         };
+    }
+
+    /// <summary>
+    /// Another button while a button trigger holds the press (plan 0005): one the plan fires for this anchor fires again (the
+    /// chord pressed anew; another button trigger of the anchor ends the held one first); any other passes and cancels, ending
+    /// what is held, as another button cancels a wheel-fired press.
+    /// </summary>
+    private IReadOnlyList<CaptureOutcome> OnButtonWhileFiring(CaptureEvent.ButtonDown down, HeldButtons flag)
+    {
+        if (_plan.Fires(_owner, down.Button))
+        {
+            _owed |= flag;
+            return Fire(down.Button, Ended());
+        }
+
+        _owed &= ~flag;
+        State = CaptureState.Cancelled;
+        return Ended() is { } ended
+            ? [CaptureOutcome.PassThrough.Instance, ended, new CaptureOutcome.Cancelled(CancelReason.OtherButton)]
+            : OtherButtonCancelHeld;
+    }
+
+    /// <summary>A button trigger fires for <paramref name="button"/>, after <paramref name="ended"/> (a chord it replaces); what the press held, without the fired button, goes with it.</summary>
+    private CaptureOutcome[] Fire(MouseButton button, CaptureOutcome? ended)
+    {
+        _firing = button;
+        var fire = new CaptureOutcome.ButtonTrigger(button, _start) { Hold = Hold() };
+        return ended is null ? [CaptureOutcome.Suppress.Instance, fire] : [CaptureOutcome.Suppress.Instance, ended, fire];
+    }
+
+    /// <summary>The chord in progress ends (its output is released), or null when none is.</summary>
+    private CaptureOutcome.ButtonTriggerEnded? Ended()
+    {
+        if (_firing is not { } firing)
+        {
+            return null;
+        }
+
+        _firing = null;
+        return new CaptureOutcome.ButtonTriggerEnded(firing);
     }
 
     private IReadOnlyList<CaptureOutcome> OnButtonUp(CaptureEvent.ButtonUp up)
@@ -199,6 +256,12 @@ public sealed partial class CaptureStateMachine
         _down &= ~flag;
         var owed = (_owed & flag) != 0;
         _owed &= ~flag;
+        if (State == CaptureState.ButtonFiring && up.Button == _firing)
+        {
+            // The fired button is up, the anchor still held: the chord is over until it is pressed again.
+            return [CaptureOutcome.Suppress.Instance, Ended()!];
+        }
+
         if (State == CaptureState.Idle || up.Button != _owner)
         {
             return owed ? SuppressOnly : PassThroughOnly;
@@ -222,6 +285,9 @@ public sealed partial class CaptureStateMachine
                 return [CaptureOutcome.Suppress.Instance, CaptureOutcome.EndStroke.Instance, new CaptureOutcome.StrokeComplete(_points, _start, up.Button) { Hold = hold }];
             case CaptureState.HandedBack:
                 return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReleaseHandedBack(up.Button, up.X, up.Y)];
+            case CaptureState.ButtonFiring when Ended() is { } ended:
+                // The anchor is up before the fired button: the chord is over; the fired button's release is still owed.
+                return [CaptureOutcome.Suppress.Instance, ended];
             default:
                 return SuppressOnly;
         }
@@ -236,14 +302,22 @@ public sealed partial class CaptureStateMachine
     private IReadOnlyList<CaptureOutcome> OnReleasedElsewhere(CaptureEvent.ButtonReleasedElsewhere released)
     {
         _down &= ~released.Button.Flag();
+        if (State == CaptureState.ButtonFiring && released.Button == _firing)
+        {
+            return [Ended()!];
+        }
+
         if (State == CaptureState.Idle || released.Button != _owner)
         {
             return None;
         }
 
         var state = State;
+        var ended = Ended();
         ToIdle();
-        return state == CaptureState.Drawing ? EndedElsewhereDrawing : EndedElsewhere;
+        return state == CaptureState.Drawing ? EndedElsewhereDrawing
+            : ended is not null ? [ended, new CaptureOutcome.Cancelled(CancelReason.ReleasedElsewhere)]
+            : EndedElsewhere;
     }
 
     /// <summary>The owner released inside the start distance with no tick: a click, a click trigger, or nothing (an After button took part).</summary>

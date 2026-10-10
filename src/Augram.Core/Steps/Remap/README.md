@@ -1,6 +1,6 @@
 # Steps/Remap
 
-The **Remap** step (key `remap`, category Mouse, platform-neutral, **offered only for commands under a hold remap**): while the hold key is held, the command's input is played as this output, press for press and release for release (Left held → Middle held, so a drag stays a drag). Requirements F9, plan 0002; the model it lives in is `../../HoldRemaps/`.
+The **Remap** step (key `remap`, category Mouse, platform-neutral, **offered only for commands under a hold remap**, and since plan 0005 for a button trigger): while the hold key is held, the command's input is played as this output, press for press and release for release (Left held → Middle held, so a drag stays a drag). On a button trigger ("Right + Left", plan 0005) its output must be a key, held while both buttons are down: the engine worker plays it from the window's `Mapping/ButtonOutputs`. Requirements F9, plan 0002; the model it lives in is `../../HoldRemaps/`.
 
 | File | Role |
 |---|---|

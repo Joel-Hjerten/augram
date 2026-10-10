@@ -37,7 +37,8 @@ internal sealed class IgnoreLookup
     private MouseButton _planStrokeButton;
     private WindowIdentity? _planWindow;
     private bool _planStale = true;
-    private readonly Dictionary<(GroupId Group, string PerCommand), (AnchorPlan Plan, AnchorDragDistances Drags)> _plans = [];
+    private readonly Dictionary<(GroupId Group, string PerCommand), AnchorAnswer> _plans = [];
+    private AnchorAnswer _answer = AnchorAnswer.None;
     private WindowIdentity? _holdWindow;
     private bool _holdStale = true;
     private readonly Dictionary<GroupId, HoldRemapPlan> _holdPlans = [];
@@ -69,10 +70,13 @@ internal sealed class IgnoreLookup
     public bool WatchesAnchors => _anchoring;
 
     /// <summary>The anchor plan over the window under the pointer as of the last pass (<see cref="AnchorPlanner"/>); <see cref="AnchorPlan.None"/> while no command holds another button.</summary>
-    public AnchorPlan Plan { get; private set; }
+    public AnchorPlan Plan => _answer.Plan;
 
     /// <summary>The drag distance per anchor over the same window, worked out with <see cref="Plan"/> (plan 0004).</summary>
-    public AnchorDragDistances Drags { get; private set; }
+    public AnchorDragDistances Drags => _answer.Drags;
+
+    /// <summary>The button trigger outputs over the same window, worked out with <see cref="Plan"/> (plan 0005 decision 9).</summary>
+    public ButtonOutputs Outputs => _answer.Outputs;
 
     /// <summary>The hold remaps of the app in front as of the last pass (F9); <see cref="HoldRemapPlan.Empty"/> while none can match or the foreground has none.</summary>
     public HoldRemapPlan HoldPlan { get; private set; } = HoldRemapPlan.Empty;
@@ -143,8 +147,7 @@ internal sealed class IgnoreLookup
         {
             Over = null;
             PausedBy = null;
-            Plan = AnchorPlan.None;
-            Drags = AnchorDragDistances.None;
+            _answer = AnchorAnswer.None;
             HoldPlan = HoldRemapPlan.Empty;
             return;
         }
@@ -158,12 +161,12 @@ internal sealed class IgnoreLookup
 
         Over = _ignoring ? IgnoreList.Under(mapping, _pointerWindow, _platform) : null;
         PausedBy = _ignoring ? IgnoreList.PausedBy(mapping, _focusWindow, _platform) : null;
-        (Plan, Drags) = _anchoring ? AnswerFor(mapping, _pointerWindow) : (AnchorPlan.None, AnchorDragDistances.None);
+        _answer = _anchoring ? AnswerFor(mapping, _pointerWindow) : AnchorAnswer.None;
         HoldPlan = _holdRemaps ? HoldPlanFor(mapping, _focusWindow) : HoldRemapPlan.Empty;
     }
 
-    /// <summary>The plan and drag distances over the window, worked out again only when the window, the mapping or the stroke button changed; cached per app group.</summary>
-    private (AnchorPlan Plan, AnchorDragDistances Drags) AnswerFor(MappingDocument mapping, WindowIdentity? window)
+    /// <summary>The plan, drag distances and button trigger outputs over the window, worked out again only when the window, the mapping or the stroke button changed; cached per app group.</summary>
+    private AnchorAnswer AnswerFor(MappingDocument mapping, WindowIdentity? window)
     {
         if (_planStale)
         {
@@ -172,7 +175,7 @@ internal sealed class IgnoreLookup
         }
         else if (ReferenceEquals(window, _planWindow))
         {
-            return (Plan, Drags);
+            return _answer;
         }
 
         _planWindow = window;
@@ -183,7 +186,7 @@ internal sealed class IgnoreLookup
         var key = (group?.Id ?? GroupId.Global, perCommand.Count == 0 ? string.Empty : string.Join(',', perCommand));
         if (!_plans.TryGetValue(key, out var answer))
         {
-            answer = AnchorPlanner.AnswerForGroup(mapping, group, _platform, _planStrokeButton, perCommand);
+            answer = AnchorPlanner.Answer(mapping, group, _platform, _planStrokeButton, perCommand);
             _plans[key] = answer;
         }
 

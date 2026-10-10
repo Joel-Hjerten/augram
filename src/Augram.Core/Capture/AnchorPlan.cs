@@ -9,12 +9,15 @@ namespace Augram.Core.Capture;
 /// part of the press. One <see cref="long"/> so the hook reads it as one volatile (CLAUDE.md invariant 1); worked out off
 /// the hook thread by <c>Mapping.AnchorPlanner</c> for the window under the pointer.
 /// <para>Bits: 0–4 the anchors (bit = <see cref="MouseButton"/> value); then six 5-bit extras masks, one per anchor slot
-/// (slots 0–4 a physical anchor, slot 5 the stroke button).</para>
+/// (slots 0–4 a physical anchor, slot 5 the stroke button); then five 5-bit <em>fires</em> masks, one per physical anchor (plan
+/// 0005): an extra whose press fires a button trigger at once ("Right + Left"), bit = <see cref="MouseButton"/> value. Bit 59 is
+/// the highest, so the hook can still pack two ignore bits beside the plan in one <see cref="long"/>.</para>
 /// </summary>
 public readonly record struct AnchorPlan(long Bits)
 {
     private const int ButtonCount = 5;
     private const int StrokeSlot = 5;
+    private const int FiresShift = ButtonCount + ((StrokeSlot + 1) * ButtonCount);
     private const long Mask = (1L << ButtonCount) - 1;
 
     /// <summary>No anchors besides the stroke button, no extras: every other button is untouched.</summary>
@@ -35,6 +38,15 @@ public readonly record struct AnchorPlan(long Bits)
     /// <summary>True when <paramref name="other"/>, pressed during a press owned by <paramref name="owner"/>, joins it.</summary>
     public bool Claims(MouseButton owner, bool ownerIsStroke, MouseButton other) => ExtrasFor(owner, ownerIsStroke).Has(other);
 
+    /// <summary>True when <paramref name="other"/>, pressed during a press owned by the physical anchor <paramref name="owner"/>, fires a button trigger at once (plan 0005).</summary>
+    public bool Fires(MouseButton owner, MouseButton other) => (Bits & FiresBit(owner, other)) != 0;
+
+    /// <summary>True when some press of <paramref name="owner"/> here can fire a button trigger.</summary>
+    public bool FiresAny(MouseButton owner) => ((Bits >> (FiresShift + ((int)owner * ButtonCount))) & Mask) != 0;
+
+    /// <summary>This plan with <paramref name="other"/> firing a button trigger when pressed during a press of <paramref name="owner"/> (also add it as an extra).</summary>
+    public AnchorPlan WithFires(MouseButton owner, MouseButton other) => new(Bits | FiresBit(owner, other));
+
     /// <summary>This plan with <paramref name="button"/> held back as an anchor.</summary>
     public AnchorPlan WithAnchor(MouseButton button) => new(Bits | (1L << (int)button));
 
@@ -46,4 +58,6 @@ public readonly record struct AnchorPlan(long Bits)
     }
 
     private static int Shift(int slot) => ButtonCount + (slot * ButtonCount);
+
+    private static long FiresBit(MouseButton owner, MouseButton other) => 1L << (FiresShift + ((int)owner * ButtonCount) + (int)other);
 }

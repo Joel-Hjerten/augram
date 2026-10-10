@@ -27,4 +27,11 @@ public enum CaptureState
     /// physical release, which is consumed and injected in its place, so the app's down and up stay a pair.
     /// </summary>
     HandedBack,
+
+    /// <summary>
+    /// A button trigger fired (plan 0005): a button the plan fires for this anchor went down while it was held back. Frozen like
+    /// <see cref="WheelFiring"/>: no hand-back, moves and wheel ticks pass; the fired button's release ends what it holds, and a
+    /// new press of it fires again; the anchor's release is consumed and replays nothing.
+    /// </summary>
+    ButtonFiring,
 }

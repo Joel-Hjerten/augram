@@ -49,8 +49,8 @@ public sealed class SuppressionShadowTests
             }
         }
 
-        // HandedBack needs an anchor besides the stroke button: ChordPairingTests covers it.
-        foreach (var state in Enum.GetValues<CaptureState>().Where(state => state != CaptureState.HandedBack))
+        // HandedBack and ButtonFiring need an anchor besides the stroke button: ChordPairingTests covers them.
+        foreach (var state in Enum.GetValues<CaptureState>().Where(state => state is not (CaptureState.HandedBack or CaptureState.ButtonFiring)))
         {
             foreach (var kind in new[] { RawInputKind.ButtonDown, RawInputKind.ButtonUp, RawInputKind.Wheel })
             {

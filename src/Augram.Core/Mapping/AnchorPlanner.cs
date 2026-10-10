@@ -1,7 +1,14 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.Steps.Remap;
 
 namespace Augram.Core.Mapping;
+
+/// <summary>One window's answer (<see cref="AnchorPlanner.Answer"/>): the anchor plan, the drag distances, and the button trigger outputs the worker holds.</summary>
+public sealed record AnchorAnswer(AnchorPlan Plan, AnchorDragDistances Drags, ButtonOutputs Outputs)
+{
+    public static AnchorAnswer None { get; } = new(AnchorPlan.None, AnchorDragDistances.None, ButtonOutputs.Empty);
+}
 
 /// <summary>
 /// Works out the <see cref="AnchorPlan"/> for a window (Joel, 2026-10-09: anchors are decided per app): which buttons are held
@@ -11,6 +18,8 @@ namespace Augram.Core.Mapping;
 /// app command overlaps is shadowed, and a command that does nothing here (an override to nothing) holds nothing back, so
 /// "Right + wheel up → nothing" in an app gives Right back to it, as does a command whose "Not in" names an Ignored › Per command
 /// entry claiming the window (plan 0004; such a command shadows nothing either). It also says how far each anchor's press may move before it is handed back as a drag (<see cref="AnswerForGroup"/>).
+/// A button trigger (plan 0005, "Right + Left") holds its anchors back, takes its pressed button into their presses and marks it
+/// firing for them; <see cref="Answer"/> also lists the button trigger commands whose Remap key output the engine worker holds.
 /// Pure; the engine's ignore-list watch asks it off the hook thread when the window under the pointer or the mapping changes.
 /// </summary>
 public static class AnchorPlanner
@@ -55,15 +64,31 @@ public static class AnchorPlanner
     public static (AnchorPlan Plan, AnchorDragDistances Drags) AnswerForGroup(
         MappingDocument mapping, AppGroup? group, HostPlatform platform, MouseButton strokeButton, IReadOnlyList<GroupId>? perCommand = null)
     {
+        var answer = Answer(mapping, group, platform, strokeButton, perCommand);
+        return (answer.Plan, answer.Drags);
+    }
+
+    /// <summary>
+    /// <see cref="AnswerForGroup"/> with the button trigger outputs the engine worker holds itself over the same window (plan 0005
+    /// decision 9), from the same commands in the same order, so the three always agree.
+    /// </summary>
+    public static AnchorAnswer Answer(
+        MappingDocument mapping, AppGroup? group, HostPlatform platform, MouseButton strokeButton, IReadOnlyList<GroupId>? perCommand = null)
+    {
         ArgumentNullException.ThrowIfNull(mapping);
         var plan = AnchorPlan.None;
         var drags = AnchorDragDistances.None;
+        List<ButtonOutput>? outputs = null;
         foreach (var (command, trigger) in Holding(mapping, group, perCommand ?? [], platform))
         {
             (plan, drags) = Add(plan, drags, command, trigger, platform, strokeButton);
+            if (OutputOf(command, trigger, platform, strokeButton) is { } output)
+            {
+                (outputs ??= []).Add(output);
+            }
         }
 
-        return (plan, drags);
+        return new AnchorAnswer(plan, drags, outputs is null ? ButtonOutputs.Empty : ButtonOutputs.Of(outputs));
     }
 
     /// <summary>
@@ -119,17 +144,39 @@ public static class AnchorPlanner
         }
 
         var hold = trigger.Hold.ForStrokeButton(strokeButton);
+        var fires = trigger as Trigger.ButtonTrigger;
         if (hold.HoldsStroke)
         {
-            return (plan.WithExtras(strokeButton, ownerIsStroke: true, hold.Physical), drags);
+            // A button trigger never anchors on the stroke button (plan 0005 decision 2): one that names this machine's holds nothing back here.
+            return fires is null ? (plan.WithExtras(strokeButton, ownerIsStroke: true, hold.Physical), drags) : (plan, drags);
         }
 
         foreach (var anchor in hold.Physical.Buttons())
         {
-            plan = plan.WithAnchor(anchor).WithExtras(anchor, ownerIsStroke: false, hold.Physical & ~anchor.Flag());
+            // A button trigger's pressed button joins its anchors' presses like a held member, and fires there at once.
+            var extras = (hold.Physical & ~anchor.Flag()) | (fires is null ? HeldButtons.None : fires.Button.Flag());
+            plan = plan.WithAnchor(anchor).WithExtras(anchor, ownerIsStroke: false, extras);
+            plan = fires is null ? plan : plan.WithFires(anchor, fires.Button);
             drags = hold.DragDistancePx is { } own ? drags.WithOwn(anchor, own) : drags.WithOptionsValue(anchor);
         }
 
         return (plan, drags);
+    }
+
+    /// <summary>
+    /// A button trigger command that holds a key while its buttons are down (plan 0005 decisions 8 and 9): its one active step is
+    /// a Remap step with a key set. Null for anything else, which the executor runs at the press as for a wheel trigger.
+    /// </summary>
+    private static ButtonOutput? OutputOf(Command command, Trigger trigger, HostPlatform platform, MouseButton strokeButton)
+    {
+        if (trigger is not Trigger.ButtonTrigger || command.IsOverrideToNothingOn(platform) || trigger.Hold.ForStrokeButton(strokeButton).HoldsStroke)
+        {
+            return null;
+        }
+
+        var active = command.PlanFor(platform).Where(step => step.Stored.IsActive).ToArray();
+        return active is [{ Run.Step: RemapStep { Output: RemapOutput.Key { IsSet: true } key } }]
+            ? new ButtonOutput(command.Id, command.Name, trigger, key)
+            : null;
     }
 }

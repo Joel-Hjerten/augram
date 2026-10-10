@@ -18,6 +18,9 @@ namespace Augram.Engine.Input;
 /// handed back): suppress iff the press's plan claims it for this owner. A release: suppress iff its press was suppressed,
 /// whatever happened in between. A wheel tick: suppress iff a press is owned and the machine has not cancelled it or
 /// handed it back. Moves never. Keys are <see cref="KeySuppressionShadow"/>'s, which asks <see cref="KeyClaim"/>.
+/// A button trigger (plan 0005) is tracked here as the machine tracks it, without waiting for its published state: a claimed
+/// button the plan fires for the owner starts firing; while firing, only such buttons are claimed (pressed again), wheel ticks
+/// and keys pass, and any other button passes and ends the firing (the machine cancels), freezing the press.
 /// </para>
 /// </summary>
 public sealed class SuppressionShadow
@@ -29,6 +32,8 @@ public sealed class SuppressionShadow
     private int _owed;
     private AnchorPlan _plan;
     private bool _wheel;
+    private bool _firing;
+    private bool _cancelled;
     private KeyModifiers _beforeKeys;
 
     /// <summary>The anchor that owns the press in progress, or null.</summary>
@@ -45,20 +50,22 @@ public sealed class SuppressionShadow
     public HeldButtons OwedButtons => (HeldButtons)Volatile.Read(ref _owed);
 
     /// <summary>Everything this shadow knows, to undo a decision whose event could not be enqueued.</summary>
-    public Snapshot Save() => new(_owner, _ownerIsStroke, _owed, _plan, _wheel, _beforeKeys);
+    public Snapshot Save() => new(_owner, _ownerIsStroke, _owed, _plan, _wheel, _firing, _cancelled, _beforeKeys);
 
     public void Restore(Snapshot snapshot)
     {
         _ownerIsStroke = snapshot.OwnerIsStroke;
         _plan = snapshot.Plan;
         _wheel = snapshot.Wheel;
+        _firing = snapshot.Firing;
+        _cancelled = snapshot.Cancelled;
         _beforeKeys = snapshot.BeforeKeys;
         Volatile.Write(ref _owed, snapshot.Owed);
         Volatile.Write(ref _owner, snapshot.Owner);
     }
 
     /// <summary>Forget every owed release. Only when the hook was reinstalled or the OS state is otherwise unknown.</summary>
-    public void Reset() => Restore(new Snapshot(NoButton, false, 0, AnchorPlan.None, false, KeyModifiers.None));
+    public void Reset() => Restore(new Snapshot(NoButton, false, 0, AnchorPlan.None, false, false, false, KeyModifiers.None));
 
     /// <summary>
     /// The keys a modifier press starting now would join the press as (an After key, consumed): Ctrl, Alt, Shift and Win not
@@ -103,6 +110,8 @@ public sealed class SuppressionShadow
                         _ownerIsStroke = input.Button == strokeButton;
                         _plan = plan;
                         _wheel = false;
+                        _firing = false;
+                        _cancelled = false;
                         _beforeKeys = input.Modifiers & PressHold.TrackedKeys;
                         Volatile.Write(ref _owed, _owed | flag);
                         Volatile.Write(ref _owner, (int)input.Button);
@@ -118,7 +127,20 @@ public sealed class SuppressionShadow
                     return false;
                 }
 
-                var joins = !Frozen(machineState) && _plan.Claims((MouseButton)owner, _ownerIsStroke, input.Button);
+                bool joins;
+                if (_firing)
+                {
+                    // A button trigger holds the press: the chord pressed again fires again; anything else passes and cancels it.
+                    joins = _plan.Fires((MouseButton)owner, input.Button);
+                    _firing = joins;
+                    _cancelled = !joins;
+                }
+                else
+                {
+                    joins = !Frozen(machineState) && _plan.Claims((MouseButton)owner, _ownerIsStroke, input.Button);
+                    _firing = joins && !_ownerIsStroke && _plan.Fires((MouseButton)owner, input.Button);
+                }
+
                 Volatile.Write(ref _owed, joins ? _owed | flag : _owed & ~flag);
                 return joins;
 
@@ -133,7 +155,8 @@ public sealed class SuppressionShadow
                 return owed;
 
             case RawInputKind.Wheel:
-                var suppress = owner != NoButton && machineState is not (CaptureState.Cancelled or CaptureState.HandedBack);
+                // While a button trigger holds the press, or after it was cancelled, ticks pass (plan 0005 decision 4: a loupe may use the wheel).
+                var suppress = owner != NoButton && !_firing && !_cancelled && machineState is not (CaptureState.Cancelled or CaptureState.HandedBack or CaptureState.ButtonFiring);
                 _wheel |= suppress;
                 return suppress;
 
@@ -142,10 +165,10 @@ public sealed class SuppressionShadow
         }
     }
 
-    /// <summary>A wheel tick froze the press, or the machine cancelled it or handed it back: nothing joins it any more.</summary>
+    /// <summary>A wheel tick froze the press, a button trigger holds it or was cancelled, or the machine cancelled it or handed it back: nothing joins it any more.</summary>
     private bool Frozen(CaptureState machineState)
-        => _wheel || machineState is CaptureState.WheelFiring or CaptureState.Cancelled or CaptureState.HandedBack;
+        => _wheel || _firing || _cancelled || machineState is CaptureState.WheelFiring or CaptureState.Cancelled or CaptureState.HandedBack or CaptureState.ButtonFiring;
 
     /// <summary>What <see cref="Save"/> returns; opaque to callers.</summary>
-    public readonly record struct Snapshot(int Owner, bool OwnerIsStroke, int Owed, AnchorPlan Plan, bool Wheel, KeyModifiers BeforeKeys);
+    public readonly record struct Snapshot(int Owner, bool OwnerIsStroke, int Owed, AnchorPlan Plan, bool Wheel, bool Firing, bool Cancelled, KeyModifiers BeforeKeys);
 }

@@ -79,6 +79,19 @@ public abstract record CaptureOutcome
     }
 
     /// <summary>
+    /// A button trigger fired (plan 0005): <paramref name="Button"/> went down while the press's anchor was held. Resolve it at
+    /// the window under <paramref name="Start"/> with <see cref="Hold"/>, what the press held besides the fired button. A held
+    /// output stays held until <see cref="ButtonTriggerEnded"/>.
+    /// </summary>
+    public sealed record ButtonTrigger(MouseButton Button, CapturePoint Start) : CaptureOutcome
+    {
+        public PressHold Hold { get; init; }
+    }
+
+    /// <summary>The fired button's chord is over (its release, the anchor's, a cancel, a release elsewhere): release what it holds (plan 0005 decision 3).</summary>
+    public sealed record ButtonTriggerEnded(MouseButton Button) : CaptureOutcome;
+
+    /// <summary>
     /// A held-back anchor (not the stroke button) goes back to the app: inject its down at <paramref name="Start"/>, then put
     /// the pointer back at (<paramref name="X"/>, <paramref name="Y"/>), so a drag or a long press starts where it began.
     /// </summary>

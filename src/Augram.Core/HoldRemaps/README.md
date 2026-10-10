@@ -21,7 +21,7 @@ Hold remaps (requirements F9, plan 0002 steps 1–3): a key that, while held, ch
 4. A command under a hold remap has an input or no trigger yet, never a gesture, wheel or click trigger; an input only on a command under a hold remap. Checked on both platforms (an own version's trigger too).
 5. A button input names at least one button; a key input is a key, not a modifier (they pass through a hold, decision 4) and not the hold key.
 6. Inputs are unique per hold remap (A7 in `MappingRules.Overlap`, which never matches commands under different hold remaps): two hold remaps may both use Left. Button sets match exactly, so Left and Left + Right are different inputs.
-7. A Remap step is a command's only step (anywhere). A wheel input takes a key or a wheel output, never a button; a wheel output needs a wheel input.
+7. A Remap step is a command's only step (anywhere). A wheel input takes a key or a wheel output, never a button; a wheel output needs a wheel input. On a button trigger (plan 0005) the output is a key.
 8. Normalised, never refused: a command whose `HoldRemapId` names no hold remap of its group becomes an ordinary command with its input cleared (`Detached`; a hand-edited file, a deleted hold remap, a sync repair); a command under a hold remap has no category (cleared).
 9. Command names are unique within their hold remap, case-insensitively (Joel, 2026-10-10; `Mapping/CommandNames`, Mapping rule 2): Space and S may each have an "Orbit", and so may the group's ordinary commands ("A command named 'Orbit' already exists under 'Space' in 'Blender'."). Logs and lists name such a command "Blender › Space › Orbit" (`CommandNames.Label`).
 

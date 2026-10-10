@@ -73,7 +73,8 @@ internal sealed partial class EngineWorker
         }
 
         EndTrail();
-        // The engine stops: nothing a hold remap pressed may stay down (A19).
+        // The engine stops: nothing a hold remap or a button trigger pressed may stay down (A19).
+        ReleaseButtonOutput("engine stopped");
         ResetHold("engine stopped");
     }
 
@@ -82,7 +83,7 @@ internal sealed partial class EngineWorker
         switch (message.Kind)
         {
             case WorkerMessage.MessageKind.Input:
-                OnInput(message.Event!, message.HookSuppressed);
+                OnInput(message.Event!, message.HookSuppressed, message.Payload);
                 break;
             case WorkerMessage.MessageKind.SetStrokeButton:
                 var button = (MouseButton)message.Payload!;
@@ -122,11 +123,12 @@ internal sealed partial class EngineWorker
         AfterMachineChange();
     }
 
-    private void OnInput(CaptureEvent e, bool hookSuppressed)
+    private void OnInput(CaptureEvent e, bool hookSuppressed, object? payload)
     {
         var activeBefore = _machine.ActiveButton;
         var outcomes = _machine.Handle(e);
         _gate.PublishState(_machine.State);
+        NotePress(e, payload);
         if (e is CaptureEvent.ButtonDown or CaptureEvent.ButtonUp or CaptureEvent.Wheel)
         {
             CrossCheck(e, hookSuppressed, outcomes, activeBefore);
@@ -180,6 +182,8 @@ internal sealed partial class EngineWorker
         {
             _simulator.Release(button);
         }
+
+        ReleaseButtonOutput(reason);
 
         _machine.Reset();
         EndTrail();

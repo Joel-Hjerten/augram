@@ -4,6 +4,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.HoldRemaps;
+using Augram.Core.Mapping;
 using Augram.Engine.Input;
 
 namespace Augram.Engine.Hosting;
@@ -54,6 +55,7 @@ internal sealed class InputGate
     private const int IgnoreBits = 2;
     private long _pointerAnswer;
     private long _pointerDrags;
+    private ButtonOutputs _pointerOutputs = ButtonOutputs.Empty;
     private HoldRemapPlan _foreground = HoldRemapPlan.Empty;
     private int _pointerX;
     private int _pointerY;
@@ -114,17 +116,22 @@ internal sealed class InputGate
     /// <summary>For tests and the worker: the hook's hold remap record.</summary>
     public HoldRemapShadow Hold => _hold;
 
+    /// <summary>The button trigger outputs over the same window (plan 0005), handed to the worker with each press.</summary>
+    public ButtonOutputs Outputs => Volatile.Read(ref _pointerOutputs);
+
     /// <summary>The watch's ignore answer, keeping the plan: read at the next press only, so a press already consumed still gets its release consumed (A19).</summary>
-    public void PublishIgnore(int state) => PublishPointer(state, Plan, Drags);
+    public void PublishIgnore(int state) => PublishPointer(state, Plan, Drags, Outputs);
 
     /// <summary>
     /// The watch's whole answer for the window under the pointer, as one volatile the hook reads at a press: the ignore bits
-    /// and the anchor plan. Single writer (the watch's thread). The drag distances go in a second volatile, written first: a
-    /// press that reads them from another pass than its plan only hands back at another distance, it decides nothing else.
+    /// and the anchor plan. Single writer (the watch's thread). The drag distances and the button trigger outputs go in two more
+    /// volatiles, written first: a press that reads them from another pass than its plan only hands back at another distance or
+    /// looks its held output up among another window's, it decides nothing else.
     /// </summary>
-    public void PublishPointer(int ignoreState, AnchorPlan plan, AnchorDragDistances drags = default)
+    public void PublishPointer(int ignoreState, AnchorPlan plan, AnchorDragDistances drags = default, ButtonOutputs? outputs = null)
     {
         Volatile.Write(ref _pointerDrags, drags.Bits);
+        Volatile.Write(ref _pointerOutputs, outputs ?? ButtonOutputs.Empty);
         Volatile.Write(ref _pointerAnswer, (plan.Bits << IgnoreBits) | (uint)(ignoreState & ((1 << IgnoreBits) - 1)));
     }
 
@@ -228,7 +235,7 @@ internal sealed class InputGate
                     var before = _shadow.Save();
                     suppress = _shadow.Decide(in press, state, StrokeButton, allowed, ignore, plan);
                     var down = new CaptureEvent.ButtonDown(input.Button, input.X, input.Y, input.TimestampMs, allowed, ignore, press.Modifiers, plan, drags);
-                    if (!Post(WorkerMessage.Input(down, suppress), critical: true))
+                    if (!Post(WorkerMessage.Press(down, suppress, Volatile.Read(ref _pointerOutputs)), critical: true))
                     {
                         _shadow.Restore(before);
                         suppress = false;

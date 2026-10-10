@@ -37,7 +37,8 @@ public sealed class ChordPairingTests
             var strokeButton = Buttons[rng.Next(Buttons.Length)];
             var queue = Channel.CreateUnbounded<WorkerMessage>();
             var gate = new InputGate(queue.Writer, NullEventLog.Instance, strokeButton, KeyModifiers.Control, enabled: true);
-            var machine = new CaptureStateMachine(strokeButton, new CaptureThresholds(CancelDelayMs: rng.Next(50, 600)));
+            // A long button drag distance in half the sequences keeps an anchor held while another button comes (and fires a chord).
+            var machine = new CaptureStateMachine(strokeButton, new CaptureThresholds(CancelDelayMs: rng.Next(50, 600), ButtonDragDistancePx: sequence % 2 == 0 ? 10 : 200));
             var os = new OsModel(sequence);
             var press = new bool?[Buttons.Length];
             var keyPress = new Dictionary<KeyCode, bool>();
@@ -69,6 +70,8 @@ public sealed class ChordPairingTests
         Assert.True(counts.AnchorPresses > 300, $"only {counts.AnchorPresses} presses of an anchor other than the stroke button");
         Assert.True(counts.KeyPairs > 1000, $"only {counts.KeyPairs} key presses released");
         Assert.True(counts.EndedElsewhere > 100, $"only {counts.EndedElsewhere} presses ended by a release elsewhere");
+        // A chord needs an anchor held back, a plan that fires the next button, and no hand-back first: rarer than the rest.
+        Assert.True(counts.Chords > 50, $"only {counts.Chords} button triggers fired");
     }
 
     /// <summary>Between events: a new window under the pointer (plan and ignore bits), the tray toggle, the stroke button (applied as the worker applies it).</summary>
@@ -104,6 +107,13 @@ public sealed class ChordPairingTests
             }
 
             plan = plan.WithExtras(button, ownerIsStroke: rng.Next(2) == 0, (HeldButtons)(rng.Next(32) << 1));
+
+            // Plan 0005: some extras of a physical anchor fire a button trigger at their press.
+            for (var i = rng.Next(3); i > 0; i--)
+            {
+                var pressed = Buttons[rng.Next(Buttons.Length)];
+                plan = pressed == button ? plan : plan.WithExtras(button, ownerIsStroke: false, pressed.Flag()).WithFires(button, pressed);
+            }
         }
 
         return plan;
@@ -146,6 +156,7 @@ public sealed class ChordPairingTests
             {
                 counts.HandedBack += outcome is CaptureOutcome.HandBack ? 1 : 0;
                 counts.EndedElsewhere += outcome is CaptureOutcome.Cancelled { Reason: CancelReason.ReleasedElsewhere } ? 1 : 0;
+                counts.Chords += outcome is CaptureOutcome.ButtonTrigger ? 1 : 0;
                 os.Injected(outcome);
             }
 
@@ -272,5 +283,6 @@ public sealed class ChordPairingTests
         public int AnchorPresses;
         public int KeyPairs;
         public int EndedElsewhere;
+        public int Chords;
     }
 }

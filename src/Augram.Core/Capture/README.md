@@ -11,13 +11,13 @@ Since 2026-10-09 a press can hold keys and other buttons (F1 "Triggers as combin
 | `CapturePoint` | `(X, Y, TimestampMs)`; timestamps are ms on one monotonic clock the Engine stamps |
 | `MouseButton`, `WheelDirection` | Core's own enums; the Engine maps SharpHook's numbering at the boundary |
 | `HeldButtons`, `HeldButtonsExtensions` | buttons as a set: `Stroke` (whichever button is the stroke button on the machine at hand) and the physical `Left`…`X2`; `Flag(button)`, `Has`, `Buttons()` (display order Left, Right, Middle, X1, X2), `ForStrokeButton(button)` (a set naming this machine's stroke button explicitly means the stroke button) |
-| `AnchorPlan` | one `long` the hook reads per press: which buttons are held back as anchors over the window under the pointer (besides the stroke button, always one), and for each anchor (and the stroke button) which other buttons join its press. Worked out by `Mapping/AnchorPlanner` off the hook thread |
+| `AnchorPlan` | one `long` the hook reads per press: which buttons are held back as anchors over the window under the pointer (besides the stroke button, always one), and for each anchor (and the stroke button) which other buttons join its press, and (plan 0005) for each physical anchor which of them fire a button trigger at their press (`Fires`, `FiresAny`, `WithFires`; bit 59 is the highest, so two ignore bits still fit beside it). Worked out by `Mapping/AnchorPlanner` off the hook thread |
 | `AnchorDragDistances` | one `long` beside the plan (plan 0004): per anchor the largest own drag distance of the commands holding it over that window (8 bits) and whether one of them uses the Options value (1 bit); `For(anchor, optionsPx)` is the distance a press of that anchor is handed back at; `None` is the Options value |
 | `PressHold` | what a press held: its anchor (`Stroke` or a physical button), the stroke button then, Before (keys and buttons already held when the anchor went down) and After (pressed while held, and swallowed); `IsEmpty`, `TrackedKeys` (Ctrl, Alt, Shift, Win) |
 | `CaptureEvent` | closed set: `ButtonDown(button, x, y, t, captureAllowed, ignoreKeyHeld, modifiers, plan, drags)`, `ButtonUp`, `Move`, `Wheel`, `Tick(t)`, `Key(modifier, consumed, t)`. The Engine sets `captureAllowed` false when Augram is disabled, paused by a focused "disable while focused" app, or the pointer is over an ignored app (F5): the press passes through like one with the ignore key held. `modifiers` are the keys held at the press; `plan` is the anchor plan the hook decided this press with, `drags` that window's drag distances (only the hand-back distance of an anchor's press reads them). `Key` is a Ctrl/Alt/Shift/Win press while a press is held, with the hook's decision (keys are paired by the Engine's key shadow). `ButtonReleasedElsewhere(button, x, y, t)`: another program posted the button's release (plan 0005 decision 10; Eyeris's loupe chord swallows the real one and posts its own), so the OS has it up and the real release may never come |
-| `CaptureOutcome` | closed set: `Suppress`, `PassThrough` (the synchronous input decision), `BeginStroke`, `StrokeProgress`, `EndStroke` (trail), `ReplayClick` (with `AfterKeys` to press around it), `ClickTrigger` (a stroke-button click holding something: resolve it, relay the click when nothing fires), `StrokeComplete` (with `Hold`), `WheelTrigger` (with `Hold` and `AfterDrawing`), `HandBack` (inject an anchor's down at the start point, put the pointer back), `ReleaseHandedBack` (inject its up), `Cancelled(reason)` (worker) |
+| `CaptureOutcome` | closed set: `Suppress`, `PassThrough` (the synchronous input decision), `BeginStroke`, `StrokeProgress`, `EndStroke` (trail), `ReplayClick` (with `AfterKeys` to press around it), `ClickTrigger` (a stroke-button click holding something: resolve it, relay the click when nothing fires), `StrokeComplete` (with `Hold`), `WheelTrigger` (with `Hold` and `AfterDrawing`), `HandBack` (inject an anchor's down at the start point, put the pointer back), `ReleaseHandedBack` (inject its up), `ButtonTrigger(button, start)` (with `Hold`: plan 0005, resolve the chord, hold its output) and `ButtonTriggerEnded(button)` (release it), `Cancelled(reason)` (worker) |
 | `CaptureThresholds` | `StartDistancePx 30`, `MinSegmentPx 6`, `CancelDelayMs 1000`, `ResetCancelDelayOnMovement true`, `ButtonDragDistancePx 10` (a press owned by an anchor other than the stroke button never draws, so it is handed back at this distance instead of the start distance; Joel, 2026-10-10: Spine and Eyeris pan with Right); swappable at any time |
-| `CaptureState` | `Idle`, `Held`, `Drawing`, `WheelFiring`, `Cancelled`, `HandedBack` |
+| `CaptureState` | `Idle`, `Held`, `Drawing`, `WheelFiring`, `Cancelled`, `HandedBack`, `ButtonFiring` (plan 0005: a button trigger fired; frozen until the anchor's release) |
 | `CaptureStateMachine` | `Handle(event)`, `State`, `StrokeButton`, `ActiveButton`, `HandedBackButton`, `OwedButtons`, `Thresholds`, `Reset()`; split in `CaptureStateMachine.cs` (buttons) and `CaptureStateMachine.Motion.cs` (moves, wheel, ticks, keys) |
 
 ## Contract
@@ -29,12 +29,17 @@ Rows follow the classic-source table ([reference §2](../../../docs/reference/st
 | ButtonDown (anchor), Idle, ignore key held or capture not allowed | PassThrough | Idle |
 | ButtonDown (anchor), Idle | Suppress; owner, plan, Before (keys from the event, buttons this machine saw down), start point and cancel deadline (t + CancelDelayMs) remembered | Held |
 | ButtonDown (not an anchor here), Idle | PassThrough (tracked as down, a later press's Before button) | Idle |
+| ButtonDown (another button), Held, owner not the stroke button, the plan fires it for the owner (plan 0005) | Suppress, ButtonTrigger(button, start, hold: what the press held besides it) | ButtonFiring |
 | ButtonDown (another button), Held or Drawing, the press's plan claims it for the owner | Suppress; an After button; the deadline is pushed | unchanged |
+| ButtonDown, ButtonFiring, the plan fires it for the owner (pressed again) | Suppress, ButtonTriggerEnded (if a chord is still held), ButtonTrigger | ButtonFiring |
+| ButtonDown, ButtonFiring, any other button | PassThrough, ButtonTriggerEnded (if a chord is held), Cancelled(OtherButton) | Cancelled |
+| ButtonUp (the fired button), ButtonFiring | Suppress, ButtonTriggerEnded | ButtonFiring |
+| ButtonUp (owner), ButtonFiring | Suppress, ButtonTriggerEnded (if the fired button is still down); nothing replayed | Idle |
 | ButtonDown (another button), Held, owner is not the stroke button | PassThrough, HandBack(owner, start, here) | HandedBack |
 | ButtonDown (another button), Drawing | PassThrough, EndStroke, Cancelled(OtherButton) | Cancelled |
 | ButtonDown (another button), Held or WheelFiring (stroke owner) | PassThrough, Cancelled(OtherButton) | Cancelled |
 | ButtonDown (another button), Cancelled or HandedBack | PassThrough | unchanged |
-| ButtonDown (the owner again: its release was missed) | as from Idle; first EndStroke (if Drawing) or ReleaseHandedBack (if HandedBack) | Held or Idle |
+| ButtonDown (the owner again: its release was missed) | as from Idle; first EndStroke (if Drawing), ReleaseHandedBack (if HandedBack) or ButtonTriggerEnded (if ButtonFiring with a chord held) | Held or Idle |
 | Key (consumed), Held or Drawing, not already held | an After key; the deadline is pushed. Nothing otherwise; never a decision | unchanged |
 | Move, Held, under the press's distance from start (StartDistancePx for a stroke owner; for another, `drags.For(owner, ButtonDragDistancePx)`) | nothing (point recorded if at least MinSegmentPx from the last recorded one; each recorded point pushes the deadline when ResetCancelDelayOnMovement) | Held |
 | Move, Held, at least StartDistancePx from start, stroke owner | BeginStroke(start), StrokeProgress for each recorded point after start | Drawing |
@@ -49,13 +54,14 @@ Rows follow the classic-source table ([reference §2](../../../docs/reference/st
 | ButtonUp (owner), WheelFiring or Cancelled | Suppress | Idle |
 | ButtonUp (owner), HandedBack | Suppress, ReleaseHandedBack(button) | Idle |
 | ButtonUp (any other button, any state) | Suppress if and only if its down was suppressed, else PassThrough | unchanged |
+| ButtonReleasedElsewhere (the fired button, ButtonFiring) | ButtonTriggerEnded, no decision | ButtonFiring |
 | ButtonReleasedElsewhere (not the owner of a press in progress) | nothing, no decision; the button is no longer down here, so no later press holds it Before | unchanged |
 | ButtonReleasedElsewhere (the owner) | EndStroke (if Drawing), Cancelled(ReleasedElsewhere); no click, trigger, recognition, or ReleaseHandedBack (the OS got the other program's release); the release stays owed | Idle |
 | Wheel, Held | Suppress, WheelTrigger(direction, start, hold); the sets freeze, the deadline is abandoned | WheelFiring |
 | Wheel, Drawing | Suppress, EndStroke, WheelTrigger marked AfterDrawing (a drawn gesture + wheel: no wheel command fires) | WheelFiring |
 | Wheel, WheelFiring | Suppress, WheelTrigger again (every tick fires) | WheelFiring |
-| Wheel, Idle, Cancelled or HandedBack | PassThrough | unchanged |
-| Move or Tick, WheelFiring, Cancelled or HandedBack | nothing | unchanged |
+| Wheel, Idle, Cancelled, HandedBack or ButtonFiring | PassThrough (ButtonFiring: a loupe may use the wheel, plan 0005 decision 4) | unchanged |
+| Move or Tick, WheelFiring, Cancelled, HandedBack or ButtonFiring | nothing (no hand-back while a chord holds the press) | unchanged |
 | Move, Idle | PassThrough (the Engine need not forward idle moves at all) | Idle |
 
 Recognition is **not** done here: the Engine runs the matcher when it receives `StrokeComplete` (invariant 4). `StrokeComplete.Points` is handed over; the machine allocates a fresh list on the next press and never touches the old one again, so the worker may read it without copying.

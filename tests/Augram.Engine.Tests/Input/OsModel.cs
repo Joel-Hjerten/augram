@@ -17,6 +17,9 @@ internal sealed class OsModel(int sequence)
     private readonly bool[] _releasedElsewhere = new bool[Buttons.Length];
     private readonly HashSet<KeyCode> _keys = [];
 
+    // The button whose fired chord holds an output (plan 0005): the worker presses it at the fire and releases it at the end.
+    private MouseButton? _chord;
+
     public void Physical(RawInput raw, bool suppressed)
     {
         if (raw.Kind == RawInputKind.ButtonReleasedElsewhere)
@@ -65,11 +68,20 @@ internal sealed class OsModel(int sequence)
                 Assert.True(_buttons[(int)release.Button], $"sequence {sequence}: a hand-back release of {release.Button}, which the OS does not hold");
                 _buttons[(int)release.Button] = false;
                 break;
+            case CaptureOutcome.ButtonTrigger fired:
+                Assert.True(_chord is null, $"sequence {sequence}: {fired.Button} fired while the chord of {_chord} still holds its output");
+                _chord = fired.Button;
+                break;
+            case CaptureOutcome.ButtonTriggerEnded ended:
+                Assert.True(_chord == ended.Button, $"sequence {sequence}: the chord of {ended.Button} ended, but {_chord?.ToString() ?? "none"} holds an output");
+                _chord = null;
+                break;
         }
     }
 
     public void AssertNothingHeld()
     {
+        Assert.True(_chord is null, $"sequence {sequence}: the chord of {_chord} still holds its output");
         Assert.True(_buttons.All(held => !held), $"sequence {sequence}: the OS still holds {string.Join(", ", Buttons.Where(b => _buttons[(int)b]))}");
         Assert.True(_keys.Count == 0, $"sequence {sequence}: the OS still holds {string.Join(", ", _keys)}");
     }

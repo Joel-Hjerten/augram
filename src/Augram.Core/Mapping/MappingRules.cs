@@ -1,4 +1,5 @@
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.HoldRemaps;
 
@@ -233,6 +234,20 @@ public static class MappingRules
 
     private static void EnsureHoldable(Command command, Trigger trigger)
     {
+        if (trigger is Trigger.ButtonTrigger button)
+        {
+            // Plan 0005 decision 2: held back by another button, never by the stroke button (whose presses draw or click).
+            if (trigger.Hold.HoldsStroke)
+            {
+                throw new MappingValidationException($"'{command.Name}' holds the stroke button: a button trigger holds another button, as Right in Right + {button.Button}.");
+            }
+
+            if (trigger.Hold.Physical == HeldButtons.None)
+            {
+                throw new MappingValidationException($"'{command.Name}' holds no button: a button trigger needs a button to hold, as Right in Right + {button.Button}.");
+            }
+        }
+
         if (trigger.IsBound && !trigger.Hold.HasAnchor)
         {
             throw new MappingValidationException($"'{command.Name}' holds no button: a wheel trigger needs the stroke button or another button to hold.");

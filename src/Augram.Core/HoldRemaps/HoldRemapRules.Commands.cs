@@ -111,6 +111,13 @@ public static partial class HoldRemapRules
             throw new MappingValidationException($"'{command.Name}' has a Remap step among other steps: a Remap step is a command's only step.");
         }
 
+        // Plan 0005 decision 8: a button trigger holds a key output while its buttons are down; a button output would need the
+        // drag re-posting only a hold remap does, and a wheel output needs a wheel input.
+        if (trigger is Trigger.ButtonTrigger && remap.Output is not RemapOutput.Key)
+        {
+            throw new MappingValidationException($"'{command.Name}' has a button trigger: its Remap output must be a key.");
+        }
+
         if (trigger is not Trigger.InputTrigger { Input: var input })
         {
             return;

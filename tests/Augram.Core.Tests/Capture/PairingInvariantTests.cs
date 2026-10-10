@@ -116,13 +116,16 @@ public sealed class PairingInvariantTests
         var joined = 0;
         var handBacks = 0;
         var endedElsewhere = 0;
+        var chords = 0;
 
         for (var sequence = 0; sequence < Sequences; sequence++)
         {
-            var machine = new CaptureStateMachine(Stroke, new CaptureThresholds(CancelDelayMs: rng.Next(100, 1500)));
+            // A long button drag distance in some sequences keeps an anchor held while another button comes (and fires a chord).
+            var machine = new CaptureStateMachine(Stroke, new CaptureThresholds(CancelDelayMs: rng.Next(100, 1500), ButtonDragDistancePx: rng.Next(2) == 0 ? 10 : 200));
             var pressed = new CaptureOutcome?[Buttons.Length];
             var injected = new bool[Buttons.Length];
             var physicallyDown = HeldButtons.None;
+            MouseButton? chord = null;
             foreach (var e in Generate(rng, () => RandomPlan(rng), foreignReleases: sequence % 2 == 1))
             {
                 var stateBefore = machine.State;
@@ -161,9 +164,24 @@ public sealed class PairingInvariantTests
                         Assert.True(injected[(int)release.Button]);
                         injected[(int)release.Button] = false;
                     }
+                    else if (outcome is CaptureOutcome.ButtonTrigger fired)
+                    {
+                        // Plan 0005: a chord never fires over one still held, so its output can never be pressed twice.
+                        Assert.Null(chord);
+                        chord = fired.Button;
+                        chords++;
+                    }
+                    else if (outcome is CaptureOutcome.ButtonTriggerEnded ended)
+                    {
+                        Assert.Equal(chord, ended.Button);
+                        chord = null;
+                    }
                 }
+
+                Assert.True(chord is null || machine.State == CaptureState.ButtonFiring, $"a chord is held in {machine.State}");
             }
 
+            Assert.Null(chord);
             Assert.Equal(CaptureState.Idle, machine.State);
             // Still down here means the other program swallowed the real release: only those may stay owed.
             Assert.Equal(HeldButtons.None, machine.OwedButtons & ~physicallyDown);
@@ -173,8 +191,11 @@ public sealed class PairingInvariantTests
         Assert.True(joined > 100, $"only {joined} buttons joined a press");
         Assert.True(handBacks > 100, $"only {handBacks} hand-backs");
         Assert.True(endedElsewhere > 100, $"only {endedElsewhere} presses ended by a release elsewhere");
+        // Sparse here (time steps up to 400 ms, a new random plan per press); ChordPairingTests' denser sequences fire many more.
+        Assert.True(chords > 25, $"only {chords} button triggers fired");
     }
 
+    /// <summary>Random anchors and extras, and (plan 0005) some extras that fire a button trigger for their anchor.</summary>
     private static AnchorPlan RandomPlan(Random rng)
     {
         var plan = AnchorPlan.None;
@@ -182,6 +203,11 @@ public sealed class PairingInvariantTests
         {
             plan = rng.Next(3) == 0 ? plan.WithAnchor(button) : plan;
             plan = plan.WithExtras(button, ownerIsStroke: rng.Next(2) == 0, (HeldButtons)(rng.Next(32) << 1));
+            for (var i = rng.Next(3); i > 0; i--)
+            {
+                var pressed = Buttons[rng.Next(Buttons.Length)];
+                plan = pressed == button ? plan : plan.WithExtras(button, ownerIsStroke: false, pressed.Flag()).WithFires(button, pressed);
+            }
         }
 
         return plan;
