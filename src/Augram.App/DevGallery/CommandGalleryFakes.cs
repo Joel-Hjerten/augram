@@ -74,6 +74,28 @@ public static class CommandGalleryFakes
     }
 
     /// <summary>
+    /// <see cref="Mapping"/> with Joel's Global zoom commands in Media (plan 0004): Zoom in on Right + wheel up with its own 3 px
+    /// drag distance, not used in Photoshop and Steam games; Zoom out on Right + wheel down with the Options value, used in every app.
+    /// </summary>
+    public static MappingDocument MappingWithZoom()
+    {
+        var mapping = Mapping();
+        var global = mapping.Global;
+        var media = global.Categories.Single(category => category.Name == "Media").Id;
+        GroupId[] notIn = [.. mapping.Groups.Where(group => group.Name is "Photoshop" or "Steam games").Select(group => group.Id)];
+        global = global with
+        {
+            Commands =
+            [
+                .. global.Commands,
+                Cmd("Zoom in", Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right, DragDistancePx: 3)), new DelayStep(10)) with { CategoryId = media, NotIn = notIn },
+                Cmd("Zoom out", Trigger.ForWheel(WheelDirection.Down, new TriggerHold(HeldButtons.Right)), new DelayStep(10)) with { CategoryId = media },
+            ],
+        };
+        return mapping with { Groups = [global, .. mapping.Groups.Where(group => !group.IsGlobal)] };
+    }
+
+    /// <summary>
     /// Joel's Blender (F9, plan 0002): the Space hold remap with Orbit (Left → Middle), Pan (Right → Shift + Middle), Zoom both
     /// (Left + Right → Ctrl + Middle) and Grab (W → G), beside one ordinary command; the hold remap is nested in the group.
     /// </summary>

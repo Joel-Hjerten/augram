@@ -683,6 +683,18 @@
                     <CheckBox Name="PART_KeyMeta" Classes="toggle-option" />
                     <ComboBox Name="PART_Capture" Classes="field-editor" IsVisible="{TemplateBinding HasHoldMembers}" />
                   </StackPanel>
+                  <!-- Plan 0004: how far a held-back button's press (Right in Right + wheel) may move before it goes to the app as a drag; the Options value or the command's own. -->
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding ShowsDragDistance}">
+                    <StackPanel Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Classes="field-label" Text="Drag distance" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.DragDistanceHelp}" />
+                    </StackPanel>
+                    <ComboBox Name="PART_DragDistanceMode" Classes="field-editor" />
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasOwnDragDistance}">
+                      <NumericUpDown Name="PART_DragDistance" Classes="field-editor" />
+                      <TextBlock Text="px" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </StackPanel>
                   <!-- A combination the rules refuse waits as a draft (Joel, 2026-10-09): what is wrong and how to fix it. Below the boxes, so they never move under the pointer. -->
                   <Border Classes="warning-note" IsVisible="{TemplateBinding DraftNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <TextBlock Name="PART_DraftNote" Classes="error" Text="{TemplateBinding DraftNote}" />
@@ -708,6 +720,15 @@
                                VerticalAlignment="Center"
                                IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
+                  <!-- Plan 0004: a Global command's app groups it is not used in. Change… sits before the names, so a longer list never moves it. -->
+                  <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
+                    <StackPanel DockPanel.Dock="Left" Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                      <TextBlock Classes="field-label" Text="Not in" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.NotInHelp}" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Left" Name="PART_NotInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
+                    <TextBlock Name="PART_NotInText" Text="{TemplateBinding NotInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </DockPanel>
                   <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <TextBlock Classes="help" Text="{TemplateBinding VersionText}" TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
@@ -1072,6 +1093,10 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="TextBlock.header-label">
+    <Setter Property="MinWidth" Value="{StaticResource Header.LabelWidth}" />
+  </Style>
+  <!-- A header label with its (i) after it (Drag distance, Not in): the same column as a plain one. -->
+  <Style Selector="StackPanel.header-label">
     <Setter Property="MinWidth" Value="{StaticResource Header.LabelWidth}" />
   </Style>
   <Style Selector="Border.category-tag">

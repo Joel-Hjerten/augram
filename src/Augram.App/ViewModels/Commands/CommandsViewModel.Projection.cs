@@ -14,6 +14,7 @@ namespace Augram.App.ViewModels.Commands;
 public sealed partial class CommandsViewModel
 {
     private MouseButton? _strokeButton;
+    private int _optionsDragDistancePx = CaptureThresholds.Default.ButtonDragDistancePx;
 
     private void Select(SectionId? section, CommandId? command)
     {
@@ -50,6 +51,23 @@ public sealed partial class CommandsViewModel
         }
     }
 
+    /// <summary>
+    /// Options › Capture's button drag distance, set by the composition root (plan 0004): what the header's Drag distance row
+    /// calls the Options value ("Options value (10 px)"), the distance of a trigger without its own. The default elsewhere.
+    /// </summary>
+    public int OptionsDragDistancePx
+    {
+        get => _optionsDragDistancePx;
+        set
+        {
+            if (_optionsDragDistancePx != value)
+            {
+                _optionsDragDistancePx = value;
+                OnStoreChanged(this, EventArgs.Empty);
+            }
+        }
+    }
+
     private void Project()
     {
         Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform, ShowOtherPlatforms, StrokeButton);
@@ -68,6 +86,13 @@ public sealed partial class CommandsViewModel
         var editable = EditableSteps(command);
         return [.. shown.Select((step, index) => StepItem.From(step, index, _platform) with { Step = editable[index] })];
     }
+
+    /// <summary>
+    /// The selected row as the header shows it: with the trigger draft over it while one waits (<c>.TriggerDraft</c>) and the
+    /// Options value its drag distance falls back to.
+    /// </summary>
+    private CommandItem? HeaderItem(CommandItem? row)
+        => WithDraft(row) is { } item ? item with { OptionsDragDistancePx = OptionsDragDistancePx } : null;
 
     /// <summary>The selected command's row in the current projection; null without one.</summary>
     private CommandItem? SelectedRow()
@@ -95,7 +120,7 @@ public sealed partial class CommandsViewModel
             SelectedSectionId = null;
         }
 
-        SelectedCommand = WithDraft(selected);
+        SelectedCommand = HeaderItem(selected);
         var steps = selected is null ? [] : StepItems(_store.FindCommand(selected.Id)!.Value.Command);
         Steps = steps;
         if (_stepsOf != SelectedCommandId)

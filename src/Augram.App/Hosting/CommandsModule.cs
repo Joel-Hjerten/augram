@@ -88,9 +88,15 @@ public static class CommandsModule
             sp.GetService<IExportPresenter>());
         if (sp.GetService<SettingsStore>() is { } settings)
         {
-            // This machine's stroke button: a trigger naming it means the stroke button here, which the header says.
+            // This machine's stroke button: a trigger naming it means the stroke button here, which the header says. And the
+            // Options value of the button drag distance, which a trigger without its own uses (the header's Drag distance row).
             vm.StrokeButton = settings.Current.General.StrokeButton;
-            settings.Changed += (_, _) => vm.StrokeButton = settings.Current.General.StrokeButton;
+            vm.OptionsDragDistancePx = settings.Current.Capture.ButtonDragDistancePx;
+            settings.Changed += (_, _) =>
+            {
+                vm.StrokeButton = settings.Current.General.StrokeButton;
+                vm.OptionsDragDistancePx = settings.Current.Capture.ButtonDragDistancePx;
+            };
         }
 
         return vm;

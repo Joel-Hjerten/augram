@@ -18,7 +18,9 @@ namespace Augram.App.Components.CommandTree;
 /// combination is not valid yet (<see cref="CommandItem.DraftNote"/>, shown as <c>DraftNote</c>). The Use on
 /// boxes (<c>PART_UseOnWindows</c>, <c>PART_UseOnMac</c>, F8) ask the same way; a platform the command's category or app group leaves out shows its box
 /// unchecked and disabled, with <see cref="UseOnNote"/> saying which one (Joel, 2026-10-08). A command under a hold remap
-/// shows its Input instead of the trigger kind and the "While holding" boxes (<c>CommandHeader.Input.cs</c>, plan 0002).
+/// shows its Input instead of the trigger kind and the "While holding" boxes (<c>CommandHeader.Input.cs</c>, plan 0002). A
+/// trigger whose held buttons are handed back as drags has a Drag distance row (<c>CommandHeader.DragDistance.cs</c>), and a
+/// Global command a Not in row (<c>CommandHeader.NotIn.cs</c>; both plan 0004).
 /// </summary>
 public sealed partial class CommandHeader : TemplatedControl
 {
@@ -202,6 +204,8 @@ public sealed partial class CommandHeader : TemplatedControl
         _useOnWindows = e.NameScope.Find<CheckBox>("PART_UseOnWindows");
         _useOnMac = e.NameScope.Find<CheckBox>("PART_UseOnMac");
         FindHoldParts(e);
+        FindDragDistanceParts(e);
+        FindNotInParts(e);
         FindInputParts(e);
         WireUseOn(_useOnWindows, HostPlatform.Windows);
         WireUseOn(_useOnMac, HostPlatform.MacOS);
@@ -278,6 +282,8 @@ public sealed partial class CommandHeader : TemplatedControl
 
         _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
         ApplyHold();
+        ApplyDragDistance();
+        ApplyNotIn();
         ApplyInput();
         var choices = item?.Categories ?? [];
         _category?.Show([.. choices.Select(choice => choice.Name)], item is null ? -1 : IndexOfCategory(item));
