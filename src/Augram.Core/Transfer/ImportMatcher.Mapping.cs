@@ -5,12 +5,12 @@ using Augram.Core.Sync;
 namespace Augram.Core.Transfer;
 
 /// <summary>
-/// The mapping half of <see cref="ImportMatcher"/>: groups (Global always to Global, which has the same id everywhere),
-/// then within each matched group its categories, hold remaps and commands, then the ignored apps. Command ids are unique
+/// The mapping half of <see cref="ImportMatcher"/>: groups (Global always to Global, which has the same id everywhere), the
+/// ignored apps, then within each matched group its categories, hold remaps and commands. Command ids are unique
 /// across the whole mapping, so a command matched by id may sit in another group here (a move, which the merge reads as a
 /// change); one matched by name is looked for among its siblings in the matched group only (its hold remap's commands, or
-/// the group's ordinary ones: <see cref="CommandNames"/>). A file group with no counterpart here keeps its ids. A Global
-/// command's "Not in" follows its groups' matches (plan 0004).
+/// the group's ordinary ones: <see cref="CommandNames"/>). A file group with no counterpart here keeps its ids. A command's
+/// "Not in" (plan 0004) follows the ignored apps' matches: it names Ignored › Per command entries.
 /// </summary>
 internal sealed partial class ImportMatcher
 {
@@ -27,33 +27,41 @@ internal sealed partial class ImportMatcher
             group => group.Name,
             SyncItemKey.ForGroup,
             (ImportMatchKind.Name, (group, twin) => !twin.IsGlobal && MappingRules.NameComparer.Equals(group.Name, twin.Name)));
+        var ignoredIds = Pair(
+            file.Ignored,
+            local.Ignored,
+            app => app.Id,
+            app => app.Name,
+            SyncItemKey.ForIgnored,
+            (ImportMatchKind.Name, (app, twin) => MappingRules.NameComparer.Equals(app.Name, twin.Name)));
         _localCommands = local.AllCommands().Select(pair => pair.Command.Id).ToHashSet();
         _claimedCommands = file.AllCommands().Select(pair => pair.Command.Id).Where(_localCommands.Contains).ToHashSet();
         var groups = file.Groups
             .Select(group => group with { Id = groupIds.GetValueOrDefault(group.Id, group.Id) })
             .Select(group => Group(group, localGroups.GetValueOrDefault(group.Id)))
-            .Select(group => group.IsGlobal ? WithNotInFollowing(group, groupIds) : group)
+            .Select(group => WithNotInFollowing(group, ignoredIds))
             .ToArray();
-        return new MappingDocument(groups, Ignored(file.Ignored, local.Ignored));
+        var ignored = file.Ignored.Select(app => app with { Id = ignoredIds.GetValueOrDefault(app.Id, app.Id) }).ToArray();
+        return new MappingDocument(groups, ignored);
     }
 
     /// <summary>
-    /// Global's commands with their "Not in" (plan 0004) naming the local ids of the file's app groups matched here, once each and
-    /// sorted by id as <see cref="MappingRules"/> keeps them, so an unchanged list reads as the same item. An id naming a group
-    /// in neither place is dropped by the rules when the result is built.
+    /// The group's commands with their "Not in" (plan 0004) naming the local ids of the file's ignored apps matched here (by name),
+    /// once each and sorted by id as <see cref="MappingRules"/> keeps them, so an unchanged list reads as the same item. A new
+    /// entry keeps its id; an id naming a Per command entry in neither place is dropped by the rules when the result is built.
     /// </summary>
-    private static AppGroup WithNotInFollowing(AppGroup global, Dictionary<GroupId, GroupId> groupIds)
+    private static AppGroup WithNotInFollowing(AppGroup group, Dictionary<GroupId, GroupId> ignoredIds)
     {
-        if (groupIds.Count == 0 || global.Commands.All(command => command.NotIn.Count == 0))
+        if (ignoredIds.Count == 0 || group.Commands.All(command => command.NotIn.Count == 0))
         {
-            return global;
+            return group;
         }
 
-        return global with
+        return group with
         {
-            Commands = [.. global.Commands.Select(command => command.NotIn.Count == 0 ? command : command with
+            Commands = [.. group.Commands.Select(command => command.NotIn.Count == 0 ? command : command with
             {
-                NotIn = [.. command.NotIn.Select(id => groupIds.GetValueOrDefault(id, id)).Distinct().OrderBy(id => id.Value)],
+                NotIn = [.. command.NotIn.Select(id => ignoredIds.GetValueOrDefault(id, id)).Distinct().OrderBy(id => id.Value)],
             })],
         };
     }
@@ -151,17 +159,5 @@ internal sealed partial class ImportMatcher
         }
 
         return pairs;
-    }
-
-    private IgnoredApp[] Ignored(IReadOnlyList<IgnoredApp> file, IReadOnlyList<IgnoredApp> local)
-    {
-        var ids = Pair(
-            file,
-            local,
-            app => app.Id,
-            app => app.Name,
-            SyncItemKey.ForIgnored,
-            (ImportMatchKind.Name, (app, twin) => MappingRules.NameComparer.Equals(app.Name, twin.Name)));
-        return [.. file.Select(app => app with { Id = ids.GetValueOrDefault(app.Id, app.Id) })];
     }
 }

@@ -19,7 +19,10 @@ public abstract record ExportScope
     /// <summary>Every gesture in the library, nothing else.</summary>
     public static ExportScope GesturesOnly { get; } = new GesturesScope();
 
-    /// <summary>These app groups whole (Global may be one), these ignored apps, and the gestures the groups' commands use.</summary>
+    /// <summary>
+    /// These app groups whole (Global may be one), these ignored apps, and what the groups' commands name: the gestures they use
+    /// and the Ignored › Per command entries in their "Not in" (plan 0004).
+    /// </summary>
     public static Selection Of(IEnumerable<GroupId> groups, IEnumerable<GroupId>? ignored = null)
     {
         ArgumentNullException.ThrowIfNull(groups);

@@ -171,16 +171,12 @@ public sealed class ConfigSession : IDisposable
                 LoadGroup(store, group);
             }
 
-            if (mapping.Groups.FirstOrDefault(group => group.IsGlobal) is { } global)
-            {
-                RestoreNotIn(store, global);
-            }
-
             foreach (var app in mapping.Ignored)
             {
                 Try(() => store.AddIgnored(app), $"Ignored app '{app.Name}' ({app.Id})");
             }
 
+            RestoreNotIn(store, mapping);
             store.ClearHistory();
             return store;
         }
@@ -216,16 +212,17 @@ public sealed class ConfigSession : IDisposable
     }
 
     /// <summary>
-    /// The "Not in" of the Global commands that loaded (plan 0004): Global loads first, before the app groups its commands name,
-    /// so the store dropped those ids then. Now that the groups are in, each list is put back; a group that did not load stays out.
+    /// The "Not in" of every command that loaded (plan 0004): it names Ignored › Per command entries, which load after every
+    /// group, so the store dropped those ids then. Now that the ignored apps are in, each list is put back on the command loaded
+    /// from that group; an entry that did not load stays out.
     /// </summary>
-    private void RestoreNotIn(MappingStore store, AppGroup global)
+    private void RestoreNotIn(MappingStore store, MappingDocument mapping)
     {
-        foreach (var command in global.Commands.Where(command => command.NotIn.Count > 0))
+        foreach (var (group, command) in mapping.AllCommands().Where(pair => pair.Command.NotIn.Count > 0))
         {
-            if (store.FindCommand(command.Id) is { } loaded && loaded.Group.IsGlobal)
+            if (store.FindCommand(command.Id) is { } loaded && loaded.Group.Id == group.Id)
             {
-                Try(() => store.UpdateCommand(GroupId.Global, loaded.Command with { NotIn = command.NotIn }), $"The 'Not in' of command '{command.Name}' ({command.Id}) in '{global.Name}'");
+                Try(() => store.UpdateCommand(group.Id, loaded.Command with { NotIn = command.NotIn }), $"The 'Not in' of command '{command.Name}' ({command.Id}) in '{group.Name}'");
             }
         }
     }

@@ -42,8 +42,11 @@ public sealed record SyncFile(
     /// 12 (2026-10-10, plan 0004): a command's own drag distance (its trigger hold's <c>dragDistancePx</c>, in a command item
     /// and an own-steps item's trigger) and a Global command's <c>notIn</c>; a format 11 build would drop both and publish the
     /// commands without their drag distance and "Not in" (the config schema went to 5).
+    /// 13 (2026-10-10, plan 0004 revised): Ignored › Per command entries (an ignored app item's <c>"scope": "PerCommand"</c>), and
+    /// a command item's <c>notIn</c> names them instead of app groups; a format 12 build would read a Per command entry as an
+    /// ignore of the whole app and switch Augram off over it, and would drop every "Not in" naming one (the config schema went to 6).
     /// </summary>
-    public const int CurrentFormatVersion = 12;
+    public const int CurrentFormatVersion = 13;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;

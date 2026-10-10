@@ -94,7 +94,7 @@ public sealed class FileConfigStore : IConfigStore
         var newest = Backups.NewestFirst().FirstOrDefault();
         if (newest is not null && PeekSchema(newest) is { } backup && backup > main)
         {
-            _notice?.Invoke($"{Location} was saved by an older Augram (schema {main}) over a newer one (schema {backup}); what only the newer one could hold, such as trigger combinations, app definition fields, hold remaps, a command's own drag distance or its \"Not in\", is in {newest}.");
+            _notice?.Invoke($"{Location} was saved by an older Augram (schema {main}) over a newer one (schema {backup}); what only the newer one could hold, such as trigger combinations, app definition fields, hold remaps, a command's own drag distance, its \"Not in\" or Ignored › Per command entries, is in {newest}.");
         }
     }
 
