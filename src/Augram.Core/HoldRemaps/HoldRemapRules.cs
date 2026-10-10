@@ -110,10 +110,16 @@ public static partial class HoldRemapRules
     /// <summary>
     /// Why <paramref name="key"/> cannot be a hold key, as the sentence <see cref="EnsureValid(HoldRemap, AppGroup, IEnumerable{HoldRemap})"/>
     /// refuses it with ("Left Shift cannot be a hold key: …"); null when it can. Decision 2: a modifier never can. The App's
-    /// hold key field asks this before it takes a key, so it can say why without a rule of its own.
+    /// hold key field asks this before it takes a key, so it can say why without a rule of its own. The keys are named as
+    /// <see cref="HotkeyText.Names"/>' platform names them ("Ctrl, Opt, Shift and Cmd" on macOS).
     /// </summary>
-    public static string? HoldKeyProblem(KeyCode key)
-        => HotkeyKeys.IsModifier(key) ? $"{HotkeyText.KeyName(key)} cannot be a hold key: Ctrl, Alt, Shift and Win are already held for triggers." : null;
+    public static string? HoldKeyProblem(KeyCode key) => HoldKeyProblem(key, HotkeyText.Names);
+
+    /// <summary><see cref="HoldKeyProblem(KeyCode)"/> with the keys named as <paramref name="names"/> names them.</summary>
+    public static string? HoldKeyProblem(KeyCode key, HostPlatform names)
+        => HotkeyKeys.IsModifier(key)
+            ? $"{HotkeyText.KeyName(key, names)} cannot be a hold key: {HotkeyText.ModifierList("and", names)} are already held for triggers."
+            : null;
 
     /// <summary>The group's hold remap on <paramref name="holdKey"/>; null when it has none (or for <see cref="KeyCode.None"/>).</summary>
     public static HoldRemap? FindByHoldKey(AppGroup group, KeyCode holdKey)

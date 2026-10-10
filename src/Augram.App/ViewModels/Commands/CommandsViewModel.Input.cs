@@ -3,6 +3,8 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
+using Augram.Core.Steps;
+using Augram.Core.Steps.Remap;
 
 namespace Augram.App.ViewModels.Commands;
 
@@ -41,6 +43,37 @@ public sealed partial class CommandsViewModel
     }
 
     private void SetInput(CommandItem command, HoldInput input) => EditTrigger(command.Id, _ => Trigger.ForInput(input));
+
+    /// <summary>
+    /// The command with <paramref name="trigger"/> as this platform's trigger, one edit: for an input, its Remap step's output is
+    /// first fitted to the input (<see cref="HoldRemapRules.FittedTo"/>: a button output on a wheel input becomes a notch the
+    /// same way, a wheel output elsewhere Middle), so changing the input is never refused for the output, and the undo of it
+    /// brings both back. Every trigger save and the draft's note go through this.
+    /// </summary>
+    private Command WithTriggerHere(Command command, Trigger trigger)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (trigger is Trigger.InputTrigger { Input: var input })
+        {
+            var steps = EditableSteps(command);
+            var fitted = steps.Select(step => step.Step is RemapStep remap ? step with { Step = new RemapStep(HoldRemapRules.FittedTo(remap.Output, input)) } : step).ToList();
+            if (!fitted.SequenceEqual(steps))
+            {
+                command = command.WithStepsFor(_platform, fitted, now);
+            }
+        }
+
+        return command.WithTriggerFor(_platform, trigger, now);
+    }
+
+    /// <summary>A new step of <paramref name="type"/> for the command: the type's default, a Remap step's output fitted to the command's input here (a wheel input starts with a wheel notch the same way), so it is never refused for its output.</summary>
+    private IStep NewStep(IStepType type, Command command)
+    {
+        var step = type.CreateDefault();
+        return step is RemapStep remap && command.TriggerFor(_platform) is Trigger.InputTrigger { Input: var input }
+            ? new RemapStep(HoldRemapRules.FittedTo(remap.Output, input))
+            : step;
+    }
 
     private void ChooseWheelInput(CommandId id)
     {

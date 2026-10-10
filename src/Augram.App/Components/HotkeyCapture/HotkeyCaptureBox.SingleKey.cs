@@ -38,8 +38,7 @@ public sealed partial class HotkeyCaptureBox
     }
 
     /// <summary>"Ctrl, Alt, Shift or Win", in this platform's names (Opt and Cmd on a Mac).</summary>
-    public static string ModifierWords()
-        => $"{HotkeyText.Format(KeyModifiers.Control, KeyCode.None)}, {HotkeyText.Format(KeyModifiers.Alt, KeyCode.None)}, {HotkeyText.Format(KeyModifiers.Shift, KeyCode.None)} or {HotkeyText.Format(KeyModifiers.Meta, KeyCode.None)}";
+    public static string ModifierWords() => HotkeyText.ModifierList("or");
 
     /// <summary>The field's text while capturing: the key alone in one-key mode, else what is held ("Ctrl+Shift+…").</summary>
     private string LiveText() => SingleKey

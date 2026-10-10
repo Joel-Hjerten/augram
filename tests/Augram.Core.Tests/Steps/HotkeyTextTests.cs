@@ -17,6 +17,14 @@ public sealed class HotkeyTextTests
         Assert.Equal(expected, HotkeyText.Format(modifiers, key));
     }
 
+    /// <summary>The modifiers as a list inside a sentence (hold remap refusals, plan 0002), in each platform's names and order.</summary>
+    [Fact]
+    public void ModifierListNamesTheFourModifiersAsThePlatformDoes()
+    {
+        Assert.Equal("Ctrl, Alt, Shift and Win", HotkeyText.ModifierList("and", HostPlatform.Windows));
+        Assert.Equal("Ctrl, Opt, Shift or Cmd", HotkeyText.ModifierList("or", HostPlatform.MacOS));
+    }
+
     [Theory]
     [InlineData(KeyModifiers.Control, KeyCode.Digit0, KeyModifiers.Control, "RCtrl+0")]
     [InlineData(KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt, "RAlt+F9")]

@@ -65,16 +65,36 @@ public static partial class HoldRemapRules
     /// Why <paramref name="key"/> cannot be the input of a command under <paramref name="holdRemap"/> ("Left Shift cannot be an
     /// input of 'Space': Ctrl, Alt, Shift and Win pass through while a hold key is held."); null when it can. The same reason
     /// <see cref="EnsureValid(Command, AppGroup)"/> refuses such a command with; the App's input key field asks it before it
-    /// takes a key.
+    /// takes a key. The keys are named as <see cref="HotkeyText.Names"/>' platform names them ("Ctrl, Opt, Shift and Cmd" on macOS).
     /// </summary>
-    public static string? InputKeyProblem(KeyCode key, HoldRemap holdRemap)
+    public static string? InputKeyProblem(KeyCode key, HoldRemap holdRemap) => InputKeyProblem(key, holdRemap, HotkeyText.Names);
+
+    /// <summary><see cref="InputKeyProblem(KeyCode, HoldRemap)"/> with the keys named as <paramref name="names"/> names them.</summary>
+    public static string? InputKeyProblem(KeyCode key, HoldRemap holdRemap, HostPlatform names)
     {
         ArgumentNullException.ThrowIfNull(holdRemap);
-        return InputKeyReason(key, holdRemap) is { } reason ? $"{HotkeyText.KeyName(key)} cannot be an input of '{holdRemap.Name}': {reason}." : null;
+        return InputKeyReason(key, holdRemap, names) is { } reason ? $"{HotkeyText.KeyName(key, names)} cannot be an input of '{holdRemap.Name}': {reason}." : null;
     }
 
-    private static string? InputKeyReason(KeyCode key, HoldRemap holdRemap)
-        => HotkeyKeys.IsModifier(key) ? "Ctrl, Alt, Shift and Win pass through while a hold key is held"
+    /// <summary>
+    /// <paramref name="output"/> as a command with <paramref name="input"/> may have it: rule 7 read the other way. A button
+    /// output on a wheel input becomes a wheel notch the same way as the input, a wheel output on any other input the Middle
+    /// button (the Remap step's default); the modifiers stay; an output the input already takes, or no input yet, is returned as
+    /// it is. The editor applies it to a new Remap step and when a command's input changes, so neither is refused for its output.
+    /// </summary>
+    public static RemapOutput FittedTo(RemapOutput output, HoldInput? input)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        return (input, output) switch
+        {
+            (HoldInput.Wheel wheel, RemapOutput.Button button) => new RemapOutput.Wheel(wheel.Direction == WheelDirection.Up ? ScrollDirection.Up : ScrollDirection.Down, button.Modifiers),
+            (HoldInput.Buttons or HoldInput.Key, RemapOutput.Wheel notch) => new RemapOutput.Button(MouseButton.Middle, notch.Modifiers),
+            _ => output,
+        };
+    }
+
+    private static string? InputKeyReason(KeyCode key, HoldRemap holdRemap, HostPlatform? names = null)
+        => HotkeyKeys.IsModifier(key) ? $"{HotkeyText.ModifierList("and", names)} pass through while a hold key is held"
             : key != KeyCode.None && key == holdRemap.HoldKey ? $"it is the hold key of '{holdRemap.Name}'"
             : null;
 

@@ -69,16 +69,47 @@ public sealed class CommandsViewModelInputTests
         Assert.Same(Trigger.None, Find(store, "New command 1").Trigger);
     }
 
+    /// <summary>The coordinator's follow-up: a changed input brings its Remap output along (Core's FittedTo), one undo step, both ways.</summary>
     [AvaloniaFact]
-    public void AWheelInputWithAButtonOutputWaitsWithTheRule()
+    public void ChangingTheInputFitsTheRemapOutputInTheSameUndoStep()
     {
         var (vm, store, _) = CreateBlender();
-        Select(vm, "Orbit");
+        Select(vm, "Pan");
 
         Handle(vm, CommandTreeAction.SetInputKind, inputKind: InputKind.Wheel);
 
-        Assert.Equal(Trigger.ForInput(HoldInput.Of(MouseButton.Left)), Find(store, "Orbit").Trigger);
-        Assert.Equal("Not saved yet: 'Orbit' turns the wheel: its Remap output must be a key or a wheel notch, not a button.", vm.SelectedCommand!.DraftNote);
+        Assert.Equal(Trigger.ForInput(new HoldInput.Wheel(WheelDirection.Up)), Find(store, "Pan").Trigger);
+        Assert.Equal(new RemapOutput.Wheel(ScrollDirection.Up, KeyModifiers.Shift), RemapOf(store, "Pan"));
+        Assert.Null(vm.SelectedCommand!.DraftNote);
+        Assert.Equal("Remap to Shift + wheel up", Item(vm, "Pan").StepSummary);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Equal(Trigger.ForInput(HoldInput.Of(MouseButton.Right)), Find(store, "Pan").Trigger);
+        Assert.Equal(new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift), RemapOf(store, "Pan"));
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Redo));
+        Handle(vm, CommandTreeAction.SetInput, input: HoldInput.Of(MouseButton.X1));
+
+        Assert.Equal(Trigger.ForInput(HoldInput.Of(MouseButton.X1)), Find(store, "Pan").Trigger);
+        Assert.Equal(new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift), RemapOf(store, "Pan"));
+
+        // A key output fits every input: it stays.
+        Select(vm, "Grab");
+        Handle(vm, CommandTreeAction.SetInput, input: new HoldInput.Wheel(WheelDirection.Down));
+        Assert.Equal(new RemapOutput.Key(KeyCode.G), RemapOf(store, "Grab"));
+    }
+
+    [AvaloniaFact]
+    public void ARemapStepAddedUnderAWheelInputStartsAsANotchTheSameWay()
+    {
+        var (vm, store, _) = NewCommandUnderSpace();
+        Handle(vm, CommandTreeAction.SetInput, input: new HoldInput.Wheel(WheelDirection.Down));
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Add, type: RemapStepType.Instance));
+
+        Assert.Null(vm.Message);
+        Assert.Equal(new RemapOutput.Wheel(ScrollDirection.Down), RemapOf(store, "New command 1"));
+        Assert.Equal("Remap to wheel down", Item(vm, "New command 1").StepSummary);
     }
 
     [AvaloniaFact]
@@ -129,6 +160,9 @@ public sealed class CommandsViewModelInputTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand, HoldRemapSection(vm, "Space")));
         return (vm, store, Find(store, "New command 1"));
     }
+
+    private static RemapOutput RemapOf(MappingStore store, string command)
+        => Assert.IsType<RemapStep>(Assert.Single(Find(store, command).Steps).Step).Output;
 
     private static void Select(CommandsViewModel vm, string command)
     {

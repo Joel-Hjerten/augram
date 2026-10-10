@@ -125,6 +125,45 @@ public sealed class HoldRemapRulesTests
         Assert.Null(HoldRemapRules.InputKeyProblem(KeyCode.None, HoldRemap.For(KeyCode.None)));
     }
 
+    /// <summary>On a Mac the sentences name the modifiers as the Hotkey field does there (HotkeyText); on Windows they are unchanged.</summary>
+    [Fact]
+    public void TheKeyProblemsNameTheModifiersAsThePlatformDoes()
+    {
+        var space = NewSpace();
+
+        Assert.Equal("Left Opt cannot be a hold key: Ctrl, Opt, Shift and Cmd are already held for triggers.", HoldRemapRules.HoldKeyProblem(KeyCode.LeftAlt, HostPlatform.MacOS));
+        Assert.Equal("Right Cmd cannot be an input of 'Space': Ctrl, Opt, Shift and Cmd pass through while a hold key is held.", HoldRemapRules.InputKeyProblem(KeyCode.RightMeta, space, HostPlatform.MacOS));
+        Assert.Equal("Left Alt cannot be a hold key: Ctrl, Alt, Shift and Win are already held for triggers.", HoldRemapRules.HoldKeyProblem(KeyCode.LeftAlt, HostPlatform.Windows));
+        Assert.Equal("Right Win cannot be an input of 'Space': Ctrl, Alt, Shift and Win pass through while a hold key is held.", HoldRemapRules.InputKeyProblem(KeyCode.RightMeta, space, HostPlatform.Windows));
+    }
+
+    /// <summary>
+    /// What the editor gives a new Remap step and a command whose input changes (plan 0002 step 4): rule 7 read the other way, so
+    /// a wheel input gets a wheel notch the same way, any other input loses a wheel output for Middle, the modifiers stay.
+    /// </summary>
+    [Fact]
+    public void AnOutputIsFittedToItsInputAsRuleSevenTakesIt()
+    {
+        var ctrlMiddle = new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Control);
+        var shiftNotch = new RemapOutput.Wheel(ScrollDirection.Down, KeyModifiers.Shift);
+
+        Assert.Equal(new RemapOutput.Wheel(ScrollDirection.Up, KeyModifiers.Control), HoldRemapRules.FittedTo(ctrlMiddle, new HoldInput.Wheel(WheelDirection.Up)));
+        Assert.Equal(new RemapOutput.Wheel(ScrollDirection.Down), HoldRemapRules.FittedTo(Middle, new HoldInput.Wheel(WheelDirection.Down)));
+        Assert.Equal(new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift), HoldRemapRules.FittedTo(shiftNotch, HoldInput.Of(MouseButton.Left)));
+        Assert.Equal(new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift), HoldRemapRules.FittedTo(shiftNotch, new HoldInput.Key(KeyCode.W)));
+        Assert.Same(shiftNotch, HoldRemapRules.FittedTo(shiftNotch, new HoldInput.Wheel(WheelDirection.Up)));
+        Assert.Same(G, HoldRemapRules.FittedTo(G, new HoldInput.Wheel(WheelDirection.Up)));
+        Assert.Same(ctrlMiddle, HoldRemapRules.FittedTo(ctrlMiddle, HoldInput.Of(MouseButton.Left, MouseButton.Right)));
+        Assert.Same(shiftNotch, HoldRemapRules.FittedTo(shiftNotch, null));
+
+        // Fitted, the output is one rule 7 takes with that input.
+        var space = NewSpace();
+        var valid = MappingRules.ValidDocument(Document(NewGlobal(), Under(space,
+            Remap(space, "Zoom in", new HoldInput.Wheel(WheelDirection.Up), HoldRemapRules.FittedTo(ctrlMiddle, new HoldInput.Wheel(WheelDirection.Up))),
+            Remap(space, "Orbit", HoldInput.Of(MouseButton.Left), HoldRemapRules.FittedTo(shiftNotch, HoldInput.Of(MouseButton.Left))))));
+        Assert.Equal(2, valid.Groups[1].Commands.Count);
+    }
+
     [Fact]
     public void ARemapStepIsACommandsOnlyStep()
     {

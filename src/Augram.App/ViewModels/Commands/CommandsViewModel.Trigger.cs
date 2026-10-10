@@ -102,7 +102,7 @@ public sealed partial class CommandsViewModel
     {
         var (group, command) = RequireCommand(id);
         var forked = command.Origin is { } origin && origin != _platform && !command.HasOwnTriggerOn(_platform);
-        _store.UpdateCommand(group.Id, command.WithTriggerFor(_platform, trigger, DateTimeOffset.UtcNow));
+        _store.UpdateCommand(group.Id, WithTriggerHere(command, trigger));
         if (forked)
         {
             Message = $"'{command.Name}' now has its own trigger and steps here; the original keeps running where it was authored. {CommandsKeymap.Current.Undo} undoes it.";

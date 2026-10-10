@@ -17,7 +17,7 @@ namespace Augram.App.Components.CommandTree;
 /// chip per button of the set in <c>PART_InputButtons</c> (a click removes it) and <c>PART_AddButton</c>, which detects the
 /// next press (<see cref="ButtonDetector"/>: the engine, else this window) and adds it, so several make a set; for a wheel,
 /// <c>PART_InputWheel</c> (Up / Down); for a key, <c>PART_InputKey</c>, the capture field in one-key mode, which refuses
-/// modifiers and the hold key with Core's reason (<see cref="HoldRemapRules.InputKeyProblem"/>). Everything only asks
+/// modifiers and the hold key with Core's reason (<see cref="HoldRemapRules.InputKeyProblem(KeyCode, HoldRemap)"/>). Everything only asks
 /// (<see cref="CommandTreeAction.SetInputKind"/>, <see cref="CommandTreeAction.SetInput"/>) and then shows the item's input:
 /// the stored one, or the host's draft while it is not valid yet, with <see cref="DraftNote"/> saying why.
 /// </summary>

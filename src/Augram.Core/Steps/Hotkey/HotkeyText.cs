@@ -64,6 +64,16 @@ public static class HotkeyText
         return string.Join(Separator, parts);
     }
 
+    /// <summary>
+    /// The four modifiers by name, in their order, as a list inside a sentence: "Ctrl, Alt, Shift and Win" on Windows,
+    /// "Ctrl, Opt, Shift or Cmd" on macOS with "or" as <paramref name="conjunction"/>. The same names as <see cref="Format"/>.
+    /// </summary>
+    public static string ModifierList(string conjunction, HostPlatform? names = null)
+    {
+        var all = (names ?? Names) == HostPlatform.MacOS ? MacModifiers : WindowsModifiers;
+        return $"{string.Join(", ", all[..^1].Select(modifier => modifier.Name))} {conjunction} {all[^1].Name}";
+    }
+
     /// <summary>The short display name of one key; the enum name for anything without a nicer one.</summary>
     public static string KeyName(KeyCode key, HostPlatform? names = null) => (names ?? Names) == HostPlatform.MacOS
         ? key switch

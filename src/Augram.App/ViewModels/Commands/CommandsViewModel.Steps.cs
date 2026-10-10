@@ -51,7 +51,7 @@ public sealed partial class CommandsViewModel
                 SelectedStepIndex = step.Index;
                 break;
             case StepListAction.Add when e.Type is { } type:
-                steps.Add(new CommandStep(type.CreateDefault(), _platform));
+                steps.Add(new CommandStep(NewStep(type, command), _platform));
                 Commit(group, command, steps, steps.Count - 1);
                 break;
             case StepListAction.Edit when step is not null && e.Edited is { } edited:

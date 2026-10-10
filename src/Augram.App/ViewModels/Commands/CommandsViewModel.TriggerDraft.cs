@@ -85,7 +85,7 @@ public sealed partial class CommandsViewModel
     /// </summary>
     private string? NoteFor(AppGroup group, Command command, Trigger trigger)
     {
-        var candidate = MappingRules.Normalised(command.WithTriggerFor(_platform, trigger, DateTimeOffset.UtcNow));
+        var candidate = MappingRules.Normalised(WithTriggerHere(command, trigger));
         var others = group.Commands.Where(other => other.Id != command.Id).ToList();
         try
         {

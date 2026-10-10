@@ -12,7 +12,7 @@ namespace Augram.App.ViewModels.Commands;
 /// <see cref="Declare"/> is the form as a <see cref="FormScreen"/> (ADR-0002 §5c), shown in the Apps tab's side panel while a
 /// hold remap row is selected, as a category's or a group's form is; <see cref="Apply"/> turns it back into the hold remap,
 /// its id kept; <see cref="SyncFrom"/> re-reads a stored one after an undo or a rename in the tree. The hold key is the capture
-/// field in one-key mode, which refuses Ctrl, Alt, Shift and Win with Core's reason (<see cref="HoldRemapRules.HoldKeyProblem"/>).
+/// field in one-key mode, which refuses Ctrl, Alt, Shift and Win with Core's reason (<see cref="HoldRemapRules.HoldKeyProblem(KeyCode)"/>).
 /// While the name is still the one it was given (the old key's name, or "Hold remap" before a key was chosen), it follows the
 /// hold key ("Space"). Nothing is validated here: the store's rules answer when the panel applies.
 /// </summary>
