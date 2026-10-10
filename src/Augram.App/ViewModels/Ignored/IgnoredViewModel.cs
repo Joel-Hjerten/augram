@@ -11,8 +11,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Augram.App.ViewModels.Ignored;
 
 /// <summary>
-/// One Ignored sub-tab's projection over <see cref="MappingStore"/> (F5 ignore list; plan 0001 M2 step 6; SP.net's Ignore List;
-/// Global / Per command, plan 0004): the entries of its <see cref="Scope"/> as <see cref="MasterItem"/>s sorted by name (name,
+/// One Exclusions sub-tab's projection over <see cref="MappingStore"/> (F5 ignore list; plan 0001 M2 step 6; SP.net's Ignore
+/// List; Global / Per command, plan 0004; the UI word is "Exclusions" since plan 0005, the code's stays "Ignored"): the entries of
+/// its <see cref="Scope"/> as <see cref="MasterItem"/>s sorted by name (name,
 /// active, the mode or what uses it, and what the entry matches on this platform), the selection and the selected app's form
 /// (<c>.Panel</c>), and the message line. Turns the <see cref="MasterDetail"/>'s intents into store calls: a new app through
 /// the declared form in a dialog, rename in place, the active box, a move to the other list (<c>.PerCommand</c>), delete after
@@ -48,28 +49,31 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
         Project();
     }
 
-    /// <summary>Which list this sub-tab shows: Ignored › Global or Ignored › Per command.</summary>
+    /// <summary>Which list this sub-tab shows: Exclusions › Global or Exclusions › Per command.</summary>
     public IgnoreScope Scope { get; }
 
     public bool IsPerCommand => Scope == IgnoreScope.PerCommand;
 
-    public string Heading => IsPerCommand ? "Per command apps" : "Ignored apps";
+    public string Heading => IsPerCommand ? "Per command apps" : "Excluded apps";
 
-    public string NewLabel => IsPerCommand ? "New app" : "New ignored app";
+    public string NewLabel => IsPerCommand ? "New app" : "New excluded app";
 
     /// <summary>The right-click menu's move to the other list.</summary>
     public string MoveLabel => IsPerCommand ? "Move to Global" : "Move to Per command";
 
+    /// <summary>The list's ⓘ; on Global it says that hold remaps still work there (plan 0005 decision 7) and what Also in does.</summary>
     public string Help => IsPerCommand
         ? "Apps listed here change nothing on their own; a command that names one in its Not in does nothing over it and holds no button back there. "
             + "Name them in a command's Not in on the Commands tab (its Change… also adds an app with the magnifier). "
             + "Right-click a row for the menu (Move to Global stops all of Augram over the app); rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
         : "Augram stays out of these apps: over their windows the stroke button passes through untouched, and a \"Disable while focused\" app pauses Augram while it has focus. "
+            + IgnoredModes.HoldRemapsInTheseApps + " "
+            + "A command whose trigger holds no stroke button (Right + Left, Right + wheel) also works in an app its Also in names. "
             + "Right-click a row for the menu (Move to Per command keeps Augram on and lets single commands leave the app alone); rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
 
     public string EmptyDetailText => IsPerCommand
         ? "Select an app to see how it is recognised and which commands leave it alone, or add one with New app."
-        : "Select an ignored app to see how it is recognised, or add one with New ignored app.";
+        : "Select an excluded app to see how it is recognised, or add one with New excluded app.";
 
     [ObservableProperty]
     public partial IReadOnlyList<MasterItem> Items { get; private set; } = [];
@@ -147,7 +151,7 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
     {
         var (title, question) = IsPerCommand
             ? ("Delete app", $"Delete '{item.Name}' from Per command?{UsersSentence(new GroupId(item.Id))}")
-            : ("Delete ignored app", $"Delete ignored app '{item.Name}'? Augram works over it again.");
+            : ("Delete excluded app", $"Delete excluded app '{item.Name}'? Augram works over it again.");
         if (!await _confirm.ConfirmAsync(title, question, "Delete").ConfigureAwait(true))
         {
             return;
@@ -214,7 +218,7 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
 
     private IgnoredApp? Find(Guid id) => _store.FindIgnored(new GroupId(id));
 
-    private IgnoredApp Require(Guid id) => Find(id) ?? throw new KeyNotFoundException("That ignored app no longer exists.");
+    private IgnoredApp Require(Guid id) => Find(id) ?? throw new KeyNotFoundException("That excluded app no longer exists.");
 
     private void Guard(Action action)
     {

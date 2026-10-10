@@ -25,14 +25,14 @@ public sealed class ImportViewModelTests
         vm.Load(Fixture);
 
         Assert.Null(vm.Error);
-        Assert.Equal("Found 12 gestures, 1 app groups, 3 commands (1 steps as placeholders until their step types exist), 0 ignored apps.", vm.StatsText);
+        Assert.Equal("Found 12 gestures, 1 app groups, 3 commands (1 steps as placeholders until their step types exist), 0 excluded apps.", vm.StatsText);
         Assert.True(vm.HasWarnings);
         Assert.Contains(vm.Warnings, line => line.Contains("Synthetic Empty", StringComparison.Ordinal));
         Assert.Equal(["Synthetic L Shape", "Synthetic Sleeper", "Synthetic Circle"], vm.Conflicts.Select(c => c.Name));
         Assert.Equal(MergeKind.SameShape, vm.Conflicts.Single(c => c.Name == "Synthetic Sleeper").Kind);
         Assert.Contains("same shape as 'Synthetic L Shape'", vm.Conflicts.Single(c => c.Name == "Synthetic Sleeper").Summary, StringComparison.Ordinal);
         Assert.All(vm.Conflicts, c => Assert.Equal(MergeChoice.KeepMine, c.Choice));
-        Assert.Equal("7 new gesture(s) will be added; 3 already exist by name or shape. 1 group(s) and 3 command(s) will be added; 0 command(s) already exist and are skipped; 0 ignored app(s) will be added.", vm.PlanText);
+        Assert.Equal("7 new gesture(s) will be added; 3 already exist by name or shape. 1 group(s) and 3 command(s) will be added; 0 command(s) already exist and are skipped; 0 excluded app(s) will be added.", vm.PlanText);
         Assert.True(vm.CanApply);
         Assert.Equal(Fixture, vm.SourcePath);
     }
@@ -113,7 +113,7 @@ public sealed class ImportViewModelTests
         var vm = new ImportViewModel(mine, mapping, log);
 
         vm.Load(FullFixture);
-        Assert.Equal("Found 11 gestures, 4 app groups, 27 commands (6 steps as placeholders until their step types exist), 2 ignored apps.", vm.StatsText);
+        Assert.Equal("Found 11 gestures, 4 app groups, 27 commands (6 steps as placeholders until their step types exist), 2 excluded apps.", vm.StatsText);
         Assert.Empty(vm.Conflicts);
         vm.ApplyCommand.Execute(null);
 

@@ -9,10 +9,10 @@ using Augram.Core.Mapping;
 
 namespace Augram.App.DevGallery;
 
-/// <summary>Gallery pages for the <see cref="MasterDetail"/> component (the Ignored tab over a throwaway store, and the component's empty and selected states with plain items) and the <see cref="WindowFinder"/> on the identification form.</summary>
+/// <summary>Gallery pages for the <see cref="MasterDetail"/> component (the Exclusions tab over a throwaway store, and the component's empty and selected states with plain items) and the <see cref="WindowFinder"/> on the identification form.</summary>
 public static class IgnoredGalleryPages
 {
-    /// <summary>Ignored › Global over Joel's six imported ignored apps (two inactive), with dialogs that answer at once.</summary>
+    /// <summary>Exclusions › Global over Joel's six imported excluded apps (two inactive), with dialogs that answer at once.</summary>
     public static ScreenDeclaration IgnoredPage()
     {
         var store = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal], FakeIgnored()));
@@ -21,7 +21,7 @@ public static class IgnoredGalleryPages
     }
 
     /// <summary>
-    /// Ignored › Per command (plan 0004) over <see cref="CommandGalleryFakes.MappingWithZoom"/>: Eyeris (used by Global › Media ›
+    /// Exclusions › Per command (plan 0004) over <see cref="CommandGalleryFakes.MappingWithZoom"/>: Eyeris (used by Global › Media ›
     /// Zoom in and Chrome › Zoom in), Krita (inactive, not used) and Spine, selected, its form with "Used by" Global › Media ›
     /// Zoom in as a link (the gallery's locator opens nothing). Right-click offers Move to Global.
     /// </summary>
@@ -68,8 +68,8 @@ public static class IgnoredGalleryPages
             [
                 new CustomField("Selected", () => new MasterDetail
                 {
-                    Heading = "Ignored apps",
-                    NewLabel = "New ignored app",
+                    Heading = "Excluded apps",
+                    NewLabel = "New excluded app",
                     MoveLabel = "Move to Per command",
                     Items = items,
                     SelectedId = items[1].Id,

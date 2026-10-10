@@ -11,7 +11,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Augram.App.Hosting;
 
 /// <summary>
-/// The Ignored tab's slice of the composition root (F5 ignore list; plan 0001 M2 step 6; Global / Per command, plan 0004):
+/// The Exclusions tab's slice of the composition root (F5 ignore list; plan 0001 M2 step 6; Global / Per command, plan 0004;
+/// "Exclusions" in the UI since plan 0005, "Ignored" in the code):
 /// one <see cref="IgnoredViewModel"/> per sub-tab (keyed singletons, <see cref="IgnoreScope.Global"/> and
 /// <see cref="IgnoreScope.PerCommand"/>), process-lifetime like the Commands tabs' (the selection survives tab switches), and
 /// the tab entry with its two sub-tabs. Expects <see cref="MappingStore"/> and the form dialog and confirm presenters from the
@@ -32,11 +33,17 @@ public static class IgnoredModule
         return services;
     }
 
-    /// <summary>The Ignored tab with its Global and Per command sub-tabs; <c>AppNavigation.Build</c> puts it third. Without <see cref="Register"/> each says so instead of failing the window.</summary>
+    /// <summary>The tab's title: the UI word is "Exclusions" (plan 0005 decision 7, Joel 2026-10-10); the code keeps "Ignored".</summary>
+    public const string Title = "Exclusions";
+
+    /// <summary>
+    /// The Exclusions tab with its Global and Per command sub-tabs; <c>AppNavigation.Build</c> puts it second. Without
+    /// <see cref="Register"/> each says so instead of failing the window.
+    /// </summary>
     public static NavEntry NavEntry(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        return new NavEntry("Ignored", AppNavigation.IgnoredKey, SubEntries:
+        return new NavEntry(Title, AppNavigation.IgnoredKey, SubEntries:
         [
             SubEntry(services, "Global", AppNavigation.IgnoredGlobalKey, IgnoreScope.Global),
             SubEntry(services, "Per command", AppNavigation.IgnoredPerCommandKey, IgnoreScope.PerCommand),
@@ -46,7 +53,7 @@ public static class IgnoredModule
     private static NavEntry SubEntry(IServiceProvider services, string title, string key, IgnoreScope scope)
         => new(title, key, () => services.GetKeyedService<IgnoredViewModel>(scope) is { } vm
             ? IgnoredScreen.Declare(vm)
-            : new TextScreen(title, "The Ignored tab is not registered: CompositionRoot.Build needs IgnoredModule.Register(services) after CommandsModule.Register."));
+            : new TextScreen(title, "The Exclusions tab is not registered: CompositionRoot.Build needs IgnoredModule.Register(services) after CommandsModule.Register."));
 
     private static IgnoredViewModel Create(IServiceProvider sp, IgnoreScope scope) => new(
         sp.GetRequiredService<MappingStore>(),

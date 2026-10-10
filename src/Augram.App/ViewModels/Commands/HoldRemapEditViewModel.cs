@@ -21,6 +21,9 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
     /// <summary>The form's heading (Joel, 2026-10-10: the name and the words for it).</summary>
     public const string Title = "Hold remaps — remap inputs or run commands while a key is held";
 
+    /// <summary>The end of the form's ⓘ (plan 0005 decision 7: a hold remap never uses the stroke button, so an exclusion leaves it alone).</summary>
+    public const string WorksOverExclusions = "Works even where the app is on Exclusions › Global.";
+
     private bool _syncing;
 
     [ObservableProperty]
@@ -104,7 +107,8 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
                 ],
                 "Applies to every command under it: a platform left unticked never fires them and hides the hold remap unless Show other platforms is on."),
         ],
-        "While the hold key is held in this app, the commands under it fire on their inputs: a mouse button, buttons held together, a wheel direction or a key. A Remap step holds an output for as long as the input is held; other steps run once per press. Right-click the hold remap to add commands."),
+        "While the hold key is held in this app, the commands under it fire on their inputs: a mouse button, buttons held together, a wheel direction or a key. A Remap step holds an output for as long as the input is held; other steps run once per press. Right-click the hold remap to add commands. "
+            + WorksOverExclusions),
     ]);
 
     /// <summary>While the name is still the one it was given, it follows a new hold key ("Hold remap" → "Space", "Space" → "S").</summary>

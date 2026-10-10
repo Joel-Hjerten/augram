@@ -9,7 +9,7 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The Not in dialog's edit state (Joel, 2026-10-10, plan 0004 decisions 6 and 7): a command's "not used over these apps" as a
-/// check list (<see cref="CheckListField"/>, the export dialog's) of the Ignored › Per command entries by name, the ones it
+/// check list (<see cref="CheckListField"/>, the export dialog's) of the Exclusions › Per command entries by name, the ones it
 /// names ticked, and <see cref="AddLabel"/> with the window finder's magnifier: the picked window's app becomes a new Per command
 /// entry (<see cref="AddApp"/>), listed and ticked at once. <see cref="Declare"/> is the form for the shared <c>FormDialog</c>;
 /// <see cref="NotIn"/> is what is ticked and <see cref="Added"/> the entries Add app… made, which the host stores together as one
@@ -21,10 +21,10 @@ public sealed partial class NotInEditViewModel : ObservableObject
     public const string Title = "Not in";
     public const string ConfirmLabel = "Save";
     public const string ListLabel = "Apps";
-    public const string NoAppsText = "None on Ignored › Per command yet: add one with the magnifier below.";
+    public const string NoAppsText = "None on Exclusions › Per command yet: add one with the magnifier below.";
     public const string AddLabel = "Add app…";
     public const string AddPrompt = "Drag the magnifier onto the app's window.";
-    public const string AddHelp = "The window's app joins Ignored › Per command, named after its executable and matched on it (as the identification form's "
+    public const string AddHelp = "The window's app joins Exclusions › Per command, named after its executable and matched on it (as the identification form's "
         + "Executable magnifier fills it), and is ticked here. Save stores it with the ticks; Cancel adds nothing. An app already on Per command is ticked instead.";
 
     private readonly IReadOnlyList<IgnoredApp> _ignored;
@@ -109,7 +109,7 @@ public sealed partial class NotInEditViewModel : ObservableObject
 
         var global = _ignored.FirstOrDefault(app => !app.IsPerCommand && app.IsActive && app.Matcher.Matches(window, _platform));
         AddStatus = $"Added '{name}' ({window.ProcessName}), ticked."
-            + (global is null ? string.Empty : $" '{global.Name}' on Ignored › Global stops all of Augram over it already.");
+            + (global is null ? string.Empty : $" '{global.Name}' on Exclusions › Global stops all of Augram over it already.");
         return added;
     }
 

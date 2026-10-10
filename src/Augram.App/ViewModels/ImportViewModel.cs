@@ -119,7 +119,7 @@ public sealed partial class ImportViewModel : ObservableObject
         _plan = GestureMerge.Plan(_library.All, result.Gestures, RecognitionOptions.Default);
         StatsText = string.Create(
             CultureInfo.InvariantCulture,
-            $"Found {result.Stats.GestureCount} gestures, {result.AppGroupCount} app groups, {result.CommandCount} commands ({result.PlaceholderStepCount} steps as placeholders until their step types exist), {result.IgnoredAppCount} ignored apps.");
+            $"Found {result.Stats.GestureCount} gestures, {result.AppGroupCount} app groups, {result.CommandCount} commands ({result.PlaceholderStepCount} steps as placeholders until their step types exist), {result.IgnoredAppCount} excluded apps.");
         Warnings = result.Warnings.Select(warning => $"{warning.Severity}: {warning.Item}: {warning.Message}").ToList();
         Conflicts = _plan.Conflicts.Select(entry => new ImportConflictItem(entry)).ToList();
         foreach (var conflict in Conflicts)
@@ -213,7 +213,7 @@ public sealed partial class ImportViewModel : ObservableObject
             var mapping = MappingImport.Merge(_mapping.Current, MappingImport.Rebind(_result.Mapping, gestures.IdMap));
             PlanText = string.Create(
                 CultureInfo.InvariantCulture,
-                $"{additions} new gesture(s) will be added; {Conflicts.Count} already exist by name or shape. {mapping.GroupsAdded} group(s) and {mapping.CommandsAdded} command(s) will be added; {mapping.CommandsSkipped} command(s) already exist and are skipped; {mapping.IgnoredAdded} ignored app(s) will be added.");
+                $"{additions} new gesture(s) will be added; {Conflicts.Count} already exist by name or shape. {mapping.GroupsAdded} group(s) and {mapping.CommandsAdded} command(s) will be added; {mapping.CommandsSkipped} command(s) already exist and are skipped; {mapping.IgnoredAdded} excluded app(s) will be added.");
         }
         catch (MappingValidationException exception)
         {

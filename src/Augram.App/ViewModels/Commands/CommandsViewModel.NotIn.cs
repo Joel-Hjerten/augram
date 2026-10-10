@@ -4,7 +4,7 @@ using Augram.App.Components.FormDialog;
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
-/// The "Not in" half of <see cref="CommandsViewModel"/> (Joel, 2026-10-10, plan 0004): the Ignored › Per command entries a
+/// The "Not in" half of <see cref="CommandsViewModel"/> (Joel, 2026-10-10, plan 0004): the Exclusions › Per command entries a
 /// command (Global's or an app group's, not one under a hold remap) is not used over. The header's Change… opens
 /// <see cref="NotInEditViewModel"/> in the shared form dialog, the entries by name as a check list with Add app… and its
 /// magnifier. Save stores what is ticked as one undo step: an <c>UpdateCommand</c>, or, when Add app… made new entries, one

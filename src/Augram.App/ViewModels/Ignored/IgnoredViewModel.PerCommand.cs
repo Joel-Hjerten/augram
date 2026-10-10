@@ -7,7 +7,7 @@ using Augram.Core.Mapping;
 namespace Augram.App.ViewModels.Ignored;
 
 /// <summary>
-/// The two lists half of <see cref="IgnoredViewModel"/> (plan 0004, decisions 5 and 7): an Ignored › Per command entry's users,
+/// The two lists half of <see cref="IgnoredViewModel"/> (plan 0004, decisions 5 and 7): an Exclusions › Per command entry's users,
 /// the commands whose "Not in" names it (its row's summary, its form's "Used by" links that open each command, the delete and
 /// move questions), and the right-click menu's move between Global and Per command. A move is one <c>UpdateIgnored</c>, one
 /// undo step: moving to Global, Core's normalisation drops the entry from every command's "Not in" in the same step, so the
@@ -40,8 +40,8 @@ public sealed partial class IgnoredViewModel
             var moved = _store.UpdateIgnored(current with { Scope = current.IsPerCommand ? IgnoreScope.Global : IgnoreScope.PerCommand });
             var undo = $"{CommandsKeymap.Current.Undo} undoes it.";
             Message = moved.IsPerCommand
-                ? $"Moved '{moved.Name}' to Ignored › Per command: it stops nothing until a command names it in its Not in{(current.DisableEntirely ? ", and it no longer disables Augram while focused" : string.Empty)}. {undo}"
-                : $"Moved '{moved.Name}' to Ignored › Global: Augram stays out of it entirely. {undo}";
+                ? $"Moved '{moved.Name}' to Exclusions › Per command: it stops nothing until a command names it in its Not in{(current.DisableEntirely ? ", and it no longer disables Augram while focused" : string.Empty)}. {undo}"
+                : $"Moved '{moved.Name}' to Exclusions › Global: Augram stays out of it, hold remaps aside. {undo}";
         });
     }
 

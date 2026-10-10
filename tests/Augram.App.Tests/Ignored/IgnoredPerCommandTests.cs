@@ -31,7 +31,7 @@ public sealed class IgnoredPerCommandTests
     {
         var (global, perCommand, _, _, _, _) = Create();
 
-        Assert.Equal(("Ignored apps", "New ignored app", "Move to Per command"), (global.Heading, global.NewLabel, global.MoveLabel));
+        Assert.Equal(("Excluded apps", "New excluded app", "Move to Per command"), (global.Heading, global.NewLabel, global.MoveLabel));
         Assert.Equal(["Blender", "VMware"], global.Items.Select(item => item.Name));
         Assert.Equal(["Gestures off over this app · blender.exe", "Disable while focused · vmware.exe"], global.Items.Select(item => item.Summary));
 
@@ -127,7 +127,7 @@ public sealed class IgnoredPerCommandTests
         Assert.Equal(["Blender"], global.Items.Select(item => item.Name));
         Assert.Null(global.SelectedId);
         Assert.Contains("VMware", perCommand.Items.Select(item => item.Name));
-        Assert.StartsWith("Moved 'VMware' to Ignored › Per command", global.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Moved 'VMware' to Exclusions › Per command", global.Message, StringComparison.Ordinal);
         Assert.Contains("no longer disables Augram while focused", global.Message, StringComparison.Ordinal);
 
         global.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));

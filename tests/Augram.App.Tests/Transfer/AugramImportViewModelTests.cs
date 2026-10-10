@@ -190,7 +190,7 @@ public sealed class AugramImportViewModelTests
         Assert.Contains("App group 'Chrome' in the file is your 'Chrome'.", lines);
         Assert.Contains("Command 'Orbit' in the file is your 'Orbit'.", lines);
         Assert.Contains("Hold remap 'Space' in the file is your 'Space': the same hold key.", lines);
-        Assert.Contains("Ignored app 'Game' in the file is your 'Game'.", lines);
+        Assert.Contains("Excluded app 'Game' in the file is your 'Game'.", lines);
         Assert.Contains(lines, line => line.StartsWith("Gesture 'North' in the file has the shape of your 'Up' (", StringComparison.Ordinal));
         Assert.Equal(["Up"], vm.ConflictEntries.Select(entry => entry.Name));
     }

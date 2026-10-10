@@ -113,7 +113,7 @@ public sealed partial record CommandItem(
     /// <summary>The header shows "Not in" (plan 0004): any command (Global's or an app group's) not under a hold remap.</summary>
     public bool CanSetNotIn { get; init; }
 
-    /// <summary>The Ignored › Per command entries the command is not used over (<see cref="Command.NotIn"/>), as stored.</summary>
+    /// <summary>The Exclusions › Per command entries the command is not used over (<see cref="Command.NotIn"/>), as stored.</summary>
     public IReadOnlyList<GroupId> NotIn { get; init; } = [];
 
     /// <summary>What the header's "Not in" row says: those entries by name ("Eyeris, Spine"), or <see cref="NoneNotIn"/>.</summary>

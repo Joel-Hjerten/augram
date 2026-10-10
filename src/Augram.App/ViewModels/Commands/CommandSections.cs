@@ -133,7 +133,7 @@ internal static class CommandSections
     }
 
     /// <summary>
-    /// What the header's Not in row says (plan 0004): the Ignored › Per command entries the command is not used over, by name
+    /// What the header's Not in row says (plan 0004): the Exclusions › Per command entries the command is not used over, by name
     /// ("Eyeris, Spine"), or <see cref="CommandItem.NoneNotIn"/>.
     /// </summary>
     public static string NotInText(MappingDocument document, Command command)

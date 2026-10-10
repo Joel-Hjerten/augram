@@ -144,7 +144,7 @@ public sealed class SyncConflictsViewModel
         SyncItemKind.Command => "Command",
         SyncItemKind.CommandVersion => "Own steps",
         SyncItemKind.HoldRemap => "Hold remap",
-        _ => "Ignored app",
+        _ => "Excluded app",
     };
 
     public static string Label(SyncChoice choice) => choice switch

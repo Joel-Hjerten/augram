@@ -12,7 +12,7 @@ namespace Augram.App.Hosting;
 /// thresholds ride the worker queue. Recognition options need no push: the host reads them through
 /// a delegate on every stroke. Undo and redo arrive here like any other change. A mapping change (an edit,
 /// undo, a sync) tells the host too (<see cref="EngineHost.MappingChanged"/>), so the ignore list's answer
-/// follows an edit on the Ignored tab without waiting for the pointer to move; the executor needs no push, it
+/// follows an edit on the Exclusions tab without waiting for the pointer to move; the executor needs no push, it
 /// reads the snapshot per stroke.
 /// </summary>
 public sealed class EngineSettingsLink : IDisposable

@@ -75,10 +75,10 @@ public static class CommandGalleryFakes
     }
 
     /// <summary>
-    /// <see cref="Mapping"/> with Joel's Global zoom commands in Media and the Ignored › Per command entries they leave alone
+    /// <see cref="Mapping"/> with Joel's Global zoom commands in Media and the Exclusions › Per command entries they leave alone
     /// (plan 0004): Zoom in on Right + wheel up with its own 3 px drag distance, not used over Spine and Eyeris; Zoom out on Right +
     /// wheel down with the Options value, used everywhere; Chrome's Zoom in not used over Eyeris. The ignore list also has Krita
-    /// (Per command, inactive, used by nothing) and VMware (Ignored › Global, never offered in a Not in).
+    /// (Per command, inactive, used by nothing) and VMware (Exclusions › Global, never offered in a Not in).
     /// </summary>
     public static MappingDocument MappingWithZoom()
     {

@@ -516,7 +516,7 @@
         </Style>
       </ControlTheme>
 
-      <!-- A list beside the selected item's form (the Ignored tab): the Commands tab's look, its column widths and its row metrics. -->
+      <!-- A list beside the selected item's form (the Exclusions tab): the Commands tab's look, its column widths and its row metrics. -->
       <ControlTheme x:Key="{x:Type md:MasterDetail}" TargetType="md:MasterDetail">
         <Setter Property="Template">
           <ControlTemplate>
@@ -738,7 +738,7 @@
                                VerticalAlignment="Center"
                                IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
-                  <!-- Plan 0004: the Ignored › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
+                  <!-- Plan 0004: the Exclusions › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
                   <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
                     <StackPanel DockPanel.Dock="Left" Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                       <TextBlock Classes="field-label" Text="Not in" />

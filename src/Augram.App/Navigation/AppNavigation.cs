@@ -6,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Augram.App.Navigation;
 
 /// <summary>
-/// The app's tabs (F7): Commands (Global / Apps) · Ignored (Global / Per command) · Gestures · Options · Diagnostics
-/// (Health / Log / Recognition), plus the dev Gallery in Debug builds (Joel, 2026-10-10: Commands and Ignored before
-/// Gestures). Adding a tab is adding an entry here and a screen under <c>Screens/</c>.
+/// The app's tabs (F7): Commands (Global / Apps) · Exclusions (Global / Per command; "ignored" in the keys and the code) ·
+/// Gestures · Options · Diagnostics (Health / Log / Recognition), plus the dev Gallery in Debug builds (Joel, 2026-10-10:
+/// Commands and Exclusions before Gestures). Adding a tab is adding an entry here and a screen under <c>Screens/</c>.
 /// </summary>
 public static class AppNavigation
 {

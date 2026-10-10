@@ -111,7 +111,7 @@ public sealed partial class AugramImportViewModel
         SyncItemKind.HoldRemap => Count(count, "hold remap", "hold remaps"),
         SyncItemKind.Command => Count(count, "command", "commands"),
         SyncItemKind.CommandVersion => Count(count, "command's own steps", "commands' own steps"),
-        _ => Count(count, "ignored app", "ignored apps"),
+        _ => Count(count, "excluded app", "excluded apps"),
     };
 
     private static string Count(int count, string singular, string plural)
