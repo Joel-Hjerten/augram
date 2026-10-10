@@ -157,6 +157,11 @@ internal sealed class InputGate
         var started = Stopwatch.GetTimestamp();
         var state = State;
         var suppress = false;
+        if (input.Kind != RawInputKind.Move)
+        {
+            EndHoldIfFocusMoved(input.TimestampMs);
+        }
+
         switch (input.Kind)
         {
             case RawInputKind.Move:
@@ -269,6 +274,26 @@ internal sealed class InputGate
     }
 
     /// <summary>
+    /// A hold key held with nothing owed, and the published plan is now another app group's or none (Joel, 2026-10-10): the
+    /// hold ends here, before this event is decided, and the machine is told in order (<see cref="HoldRemapEvent.FocusMoved"/>).
+    /// Seen at the next button, wheel or key event, which is the first moment it matters. One volatile read while holding.
+    /// </summary>
+    private void EndHoldIfFocusMoved(long timestampMs)
+    {
+        if (!_hold.Holding || !_hold.FocusMovedFrom(Volatile.Read(ref _foreground).GroupId))
+        {
+            return;
+        }
+
+        var before = _hold.Save();
+        _hold.EndByFocus();
+        if (!Post(WorkerMessage.Hold(new HoldRemapEvent.FocusMoved(timestampMs), hookSuppressed: true), critical: true))
+        {
+            _hold.Restore(before);
+        }
+    }
+
+    /// <summary>
     /// A button's down or up while a hold is engaged: the hold remap's decision, posted as one <c>Hold</c> message. A press
     /// that cannot be enqueued is undone (it goes on to gesture capture as if the hold had passed it); a release is decided
     /// all the same (A19), and the worker resets the machine when it sees the drop.
@@ -323,10 +348,10 @@ internal sealed class InputGate
         var isUp = input.Kind == RawInputKind.KeyUp;
         var fresh = !isUp && _keys.IsFreshPress(in input);
         HoldRemapEntry? candidate = null;
-        string? app = null;
+        HoldRemapPlan? plan = null;
         if (fresh && !capturing && !_hold.Holding)
         {
-            var plan = Volatile.Read(ref _foreground);
+            plan = Volatile.Read(ref _foreground);
             if (!plan.IsEmpty
                 && Enabled
                 && (IgnoreState & PausedByFocus) == 0
@@ -334,7 +359,6 @@ internal sealed class InputGate
                 && !_shadow.Owed.HasValue)
             {
                 candidate = plan.Find(input.Key);
-                app = plan.GroupName;
             }
         }
 
@@ -344,7 +368,7 @@ internal sealed class InputGate
         }
 
         var before = _hold.Save();
-        var decision = _hold.DecideKey(input.Key, isUp, fresh, input.TimestampMs, candidate, capturing);
+        var decision = _hold.DecideKey(input.Key, isUp, fresh, input.TimestampMs, candidate, capturing, plan?.GroupId);
         if (decision.Verdict == HoldKeyVerdict.None)
         {
             return false;
@@ -358,7 +382,7 @@ internal sealed class InputGate
         };
         var message = decision.Verdict == HoldKeyVerdict.Ordered
             ? WorkerMessage.HoldReplay((HoldRemapEvent.Key)e)
-            : WorkerMessage.Hold(e, decision.Suppress, decision.AwaitsInjection, app);
+            : WorkerMessage.Hold(e, decision.Suppress, decision.AwaitsInjection, decision.Verdict == HoldKeyVerdict.HoldDown ? plan?.GroupName : null);
         if (decision.AwaitsInjection)
         {
             _hold.ReplayPosted();

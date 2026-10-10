@@ -73,6 +73,9 @@ internal sealed class HoldScript
 
     public HoldScript Reset() => Feed(new HoldRemapEvent.Reset(_now));
 
+    /// <summary>The app in front changed away from the hold's (the hook saw a new plan).</summary>
+    public HoldScript FocusMoved() => Feed(new HoldRemapEvent.FocusMoved(_now));
+
     public HoldScript Feed(HoldRemapEvent e)
     {
         foreach (var outcome in Machine.Handle(e))
@@ -111,6 +114,7 @@ internal sealed class HoldScript
         HoldRemapOutcome.WheelOutput wheel => $"turn {wheel.Output.Describe(HostPlatform.Windows)}",
         HoldRemapOutcome.ReplayKey replay => $"replay {HotkeyText.KeyName(replay.Key)} {replay.Phase.ToString().ToLowerInvariant()}",
         HoldRemapOutcome.RunSteps run => $"run {_entry.Bindings.Single(binding => binding.CommandId == run.CommandId).Name}",
+        HoldRemapOutcome.HoldEnded ended => $"end {HotkeyText.KeyName(ended.HoldKey)}",
         _ => outcome.ToString(),
     };
 }

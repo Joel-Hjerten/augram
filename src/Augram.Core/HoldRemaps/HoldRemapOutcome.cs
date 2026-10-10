@@ -53,6 +53,12 @@ public abstract record HoldRemapOutcome
     /// </summary>
     public sealed record ReplayKey(KeyCode Key, KeyPhase Phase) : HoldRemapOutcome;
 
+    /// <summary>
+    /// The hold on <paramref name="HoldKey"/> ended because focus moved to another app (<see cref="HoldRemapEvent.FocusMoved"/>):
+    /// nothing to inject, no tap; the hook's matching decision is that it ended the hold too, which the worker compares.
+    /// </summary>
+    public sealed record HoldEnded(KeyCode HoldKey) : HoldRemapOutcome;
+
     /// <summary>Run the steps of the Steps command <paramref name="CommandId"/> (once per press, once per wheel notch) at (<paramref name="X"/>, <paramref name="Y"/>).</summary>
     public sealed record RunSteps(CommandId CommandId, int X, int Y) : HoldRemapOutcome;
 }

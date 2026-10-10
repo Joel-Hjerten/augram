@@ -3,6 +3,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.HoldRemaps;
+using Augram.Core.Mapping;
 using Augram.Core.Steps.Remap;
 using Augram.Engine.Hosting;
 using Augram.Engine.Tests.Hosting;
@@ -17,7 +18,8 @@ namespace Augram.Engine.Tests.Input;
 /// while the foreground's plan (Blender's or none), the pointer's answer (ignore bits, anchor plans), the tray toggle, the
 /// hotkey capture and the stroke button change between events. This test plays the worker, lagging behind the hook by a
 /// random number of messages: it runs a <see cref="HoldRemapMachine"/> and a <see cref="CaptureStateMachine"/> on what the
-/// gate posted, checks every hold decision equals the machine's (and every capture decision the worker would warn about),
+/// gate posted (the foreground changing mid-hold too: to none or another group ends a hold with nothing owed, the same group's
+/// plan republished does not), checks every hold decision equals the machine's (and every capture decision the worker would warn about),
 /// and applies what the worker injects to a model of the OS. Proven, per sequence: a release gets its press's decision, the
 /// OS never gets an up for something it does not hold, a key the hook lets through never overtakes a replay still queued,
 /// and once everything is physically up the OS holds nothing, both machines are idle and no replay is pending.
@@ -28,12 +30,22 @@ public sealed class HoldPairingTests
     private static readonly MouseButton[] Buttons = [MouseButton.Left, MouseButton.Right, MouseButton.Middle, MouseButton.X1];
     private static readonly KeyCode[] Letters = [KeyCode.W, KeyCode.E, KeyCode.Q, KeyCode.A, KeyCode.B];
     private static readonly KeyCode[] Modifiers = [KeyCode.RightShift, KeyCode.RightControl];
-    private static readonly HoldRemapPlan Blender = BlenderHold.Plan();
+    private static readonly AppGroup BlenderGroup = BlenderHold.Document().Groups[1];
+    private static readonly HoldRemapPlan Blender = HoldRemapPlan.ForGroup(BlenderGroup, HostPlatform.Windows);
+
+    // The same group's plan built again (a mapping edit republishes it): a hold must not end for it.
+    private static readonly HoldRemapPlan BlenderAgain = HoldRemapPlan.ForGroup(BlenderGroup, HostPlatform.Windows);
+
+    // Another app group with the same hold remaps: switching to it mid-hold ends the hold as switching to none does.
+    private static readonly HoldRemapPlan Other = HoldRemapPlan.ForGroup(BlenderGroup with { Id = GroupId.New(), Name = "Other" }, HostPlatform.Windows);
+    private static readonly HoldRemapPlan[] Plans = [HoldRemapPlan.Empty, Blender, BlenderAgain, Other];
 
     [Fact]
     public void RandomSequences_HookEqualsMachine_PairEverything_AndLeaveTheOsHoldingNothing()
     {
         Assert.Equal(2, Blender.Entries.Count);
+        Assert.NotSame(Blender, BlenderAgain);
+        Assert.Equal(Blender.GroupId, BlenderAgain.GroupId);
         var rng = new Random(20261010);
         var counts = new Counts();
 
@@ -52,6 +64,8 @@ public sealed class HoldPairingTests
         Assert.True(counts.StrokeInputs > 500, $"only {counts.StrokeInputs} stroke-button presses taken by a hold");
         Assert.True(counts.Strokes > 1500, $"only {counts.Strokes} presses captured as gestures");
         Assert.True(counts.KeyPairs > 30_000, $"only {counts.KeyPairs} key presses released");
+        Assert.True(counts.FocusEnds > 700, $"only {counts.FocusEnds} holds ended by focus moving");
+        Assert.True(counts.FocusKept > 600, $"only {counts.FocusKept} republished plans mid-hold that left the hold alone");
     }
 
     /// <summary>Plausible input within 2 s (key records never age out): hold keys, buttons and keys go down and up with repeats, mouse events carry the modifiers held; everything released at the end.</summary>
@@ -162,9 +176,17 @@ public sealed class HoldPairingTests
         public void Play(Random rng, List<RawInput> events)
         {
             _gate.PublishForeground(rng.Next(4) == 0 ? HoldRemapPlan.Empty : Blender);
+            var holdingBefore = false;
             foreach (var raw in events)
             {
+                var planBefore = _gate.ForegroundPlan;
                 Vary(rng);
+                if (holdingBefore && _gate.Hold.Holding && !ReferenceEquals(planBefore, _gate.ForegroundPlan) && _gate.Hold.Group == _gate.ForegroundPlan.GroupId)
+                {
+                    Assert.False(_gate.Hold.FocusMovedFrom(_gate.ForegroundPlan.GroupId), $"sequence {_sequence}: the same group's plan republished would end the hold");
+                    _counts.FocusKept++;
+                }
+
                 var pendingBefore = _gate.Hold.PendingReplays;
                 var fresh = raw.Kind == RawInputKind.KeyDown && !_os.HoldsPhysically(raw.Key);
                 var suppressed = _gate.Handle(in raw);
@@ -176,6 +198,7 @@ public sealed class HoldPairingTests
 
                 Pair(raw, suppressed);
                 Drain(rng.Next(5) < 2 ? int.MaxValue : rng.Next(0, 4));
+                holdingBefore = _gate.Hold.Holding;
             }
 
             Drain(int.MaxValue);
@@ -189,9 +212,10 @@ public sealed class HoldPairingTests
         /// <summary>Between events: the app in front, the window under the pointer, the tray toggle, the hotkey capture, the stroke button (in order with the input, as the worker applies it).</summary>
         private void Vary(Random rng)
         {
-            if (rng.Next(20) == 0)
+            if (rng.Next(_gate.Hold.Holding ? 6 : 20) == 0)
             {
-                _gate.PublishForeground(rng.Next(3) == 0 ? HoldRemapPlan.Empty : Blender);
+                // Mid-hold more often: to none, to another group, or the same group's plan republished.
+                _gate.PublishForeground(Plans[rng.Next(Plans.Length)]);
             }
 
             if (rng.Next(12) == 0)
@@ -291,8 +315,10 @@ public sealed class HoldPairingTests
         {
             var before = _hold.State;
             var outcomes = _hold.Handle(e);
-            var machineSays = outcomes[0] is HoldRemapOutcome.Suppress;
+            // A focus move carries no input decision: the hook ended its hold, and the machine must end its own.
+            var machineSays = e is HoldRemapEvent.FocusMoved ? outcomes.Any(outcome => outcome is HoldRemapOutcome.HoldEnded) : outcomes[0] is HoldRemapOutcome.Suppress;
             Assert.True(machineSays == hookSuppressed, $"sequence {_sequence}: {e}: hook {hookSuppressed}, machine {machineSays} (machine was {before})");
+            _counts.FocusEnds += e is HoldRemapEvent.FocusMoved ? 1 : 0;
             // The hook keeps later keys behind exactly the messages whose processing injects a key (a tap, a replay).
             var injectsKey = outcomes.Any(outcome => outcome is HoldRemapOutcome.TapHoldKey or HoldRemapOutcome.ReplayKey);
             Assert.True(injectsKey == ordered, $"sequence {_sequence}: {e}: injects a key {injectsKey}, counted as a pending replay {ordered}");
@@ -458,5 +484,7 @@ public sealed class HoldPairingTests
         public int StrokeInputs;
         public int Strokes;
         public int KeyPairs;
+        public int FocusEnds;
+        public int FocusKept;
     }
 }

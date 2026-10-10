@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Steps.Remap;
 
@@ -38,6 +39,9 @@ public sealed partial class HoldRemapMachine
     private HeldButtons _owed;
     private HoldBinding? _buttons;
 
+    /// <summary>The hold key of a hold that focus moving ended (<see cref="HoldRemapEvent.FocusMoved"/>), still down: its repeats and release stay swallowed.</summary>
+    private KeyCode _ended;
+
     public HoldRemapState State => _holding
         ? _rolledOver ? HoldRemapState.RolledOver : HoldRemapState.Holding
         : IsFollowing ? HoldRemapState.Following : HoldRemapState.Idle;
@@ -53,10 +57,13 @@ public sealed partial class HoldRemapMachine
     public IReadOnlyList<HoldRemapOutcome> Handle(HoldRemapEvent e) => e switch
     {
         HoldRemapEvent.HoldDown down => OnHoldDown(down),
-        HoldRemapEvent.HoldUp up => _holding && up.HoldKey != _remap!.HoldKey ? OnKey(new HoldRemapEvent.Key(up.HoldKey, KeyPhase.Up, up.TimestampMs)) : OnHoldUp(up.TimestampMs),
+        HoldRemapEvent.HoldUp up => (_holding && up.HoldKey != _remap!.HoldKey) || (!_holding && up.HoldKey == _ended && _ended != KeyCode.None)
+            ? OnKey(new HoldRemapEvent.Key(up.HoldKey, KeyPhase.Up, up.TimestampMs))
+            : OnHoldUp(up.TimestampMs),
         HoldRemapEvent.Button button => button.IsDown ? OnButtonDown(button) : OnButtonUp(button),
         HoldRemapEvent.Wheel wheel => OnWheel(wheel),
         HoldRemapEvent.Key key => OnKey(key),
+        HoldRemapEvent.FocusMoved => OnFocusMoved(),
         HoldRemapEvent.Reset => OnReset(),
         _ => throw new ArgumentOutOfRangeException(nameof(e), e, "Unknown hold remap event."),
     };
@@ -77,6 +84,7 @@ public sealed partial class HoldRemapMachine
         }
 
         // A new hold, or the same hold remap again while it follows buttons or keys still down (those count as used).
+        _ended = entry.HoldKey == _ended ? KeyCode.None : _ended;
         _remap = entry;
         _holding = true;
         _rolledOver = false;
@@ -176,6 +184,26 @@ public sealed partial class HoldRemapMachine
         return outcomes;
     }
 
+    /// <summary>
+    /// The app in front is no longer the hold's: a hold with nothing owed (no input button, no input key) ends without a tap,
+    /// and its hold key's repeats and release stay swallowed (<see cref="_ended"/>); with inputs owed the hold keeps following
+    /// them. No input decision: nothing physical happened.
+    /// </summary>
+    private IReadOnlyList<HoldRemapOutcome> OnFocusMoved()
+    {
+        if (!_holding || IsFollowing)
+        {
+            return [];
+        }
+
+        var key = _remap!.HoldKey;
+        _holding = false;
+        _rolledOver = false;
+        _ended = key;
+        EndIfDone();
+        return [new HoldRemapOutcome.HoldEnded(key)];
+    }
+
     /// <summary>Releases every output still held (the button set's, each input key's, each replayed key) and forgets everything.</summary>
     private List<HoldRemapOutcome> OnReset()
     {
@@ -199,6 +227,7 @@ public sealed partial class HoldRemapMachine
         _rolledOver = false;
         _used = false;
         _remap = null;
+        _ended = KeyCode.None;
         return outcomes;
     }
 

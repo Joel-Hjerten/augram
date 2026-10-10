@@ -226,13 +226,16 @@ internal sealed partial class EngineWorker
     /// </summary>
     private void CrossCheckHold(HoldRemapEvent e, bool hookSuppressed, IReadOnlyList<HoldRemapOutcome> outcomes, HoldRemapEntry? entry)
     {
-        var machineSuppressed = outcomes.Count > 0 && outcomes[0] is HoldRemapOutcome.Suppress;
+        // For a focus move the hook's "decision" is that it ended the hold; the machine must have ended it too.
+        var machineSuppressed = e is HoldRemapEvent.FocusMoved
+            ? outcomes.Any(outcome => outcome is HoldRemapOutcome.HoldEnded)
+            : outcomes.Count > 0 && outcomes[0] is HoldRemapOutcome.Suppress;
         if (e is HoldRemapEvent.Reset || machineSuppressed == hookSuppressed)
         {
             return;
         }
 
-        var own = e is HoldRemapEvent.HoldDown or HoldRemapEvent.HoldUp
+        var own = e is HoldRemapEvent.HoldDown or HoldRemapEvent.HoldUp or HoldRemapEvent.FocusMoved
             || (e is HoldRemapEvent.Button button && entry?.IsInput(button.MouseButton) == true)
             || (e is HoldRemapEvent.Key key && key.KeyCode == entry?.HoldKey);
         var level = own ? EventLevel.Warning : EventLevel.Debug;
@@ -242,7 +245,7 @@ internal sealed partial class EngineWorker
         }
     }
 
-    /// <summary>Debug lines per hold: its start, its tap or why not, a rollover, every output pressed and released.</summary>
+    /// <summary>Debug lines per hold: its start, its tap or why not, its end when focus moved, a rollover, every output pressed and released.</summary>
     private void LogHold(HoldRemapEvent e, HoldRemapState before, IReadOnlyList<HoldRemapOutcome> outcomes, HoldRemapEntry? entry, string? app)
     {
         var started = e is HoldRemapEvent.HoldDown && before is HoldRemapState.Idle or HoldRemapState.Following && _holdMachine.State == HoldRemapState.Holding;
@@ -286,6 +289,9 @@ internal sealed partial class EngineWorker
         {
             switch (outcome)
             {
+                case HoldRemapOutcome.HoldEnded ended:
+                    _log.Debug(LogSources.Hold, "Hold ended: focus moved", ("key", KeyName(ended.HoldKey)), ("heldMs", e.TimestampMs - _holdDownAt));
+                    break;
                 case HoldRemapOutcome.ReplayKey { Phase: KeyPhase.Down } replay when tapped:
                     _log.Debug(LogSources.Hold, "Rollover", ("key", KeyName(replay.Key)), ("holdKey", KeyName(entry?.HoldKey ?? KeyCode.None)));
                     break;

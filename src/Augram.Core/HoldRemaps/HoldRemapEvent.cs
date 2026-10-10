@@ -37,4 +37,11 @@ public abstract record HoldRemapEvent(long TimestampMs)
 
     /// <summary>The engine stops or the hook was reinstalled: release everything an output holds and forget the hold.</summary>
     public sealed record Reset(long TimestampMs) : HoldRemapEvent(TimestampMs);
+
+    /// <summary>
+    /// The app in front is no longer the hold's (the published plan changed to another app group, or to none; the hook saw it
+    /// at its next event): a hold with no input owed ends, without a tap; its hold key's repeats and release stay swallowed.
+    /// A hold with inputs owed keeps following them (Joel, 2026-10-10, on a lost release leaving inputs remapped).
+    /// </summary>
+    public sealed record FocusMoved(long TimestampMs) : HoldRemapEvent(TimestampMs);
 }

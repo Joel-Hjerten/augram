@@ -21,6 +21,13 @@ public sealed partial class HoldRemapMachine
             return e.Phase == KeyPhase.Up ? OnHoldUp(e.TimestampMs) : SuppressOnly;
         }
 
+        if (key == _ended && _ended != KeyCode.None)
+        {
+            // The hold key of a hold focus ended: its press was swallowed, so are its repeats and release (A19).
+            _ended = e.Phase == KeyPhase.Up ? KeyCode.None : _ended;
+            return SuppressOnly;
+        }
+
         if (_replayed.Contains(key))
         {
             return Replayed(key, e.Phase);

@@ -18,6 +18,7 @@ public sealed class HoldRemapEngineTests
     private const MouseButton Left = MouseButton.Left;
     private const MouseButton Right = MouseButton.Right;
     private const MouseButton Middle = MouseButton.Middle;
+    private static readonly WindowIdentity Notepad = FakeWindowSystem.Identity("notepad.exe", handle: 0x10);
 
     [Fact]
     public void SpaceAndLeft_Orbit_MiddleIsInjected_AndLeftNeverReachesTheApp()
@@ -296,6 +297,62 @@ public sealed class HoldRemapEngineTests
     }
 
     private static object? Property(LogEvent e, string key) => e.Properties!.Single(p => p.Key == key).Value;
+
+    [Fact]
+    public void FocusMovingAwayMidHold_EndsAHoldWithNothingOwed_ItsReleaseStaysSwallowed_AndNoTap()
+    {
+        using var harness = Blender();
+
+        Assert.True(harness.KeyDown(KeyCode.Space, 0));
+        SwitchTo(harness, Notepad);
+        Assert.False(harness.Down(Left, 100, 100, 50), "the hold ended: Left reaches Notepad");
+        Assert.False(harness.Up(Left, 100, 100, 60));
+        Assert.True(harness.KeyUp(KeyCode.Space, 100), "its press was swallowed, so is its release");
+        harness.WaitForLog(LogSources.Hold, "Hold ended: focus moved");
+
+        // Back in Blender a quick Space is a tap: the only injection, so the release above sent nothing.
+        SwitchTo(harness, BlenderHold.Window);
+        Assert.True(harness.KeyDown(KeyCode.Space, 200));
+        Assert.True(harness.KeyUp(KeyCode.Space, 250));
+        harness.WaitForLog(LogSources.Hold, "Tap sent");
+
+        Assert.Equal(["press Space", "release Space"], harness.Simulator.All);
+        AssertNoMismatch(harness);
+    }
+
+    [Fact]
+    public void FocusMovingAwayWithAnInputHeld_KeepsFollowingIt_AndTheHoldEndsAfterTheLastRelease()
+    {
+        using var harness = Blender();
+
+        Assert.True(harness.KeyDown(KeyCode.Space, 0));
+        Assert.True(harness.Down(Left, 100, 100, 10));
+        SwitchTo(harness, Notepad);
+        Assert.True(harness.Down(Right, 110, 100, 20), "Left is still owed: the hold follows the set");
+        Assert.True(harness.Up(Right, 120, 100, 30));
+        Assert.True(harness.Up(Left, 130, 100, 40));
+        Assert.True(harness.KeyUp(KeyCode.Space, 50));
+        harness.WaitForLog(LogSources.Hold, "Hold ended: focus moved");
+
+        Assert.Equal(
+            [
+                "down Middle@100,100",
+                "up Middle", "press LeftControl", "down Middle@110,100", "release LeftControl",
+                "up Middle", "down Middle@120,100",
+                "up Middle",
+            ],
+            harness.Simulator.All);
+        AssertNoMismatch(harness);
+    }
+
+    /// <summary>Another app comes to the front, reported as the platform reports it; returns once the hook has its plan.</summary>
+    private static void SwitchTo(EngineHarness harness, WindowIdentity window)
+    {
+        var expected = window == BlenderHold.Window;
+        harness.Windows.ForegroundWindow = window;
+        harness.SystemEvents.Raise(SystemEventKind.ForegroundChanged);
+        EngineHarness.WaitFor(() => harness.Host.ForegroundHoldPlan.IsEmpty != expected, $"{window.ProcessName}'s hold remaps in front");
+    }
 
     /// <summary>Blender in front and under the pointer, its plan published to the hook.</summary>
     private static EngineHarness Blender(bool ignored = false, EngineHostOptions? options = null)

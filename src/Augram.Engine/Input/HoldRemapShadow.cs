@@ -1,6 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.HoldRemaps;
+using Augram.Core.Mapping;
 using Augram.Core.Steps.Hotkey;
 
 namespace Augram.Engine.Input;
@@ -26,6 +27,12 @@ namespace Augram.Engine.Input;
 /// hold (its press is a repeat here).
 /// </para>
 /// <para>
+/// <b>Focus moving away</b> (Joel, 2026-10-10). A hold remembers the app group whose plan it was claimed with; when the
+/// published plan is another group's (or none) and nothing is owed, the gate ends the hold at its next event
+/// (<see cref="FocusMovedFrom"/>, <see cref="EndByFocus"/>, the machine told by <see cref="HoldRemapEvent.FocusMoved"/>): no
+/// tap, and the hold key stays swallowed to its release. With inputs owed it keeps following them.
+/// </para>
+/// <para>
 /// <b>Order.</b> After a rollover (and at a predicted tap) the worker injects the hold key's tap and replays keys; a key
 /// pressed before it has done so would reach the OS first ("a b" typed fast would come out "ab "). While any such message is
 /// in flight (<see cref="PendingReplays"/>: the hook counts it up before posting, the worker down after injecting), a fresh
@@ -46,6 +53,8 @@ public sealed class HoldRemapShadow
     private KeyBits _claimed;
     private KeyBits _replayed;
     private KeyBits _ordered;
+    private GroupId? _group;
+    private KeyCode _ended;
     private int _pendingReplays;
 
     /// <summary>The hold remap held or followed (the plan entry claimed at its hold key's press); null otherwise.</summary>
@@ -60,8 +69,11 @@ public sealed class HoldRemapShadow
     /// </summary>
     public bool Engaged => _holding || _owed != HeldButtons.None || !_claimed.IsEmpty || !_replayed.IsEmpty;
 
-    /// <summary>Nothing engaged and no key replayed in order still down: a key event needs no look here unless it is a hold key's press or replays are in flight.</summary>
-    public bool Idle => !Engaged && _ordered.IsEmpty;
+    /// <summary>Nothing engaged, no key replayed in order and no ended hold's key still down: a key event needs no look here unless it is a hold key's press or replays are in flight.</summary>
+    public bool Idle => !Engaged && _ordered.IsEmpty && _ended == KeyCode.None;
+
+    /// <summary>The app group whose plan the hold in progress (or last) was claimed with.</summary>
+    public GroupId? Group => _group;
 
     /// <summary>Input buttons whose consumed down still owes a consumed up (A19).</summary>
     public HeldButtons OwedButtons => _owed;
@@ -72,7 +84,7 @@ public sealed class HoldRemapShadow
     private bool Following => _owed != HeldButtons.None || !_claimed.IsEmpty;
 
     /// <summary>Everything this shadow decides from, to undo a decision whose event could not be enqueued (the replay count is not part of it).</summary>
-    public Snapshot Save() => new(_remap, _holding, _rolledOver, _used, _downAt, _owed, _claimed, _replayed, _ordered);
+    public Snapshot Save() => new(_remap, _holding, _rolledOver, _used, _downAt, _owed, _claimed, _replayed, _ordered, _group, _ended);
 
     public void Restore(Snapshot snapshot)
     {
@@ -85,6 +97,24 @@ public sealed class HoldRemapShadow
         _claimed = snapshot.Claimed;
         _replayed = snapshot.Replayed;
         _ordered = snapshot.Ordered;
+        _group = snapshot.Group;
+        _ended = snapshot.Ended;
+    }
+
+    /// <summary>
+    /// True when a hold key is held with nothing owed (no input button, no input key) and the foreground's published plan is
+    /// now another app group's, or none (<paramref name="published"/>): the hold ends (<see cref="EndByFocus"/>). A hold with
+    /// inputs owed keeps following them, as the machine's <see cref="HoldRemapEvent.FocusMoved"/> rule says.
+    /// </summary>
+    public bool FocusMovedFrom(GroupId? published) => _holding && !Following && published != _group;
+
+    /// <summary>Ends the hold as the machine does at <see cref="HoldRemapEvent.FocusMoved"/>: no tap, its key owned (swallowed) to its release.</summary>
+    public void EndByFocus()
+    {
+        _ended = _remap!.HoldKey;
+        _holding = false;
+        _rolledOver = false;
+        EndIfDone();
     }
 
     /// <summary>
@@ -151,10 +181,11 @@ public sealed class HoldRemapShadow
     /// <summary>
     /// One key event. <paramref name="fresh"/> says a down starts a press the OS has not seen (else it is a repeat);
     /// <paramref name="candidate"/> is the foreground plan's hold remap on this key when the gate's conditions for claiming a
-    /// hold key press hold (null otherwise); <paramref name="capturing"/> is the hotkey capture flag, which takes fresh presses.
-    /// The answer says what to post (if anything), the phase the machine sees, and whether the worker injects for it.
+    /// hold key press hold (null otherwise), <paramref name="group"/> that plan's app group; <paramref name="capturing"/> is the
+    /// hotkey capture flag, which takes fresh presses. The answer says what to post (if anything), the phase the machine sees,
+    /// and whether the worker injects for it.
     /// </summary>
-    public HoldKeyDecision DecideKey(KeyCode key, bool isUp, bool fresh, long timestampMs, HoldRemapEntry? candidate, bool capturing)
+    public HoldKeyDecision DecideKey(KeyCode key, bool isUp, bool fresh, long timestampMs, HoldRemapEntry? candidate, bool capturing, GroupId? group = null)
     {
         var owned = isUp ? KeyPhase.Up : KeyPhase.Repeat;
         if (_holding && key == _remap!.HoldKey)
@@ -170,6 +201,18 @@ public sealed class HoldRemapShadow
             _rolledOver = false;
             EndIfDone();
             return new(HoldKeyVerdict.HoldUp, owned, tap);
+        }
+
+        if (key == _ended && _ended != KeyCode.None)
+        {
+            // The key of a hold focus ended: swallowed to its release, which the machine takes as that key's release.
+            if (!isUp)
+            {
+                return new(HoldKeyVerdict.Claimed, owned, false);
+            }
+
+            _ended = KeyCode.None;
+            return new(HoldKeyVerdict.HoldUp, owned, false);
         }
 
         if (_replayed.Has(key))
@@ -202,6 +245,7 @@ public sealed class HoldRemapShadow
             // A new hold, or the same hold remap again while it follows buttons or keys still down (those count as used).
             _used = Following;
             _remap = candidate;
+            _group = group;
             _holding = true;
             _rolledOver = false;
             _downAt = timestampMs;
@@ -253,7 +297,7 @@ public sealed class HoldRemapShadow
     /// <summary>What <see cref="Save"/> returns; opaque to callers.</summary>
     public readonly struct Snapshot
     {
-        internal Snapshot(HoldRemapEntry? remap, bool holding, bool rolledOver, bool used, long downAt, HeldButtons owed, KeyBits claimed, KeyBits replayed, KeyBits ordered)
+        internal Snapshot(HoldRemapEntry? remap, bool holding, bool rolledOver, bool used, long downAt, HeldButtons owed, KeyBits claimed, KeyBits replayed, KeyBits ordered, GroupId? group, KeyCode ended)
         {
             Remap = remap;
             Holding = holding;
@@ -264,7 +308,13 @@ public sealed class HoldRemapShadow
             Claimed = claimed;
             Replayed = replayed;
             Ordered = ordered;
+            Group = group;
+            Ended = ended;
         }
+
+        internal GroupId? Group { get; }
+
+        internal KeyCode Ended { get; }
 
         internal HoldRemapEntry? Remap { get; }
 

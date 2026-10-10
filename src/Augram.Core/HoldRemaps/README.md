@@ -34,7 +34,7 @@ The resolver (`Mapping/CommandResolver`) and the anchor planner skip commands un
 
 Pure, like `../Capture/CaptureStateMachine`: `Handle(event)` returns outcomes; no hook, timer, clock or window; timestamps arrive on the events; one thread calls it (the engine worker, `Engine/Hosting/EngineWorker.HoldRemaps.cs`; the hook's mirror of its decisions is `Engine/Input/HoldRemapShadow`). It classifies every event against the hold remap of the hold in progress itself, so its decision is what the hook's shadow should have decided and the worker can compare.
 
-Events: `HoldDown(entry)` (the hook claimed a hold key's press for that hold remap), `HoldUp(key)`, `Button(button, down/up, x, y)`, `Wheel(direction, x, y)`, `Key(key, Down | Repeat | Up, x, y)` (any key the hook forwards; x, y is the pointer, for a button output pressed by a key), `Reset`. Outcomes: `Suppress` / `PassThrough` (exactly one, first, for every event but `Reset`), `TapHoldKey(key)`, `PressOutput(command, output, x, y)`, `RepeatOutput(command, output)` (a key output's auto-repeat), `ReleaseOutput(command, output)`, `WheelOutput(command, output, x, y)`, `ReplayKey(key, phase)`, `RunSteps(command, x, y)`.
+Events: `HoldDown(entry)` (the hook claimed a hold key's press for that hold remap), `HoldUp(key)`, `Button(button, down/up, x, y)`, `Wheel(direction, x, y)`, `Key(key, Down | Repeat | Up, x, y)` (any key the hook forwards; x, y is the pointer, for a button output pressed by a key), `FocusMoved` (the app in front is no longer the hold's), `Reset`. Outcomes: `Suppress` / `PassThrough` (exactly one, first, for every event but `FocusMoved` and `Reset`), `HoldEnded(key)`, `TapHoldKey(key)`, `PressOutput(command, output, x, y)`, `RepeatOutput(command, output)` (a key output's auto-repeat), `ReleaseOutput(command, output)`, `WheelOutput(command, output, x, y)`, `ReplayKey(key, phase)`, `RunSteps(command, x, y)`.
 
 | Event, state | Outcomes | Next state |
 |---|---|---|
@@ -62,7 +62,10 @@ Events: `HoldDown(entry)` (the hook claimed a hold key's press for that hold rem
 | Key down, another key, Holding, past the tap time or something used | PassThrough | Holding |
 | Key repeat or up, replayed | Suppress, ReplayKey(key, Repeat or Up) | unchanged |
 | Key, otherwise | PassThrough | unchanged |
-| Reset | ReleaseOutput for the set's output and every claimed key's (newest first), ReplayKey(key, Up) for every replayed key still down; forgets everything | Idle |
+| FocusMoved, Holding or RolledOver with nothing owed (no input button, no input key) | HoldEnded; no tap; the hold key is remembered as ended (Joel, 2026-10-10) | Idle |
+| FocusMoved, otherwise (inputs owed: the hold keeps following them and ends as usual; or no hold) | nothing | unchanged |
+| HoldDown, Key or HoldUp of an ended hold's key | Suppress (its press was swallowed); its release forgets it | unchanged |
+| Reset | ReleaseOutput for the set's output and every claimed key's (newest first), ReplayKey(key, Up) for every replayed key still down; forgets everything, an ended hold's key too | Idle |
 
 ## Invariants
 
