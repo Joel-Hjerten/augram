@@ -61,6 +61,9 @@ internal sealed class EventScript
 
     public EventScript Up(MouseButton button) => Up(button, _x, _y);
 
+    /// <summary>Another program posted a release of <paramref name="button"/> (plan 0005 decision 10).</summary>
+    public EventScript ReleasedElsewhere(MouseButton button) => Add(new CaptureEvent.ButtonReleasedElsewhere(button, _x, _y, _now));
+
     public EventScript Move(int x, int y)
     {
         MoveTo(x, y);

@@ -15,7 +15,9 @@ namespace Augram.Engine.Tests.Input;
 /// it runs a <see cref="CaptureStateMachine"/> on what the gate posted, checks the hook's decision equals the machine's, and
 /// applies what the worker would inject (a hand-back's down, its release, replayed clicks with their keys) to a model of the
 /// OS. Proven, per sequence: a button's release gets its press's decision, the OS never sees an up for a button it does not
-/// hold, keys pair the same way, and when every physical button and key is up again the OS holds none of them.
+/// hold, keys pair the same way, and when every physical button and key is up again the OS holds none of them. Another
+/// program's posted releases (plan 0005 decision 10) come in too, half of them swallowing the real release: the hook never
+/// suppresses one, the press it owns ends in the hook and the machine alike, and the OS still ends holding nothing.
 /// </summary>
 public sealed class ChordPairingTests
 {
@@ -66,6 +68,7 @@ public sealed class ChordPairingTests
         Assert.True(counts.KeysClaimed > 300, $"only {counts.KeysClaimed} keys claimed by a press");
         Assert.True(counts.AnchorPresses > 300, $"only {counts.AnchorPresses} presses of an anchor other than the stroke button");
         Assert.True(counts.KeyPairs > 1000, $"only {counts.KeyPairs} key presses released");
+        Assert.True(counts.EndedElsewhere > 100, $"only {counts.EndedElsewhere} presses ended by a release elsewhere");
     }
 
     /// <summary>Between events: a new window under the pointer (plan and ignore bits), the tray toggle, the stroke button (applied as the worker applies it).</summary>
@@ -142,6 +145,7 @@ public sealed class ChordPairingTests
             foreach (var outcome in outcomes)
             {
                 counts.HandedBack += outcome is CaptureOutcome.HandBack ? 1 : 0;
+                counts.EndedElsewhere += outcome is CaptureOutcome.Cancelled { Reason: CancelReason.ReleasedElsewhere } ? 1 : 0;
                 os.Injected(outcome);
             }
 
@@ -200,6 +204,14 @@ public sealed class ChordPairingTests
             t += rng.Next(0, 28);
             var button = Buttons[rng.Next(Buttons.Length)];
             var key = rng.Next(Keys.Length);
+            if (isDown[(int)button] && rng.Next(10) == 0)
+            {
+                // Another program posts its own release; half the time it swallows the real one, which then never comes.
+                events.Add(RawInput.ButtonReleasedElsewhere(button, x, y, t));
+                isDown[(int)button] = rng.Next(2) == 0;
+                continue;
+            }
+
             switch (rng.Next(9))
             {
                 case 0 or 1 when !isDown[(int)button]:
@@ -259,5 +271,6 @@ public sealed class ChordPairingTests
         public int KeysClaimed;
         public int AnchorPresses;
         public int KeyPairs;
+        public int EndedElsewhere;
     }
 }

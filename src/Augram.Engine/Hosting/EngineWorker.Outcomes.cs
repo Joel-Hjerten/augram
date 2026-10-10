@@ -54,6 +54,10 @@ internal sealed partial class EngineWorker
                 _host.Raise(wheelEvent);
                 Fire(wheelEvent, new PressedTrigger(Trigger.ForWheel(wheel.Direction), wheel.Hold), wheel.Start, null, null);
                 break;
+            case CaptureOutcome.Cancelled { Reason: CancelReason.ReleasedElsewhere } when e is CaptureEvent.ButtonReleasedElsewhere elsewhere:
+                // Rare and worth seeing: another program took the release (plan 0005 decision 10), so nothing is replayed or fired.
+                _log.Info(LogSources.Capture, "Press released elsewhere", ("button", elsewhere.Button), ("x", elsewhere.X), ("y", elsewhere.Y));
+                break;
             case CaptureOutcome.Cancelled cancelled:
                 _log.Debug(LogSources.Capture, "Gesture cancelled", ("reason", cancelled.Reason));
                 break;

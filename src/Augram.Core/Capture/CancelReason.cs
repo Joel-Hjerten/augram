@@ -8,4 +8,7 @@ public enum CancelReason
 
     /// <summary>The pointer stayed still past <see cref="CaptureThresholds.CancelDelayMs"/>.</summary>
     HoldStill,
+
+    /// <summary>Another program posted the owner's release (plan 0005 decision 10): the press ends without a click or a command.</summary>
+    ReleasedElsewhere,
 }

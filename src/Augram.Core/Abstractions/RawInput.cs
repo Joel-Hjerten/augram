@@ -4,7 +4,8 @@ namespace Augram.Core.Abstractions;
 
 /// <summary>
 /// One physical input event as an <see cref="IInputSource"/> delivers it: already translated
-/// to Core's enums, stamped with <see cref="IClock.MonotonicMs"/>, simulated input filtered out.
+/// to Core's enums, stamped with <see cref="IClock.MonotonicMs"/>, simulated input filtered out (except another program's
+/// button release, delivered as <see cref="RawInputKind.ButtonReleasedElsewhere"/>, and wheel ticks that are not Augram's own).
 /// A struct, so delivering one allocates nothing on the hook thread. Which fields apply depends
 /// on <see cref="Kind"/> (see <see cref="RawInputKind"/>); the others are default.
 /// </summary>
@@ -23,6 +24,9 @@ public readonly record struct RawInput(
 
     public static RawInput ButtonUp(MouseButton button, int x, int y, long timestampMs, KeyModifiers modifiers = KeyModifiers.None)
         => new(RawInputKind.ButtonUp, timestampMs, x, y, button, Modifiers: modifiers);
+
+    public static RawInput ButtonReleasedElsewhere(MouseButton button, int x, int y, long timestampMs)
+        => new(RawInputKind.ButtonReleasedElsewhere, timestampMs, x, y, button);
 
     public static RawInput Move(int x, int y, long timestampMs) => new(RawInputKind.Move, timestampMs, x, y);
 

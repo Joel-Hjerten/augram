@@ -67,6 +67,18 @@ public sealed class SuppressionShadow
     public KeyModifiers KeyClaim(CaptureState machineState)
         => Volatile.Read(ref _owner) == NoButton || Frozen(machineState) ? KeyModifiers.None : PressHold.TrackedKeys & ~_beforeKeys;
 
+    /// <summary>
+    /// Another program posted a release of <paramref name="button"/> (plan 0005 decision 10): a press it owns ends here, as the
+    /// machine ends it, and its release stays owed, so a real one that still comes is consumed. Never a decision.
+    /// </summary>
+    public void ReleasedElsewhere(MouseButton button)
+    {
+        if (Volatile.Read(ref _owner) == (int)button)
+        {
+            Volatile.Write(ref _owner, NoButton);
+        }
+    }
+
     /// <summary>The decision for one event without an anchor plan (only the stroke button is an anchor).</summary>
     public bool Decide(in RawInput input, CaptureState machineState, MouseButton strokeButton, bool captureAllowed, bool ignoreKeyHeld)
         => Decide(in input, machineState, strokeButton, captureAllowed, ignoreKeyHeld, AnchorPlan.None);

@@ -124,6 +124,36 @@ public sealed class SharpHookInputSimulatorTests
         Assert.Equal(3, own.Pending);
     }
 
+    [Fact]
+    public void EveryReleasePostedIsAnnouncedFirst_SoTheHookNeverTakesItForAnotherProgramsRelease()
+    {
+        using var hook = new TestGlobalHook();
+        var own = new OwnButtonInjections(() => 0);
+        var simulator = new SharpHookInputSimulator(hook, ownButtons: own);
+
+        simulator.Click(MouseButton.Right, 10, 10);
+        simulator.Press(MouseButton.Left, 10, 10);
+        simulator.Release(MouseButton.Left);
+        simulator.PressRemapButton(MouseButton.Middle, KeyModifiers.None, 10, 10);
+        simulator.ReleaseRemapButton(MouseButton.Middle);
+
+        Assert.Equal(1, own.Pending(MouseButton.Right));
+        Assert.Equal(1, own.Pending(MouseButton.Left));
+        Assert.Equal(1, own.Pending(MouseButton.Middle));
+    }
+
+    [Fact]
+    public void AReleaseThatFailsToPostIsWithdrawn()
+    {
+        using var hook = new TestGlobalHook { SimulateMouseReleaseResult = UioHookResult.Failure };
+        var own = new OwnButtonInjections(() => 0);
+
+        var result = new SharpHookInputSimulator(hook, ownButtons: own).Release(MouseButton.Right);
+
+        Assert.Equal(SimulationResult.Failed, result);
+        Assert.Equal(0, own.Pending(MouseButton.Right));
+    }
+
     /// <summary>What was posted; the test hook also reports the click libuiohook makes of a press and its release, which posts nothing.</summary>
     private static IEnumerable<string> Posted(TestGlobalHook hook) => hook.SimulatedEvents.Where(e => e.Type != EventType.MouseClicked).Select(Describe);
 

@@ -24,10 +24,12 @@ namespace Augram.Platform.MacOS.Input;
 /// </list>
 /// Engine worker thread. No AppKit, so no main-thread hop and no autorelease pool. What is posted comes back through the hook
 /// marked simulated and is dropped there (the spike relied on that too: otherwise a re-posted drag would be swallowed again).
+/// A release posted here is announced first through <paramref name="announceRelease"/> (the engine's <c>OwnButtonInjections</c>),
+/// so the hook does not take it for another program's release (plan 0005 decision 10).
 /// <b>Compiled, not yet run on a Mac</b> (the Platform.MacOS README lists the checks).
 /// </summary>
 [SupportedOSPlatform("macos")]
-public sealed class MacRemapButtonSimulator(IInputSimulator inner) : IInputSimulator
+public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseButton>? announceRelease = null) : IInputSimulator
 {
     private const uint HidEventTap = 0;
 
@@ -55,7 +57,7 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner) : IInputSimul
     public SimulationResult ReleaseRemapButton(MouseButton button)
     {
         var mouse = MacRemapButtonEvents.For(button);
-        var result = TryPointer(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0) : SimulationResult.Failed;
+        var result = TryPointer(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => announceRelease?.Invoke(button)) : SimulationResult.Failed;
         return result == SimulationResult.Success ? result : inner.ReleaseRemapButton(button);
     }
 
@@ -110,8 +112,8 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner) : IInputSimul
         return Post(cgEvent);
     }
 
-    /// <summary>A button's down or up (click count 1); <paramref name="flags"/> set on it unless zero.</summary>
-    private static SimulationResult PostButton(uint type, uint button, MacNative.CGPoint at, ulong flags)
+    /// <summary>A button's down or up (click count 1); <paramref name="flags"/> set on it unless zero; <paramref name="beforePost"/> runs once the event exists, just before it is posted.</summary>
+    private static SimulationResult PostButton(uint type, uint button, MacNative.CGPoint at, ulong flags, Action? beforePost = null)
     {
         var cgEvent = MacNative.CGEventCreateMouseEvent(0, type, at, button);
         if (cgEvent == 0)
@@ -125,6 +127,7 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner) : IInputSimul
             MacNative.CGEventSetFlags(cgEvent, flags);
         }
 
+        beforePost?.Invoke();
         return Post(cgEvent);
     }
 

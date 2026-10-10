@@ -21,6 +21,8 @@ namespace Augram.Core.Capture;
 /// <item>Wheel while Held or Drawing: WheelFiring, the sets freeze; each tick is a WheelTrigger (marked AfterDrawing when the
 /// stroke had started).</item>
 /// <item>Every button's up is suppressed exactly when its down was (A19), whatever happened in between.</item>
+/// <item>Another program's release of a button (plan 0005 decision 10): it is no longer down; a press it owns ends quietly,
+/// with nothing replayed or fired, and its real release stays owed.</item>
 /// </list>
 /// <para>Changing <see cref="StrokeButton"/> mid-capture cancels a stroke press but keeps consuming the old button until
 /// its release; <see cref="Reset"/> is the hard reset for when the OS state is unknown anyway (hook reinstalled).</para>
@@ -37,6 +39,8 @@ public sealed partial class CaptureStateMachine
     private static readonly CaptureOutcome[] CancelDrawing = [CaptureOutcome.EndStroke.Instance, new CaptureOutcome.Cancelled(CancelReason.HoldStill)];
     private static readonly CaptureOutcome[] OtherButtonCancelHeld = [CaptureOutcome.PassThrough.Instance, new CaptureOutcome.Cancelled(CancelReason.OtherButton)];
     private static readonly CaptureOutcome[] OtherButtonCancelDrawing = [CaptureOutcome.PassThrough.Instance, CaptureOutcome.EndStroke.Instance, new CaptureOutcome.Cancelled(CancelReason.OtherButton)];
+    private static readonly CaptureOutcome[] EndedElsewhere = [new CaptureOutcome.Cancelled(CancelReason.ReleasedElsewhere)];
+    private static readonly CaptureOutcome[] EndedElsewhereDrawing = [CaptureOutcome.EndStroke.Instance, new CaptureOutcome.Cancelled(CancelReason.ReleasedElsewhere)];
 
     private MouseButton _strokeButton;
     private MouseButton _owner;
@@ -114,6 +118,7 @@ public sealed partial class CaptureStateMachine
     {
         CaptureEvent.ButtonDown down => OnButtonDown(down),
         CaptureEvent.ButtonUp up => OnButtonUp(up),
+        CaptureEvent.ButtonReleasedElsewhere released => OnReleasedElsewhere(released),
         CaptureEvent.Move move => OnMove(move),
         CaptureEvent.Wheel wheel => OnWheel(wheel),
         CaptureEvent.Tick tick => OnTick(tick),
@@ -220,6 +225,25 @@ public sealed partial class CaptureStateMachine
             default:
                 return SuppressOnly;
         }
+    }
+
+    /// <summary>
+    /// Another program posted a release of this button (plan 0005 decision 10): the OS has it up, and its real release may never
+    /// come. It is no longer down here, so no later press holds it. A press it owns ends quietly: no click, no trigger, no
+    /// recognition, and after a hand-back no injected release (the OS already got one). Its release stays owed, so a real one that
+    /// still comes is consumed (A19: the OS never gets two). No input decision: the event itself is never suppressed.
+    /// </summary>
+    private IReadOnlyList<CaptureOutcome> OnReleasedElsewhere(CaptureEvent.ButtonReleasedElsewhere released)
+    {
+        _down &= ~released.Button.Flag();
+        if (State == CaptureState.Idle || released.Button != _owner)
+        {
+            return None;
+        }
+
+        var state = State;
+        ToIdle();
+        return state == CaptureState.Drawing ? EndedElsewhereDrawing : EndedElsewhere;
     }
 
     /// <summary>The owner released inside the start distance with no tick: a click, a click trigger, or nothing (an After button took part).</summary>

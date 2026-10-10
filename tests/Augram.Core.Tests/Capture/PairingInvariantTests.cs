@@ -105,7 +105,9 @@ public sealed class PairingInvariantTests
     /// <summary>
     /// The same invariant with trigger combinations (Joel, 2026-10-09): random anchor plans per press, so any button may own a
     /// press or join one. Every button's release gets its press's decision, a hand-back's injected down always gets its injected
-    /// release, and nothing is owed once every button is up.
+    /// release, and nothing is owed once every button is up. With another program's releases (plan 0005 decision 10), sometimes
+    /// swallowing the real one: the release that still comes keeps its press's decision, a handed-back press is never released
+    /// again after the other program released it, and what stays owed is only a release that never came.
     /// </summary>
     [Fact]
     public void RandomSequencesWithAnchorsAndChords_PairEveryButton_AndEveryHandBack()
@@ -113,13 +115,15 @@ public sealed class PairingInvariantTests
         var rng = new Random(20261009);
         var joined = 0;
         var handBacks = 0;
+        var endedElsewhere = 0;
 
         for (var sequence = 0; sequence < Sequences; sequence++)
         {
             var machine = new CaptureStateMachine(Stroke, new CaptureThresholds(CancelDelayMs: rng.Next(100, 1500)));
             var pressed = new CaptureOutcome?[Buttons.Length];
             var injected = new bool[Buttons.Length];
-            foreach (var e in Generate(rng, () => RandomPlan(rng)))
+            var physicallyDown = HeldButtons.None;
+            foreach (var e in Generate(rng, () => RandomPlan(rng), foreignReleases: sequence % 2 == 1))
             {
                 var stateBefore = machine.State;
                 var outcomes = machine.Handle(e);
@@ -129,10 +133,18 @@ public sealed class PairingInvariantTests
                     case CaptureEvent.ButtonDown down:
                         joined += stateBefore is CaptureState.Held or CaptureState.Drawing && decision is CaptureOutcome.Suppress && down.Button != Stroke ? 1 : 0;
                         pressed[(int)down.Button] = decision;
+                        physicallyDown |= down.Button.Flag();
                         break;
                     case CaptureEvent.ButtonUp up:
                         Assert.Equal(pressed[(int)up.Button] ?? CaptureOutcome.PassThrough.Instance, decision);
                         pressed[(int)up.Button] = null;
+                        physicallyDown &= ~up.Button.Flag();
+                        break;
+                    case CaptureEvent.ButtonReleasedElsewhere released:
+                        Assert.Null(decision);
+                        // The other program's release reaches the OS: a handed-back press is released there now.
+                        injected[(int)released.Button] = false;
+                        endedElsewhere += outcomes.Any(o => o is CaptureOutcome.Cancelled { Reason: CancelReason.ReleasedElsewhere }) ? 1 : 0;
                         break;
                 }
 
@@ -153,12 +165,14 @@ public sealed class PairingInvariantTests
             }
 
             Assert.Equal(CaptureState.Idle, machine.State);
-            Assert.Equal(HeldButtons.None, machine.OwedButtons);
+            // Still down here means the other program swallowed the real release: only those may stay owed.
+            Assert.Equal(HeldButtons.None, machine.OwedButtons & ~physicallyDown);
             Assert.All(injected, held => Assert.False(held));
         }
 
         Assert.True(joined > 100, $"only {joined} buttons joined a press");
         Assert.True(handBacks > 100, $"only {handBacks} hand-backs");
+        Assert.True(endedElsewhere > 100, $"only {endedElsewhere} presses ended by a release elsewhere");
     }
 
     private static AnchorPlan RandomPlan(Random rng)
@@ -186,8 +200,12 @@ public sealed class PairingInvariantTests
         return decisions.SingleOrDefault();
     }
 
-    /// <summary>Random events where each button alternates down/up and time never goes backwards; ends with every button released.</summary>
-    private static List<CaptureEvent> Generate(Random rng, Func<AnchorPlan>? plan = null)
+    /// <summary>
+    /// Random events where each button alternates down/up and time never goes backwards; ends with every button released. With
+    /// <paramref name="foreignReleases"/>, another program sometimes posts a release of a button that is down, and half the time
+    /// swallows the real one, which then never comes.
+    /// </summary>
+    private static List<CaptureEvent> Generate(Random rng, Func<AnchorPlan>? plan = null, bool foreignReleases = false)
     {
         var events = new List<CaptureEvent>();
         var isDown = new bool[Buttons.Length];
@@ -199,6 +217,13 @@ public sealed class PairingInvariantTests
         {
             t += rng.Next(0, 400);
             var button = Buttons[rng.Next(Buttons.Length)];
+            if (foreignReleases && isDown[(int)button] && rng.Next(8) == 0)
+            {
+                events.Add(new CaptureEvent.ButtonReleasedElsewhere(button, x, y, t));
+                isDown[(int)button] = rng.Next(2) == 0;
+                continue;
+            }
+
             switch (rng.Next(6))
             {
                 case 0 when !isDown[(int)button]:

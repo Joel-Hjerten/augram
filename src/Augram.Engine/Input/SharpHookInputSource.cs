@@ -18,8 +18,10 @@ namespace Augram.Engine.Input;
 /// synthetic input is ignored too (learnings 0001, B4), except wheel events: a vertical simulated wheel event is taken unless
 /// <see cref="OwnWheelInjections"/> claims it as one of Augram's own Scroll step notches, because a vendor tool (Logi Options+)
 /// re-posts every wheel turn of its mouse and wheel triggers would otherwise never fire (2026-10-09). Without an
-/// <see cref="OwnWheelInjections"/> every simulated wheel event is dropped, as before. A dropped button press or release (simulated, or a
-/// button number past 5) is logged as "Button ignored" with the raw number, at most once per
+/// <see cref="OwnWheelInjections"/> every simulated wheel event is dropped, as before. A simulated button release that
+/// <see cref="OwnButtonInjections"/> does not claim as Augram's own is another program's (plan 0005 decision 10): it reaches the
+/// handler as <see cref="RawInputKind.ButtonReleasedElsewhere"/> and is never suppressed. A dropped button press or release (simulated, a
+/// release elsewhere, or a button number past 5) is logged as "Button ignored" with the raw number, at most once per
 /// <see cref="IgnoredLogInterval"/> for each button, reason and direction, so a remapped mouse button that
 /// never reaches the engine (a vendor tool injecting it) shows what it arrives as. A dropped wheel event (one of our own, horizontal,
 /// or no whole-line rotation) is logged the same way as "Wheel ignored", once per interval and reason: a scrolling utility that
@@ -40,6 +42,7 @@ public sealed class SharpHookInputSource : IInputSource
     private readonly IClock _clock;
     private readonly IEventLog _log;
     private readonly OwnWheelInjections? _ownWheel;
+    private readonly OwnButtonInjections? _ownButtons;
 
     // Hook thread only: last "Button ignored" time per (button, simulated, pressed); 0 = never.
     private readonly long[] _ignoredLoggedAt = new long[IgnoredButtonSlots * 4];
@@ -51,12 +54,13 @@ public sealed class SharpHookInputSource : IInputSource
     private InputHandler? _handler;
     private int _generation;
 
-    public SharpHookInputSource(IClock clock, IEventLog? log = null, OwnWheelInjections? ownWheel = null)
+    public SharpHookInputSource(IClock clock, IEventLog? log = null, OwnWheelInjections? ownWheel = null, OwnButtonInjections? ownButtons = null)
     {
         ArgumentNullException.ThrowIfNull(clock);
         _clock = clock;
         _log = log ?? NullEventLog.Instance;
         _ownWheel = ownWheel;
+        _ownButtons = ownButtons;
     }
 
     public event EventHandler<HookHealth>? HookHealthChanged;
@@ -191,9 +195,15 @@ public sealed class SharpHookInputSource : IInputSource
 
     private void OnButton(object? sender, MouseHookEventArgs e)
     {
-        if (e.IsEventSimulated || !MouseButtonMap.TryToCore(e.Data.Button, out var button))
+        if (!MouseButtonMap.TryToCore(e.Data.Button, out var button))
         {
-            LogIgnoredButton(e);
+            LogIgnoredButton(e, "unknown button");
+            return;
+        }
+
+        if (e.IsEventSimulated)
+        {
+            OnSimulatedButton(e, button);
             return;
         }
 
@@ -203,7 +213,31 @@ public sealed class SharpHookInputSource : IInputSource
         e.SuppressEvent = _handler!(in raw);
     }
 
-    private void LogIgnoredButton(MouseHookEventArgs e)
+    /// <summary>
+    /// A simulated press is dropped (logged). A simulated release is one of Augram's own, claimed and dropped silently, or another
+    /// program's: the OS now has the button up, so it goes to the handler as released elsewhere (plan 0005 decision 10), whose
+    /// answer is ignored (it is never suppressed). Without an <see cref="OwnButtonInjections"/> every simulated release is dropped,
+    /// as before.
+    /// </summary>
+    private void OnSimulatedButton(MouseHookEventArgs e, Core.Capture.MouseButton button)
+    {
+        if (e.RawEvent.Type != EventType.MouseReleased || _ownButtons is null)
+        {
+            LogIgnoredButton(e, "simulated");
+            return;
+        }
+
+        if (_ownButtons.TryClaim(button))
+        {
+            return;
+        }
+
+        LogIgnoredButton(e, "released elsewhere");
+        var raw = RawInput.ButtonReleasedElsewhere(button, e.Data.X, e.Data.Y, _clock.MonotonicMs);
+        _handler!(in raw);
+    }
+
+    private void LogIgnoredButton(MouseHookEventArgs e, string reason)
     {
         var number = (int)e.Data.Button;
         var pressed = e.RawEvent.Type == EventType.MousePressed;
@@ -221,7 +255,7 @@ public sealed class SharpHookInputSource : IInputSource
             "Button ignored",
             ("button", number),
             ("direction", pressed ? "down" : "up"),
-            ("reason", e.IsEventSimulated ? "simulated" : "unknown button"),
+            ("reason", reason),
             ("mask", $"0x{(ushort)e.RawEvent.Mask:X4}"),
             ("x", e.Data.X),
             ("y", e.Data.Y));

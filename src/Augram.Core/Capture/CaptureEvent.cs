@@ -33,6 +33,13 @@ public abstract record CaptureEvent(long TimestampMs)
     /// <summary>A physical button release.</summary>
     public sealed record ButtonUp(MouseButton Button, int X, int Y, long TimestampMs) : CaptureEvent(TimestampMs);
 
+    /// <summary>
+    /// Another program posted a release of <paramref name="Button"/> (plan 0005 decision 10): the OS has it up now, and the
+    /// real release may never come (the program swallowed it). The machine stops counting the button as down and ends a press
+    /// it owns, quietly; a release still owed stays owed. It returns no input decision: the event is never suppressed.
+    /// </summary>
+    public sealed record ButtonReleasedElsewhere(MouseButton Button, int X, int Y, long TimestampMs) : CaptureEvent(TimestampMs);
+
     /// <summary>Pointer movement. The Engine need not forward moves while the machine is <see cref="CaptureState.Idle"/>.</summary>
     public sealed record Move(int X, int Y, long TimestampMs) : CaptureEvent(TimestampMs);
 

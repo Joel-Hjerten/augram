@@ -20,4 +20,11 @@ public enum RawInputKind
 
     /// <summary>Key, Modifiers.</summary>
     KeyUp,
+
+    /// <summary>
+    /// Button, X, Y. A simulated release another program posted (not one of Augram's own): the OS now has the button up,
+    /// whatever Augram saw of it (plan 0005 decision 10: a tool that swallows the real release and posts its own). Never
+    /// suppressed.
+    /// </summary>
+    ButtonReleasedElsewhere,
 }

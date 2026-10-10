@@ -15,7 +15,9 @@ namespace Augram.Engine.Input;
 /// back through the hook with <c>IsEventSimulated</c> set and <see cref="SharpHookInputSource"/> drops
 /// them, which is what keeps a replayed click from being captured again. Wheel notches are the exception: the hook takes
 /// other programs' simulated wheel events, so <see cref="Scroll"/> announces its vertical notches to
-/// <see cref="OwnWheelInjections"/> first and the hook drops exactly those.
+/// <see cref="OwnWheelInjections"/> first and the hook drops exactly those. Button releases are the other: the hook takes
+/// another program's simulated release as "released elsewhere" (plan 0005 decision 10), so every release posted here is
+/// announced to <see cref="OwnButtonInjections"/> first (and withdrawn when the post fails).
 /// </summary>
 public sealed class SharpHookInputSimulator : IInputSimulator
 {
@@ -29,17 +31,19 @@ public sealed class SharpHookInputSimulator : IInputSimulator
 
     private readonly IEventSimulator _simulator;
     private readonly OwnWheelInjections? _ownWheel;
+    private readonly OwnButtonInjections? _ownButtons;
 
-    public SharpHookInputSimulator(OwnWheelInjections? ownWheel = null)
-        : this(new EventSimulator(), ownWheel)
+    public SharpHookInputSimulator(OwnWheelInjections? ownWheel = null, OwnButtonInjections? ownButtons = null)
+        : this(new EventSimulator(), ownWheel, ownButtons)
     {
     }
 
-    public SharpHookInputSimulator(IEventSimulator simulator, OwnWheelInjections? ownWheel = null)
+    public SharpHookInputSimulator(IEventSimulator simulator, OwnWheelInjections? ownWheel = null, OwnButtonInjections? ownButtons = null)
     {
         ArgumentNullException.ThrowIfNull(simulator);
         _simulator = simulator;
         _ownWheel = ownWheel;
+        _ownButtons = ownButtons;
     }
 
     public SimulationResult Click(MouseButton button, int x, int y)
@@ -47,7 +51,7 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         var hookButton = MouseButtonMap.ToHook(button);
         var (sx, sy) = Point(x, y);
         var press = _simulator.SimulateMousePress(sx, sy, hookButton);
-        var release = _simulator.SimulateMouseRelease(sx, sy, hookButton);
+        var release = Announced(button, () => _simulator.SimulateMouseRelease(sx, sy, hookButton));
         return Combine(press, release);
     }
 
@@ -57,7 +61,7 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         return Translate(_simulator.SimulateMousePress(sx, sy, MouseButtonMap.ToHook(button)));
     }
 
-    public SimulationResult Release(MouseButton button) => Translate(_simulator.SimulateMouseRelease(MouseButtonMap.ToHook(button)));
+    public SimulationResult Release(MouseButton button) => Translate(Announced(button, () => _simulator.SimulateMouseRelease(MouseButtonMap.ToHook(button))));
 
     /// <summary>False: on Windows the physical moves drive a posted button as they are (the AutoHotkey script proves it).</summary>
     public bool RepostsRemapDrags => false;
@@ -197,6 +201,19 @@ public sealed class SharpHookInputSimulator : IInputSimulator
             ScrollDirection.Right => ((short)-step, WheelAxis.Horizontal, type),
             _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, "Not a scroll direction."),
         };
+    }
+
+    /// <summary>A release of ours, announced before it is posted so the hook does not take it for another program's; withdrawn when it fails.</summary>
+    private SharpHook.Data.UioHookResult Announced(MouseButton button, Func<SharpHook.Data.UioHookResult> release)
+    {
+        _ownButtons?.Expect(button);
+        var result = release();
+        if (result != SharpHook.Data.UioHookResult.Success)
+        {
+            _ownButtons?.Withdraw(button);
+        }
+
+        return result;
     }
 
     private static (short X, short Y) Point(int x, int y)

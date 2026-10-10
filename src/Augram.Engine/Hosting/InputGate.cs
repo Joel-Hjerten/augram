@@ -17,7 +17,8 @@ namespace Augram.Engine.Hosting;
 /// claim a Ctrl/Alt/Shift/Win press for), and posts one message while capturing, and one for a modifier press while a
 /// press is held. Hold remaps (F9) are asked first: the <see cref="HoldRemapShadow"/> decides from the foreground's
 /// <see cref="HoldRemapPlan"/> (one more volatile, <see cref="PublishForeground"/>) and posts one <c>Hold</c> message per
-/// decision while a hold is engaged; what it takes never reaches gesture capture. Moves are forwarded only while a press
+/// decision while a hold is engaged; what it takes never reaches gesture capture. Another program's button release (plan 0005
+/// decision 10) ends the press it owns in the shadow, is posted for the machine, and is never suppressed. Moves are forwarded only while a press
 /// is owed or the machine is not Idle; where the simulator re-posts drags (macOS) a move is also swallowed and posted as a
 /// hold <c>Move</c> while the hold remap holds a button output (one field read, one more message). A full queue drops moves,
 /// ticks and key notes (a move it could not post for a drag passes); a press that cannot be enqueued is passed through and
@@ -253,6 +254,17 @@ internal sealed class InputGate
 
                 suppress = _shadow.Decide(in input, state, StrokeButton, false, false);
                 Post(WorkerMessage.Input(new CaptureEvent.ButtonUp(input.Button, input.X, input.Y, input.TimestampMs), suppress), critical: true);
+                break;
+            case RawInputKind.ButtonReleasedElsewhere:
+                // Another program's release (plan 0005 decision 10): never suppressed. The press it owns ends here and in the
+                // machine; a hold remap's input is not followed (plan 0005, "Not in this plan").
+                var owning = _shadow.Save();
+                _shadow.ReleasedElsewhere(input.Button);
+                if (!Post(WorkerMessage.Input(new CaptureEvent.ButtonReleasedElsewhere(input.Button, input.X, input.Y, input.TimestampMs), false), critical: true))
+                {
+                    _shadow.Restore(owning);
+                }
+
                 break;
             case RawInputKind.Wheel:
                 if (DecideHoldWheel(in input))
