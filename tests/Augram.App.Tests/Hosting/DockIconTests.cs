@@ -10,6 +10,6 @@ public sealed class DockIconTests
     [AvaloniaFact]
     public void TheMacIconIsAResource()
     {
-        Assert.True(AssetLoader.Exists(new Uri("avares://Augram.App/Icons/augram.icns")));
+        Assert.True(AssetLoader.Exists(new Uri("avares://Augram/Icons/augram.icns")));
     }
 }

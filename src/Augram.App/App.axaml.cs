@@ -206,7 +206,7 @@ public sealed partial class App : Application
             return;
         }
 
-        using var icon = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Augram.App/Icons/augram.icns"));
+        using var icon = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Augram/Icons/augram.icns"));
         using var bytes = new MemoryStream();
         icon.CopyTo(bytes);
         Platform.MacOS.MacDock.SetIcon(bytes.ToArray());

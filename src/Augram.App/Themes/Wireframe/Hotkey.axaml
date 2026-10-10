@@ -8,7 +8,7 @@
     colour, so nothing shifts.
   -->
   <ResourceDictionary.MergedDictionaries>
-    <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+    <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
   </ResourceDictionary.MergedDictionaries>
 
   <ControlTheme x:Key="{x:Type hk:HotkeyCaptureBox}" TargetType="hk:HotkeyCaptureBox">

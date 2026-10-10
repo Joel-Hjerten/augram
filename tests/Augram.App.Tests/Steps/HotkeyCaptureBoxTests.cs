@@ -253,7 +253,7 @@ public sealed class HotkeyCaptureBoxTests
         box.Accept();
     }
 
-    internal static ResourceDictionary Theme() => (ResourceDictionary)AvaloniaXamlLoader.Load(new Uri("avares://Augram.App/Themes/Wireframe/Hotkey.axaml"));
+    internal static ResourceDictionary Theme() => (ResourceDictionary)AvaloniaXamlLoader.Load(new Uri("avares://Augram/Themes/Wireframe/Hotkey.axaml"));
 
     private static (HotkeyCaptureBox Box, Button Other, Window Window) Show(IKeyCapture? capture)
     {

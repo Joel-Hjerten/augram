@@ -55,7 +55,7 @@ public sealed class TrayIconSet
 
     private static WindowIcon LoadIcon(string file)
     {
-        using var stream = AssetLoader.Open(new Uri("avares://Augram.App/Assets/" + file));
+        using var stream = AssetLoader.Open(new Uri("avares://Augram/Assets/" + file));
         return new WindowIcon(stream);
     }
 }

@@ -68,7 +68,7 @@ public sealed class RunKeyStartupRegistration : IStartupRegistration
     /// <summary>The registered command line, or null when not registered.</summary>
     public string? RegisteredCommand => _registry.ReadCommand(ValueName);
 
-    /// <summary><c>"C:\…\Augram.App.exe" --hidden</c>: the path quoted (it may hold spaces), then the arguments.</summary>
+    /// <summary><c>"C:\…\Augram.exe" --hidden</c>: the path quoted (it may hold spaces), then the arguments.</summary>
     public static string CommandFor(string? executablePath, string? arguments)
     {
         var quoted = $"\"{executablePath}\"";

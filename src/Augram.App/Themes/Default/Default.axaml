@@ -5,5 +5,5 @@
     included rather than copied so the two cannot drift; replacing the include with this theme's own
     ControlThemes and token overrides is the whole job of skinning.
   -->
-  <StyleInclude Source="avares://Augram.App/Themes/Wireframe/Wireframe.axaml" />
+  <StyleInclude Source="avares://Augram/Themes/Wireframe/Wireframe.axaml" />
 </Styles>

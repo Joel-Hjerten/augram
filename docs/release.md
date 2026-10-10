@@ -8,7 +8,7 @@ CI, the macOS files from Joel's Mac, because signing needs the Developer ID iden
 | Piece | Where |
 |---|---|
 | Version | `<Version>` in `Directory.Build.props`, SemVer 2 (`0.2.0`, `0.3.0-beta.1`). Velopack needs every release higher than the last. |
-| Installer hooks | `VelopackApp.Build().Run()`, the first line of `Main` in `src/Augram.App/Program.cs`. It must stay first: Setup, updates and uninstall start `Augram.App.exe` with hook arguments, and it answers them and exits before the single-instance guard or the UI exist. `vpk pack` checks the call is there. |
+| Installer hooks | `VelopackApp.Build().Run()`, the first line of `Main` in `src/Augram.App/Program.cs`. It must stay first: Setup, updates and uninstall start `Augram.exe` with hook arguments, and it answers them and exits before the single-instance guard or the UI exist. `vpk pack` checks the call is there. |
 | Packaging | `node scripts/package.mjs windows` / `mac` (header comment: what it runs). vpk is a repo-local tool, `.config/dotnet-tools.json`, which the script restores itself; a dotnet missing from PATH is taken from `~/.dotnet` (the Mac). Package and tool versions move together (`Directory.Packages.props`). |
 | Release workflow | `.github/workflows/release.yml`, on a pushed tag `v*.*.*` |
 | Output | `artifacts/publish/<runtime>` (the published app) and `artifacts/releases/<runtime>` (what ships), both emptied by every run, both gitignored |
@@ -123,7 +123,7 @@ Dock icon, no app menu, no Cmd+Tab entry): Joel's decision.
 
 The config folder is the same for the installed app and for dev builds, so both read and write Joel's real gestures and
 commands, and an uninstall leaves it alone (delete the folder by hand for a clean slate). Start at login stores the
-running exe's path followed by `--hidden` (`"%LocalAppData%\Augram\current\Augram.App.exe" --hidden` when installed),
+running exe's path followed by `--hidden` (`"%LocalAppData%\Augram\current\Augram.exe" --hidden` when installed),
 which stays the same across updates; on macOS it registers `Augram.app` itself as a login item (`SMAppService`), so the
 app should stay where it was installed (Applications). Both start Augram in the tray and menu bar with no window (App
 README, "Hidden launch").

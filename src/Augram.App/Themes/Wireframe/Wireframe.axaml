@@ -25,10 +25,10 @@
   <Styles.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
-        <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/Hotkey.axaml" />
-        <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/Sync.axaml" />
-        <ResourceInclude Source="avares://Augram.App/Themes/Wireframe/WindowFinder.axaml" />
+        <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
+        <ResourceInclude Source="avares://Augram/Themes/Wireframe/Hotkey.axaml" />
+        <ResourceInclude Source="avares://Augram/Themes/Wireframe/Sync.axaml" />
+        <ResourceInclude Source="avares://Augram/Themes/Wireframe/WindowFinder.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <ControlTheme x:Key="{x:Type shell:Shell}" TargetType="shell:Shell">

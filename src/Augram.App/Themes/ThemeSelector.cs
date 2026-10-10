@@ -24,7 +24,7 @@ public static class ThemeSelector
             throw new ArgumentException($"Unknown theme '{name}'. Known: {string.Join(", ", Names)}.", nameof(name));
         }
 
-        return new Uri($"avares://Augram.App/Themes/{name}/{name}.axaml");
+        return new Uri($"avares://Augram/Themes/{name}/{name}.axaml");
     }
 
     public static IStyle Load(string name) => (IStyle)AvaloniaXamlLoader.Load(UriFor(name));

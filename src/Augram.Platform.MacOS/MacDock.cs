@@ -16,7 +16,7 @@ public static class MacDock
 
     /// <summary>
     /// Sets the Dock icon from <paramref name="image"/> (any format NSImage reads; Augram passes its .icns). For a process
-    /// that is not an app bundle (a development build run as <c>dotnet Augram.App.dll</c>), which macOS otherwise shows
+    /// that is not an app bundle (a development build run as <c>dotnet Augram.dll</c>), which macOS otherwise shows
     /// with the generic "exec" icon (Joel, 2026-10-09). A bundle has its icon already; the App calls this only without one.
     /// </summary>
     public static unsafe void SetIcon(byte[] image)

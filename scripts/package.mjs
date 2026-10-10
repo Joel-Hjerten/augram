@@ -47,7 +47,7 @@ const targets = {
     elsewhere: "Windows packaging runs on Windows: run it there, or push a v*.*.* tag and let .github/workflows/release.yml build it.",
     runtime: "win-x64",
     channel: "win",
-    mainExe: "Augram.App.exe",
+    mainExe: "Augram.exe",
     icon: join(appProject, "Icons", "augram.ico"),
   },
   mac: {
@@ -55,7 +55,7 @@ const targets = {
     elsewhere: "macOS packaging needs codesign, notarytool and pkgbuild, which exist only on a Mac: run this on the Mac.",
     runtime: "osx-arm64",
     channel: "osx",
-    mainExe: "Augram.App",
+    mainExe: "Augram",
     icon: join(appProject, "Icons", "augram.icns"),
   },
 };

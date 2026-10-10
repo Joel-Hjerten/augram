@@ -8,7 +8,7 @@
     Tokens only, no literal colours. The frame keeps one thickness; finding changes only its colour.
   -->
   <ResourceDictionary.MergedDictionaries>
-    <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+    <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
   </ResourceDictionary.MergedDictionaries>
 
   <ControlTheme x:Key="{x:Type wf:WindowFinder}" TargetType="wf:WindowFinder">

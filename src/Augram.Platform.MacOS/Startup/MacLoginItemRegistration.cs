@@ -12,7 +12,7 @@ namespace Augram.Platform.MacOS.Startup;
 /// <c>registerAndReturnError:</c> or <c>unregisterAndReturnError:</c> (the latter only when something is registered) and turns
 /// a refusal into a <see cref="StartupRegistrationException"/> with the <c>NSError</c>'s text, which the App logs. Such a
 /// login item takes no arguments, so a login launch is detected rather than asked for (<see cref="MacLaunchEvent"/>).
-/// Only an app bundle can be a login item: from a development build run as <c>dotnet Augram.App.dll</c> the status reads
+/// Only an app bundle can be a login item: from a development build run as <c>dotnet Augram.dll</c> the status reads
 /// not registered and turning it on fails with a reason (the App never asks a development build anyway). Main thread (the
 /// App calls it from the UI thread); each call runs in its own autorelease pool.
 /// </summary>

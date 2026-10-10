@@ -71,7 +71,7 @@ The item is the platform's `ITrayHost` (2026-10-09): `AvaloniaTrayHost` (Avaloni
 Windows check list (installed build from this branch; Joel):
 
 1. Install it, open Options › General and tick Start at login. The log (`%APPDATA%\Augram\logs`) says `startup` / `Start at login registered {was=… now=Registered}` (`was=Outdated` when an older build had registered the bare path).
-2. In a terminal: `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v Augram` shows `"C:\Users\<you>\AppData\Local\Augram\current\Augram.App.exe" --hidden`.
+2. In a terminal: `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v Augram` shows `"C:\Users\<you>\AppData\Local\Augram\current\Augram.exe" --hidden`.
 3. Task Manager › Startup apps lists Augram as Enabled.
 4. Sign out and sign in again: Augram's tray icon appears and no window opens. The log has `App started {… hidden=true reason=--hidden}` and `Start at login checked {setting=true status=Registered}`.
 5. Double-click the Augram shortcut: the window opens (`Asked to show the window by another launch`).

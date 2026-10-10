@@ -8,7 +8,7 @@
     frame and line (row rule): Border.row around Grid.row-line, no spacing of its own; the glyphs use row-glyph.
   -->
   <ResourceDictionary.MergedDictionaries>
-    <ResourceInclude Source="avares://Augram.App/Themes/Tokens.axaml" />
+    <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
   </ResourceDictionary.MergedDictionaries>
 
   <ControlTheme x:Key="{x:Type sync:SyncConflictList}" TargetType="sync:SyncConflictList">
