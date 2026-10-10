@@ -1,0 +1,58 @@
+#if DEBUG
+using Augram.App.Components.CommandsWorkbench;
+using Augram.App.Components.CommandTree;
+using Augram.App.Components.SectionForm;
+using Augram.App.Components.Steps.Remap;
+using Augram.App.Declarations;
+using Augram.App.DevGallery;
+using Augram.Core.Steps.Remap;
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
+using Xunit;
+
+namespace Augram.App.Tests.Commands;
+
+/// <summary>The gallery's Button trigger pages (gallery rule, plan 0005 step 5): Magnifier in the Global workbench with its Remap key, and the trigger's states.</summary>
+public sealed class ButtonTriggerGalleryTests
+{
+    [AvaloniaFact]
+    public void TheWorkbenchShowsMagnifierWithItsPressedButtonAndARemapKeyOnly()
+    {
+        var bench = Assert.IsType<CommandsWorkbench>(Assert.IsType<ComponentScreen>(ButtonTriggerGalleryPage.WorkbenchPage()).Build());
+        new Window { Content = bench, Width = 1400, Height = 900 }.Show();
+
+        Assert.Equal("Magnifier", bench.SelectedCommand!.Name);
+        Assert.Equal("Right + Left", bench.SelectedCommand.TriggerText);
+        var header = bench.HeaderPart!;
+        Assert.True(header.IsButtonKind);
+        Assert.Equal(0, header.PressedButtonIndex);
+        Assert.True(header.ShowsDragDistance);
+        Assert.True(bench.OffersRemapStep);
+        Assert.False(bench.IsUnderHoldRemap);
+        Assert.Contains(RemapStepType.Instance, bench.StepsPart!.TypePicker.Offered);
+
+        var row = Assert.Single(bench.StepsPart.Rows);
+        Assert.True(row.IsExpanded);
+        var stepForm = row.Form!;
+        Assert.Contains(stepForm.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == RemapStepForm.ButtonTriggerNote);
+        Assert.Equal(["Key"], stepForm.GetVisualDescendants().OfType<ComboBox>().First().ItemsSource!.Cast<string>());
+    }
+
+    [AvaloniaFact]
+    public void TheStatesPageShowsTheStoredChord_ADraftWithoutAButton_AndATakenChord()
+    {
+        var form = new SectionForm { Screen = Assert.IsType<FormScreen>(ButtonTriggerGalleryPage.Page()) };
+        new Window { Content = form, Width = 1000, Height = 1400 }.Show();
+
+        var headers = form.GetVisualDescendants().OfType<CommandHeader>().ToList();
+        Assert.Equal(["Magnifier", "Magnifier", "Back"], headers.Select(header => header.NameText));
+        Assert.All(headers, header => Assert.True(header.IsButtonKind));
+        Assert.Equal(
+            [null, "Not saved yet: tick a button to hold, as Left for Left + Right.", "Not saved yet: 'Magnifier' already uses Right + Left here. Change the button pressed, a button held or a key."],
+            headers.Select(header => header.DraftNote));
+        Assert.Equal([false, false, true], headers.Select(header => header.CanTakeTrigger));
+        Assert.Equal([false, false, true], headers.Select(header => header.CanSwapTrigger));
+    }
+}
+#endif

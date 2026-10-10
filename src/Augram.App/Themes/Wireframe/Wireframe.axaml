@@ -373,7 +373,8 @@
                                     SelectedIndex="{TemplateBinding SelectedStepIndex}"
                                     StepTypes="{TemplateBinding StepTypes}"
                                     HasCommand="{TemplateBinding HasCommand}"
-                                    UnderHoldRemap="{TemplateBinding IsUnderHoldRemap}" />
+                                    UnderHoldRemap="{TemplateBinding OffersRemapStep}"
+                                    FormContext="{TemplateBinding StepFormContext}" />
                   </DockPanel>
                   <form:SectionForm Name="PART_GroupForm"
                                     Screen="{TemplateBinding GroupForm}"
@@ -653,6 +654,8 @@
                     <TextBlock Classes="field-label header-label" Text="Trigger" VerticalAlignment="Center" />
                     <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
                     <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
+                    <!-- Plan 0005: a button trigger's pressed button (Left in Right + Left); the buttons held are the While holding boxes. -->
+                    <ComboBox Name="PART_TriggerButton" Classes="field-editor" IsVisible="{TemplateBinding IsButtonKind}" />
                     <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                         <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />

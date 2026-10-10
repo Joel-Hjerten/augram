@@ -6,7 +6,8 @@ namespace Augram.App.Components.CommandTree;
 /// <summary>
 /// One <see cref="CommandTreeAction"/> with the section and command it applies to, the new name for
 /// Rename, the kind for SetTriggerKind, the chosen category for SetCategory, the set for SetTriggerHold, the
-/// direction for SetWheelDirection, and for a command under a hold remap the kind for SetInputKind and the input for SetInput.
+/// direction for SetWheelDirection, the pressed button for SetTriggerButton, and for a command under a hold remap the kind for
+/// SetInputKind and the input for SetInput.
 /// </summary>
 public sealed class CommandTreeActionEventArgs : EventArgs
 {
@@ -21,10 +22,12 @@ public sealed class CommandTreeActionEventArgs : EventArgs
         TriggerHold? hold = null,
         WheelDirection? wheel = null,
         InputKind? inputKind = null,
-        HoldInput? input = null)
+        HoldInput? input = null,
+        MouseButton? button = null)
     {
         Hold = hold;
         Wheel = wheel;
+        Button = button;
         UseOn = useOn;
         Action = action;
         Section = section;
@@ -57,6 +60,9 @@ public sealed class CommandTreeActionEventArgs : EventArgs
 
     /// <summary>The direction a <see cref="CommandTreeAction.SetWheelDirection"/> asks for.</summary>
     public WheelDirection? Wheel { get; }
+
+    /// <summary>The pressed button a <see cref="CommandTreeAction.SetTriggerButton"/> asks for (plan 0005).</summary>
+    public MouseButton? Button { get; }
 
     /// <summary>The input kind a <see cref="CommandTreeAction.SetInputKind"/> asks for.</summary>
     public InputKind? InputKind { get; }

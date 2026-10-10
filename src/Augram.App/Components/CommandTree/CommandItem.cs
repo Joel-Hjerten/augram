@@ -45,6 +45,12 @@ public sealed partial record CommandItem(
     /// <summary>A command under a hold remap: the header shows its Input, the step picker offers the Remap step.</summary>
     public bool IsUnderHoldRemap => HoldRemap is not null;
 
+    /// <summary>
+    /// The step picker offers the Remap step (<c>IStepType.HoldRemapsOnly</c>): a command under a hold remap, or one whose trigger
+    /// here (on the header's item, the draft while one waits) is a button trigger (plan 0005: its key is held while both buttons are down).
+    /// </summary>
+    public bool OffersRemapStep => IsUnderHoldRemap || Trigger is Trigger.ButtonTrigger;
+
     /// <summary>The small tag on the row (an app group with categories, e.g. Photoshop); null shows none.</summary>
     public string? CategoryLabel { get; init; }
 

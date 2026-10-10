@@ -20,7 +20,7 @@ public sealed class CommandHeaderTests
         var (header, actions) = Show(Item(vm, "Close window"));
         Assert.True(header.HasCommand);
         Assert.True(header.IsGestureKind);
-        Assert.Equal(["Gesture", "Wheel", "No trigger"], Combo(header, "PART_TriggerKind").ItemsSource!.Cast<string>());
+        Assert.Equal(["Gesture", "Wheel", "Button", "No trigger"], Combo(header, "PART_TriggerKind").ItemsSource!.Cast<string>());
         Assert.Equal(IndexOf(TriggerKind.Gesture), header.KindIndex);
 
         Combo(header, "PART_TriggerKind").SelectedIndex = IndexOf(TriggerKind.Wheel);

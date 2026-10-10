@@ -68,6 +68,9 @@ public enum CommandTreeAction
     /// <summary>Change a wheel trigger's direction (the Up / Down choice beside the kind; <see cref="CommandTreeActionEventArgs.Wheel"/>).</summary>
     SetWheelDirection,
 
+    /// <summary>Change a button trigger's pressed button (plan 0005; the button choice beside the kind; <see cref="CommandTreeActionEventArgs.Button"/>).</summary>
+    SetTriggerButton,
+
     /// <summary>Change the kind of a hold remap command's input (the header's Input dropdown; <see cref="CommandTreeActionEventArgs.InputKind"/>).</summary>
     SetInputKind,
 

@@ -2,6 +2,7 @@ using Augram.App.Components.HotkeyCapture;
 using Augram.App.Declarations;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Remap;
@@ -15,14 +16,23 @@ namespace Augram.App.Components.Steps.Remap;
 /// direction), the modifiers (Ctrl, Alt, Shift, Win, named as this platform names them: four "R"-able toggles for a key, as the
 /// Hotkey form's, one row of check boxes for a button or a wheel, which have no right-hand keys) and a short note on what
 /// they mean. Changing the kind keeps the modifiers and brings back the last button, key or direction chosen in this form.
-/// Every edit emits one new <see cref="RemapStep"/>; the rules (a wheel output only for a wheel input, …) are Core's and
-/// answer through the host's message line, which then shows the stored step again.
+/// On a button trigger (plan 0005, the <see cref="StepFormContext"/>) the output is a key, held while both buttons are down:
+/// Key is the only kind offered (a stored Button or Wheel output stays listed, so it can be changed to a key), with that
+/// trigger's help and note. Every edit emits one new <see cref="RemapStep"/>; the rules (a wheel output only for a wheel input,
+/// a key output on a button trigger, …) are Core's and answer through the host's message line, which then shows the stored
+/// step again.
 /// </summary>
 public sealed class RemapStepForm : IStepForm
 {
     public const string Note = "Held while the input is held; Shift/Ctrl only around a button's press.";
     public const string OutputHelp = "Button and Key are held for as long as the input is held. Wheel sends a notch per notch of the input: for a wheel input only.";
     public const string ButtonModifiersHelp = "For a button they are pressed around its press only (Blender reads them when the drag starts); for a wheel, around each notch.";
+
+    /// <summary>The note on a button trigger's Remap step (plan 0005 decision 3).</summary>
+    public const string ButtonTriggerNote = "Pressed when the trigger fires and held while both buttons are down; released when either is released.";
+
+    /// <summary>The Output ⓘ on a button trigger (plan 0005 decision 8).</summary>
+    public const string ButtonTriggerOutputHelp = "A button trigger holds a key, with its modifiers, for as long as both buttons are down. Button and Wheel outputs are for a hold remap's inputs.";
 
     private static readonly IReadOnlyList<Choice<RemapOutputKind>> Kinds = Choice.FromEnum<RemapOutputKind>();
 
@@ -43,15 +53,20 @@ public sealed class RemapStepForm : IStepForm
 
     public string TypeKey => RemapStepType.Instance.Key;
 
-    public Control Build(IStep current, Action<IStep> changed)
+    public Control Build(IStep current, Action<IStep> changed) => Build(current, changed, StepFormContext.None);
+
+    public Control Build(IStep current, Action<IStep> changed, StepFormContext context)
     {
         ArgumentNullException.ThrowIfNull(changed);
+        ArgumentNullException.ThrowIfNull(context);
         var form = new State(StepParameters.Expect<RemapStep>(current, RemapStepType.Instance).Output, output => changed(new RemapStep(output)));
+        var onButtonTrigger = context.Trigger is Trigger.ButtonTrigger;
+        IReadOnlyList<Choice<RemapOutputKind>> kinds = onButtonTrigger ? [.. Kinds.Where(kind => kind.Value == RemapOutputKind.Key || kind.Value == form.Output.Kind)] : Kinds;
         var screen = new FormScreen("Remap",
         [
             new Section("Remap",
             [
-                new DropdownField<RemapOutputKind>("Output", Kinds, form.Binding(() => form.Output.Kind, form.SetKind), OutputHelp),
+                new DropdownField<RemapOutputKind>("Output", kinds, form.Binding(() => form.Output.Kind, form.SetKind), onButtonTrigger ? ButtonTriggerOutputHelp : OutputHelp),
                 new DropdownField<MouseButton>("Button", Buttons, form.Binding(() => form.ShownButton, form.SetButton)) { Visible = form.Shows(RemapOutputKind.Button) },
                 new CustomField("Keys", () => form.KeyBox, Help: "Capture, press the key or the combination, then Accept or click anywhere else.") { Visible = form.Shows(RemapOutputKind.Key) },
                 new DropdownField<KeyCode>("Key", Keys, form.Binding(() => form.ShownKey, form.SetKey), "Also for a key the capture cannot see.") { Visible = form.Shows(RemapOutputKind.Key) },
@@ -61,7 +76,7 @@ public sealed class RemapStepForm : IStepForm
                 {
                     Visible = form.Hides(RemapOutputKind.Key),
                 },
-                new NoteField("Note", Note),
+                new NoteField("Note", onButtonTrigger ? ButtonTriggerNote : Note),
             ]),
         ]);
         return new SectionForm.SectionForm { Screen = screen };

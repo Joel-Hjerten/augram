@@ -235,6 +235,9 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
             case CommandTreeAction.SetWheelDirection when e.Command is { } command && e.Wheel is { } direction:
                 EditTrigger(command.Id, current => Trigger.ForWheel(direction, current.Hold));
                 break;
+            case CommandTreeAction.SetTriggerButton when e.Command is { } command && e.Button is { } pressed:
+                EditTrigger(command.Id, current => Trigger.ForButton(pressed, current.Hold));
+                break;
             case CommandTreeAction.SetInputKind when e.Command is { } command && e.InputKind is { } inputKind:
                 SetInputKind(command, inputKind);
                 break;

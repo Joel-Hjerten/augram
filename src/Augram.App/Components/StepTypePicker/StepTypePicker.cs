@@ -32,7 +32,10 @@ public sealed class StepTypePicker : TemplatedControl
         set => SetValue(TypesProperty, value);
     }
 
-    /// <summary>The picker serves a command under a hold remap: the types offered only there (Remap) are offered too.</summary>
+    /// <summary>
+    /// The picker serves a command under a hold remap, or one with a button trigger (plan 0005): the types offered only there
+    /// (<see cref="IStepType.HoldRemapsOnly"/>, Remap) are offered too.
+    /// </summary>
     public bool UnderHoldRemap
     {
         get => GetValue(UnderHoldRemapProperty);

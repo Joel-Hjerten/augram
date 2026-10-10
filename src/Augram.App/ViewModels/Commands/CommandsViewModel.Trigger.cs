@@ -8,7 +8,8 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The trigger half of <see cref="CommandsViewModel"/> (F1 "Triggers as combinations", Joel 2026-10-09): the kind (Gesture
-/// through the Select Gesture picker, Wheel, No trigger), the wheel direction and the "While holding" set. What is edited is
+/// through the Select Gesture picker, Wheel, Button (plan 0005), No trigger), the wheel direction, a button trigger's pressed
+/// button and the "While holding" set. What is edited is
 /// this platform's trigger (<see cref="Command.TriggerFor"/>): the original where the command was authored, else its own; the
 /// first edit on the other platform makes it that platform's own, the way steps work (<see cref="Command.WithTriggerFor"/>).
 /// Changing between gesture and wheel keeps the keys and buttons held; choosing "No trigger" unbinds, and ticking keys or
@@ -28,6 +29,9 @@ public sealed partial class CommandsViewModel
             case TriggerKind.Wheel:
                 ChooseWheel(command.Id);
                 break;
+            case TriggerKind.Button:
+                ChooseButton(command.Id);
+                break;
             case TriggerKind.Gesture:
                 _ = PickGestureAsync(command);
                 break;
@@ -35,8 +39,9 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// Wheel up with the keys and buttons held now (the stroke button alone by default). When the rules refuse it (wheel up is
-    /// the volume's here, say) the free direction is saved instead; when both are taken, wheel up waits as the draft with its note.
+    /// Wheel up with the keys and buttons held now (the stroke button alone by default; a button trigger's set as it is, so
+    /// Right + Left becomes Right + wheel up). When the rules refuse it (wheel up is the volume's here, say) the free direction is
+    /// saved instead; when both are taken, wheel up waits as the draft with its note.
     /// </summary>
     private void ChooseWheel(CommandId id)
     {
@@ -46,13 +51,31 @@ public sealed partial class CommandsViewModel
             return;
         }
 
-        var up = Trigger.ForWheel(WheelDirection.Up, Held(current));
-        if (!TrySaveTrigger(id, up) && !TrySaveTrigger(id, Trigger.ForWheel(WheelDirection.Down, Held(current))))
+        var held = current is Trigger.ButtonTrigger ? current.Hold : Held(current);
+        var up = Trigger.ForWheel(WheelDirection.Up, held);
+        if (!TrySaveTrigger(id, up) && !TrySaveTrigger(id, Trigger.ForWheel(WheelDirection.Down, held)))
         {
             KeepDraft(id, up);
         }
 
         ShowSelected();
+    }
+
+    /// <summary>
+    /// A button trigger (plan 0005) pressed with Left, holding the keys and the buttons other than the stroke button held now
+    /// (decision 2: never the stroke button; never the pressed button, <see cref="Trigger.ForButton"/> drops it). Saved when the
+    /// rules take it; otherwise (no button left to hold, or the chord is another command's) it waits as the draft with its note.
+    /// </summary>
+    private void ChooseButton(CommandId id)
+    {
+        var current = DraftedTrigger(id);
+        if (current is Trigger.ButtonTrigger)
+        {
+            return;
+        }
+
+        var held = current.IsBound ? current.Hold with { Buttons = current.Hold.Physical } : new TriggerHold(HeldButtons.None);
+        EditTrigger(id, _ => Trigger.ForButton(MouseButton.Left, held));
     }
 
     private async Task PickGestureAsync(CommandItem command)

@@ -8,8 +8,9 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// Lookless header of the selected command (F5a, F3 "gesture picker from the command editor"): the
-/// name, a trigger-kind dropdown (<c>PART_TriggerKind</c>: Gesture / Wheel / No trigger; the wheel's direction and the
-/// "While holding" boxes are <c>CommandHeader.Hold.cs</c>), for a gesture a glyph button (<c>PART_PickGesture</c>) that asks the host to open the Select Gesture
+/// name, a trigger-kind dropdown (<c>PART_TriggerKind</c>: Gesture / Wheel / Button / No trigger; the wheel's direction and the
+/// "While holding" boxes are <c>CommandHeader.Hold.cs</c>, a button trigger's pressed button <c>CommandHeader.Button.cs</c>),
+/// for a gesture a glyph button (<c>PART_PickGesture</c>) that asks the host to open the Select Gesture
 /// picker, and a Category dropdown (<c>PART_Category</c>) when the item offers categories
 /// (<see cref="CommandItem.Categories"/>: always on the Global tab, only for a group that has some on the
 /// Apps tab). Choosing Gesture in the kind dropdown asks for the picker too. Both dropdowns only ask
@@ -205,6 +206,7 @@ public sealed partial class CommandHeader : TemplatedControl
         _useOnWindows = e.NameScope.Find<CheckBox>("PART_UseOnWindows");
         _useOnMac = e.NameScope.Find<CheckBox>("PART_UseOnMac");
         FindHoldParts(e);
+        FindButtonParts(e);
         FindDragDistanceParts(e);
         FindNotInParts(e);
         FindInputParts(e);

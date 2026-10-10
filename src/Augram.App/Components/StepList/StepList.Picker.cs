@@ -16,7 +16,10 @@ public sealed partial class StepList
     private StepTypePicker.StepTypePicker? _picker;
     private Flyout? _flyout;
 
-    /// <summary>The command is under a hold remap (plan 0002): "New step…" offers the Remap step too.</summary>
+    /// <summary>
+    /// "New step…" offers the types offered only to a hold remap's commands (the Remap step): the command is under a hold remap
+    /// (plan 0002) or has a button trigger (plan 0005; the workbench sets it from <c>CommandItem.OffersRemapStep</c>).
+    /// </summary>
     public bool UnderHoldRemap
     {
         get => GetValue(UnderHoldRemapProperty);

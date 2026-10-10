@@ -3,6 +3,8 @@ using Augram.App.Components.SectionForm;
 using Augram.App.Components.Steps;
 using Augram.App.Components.Steps.Remap;
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
+using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Remap;
 using Avalonia.Controls;
@@ -84,9 +86,33 @@ public sealed class RemapStepFormTests
         Assert.Equal([true, true, false, false], form.GetVisualDescendants().OfType<ModifierToggle>().Select(toggle => toggle.IsOn));
     }
 
-    private static Control Show(IStep step, Action<IStep> changed)
+    /// <summary>Plan 0005 decision 8: on a button trigger the output is a key, held while both buttons are down.</summary>
+    [AvaloniaFact]
+    public void OnAButtonTrigger_OnlyAKeyOutputIsOffered_WithThatTriggersNote()
     {
-        var form = StepFormRegistry.Default.Build(step, changed);
+        var context = StepFormContext.For(Trigger.ForButton(MouseButton.Left, new TriggerHold(HeldButtons.Right)));
+        var form = Show(new RemapStep(new RemapOutput.Key(KeyCode.None)), _ => { }, context);
+
+        Assert.Equal(["Key"], Combo(form, "Output").ItemsSource!.Cast<string>());
+        Assert.Equal(["Output", "Keys", "Key", "Ctrl", "Alt", "Shift", "Win", "Note"], VisibleLabels(form));
+        Assert.Contains(form.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == RemapStepForm.ButtonTriggerNote);
+        Assert.DoesNotContain(form.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == RemapStepForm.Note);
+
+        // A button output stored before stays listed, so it can be turned into a key there.
+        var changes = new List<IStep>();
+        var old = Show(new RemapStep(new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift)), changes.Add, context);
+        var output = Combo(old, "Output");
+        Assert.Equal(["Button", "Key"], output.ItemsSource!.Cast<string>());
+        output.SelectedIndex = 1;
+        Assert.Equal(new RemapStep(new RemapOutput.Key(KeyCode.None, KeyModifiers.Shift)), Assert.Single(changes));
+
+        // Elsewhere every kind is offered, as before.
+        Assert.Equal(["Button", "Key", "Wheel"], Combo(Show(new RemapStep(new RemapOutput.Key(KeyCode.None)), _ => { }), "Output").ItemsSource!.Cast<string>());
+    }
+
+    private static Control Show(IStep step, Action<IStep> changed, StepFormContext? context = null)
+    {
+        var form = StepFormRegistry.Default.Build(step, changed, context ?? StepFormContext.None);
         var window = new Window { Width = 800, Height = 700 };
         window.Resources.MergedDictionaries.Add(HotkeyCaptureBoxTests.Theme());
         window.Content = form;
