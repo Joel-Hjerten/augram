@@ -10,8 +10,9 @@ namespace Augram.Engine.Tests.Hosting;
 
 /// <summary>
 /// Joel's Blender scenarios through the whole engine with fakes (F9, plan 0002 step 3): the hook decides from the foreground's
-/// plan the watch published, the worker plays the outputs in order, the executor runs a Steps command. Every wait polls; acts
-/// are checked before log lines, and the last log line of a scenario says the worker got that far.
+/// plan the watch published, the worker plays the outputs in order, the executor runs a Steps command. The <c>Reposting_</c>
+/// cases use a simulator that asks for drags to be re-posted, as macOS's does (plan 0002 step 3a); the rest are Windows-style.
+/// Every wait polls; acts are checked before log lines, and the last log line of a scenario says the worker got that far.
 /// </summary>
 public sealed class HoldRemapEngineTests
 {
@@ -27,7 +28,7 @@ public sealed class HoldRemapEngineTests
 
         Assert.True(harness.KeyDown(KeyCode.Space, 0));
         Assert.True(harness.Down(Left, 100, 100, 20));
-        harness.Move(150, 100, 30);
+        Assert.False(harness.Move(150, 100, 30), "Windows-style: the physical drag moves the posted Middle as it is");
         Assert.True(harness.Up(Left, 150, 100, 40));
         Assert.True(harness.KeyUp(KeyCode.Space, 60));
         harness.WaitForLog(LogSources.Hold, "Tap not sent");
@@ -54,11 +55,95 @@ public sealed class HoldRemapEngineTests
         Assert.Equal(
             [
                 "down Middle@100,100",
-                "up Middle", "press LeftControl", "down Middle@110,100", "release LeftControl",
-                "up Middle", "press LeftShift", "down Middle@120,100", "release LeftShift",
+                "up Middle", "down Control+Middle@110,100",
+                "up Middle", "down Shift+Middle@120,100",
                 "up Middle",
             ],
             harness.Simulator.All);
+        AssertNoMismatch(harness);
+    }
+
+    [Fact]
+    public void Reposting_SpaceAndRight_ShiftAroundTheDown_ThenEveryMoveAsADrag_ThenUp()
+    {
+        // macOS (learnings 0005): a posted Middle moves only with drags posted for it, so the physical moves are swallowed.
+        using var harness = Blender(reposts: true);
+
+        Assert.True(harness.KeyDown(KeyCode.Space, 0));
+        Assert.False(harness.Move(95, 100, 5), "nothing held yet: the move passes");
+        Assert.True(harness.Down(Right, 100, 100, 10));
+        Assert.True(harness.Move(110, 100, 20), "swallowed, re-posted as a drag of the output");
+        Assert.True(harness.Move(125, 106, 30));
+        Assert.True(harness.Up(Right, 125, 106, 40));
+        Assert.False(harness.Move(130, 106, 50), "nothing held any more: moves pass again");
+        Assert.True(harness.KeyUp(KeyCode.Space, 60));
+        harness.WaitForLog(LogSources.Hold, "Tap not sent");
+
+        Assert.Equal(["down Shift+Middle@100,100", "drag Middle@110,100 by 10,0", "drag Middle@125,106 by 15,6", "up Middle"], harness.Simulator.All);
+        Assert.Equal(2, Property(harness.Log.Single(LogSources.Hold, "Output released"), "drags"));
+        AssertNoMismatch(harness);
+    }
+
+    [Fact]
+    public void Reposting_RollingLeft_LeftAndRight_Right_DragsUnderEachOutputInTurn()
+    {
+        using var harness = Blender(reposts: true);
+
+        Assert.True(harness.KeyDown(KeyCode.Space, 0));
+        Assert.True(harness.Down(Left, 100, 100, 10));
+        Assert.True(harness.Move(105, 100, 15));
+        Assert.True(harness.Down(Right, 110, 100, 20));
+        Assert.True(harness.Move(112, 104, 25));
+        Assert.True(harness.Up(Left, 120, 104, 30));
+        Assert.True(harness.Move(121, 110, 35));
+        Assert.True(harness.Up(Right, 130, 110, 40));
+        Assert.True(harness.KeyUp(KeyCode.Space, 50));
+        harness.WaitForLog(LogSources.Hold, "Tap not sent");
+
+        // Each delta is from the last physical position the worker saw: the move before, or the button event that turned the output.
+        Assert.Equal(
+            [
+                "down Middle@100,100", "drag Middle@105,100 by 5,0",
+                "up Middle", "down Control+Middle@110,100", "drag Middle@112,104 by 2,4",
+                "up Middle", "down Shift+Middle@120,104", "drag Middle@121,110 by 1,6",
+                "up Middle",
+            ],
+            harness.Simulator.All);
+        AssertNoMismatch(harness);
+    }
+
+    [Fact]
+    public void Reposting_ASetWithNoCommand_PassesMoves_UntilAButtonOutputIsHeldAgain()
+    {
+        using var harness = Blender(reposts: true);
+
+        Assert.True(harness.KeyDown(KeyCode.Space, 0));
+        Assert.True(harness.Down(Left, 100, 100, 10));
+        Assert.True(harness.Down(Middle, 100, 100, 20));
+        Assert.False(harness.Move(110, 100, 30), "Left + Middle has no command: nothing held, the move passes");
+        Assert.True(harness.Up(Middle, 110, 100, 40));
+        Assert.True(harness.Move(115, 100, 50), "Left again: Middle held, moves re-posted");
+        Assert.True(harness.Up(Left, 115, 100, 60));
+        Assert.True(harness.KeyUp(KeyCode.Space, 70));
+        harness.WaitForLog(LogSources.Hold, "Tap not sent");
+
+        Assert.Equal(["down Middle@100,100", "up Middle", "down Middle@110,100", "drag Middle@115,100 by 5,0", "up Middle"], harness.Simulator.All);
+        AssertNoMismatch(harness);
+    }
+
+    [Fact]
+    public void Reposting_DragsAreOfTheOutputButton()
+    {
+        using var harness = Blender(reposts: true);
+
+        Assert.True(harness.KeyDown(KeyCode.D, 0));
+        Assert.True(harness.Down(Left, 100, 100, 10));
+        Assert.True(harness.Move(104, 99, 20));
+        Assert.True(harness.Up(Left, 104, 99, 30));
+        Assert.True(harness.KeyUp(KeyCode.D, 40));
+        harness.WaitForLog(LogSources.Hold, "Tap not sent");
+
+        Assert.Equal(["down Alt+X2@100,100", "drag X2@104,99 by 4,-1", "up X2"], harness.Simulator.All);
         AssertNoMismatch(harness);
     }
 
@@ -131,7 +216,7 @@ public sealed class HoldRemapEngineTests
         Assert.True(harness.KeyUp(KeyCode.Space, 240));
         harness.WaitForLog(LogSources.Hold, "Tap not sent");
 
-        Assert.Equal(["press LeftControl", "down Middle@100,100", "release LeftControl", "up Middle"], harness.Simulator.All);
+        Assert.Equal(["down Control+Middle@100,100", "up Middle"], harness.Simulator.All);
         Assert.Empty(harness.Trail.Calls);
         Assert.Empty(harness.Events);
         Assert.False(harness.Log.Has(LogSources.Capture, "Stroke began"));
@@ -337,7 +422,7 @@ public sealed class HoldRemapEngineTests
         Assert.Equal(
             [
                 "down Middle@100,100",
-                "up Middle", "press LeftControl", "down Middle@110,100", "release LeftControl",
+                "up Middle", "down Control+Middle@110,100",
                 "up Middle", "down Middle@120,100",
                 "up Middle",
             ],
@@ -354,10 +439,10 @@ public sealed class HoldRemapEngineTests
         EngineHarness.WaitFor(() => harness.Host.ForegroundHoldPlan.IsEmpty != expected, $"{window.ProcessName}'s hold remaps in front");
     }
 
-    /// <summary>Blender in front and under the pointer, its plan published to the hook.</summary>
-    private static EngineHarness Blender(bool ignored = false, EngineHostOptions? options = null)
+    /// <summary>Blender in front and under the pointer, its plan published to the hook; <paramref name="reposts"/>: a simulator that asks for drags to be re-posted (as macOS's does).</summary>
+    private static EngineHarness Blender(bool ignored = false, EngineHostOptions? options = null, bool reposts = false)
     {
-        var harness = new EngineHarness(options, mapping: BlenderHold.Document(ignored));
+        var harness = new EngineHarness(options, mapping: BlenderHold.Document(ignored), simulator: new FakeInputSimulator(reposts));
         harness.Windows.Window = BlenderHold.Window;
         harness.Windows.ForegroundWindow = BlenderHold.Window;
         EngineHarness.WaitFor(() => !harness.Host.ForegroundHoldPlan.IsEmpty, "Blender's hold remaps in front");

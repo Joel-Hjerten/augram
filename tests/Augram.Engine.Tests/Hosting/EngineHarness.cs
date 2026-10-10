@@ -30,8 +30,10 @@ internal sealed class EngineHarness : IDisposable
         RecognitionOptions? recognition = null,
         MappingDocument? mapping = null,
         Func<EngineEvent, bool>? intercept = null,
-        int? settleDelayMs = null)
+        int? settleDelayMs = null,
+        FakeInputSimulator? simulator = null)
     {
+        Simulator = simulator ?? new FakeInputSimulator();
         Gestures = gestures ?? [LineGesture("right", 200, 0)];
         Mapping = mapping;
         options ??= new EngineHostOptions(StrokeButton, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1));
@@ -71,7 +73,8 @@ internal sealed class EngineHarness : IDisposable
 
     public FakeInputSource Source { get; } = new();
 
-    public FakeInputSimulator Simulator { get; } = new();
+    /// <summary>Records every injection; a test may pass one that re-posts drags (as macOS's does).</summary>
+    public FakeInputSimulator Simulator { get; }
 
     public FakeClock Clock { get; } = new();
 
@@ -119,7 +122,8 @@ internal sealed class EngineHarness : IDisposable
 
     public bool Up(MouseButton button, int x, int y, long t) => Source.Deliver(RawInput.ButtonUp(button, x, y, t));
 
-    public void Move(int x, int y, long t) => Source.Deliver(RawInput.Move(x, y, t));
+    /// <summary>A pointer move; returns the hook's decision (true only while a hold remap re-posts drags).</summary>
+    public bool Move(int x, int y, long t) => Source.Deliver(RawInput.Move(x, y, t));
 
     public bool Wheel(WheelDirection direction, int x, int y, long t) => Source.Deliver(RawInput.WheelTick(direction, x, y, t));
 

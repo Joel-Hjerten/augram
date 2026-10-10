@@ -13,12 +13,15 @@ namespace Augram.Engine.Hosting;
 /// <summary>
 /// The hold remap half of <see cref="EngineWorker"/> (F9, plan 0002): runs the <see cref="HoldRemapMachine"/> on every
 /// <c>Hold</c> message as the capture machine is run, cross-checks the hook's decision against it, and acts on its outcomes
-/// itself, in order with the input (low latency, and nothing reaches the OS out of turn): a button output as its modifiers
-/// down, <see cref="IInputSimulator.Press"/> at the event's position, modifiers up; a key output with its modifiers held
-/// through the press (repeats mirrored); a wheel output through <see cref="IInputSimulator.Scroll"/> (so
-/// <see cref="OwnWheelInjections"/> claims it); the hold key's tap; replayed keys. A Steps command goes to the
-/// <see cref="CommandExecutor"/>. Keys the hook swallowed only to keep the order behind a rollover are replayed here as they
-/// were. A reset (hook reset, dropped events, engine stop) releases everything still down (A19). Acts first, logs second.
+/// itself, in order with the input (low latency, and nothing reaches the OS out of turn): a button output through
+/// <see cref="IInputSimulator.PressRemapButton"/> (its modifiers around the down, at the event's position) and
+/// <see cref="IInputSimulator.ReleaseRemapButton"/>; where the simulator re-posts drags (macOS), each move the hook swallowed
+/// while it is held through <see cref="IInputSimulator.DragRemapButton"/>, with the delta from the previous physical position
+/// seen here (a button event's or a move's); a key output with its modifiers held through the press (repeats mirrored); a
+/// wheel output through <see cref="IInputSimulator.Scroll"/> (so <see cref="OwnWheelInjections"/> claims it); the hold key's
+/// tap; replayed keys. A Steps command goes to the <see cref="CommandExecutor"/>. Keys the hook swallowed only to keep the
+/// order behind a rollover are replayed here as they were. A reset (hook reset, dropped events, engine stop) releases
+/// everything still down (A19). Acts first, logs second.
 /// </summary>
 internal sealed partial class EngineWorker
 {
@@ -28,6 +31,18 @@ internal sealed partial class EngineWorker
     private readonly HashSet<KeyCode> _orderedDown = [];
 
     private long _holdDownAt;
+
+    /// <summary>The last physical position a hold message carried (a button event's or a move's): a re-posted drag's delta is from here.</summary>
+    private int _holdX;
+    private int _holdY;
+
+    /// <summary>Drags re-posted, and how many failed, under the button output held now; reported with its release.</summary>
+    private int _drags;
+    private int _dragFailures;
+    private (int Drags, int Failures) _releasedDrags;
+
+    /// <summary>A swallowed move the machine did not re-post was warned about once since the last reset or hold.</summary>
+    private bool _moveMismatchWarned;
 
     private void OnHold(WorkerMessage message)
     {
@@ -43,6 +58,7 @@ internal sealed partial class EngineWorker
                 Act(outcome, entry);
             }
 
+            NotePosition(e, message.HookSuppressed, outcomes);
             CrossCheckHold(e, message.HookSuppressed, outcomes, entry);
             LogHold(e, before, outcomes, entry, message.App);
         }
@@ -106,6 +122,7 @@ internal sealed partial class EngineWorker
 
         var released = outcomes.Count + _orderedDown.Count;
         _orderedDown.Clear();
+        _moveMismatchWarned = false;
         if (released > 0)
         {
             _log.Debug(LogSources.Hold, "Hold remap reset; everything held released", ("reason", reason), ("released", released));
@@ -120,6 +137,7 @@ internal sealed partial class EngineWorker
             HoldRemapOutcome.PressOutput press => PressOutput(press.Output, press.X, press.Y),
             HoldRemapOutcome.RepeatOutput { Output: RemapOutput.Key { IsSet: true } key } => _simulator.KeyPress(key.KeyCode),
             HoldRemapOutcome.ReleaseOutput release => ReleaseOutput(release.Output),
+            HoldRemapOutcome.DragOutput drag => Drag(drag),
             HoldRemapOutcome.WheelOutput wheel => TurnWheel(wheel.Output, wheel.X, wheel.Y),
             HoldRemapOutcome.ReplayKey { Phase: KeyPhase.Up } replay => _simulator.KeyRelease(replay.Key),
             HoldRemapOutcome.ReplayKey replay => _simulator.KeyPress(replay.Key),
@@ -135,16 +153,13 @@ internal sealed partial class EngineWorker
 
     private SimulationResult Tap(KeyCode key) => Worst(_simulator.KeyPress(key), _simulator.KeyRelease(key));
 
-    /// <summary>A button output: its modifiers around the down only (Blender reads them when the drag starts); a key output: its modifiers held until its release.</summary>
+    /// <summary>A button output: its modifiers around the down only (Blender reads them when the drag starts), the simulator's own way; a key output: its modifiers held until its release.</summary>
     private SimulationResult PressOutput(RemapOutput output, int x, int y)
     {
         switch (output)
         {
             case RemapOutput.Button button:
-                var keys = SharpHookInputSimulator.ModifierKeys(button.Modifiers & HotkeyKeys.AllModifiers, KeyModifiers.None);
-                var pressed = PressKeys(keys);
-                pressed = Worst(pressed, _simulator.Press(button.MouseButton, x, y));
-                return Worst(pressed, ReleaseKeys(keys));
+                return _simulator.PressRemapButton(button.MouseButton, button.Modifiers & HotkeyKeys.AllModifiers, x, y);
             case RemapOutput.Key { IsSet: true } key:
                 return Worst(PressKeys(ModifierKeysOf(key)), _simulator.KeyPress(key.KeyCode));
             default:
@@ -152,12 +167,60 @@ internal sealed partial class EngineWorker
         }
     }
 
-    private SimulationResult ReleaseOutput(RemapOutput output) => output switch
+    private SimulationResult ReleaseOutput(RemapOutput output)
     {
-        RemapOutput.Button button => _simulator.Release(button.MouseButton),
-        RemapOutput.Key { IsSet: true } key => Worst(_simulator.KeyRelease(key.KeyCode), ReleaseKeys(ModifierKeysOf(key))),
-        _ => SimulationResult.Success,
-    };
+        switch (output)
+        {
+            case RemapOutput.Button button:
+                _releasedDrags = (_drags, _dragFailures);
+                _drags = 0;
+                _dragFailures = 0;
+                return _simulator.ReleaseRemapButton(button.MouseButton);
+            case RemapOutput.Key { IsSet: true } key:
+                return Worst(_simulator.KeyRelease(key.KeyCode), ReleaseKeys(ModifierKeysOf(key)));
+            default:
+                return SimulationResult.Success;
+        }
+    }
+
+    /// <summary>
+    /// A swallowed physical move re-posted as a drag of the button output held (macOS), with the delta from the previous
+    /// physical position seen here. Counted; a failure is warned once per output (a move comes many times a second), the
+    /// count goes with the output's release line.
+    /// </summary>
+    private SimulationResult Drag(HoldRemapOutcome.DragOutput drag)
+    {
+        var result = _simulator.DragRemapButton(drag.Output.MouseButton, drag.X, drag.Y, drag.X - _holdX, drag.Y - _holdY);
+        _drags++;
+        if (result == SimulationResult.Success)
+        {
+            return result;
+        }
+
+        return _dragFailures++ == 0 ? result : SimulationResult.Success;
+    }
+
+    /// <summary>
+    /// After a button event or a move: the position the next drag's delta is taken from. A move the hook swallowed that the
+    /// machine does not re-post (it reset without the hook: dropped events) still moves the pointer, so it never freezes.
+    /// </summary>
+    private void NotePosition(HoldRemapEvent e, bool hookSuppressed, IReadOnlyList<HoldRemapOutcome> outcomes)
+    {
+        switch (e)
+        {
+            case HoldRemapEvent.Button button:
+                (_holdX, _holdY) = (button.X, button.Y);
+                break;
+            case HoldRemapEvent.Move move:
+                (_holdX, _holdY) = (move.X, move.Y);
+                if (hookSuppressed && outcomes[0] is HoldRemapOutcome.PassThrough)
+                {
+                    _simulator.MoveTo(move.X, move.Y);
+                }
+
+                break;
+        }
+    }
 
     /// <summary>One notch at the event's position with the output's modifiers held around it; <see cref="IInputSimulator.Scroll"/> announces it to <see cref="OwnWheelInjections"/>, so no wheel trigger sees it.</summary>
     private SimulationResult TurnWheel(RemapOutput.Wheel wheel, int x, int y)
@@ -221,8 +284,9 @@ internal sealed partial class EngineWorker
 
     /// <summary>
     /// The hook decided from its shadow, which follows the machine's rules; a mismatch on the hold key's own press or release,
-    /// or on a button the hold remap names, is a bug (Warning). Elsewhere (a wheel notch, another key or button) it can follow
-    /// a reset the shadow did not share (dropped events), so it is logged at Debug.
+    /// on a button the hold remap names, or on a move swallowed for a drag (the first of a hold: the rest are the same
+    /// mismatch, at Debug) is a bug (Warning). Elsewhere (a wheel notch, another key or button) it can follow a reset the
+    /// shadow did not share (dropped events), so it is logged at Debug.
     /// </summary>
     private void CrossCheckHold(HoldRemapEvent e, bool hookSuppressed, IReadOnlyList<HoldRemapOutcome> outcomes, HoldRemapEntry? entry)
     {
@@ -238,6 +302,13 @@ internal sealed partial class EngineWorker
         var own = e is HoldRemapEvent.HoldDown or HoldRemapEvent.HoldUp or HoldRemapEvent.FocusMoved
             || (e is HoldRemapEvent.Button button && entry?.IsInput(button.MouseButton) == true)
             || (e is HoldRemapEvent.Key key && key.KeyCode == entry?.HoldKey);
+        if (e is HoldRemapEvent.Move)
+        {
+            // Every move of the drag would mismatch alike: one Warning until the next reset or hold, the rest at Debug.
+            own = !_moveMismatchWarned;
+            _moveMismatchWarned = true;
+        }
+
         var level = own ? EventLevel.Warning : EventLevel.Debug;
         if (_log.IsEnabled(level))
         {
@@ -252,6 +323,7 @@ internal sealed partial class EngineWorker
         if (started)
         {
             _holdDownAt = e.TimestampMs;
+            _moveMismatchWarned = false;
         }
 
         if (!_log.IsEnabled(EventLevel.Debug))
@@ -298,6 +370,9 @@ internal sealed partial class EngineWorker
                 case HoldRemapOutcome.PressOutput press:
                     _log.Debug(LogSources.Hold, "Output pressed", ("output", press.Output.Describe(HotkeyText.Names)), ("command", CommandName(entry, press.CommandId)), ("x", press.X), ("y", press.Y));
                     break;
+                case HoldRemapOutcome.ReleaseOutput { Output: RemapOutput.Button } release when _gate.RepostsRemapDrags:
+                    _log.Debug(LogSources.Hold, "Output released", ("output", release.Output.Describe(HotkeyText.Names)), ("command", CommandName(entry, release.CommandId)), ("drags", _releasedDrags.Drags), ("dragsFailed", _releasedDrags.Failures));
+                    break;
                 case HoldRemapOutcome.ReleaseOutput release:
                     _log.Debug(LogSources.Hold, "Output released", ("output", release.Output.Describe(HotkeyText.Names)), ("command", CommandName(entry, release.CommandId)));
                     break;
@@ -329,6 +404,7 @@ internal sealed partial class EngineWorker
         HoldRemapOutcome.PressOutput press => $"press {press.Output.Describe(HotkeyText.Names)}",
         HoldRemapOutcome.RepeatOutput repeat => $"repeat {repeat.Output.Describe(HotkeyText.Names)}",
         HoldRemapOutcome.ReleaseOutput release => $"release {release.Output.Describe(HotkeyText.Names)}",
+        HoldRemapOutcome.DragOutput drag => $"drag {drag.Output.Describe(HotkeyText.Names)}",
         HoldRemapOutcome.WheelOutput wheel => $"turn {wheel.Output.Describe(HotkeyText.Names)}",
         HoldRemapOutcome.ReplayKey replay => $"replay {KeyName(replay.Key)} {replay.Phase.ToString().ToLowerInvariant()}",
         _ => outcome.GetType().Name,

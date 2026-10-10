@@ -5,8 +5,8 @@ namespace Augram.Core.Tests.Steps.Support;
 
 /// <summary>
 /// Fake <see cref="IInputSimulator"/>: records every call as one line ("press VolumeUp", "release VolumeUp",
-/// "hotkey Control+W", "hotkey Alt+F9 right Alt", "click Left@10,20", "scroll Down x3@100,200", "text hi") in order, with a
-/// configurable answer per call kind.
+/// "hotkey Control+W", "hotkey Alt+F9 right Alt", "click Left@10,20", "scroll Down x3@100,200", "text hi", "remap down
+/// Shift+Middle@10,20") in order, with a configurable answer per call kind. Never re-posts drags.
 /// </summary>
 internal sealed class FakeInputSimulator : IInputSimulator
 {
@@ -19,6 +19,14 @@ internal sealed class FakeInputSimulator : IInputSimulator
     public SimulationResult OtherResult { get; set; } = SimulationResult.Success;
 
     public IReadOnlyList<string> Calls => _calls;
+
+    public bool RepostsRemapDrags => false;
+
+    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y) => Record($"remap down {modifiers}+{button}@{x},{y}", OtherResult);
+
+    public SimulationResult ReleaseRemapButton(MouseButton button) => Record($"remap up {button}", OtherResult);
+
+    public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => Record($"drag {button}@{x},{y} by {dx},{dy}", OtherResult);
 
     public SimulationResult Click(MouseButton button, int x, int y) => Record($"click {button}@{x},{y}", OtherResult);
 

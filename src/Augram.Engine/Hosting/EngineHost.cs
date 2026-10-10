@@ -69,7 +69,8 @@ public sealed partial class EngineHost : IDisposable
             SingleWriter = false,
             AllowSynchronousContinuations = false,
         });
-        _gate = new InputGate(_queue.Writer, _log, options.StrokeButton, options.IgnoreKey, options.Enabled);
+        // The simulator says once whether a hold remap's button output needs its drags re-posted (macOS); the hook reads the bool.
+        _gate = new InputGate(_queue.Writer, _log, options.StrokeButton, options.IgnoreKey, options.Enabled, ports.Simulator.RepostsRemapDrags);
         _keyCapture = new KeyCaptureController(_gate, _log);
 
         var machine = new CaptureStateMachine(options.StrokeButton, options.Thresholds);

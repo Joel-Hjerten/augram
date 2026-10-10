@@ -7,7 +7,10 @@ namespace Augram.Engine.Tests.Fakes;
 /// Records every injection; thread-safe because the worker and the executor call it. Clicks are in <see cref="Clicks"/>,
 /// keys and text in <see cref="Keys"/>, and every mouse injection (clicks included) in order in <see cref="Mouse"/>
 /// ("click Right@10,20", "down Right@10,20", "move 50,20", "scroll Down x1@10,20", "up Right"), so a test can check that every injected down got
-/// its up (A19). <see cref="All"/> has both in the one order they were made (hold remaps interleave keys and buttons).
+/// its up (A19). A hold remap's button output is recorded the same way, its modifiers in front ("down Shift+Middle@10,20",
+/// "up Middle"), and a re-posted drag as "drag Middle@15,20 by 5,0". <see cref="All"/> has both in the one order they were
+/// made (hold remaps interleave keys and buttons). <see cref="RepostsRemapDrags"/> is set for a simulator that asks the engine
+/// to re-post drags, as the macOS one does.
 /// <see cref="BlockOn"/> holds the calling thread inside the injection of that entry until <see cref="Unblock"/>, so a test
 /// can keep the worker busy while the hook decides.
 /// </summary>
@@ -20,6 +23,10 @@ internal sealed class FakeInputSimulator : IInputSimulator
     private readonly List<string> _all = [];
     private readonly ManualResetEventSlim _released = new(true);
     private string? _blockOn;
+
+    public FakeInputSimulator(bool repostsRemapDrags = false) => RepostsRemapDrags = repostsRemapDrags;
+
+    public bool RepostsRemapDrags { get; }
 
     public IReadOnlyList<(MouseButton Button, int X, int Y)> Clicks
     {
@@ -96,6 +103,13 @@ internal sealed class FakeInputSimulator : IInputSimulator
     public SimulationResult Press(MouseButton button, int x, int y) => RecordMouse($"down {button}@{x},{y}");
 
     public SimulationResult Release(MouseButton button) => RecordMouse($"up {button}");
+
+    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y)
+        => RecordMouse(modifiers == KeyModifiers.None ? $"down {button}@{x},{y}" : $"down {modifiers}+{button}@{x},{y}");
+
+    public SimulationResult ReleaseRemapButton(MouseButton button) => RecordMouse($"up {button}");
+
+    public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => RecordMouse($"drag {button}@{x},{y} by {dx},{dy}");
 
     public SimulationResult MoveTo(int x, int y) => RecordMouse($"move {x},{y}");
 

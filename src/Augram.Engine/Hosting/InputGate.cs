@@ -18,13 +18,14 @@ namespace Augram.Engine.Hosting;
 /// press is held. Hold remaps (F9) are asked first: the <see cref="HoldRemapShadow"/> decides from the foreground's
 /// <see cref="HoldRemapPlan"/> (one more volatile, <see cref="PublishForeground"/>) and posts one <c>Hold</c> message per
 /// decision while a hold is engaged; what it takes never reaches gesture capture. Moves are forwarded only while a press
-/// is owed or the machine is not Idle. A full queue drops moves, ticks and key notes; a press that cannot be enqueued is
-/// passed through and the shadow restored; a release is still consumed (A19) and the worker resets the machines when it
-/// sees the drop count. The worker publishes state and the applied stroke button here; the App writes
-/// <see cref="Enabled"/> and <see cref="IgnoreKey"/>; <see cref="KeyCaptureController"/> writes the
-/// capture flag; the <see cref="IgnoreListWatch"/> publishes the pointer's answer
-/// (<see cref="PublishPointer"/>) and the foreground's hold remaps and, while it watches the pointer, is handed each move's
-/// position.
+/// is owed or the machine is not Idle; where the simulator re-posts drags (macOS) a move is also swallowed and posted as a
+/// hold <c>Move</c> while the hold remap holds a button output (one field read, one more message). A full queue drops moves,
+/// ticks and key notes (a move it could not post for a drag passes); a press that cannot be enqueued is passed through and
+/// the shadow restored; a release is still consumed (A19) and the worker resets the machines when it sees the drop count.
+/// The worker publishes state and the applied stroke button here; the App writes <see cref="Enabled"/> and
+/// <see cref="IgnoreKey"/>; <see cref="KeyCaptureController"/> writes the capture flag; the <see cref="IgnoreListWatch"/>
+/// publishes the pointer's answer (<see cref="PublishPointer"/>) and the foreground's hold remaps and, while it watches the
+/// pointer, is handed each move's position.
 /// </summary>
 internal sealed class InputGate
 {
@@ -39,6 +40,7 @@ internal sealed class InputGate
     private readonly SuppressionShadow _shadow = new();
     private readonly KeySuppressionShadow _keys = new();
     private readonly HoldRemapShadow _hold = new();
+    private readonly bool _repostsRemapDrags;
     private int _state;
     private int _strokeButton;
     private int _ignoreKey;
@@ -55,14 +57,24 @@ internal sealed class InputGate
     private int _pointerY;
     private IgnoreListWatch? _watch;
 
-    public InputGate(ChannelWriter<WorkerMessage> writer, IEventLog log, MouseButton strokeButton, KeyModifiers ignoreKey, bool enabled)
+    /// <param name="writer">The hook-to-worker channel.</param>
+    /// <param name="log">Trace only, from the hook thread.</param>
+    /// <param name="strokeButton">The stroke button until the worker publishes another.</param>
+    /// <param name="ignoreKey">The ignore key.</param>
+    /// <param name="enabled">The tray toggle.</param>
+    /// <param name="repostsRemapDrags">The simulator's <see cref="IInputSimulator.RepostsRemapDrags"/>, read once: while a hold remap holds a button output, moves are swallowed and posted for the worker to re-post as drags (macOS).</param>
+    public InputGate(ChannelWriter<WorkerMessage> writer, IEventLog log, MouseButton strokeButton, KeyModifiers ignoreKey, bool enabled, bool repostsRemapDrags = false)
     {
         _writer = writer;
         _log = log;
         _strokeButton = (int)strokeButton;
         _ignoreKey = (int)ignoreKey;
         _enabled = enabled;
+        _repostsRemapDrags = repostsRemapDrags;
     }
+
+    /// <summary>Moves are swallowed and re-posted as drags while a hold remap holds a button output (the simulator asked for it, macOS).</summary>
+    public bool RepostsRemapDrags => _repostsRemapDrags;
 
     public bool Enabled
     {
@@ -167,6 +179,14 @@ internal sealed class InputGate
             case RawInputKind.Move:
                 _pointerX = input.X;
                 _pointerY = input.Y;
+                // macOS: a posted button moves only with drags posted for it (learnings 0005). While the hold remap holds a
+                // button output the physical move is swallowed and the worker re-posts it, in order with the hold messages. A
+                // move that cannot be enqueued is counted and passes (the next drag's delta still covers it).
+                if (_repostsRemapDrags && _hold.HoldsButtonOutput)
+                {
+                    suppress = Post(WorkerMessage.Hold(new HoldRemapEvent.Move(input.X, input.Y, input.TimestampMs), hookSuppressed: true), critical: false);
+                }
+
                 // The shadow knows about a consumed press before the worker has run the machine; forward from that moment.
                 if (state != CaptureState.Idle || _shadow.Owed.HasValue)
                 {

@@ -9,7 +9,7 @@ namespace Augram.Core.Tests.HoldRemaps.Support;
 /// Readable event sequences for <see cref="HoldRemapMachine"/> tests, with a clock and a pointer, in the style of the capture
 /// tests' <c>EventScript</c>: <c>Hold().After(50).Down(Left).Up(Left).After(100).Release()</c>. Each event is fed at once;
 /// <see cref="Work"/> is what the worker was asked to do so far, as short phrases ("press Ctrl + Middle", "tap Space",
-/// "replay B down", "run Note"), and <see cref="Decisions"/> the input decisions in order.
+/// "replay B down", "run Note", "drag Middle at 120,100"), and <see cref="Decisions"/> the input decisions in order.
 /// </summary>
 internal sealed class HoldScript
 {
@@ -63,6 +63,9 @@ internal sealed class HoldScript
 
     public HoldScript Wheel(WheelDirection direction) => Feed(new HoldRemapEvent.Wheel(direction, _x, _y, _now));
 
+    /// <summary>A physical move to (x, y), as the hook feeds it where the simulator re-posts drags (macOS); the pointer stays there.</summary>
+    public HoldScript Move(int x, int y) => At(x, y).Feed(new HoldRemapEvent.Move(x, y, _now));
+
     public HoldScript KeyDown(KeyCode key) => Feed(new HoldRemapEvent.Key(key, KeyPhase.Down, _now, _x, _y));
 
     public HoldScript KeyRepeat(KeyCode key) => Feed(new HoldRemapEvent.Key(key, KeyPhase.Repeat, _now, _x, _y));
@@ -111,6 +114,7 @@ internal sealed class HoldScript
         HoldRemapOutcome.PressOutput press => $"press {press.Output.Describe(HostPlatform.Windows)}",
         HoldRemapOutcome.RepeatOutput repeat => $"repeat {repeat.Output.Describe(HostPlatform.Windows)}",
         HoldRemapOutcome.ReleaseOutput release => $"release {release.Output.Describe(HostPlatform.Windows)}",
+        HoldRemapOutcome.DragOutput drag => $"drag {drag.Output.Describe(HostPlatform.Windows)} at {drag.X},{drag.Y}",
         HoldRemapOutcome.WheelOutput wheel => $"turn {wheel.Output.Describe(HostPlatform.Windows)}",
         HoldRemapOutcome.ReplayKey replay => $"replay {HotkeyText.KeyName(replay.Key)} {replay.Phase.ToString().ToLowerInvariant()}",
         HoldRemapOutcome.RunSteps run => $"run {_entry.Bindings.Single(binding => binding.CommandId == run.CommandId).Name}",

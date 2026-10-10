@@ -4,6 +4,7 @@ using SharpHook.Data;
 using SharpHook.Testing;
 using Xunit;
 using KeyCode = Augram.Core.Abstractions.KeyCode;
+using MouseButton = Augram.Core.Capture.MouseButton;
 using WheelAxis = SharpHook.Data.MouseWheelScrollDirection;
 using WheelUnit = SharpHook.Data.MouseWheelScrollType;
 
@@ -11,8 +12,9 @@ namespace Augram.Engine.Tests.Input;
 
 /// <summary>
 /// The tested pieces of the SharpHook simulator: which physical modifier keys a hotkey holds (the left keys as before;
-/// the right-hand key, F5: RAlt, RCtrl, for a modifier in the right-hand set), and what one wheel notch is on each
-/// platform and how a scroll is sent, over SharpHook's own test hook.
+/// the right-hand key, F5: RAlt, RCtrl, for a modifier in the right-hand set), what one wheel notch is on each
+/// platform and how a scroll is sent, and a hold remap's button output (its modifiers around the press, no drag re-posting:
+/// Windows as before plan 0002 step 3a), over SharpHook's own test hook.
 /// </summary>
 public sealed class SharpHookInputSimulatorTests
 {
@@ -81,6 +83,34 @@ public sealed class SharpHookInputSimulatorTests
     }
 
     [Fact]
+    public void ARemapButtonIsItsLeftModifiersAroundThePress_ItsReleaseAPlainRelease_AndNoDragIsReposted()
+    {
+        using var hook = new TestGlobalHook();
+        var simulator = new SharpHookInputSimulator(hook);
+
+        Assert.Equal(SimulationResult.Success, simulator.PressRemapButton(MouseButton.Middle, KeyModifiers.Shift | KeyModifiers.Control, 40, 50));
+        Assert.Equal(SimulationResult.Success, simulator.ReleaseRemapButton(MouseButton.Middle));
+
+        // Exactly what the worker posted itself before: Ctrl, Shift down, Middle down at the point, Shift, Ctrl up; Middle up.
+        Assert.Equal(
+            ["KeyPressed VcLeftControl", "KeyPressed VcLeftShift", "MousePressed Button3@40,50", "KeyReleased VcLeftShift", "KeyReleased VcLeftControl", "MouseReleased Button3"],
+            Posted(hook));
+        Assert.False(simulator.RepostsRemapDrags);
+        Assert.Equal(SimulationResult.Unsupported, simulator.DragRemapButton(MouseButton.Middle, 45, 50, 5, 0));
+        Assert.Equal(6, Posted(hook).Count());
+    }
+
+    [Fact]
+    public void ARemapButtonWithoutModifiersIsAPlainPress()
+    {
+        using var hook = new TestGlobalHook();
+
+        new SharpHookInputSimulator(hook).PressRemapButton(MouseButton.Left, KeyModifiers.None, 7, 8);
+
+        Assert.Equal(["MousePressed Button1@7,8"], Posted(hook));
+    }
+
+    [Fact]
     public void AVerticalScrollAnnouncesItsNotchesSoTheHookDropsThem_AHorizontalOneDoesNot()
     {
         using var hook = new TestGlobalHook();
@@ -93,4 +123,14 @@ public sealed class SharpHookInputSimulatorTests
         simulator.Scroll(ScrollDirection.Left, 2, 0, 0);
         Assert.Equal(3, own.Pending);
     }
+
+    /// <summary>What was posted; the test hook also reports the click libuiohook makes of a press and its release, which posts nothing.</summary>
+    private static IEnumerable<string> Posted(TestGlobalHook hook) => hook.SimulatedEvents.Where(e => e.Type != EventType.MouseClicked).Select(Describe);
+
+    private static string Describe(UioHookEvent e) => e.Type switch
+    {
+        EventType.KeyPressed or EventType.KeyReleased => $"{e.Type} {e.Keyboard.KeyCode}",
+        EventType.MousePressed => $"{e.Type} {e.Mouse.Button}@{e.Mouse.X},{e.Mouse.Y}",
+        _ => $"{e.Type} {e.Mouse.Button}",
+    };
 }

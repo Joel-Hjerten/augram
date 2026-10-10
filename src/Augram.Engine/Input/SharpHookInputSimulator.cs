@@ -1,5 +1,6 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.Steps.Hotkey;
 using SharpHook;
 using WheelAxis = SharpHook.Data.MouseWheelScrollDirection;
 using WheelUnit = SharpHook.Data.MouseWheelScrollType;
@@ -57,6 +58,33 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     }
 
     public SimulationResult Release(MouseButton button) => Translate(_simulator.SimulateMouseRelease(MouseButtonMap.ToHook(button)));
+
+    /// <summary>False: on Windows the physical moves drive a posted button as they are (the AutoHotkey script proves it).</summary>
+    public bool RepostsRemapDrags => false;
+
+    /// <summary>The left modifier keys down, <see cref="Press"/>, the keys up in reverse: exactly what the worker posted itself before plan 0002 step 3a.</summary>
+    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y)
+    {
+        var held = ModifierKeys(modifiers & HotkeyKeys.AllModifiers, KeyModifiers.None);
+        var result = SimulationResult.Success;
+        foreach (var modifier in held)
+        {
+            result = Worst(result, KeyPress(modifier));
+        }
+
+        result = Worst(result, Press(button, x, y));
+        for (var i = held.Count - 1; i >= 0; i--)
+        {
+            result = Worst(result, KeyRelease(held[i]));
+        }
+
+        return result;
+    }
+
+    public SimulationResult ReleaseRemapButton(MouseButton button) => Release(button);
+
+    /// <summary>Not offered (<see cref="RepostsRemapDrags"/> is false): the engine never calls it here.</summary>
+    public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => SimulationResult.Unsupported;
 
     public SimulationResult MoveTo(int x, int y)
     {

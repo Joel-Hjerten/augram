@@ -33,6 +33,27 @@ public sealed class HoldRemapPlanTests
     }
 
     [Fact]
+    public void HoldsButtonOutput_IsTrueExactlyForTheSetsWhoseCommandHoldsAButton()
+    {
+        var space = NewSpace();
+        var group = Group(space) with
+        {
+            Commands = [.. Group(space).Commands, Remap(space, "Key", HoldInput.Of(MouseButton.X1), G), Support.Blender.Steps(space, "Run", HoldInput.Of(MouseButton.X2))],
+        };
+
+        var entry = HoldRemapPlan.ForGroup(Document(group).Groups[1], HostPlatform.Windows).Entries.Single();
+
+        Assert.All(
+            new[] { HeldButtons.Left, HeldButtons.Right, HeldButtons.Middle, HeldButtons.Left | HeldButtons.Right },
+            set => Assert.True(entry.HoldsButtonOutput(set), set.ToString()));
+        Assert.False(entry.HoldsButtonOutput(HeldButtons.None));
+        Assert.False(entry.HoldsButtonOutput(HeldButtons.Left | HeldButtons.Middle), "no command for the set");
+        Assert.False(entry.HoldsButtonOutput(HeldButtons.X1), "a key output");
+        Assert.False(entry.HoldsButtonOutput(HeldButtons.X2), "a Steps command");
+        Assert.False(entry.HoldsButtonOutput(HeldButtons.Stroke | HeldButtons.Left), "not a set of physical buttons");
+    }
+
+    [Fact]
     public void BindingsSayWhatEachCommandDoes()
     {
         var space = NewSpace();

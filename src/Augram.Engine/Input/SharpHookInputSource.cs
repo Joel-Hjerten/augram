@@ -235,7 +235,8 @@ public sealed class SharpHookInputSource : IInputSource
         }
 
         var raw = RawInput.Move(e.Data.X, e.Data.Y, _clock.MonotonicMs);
-        _handler!(in raw);
+        // Swallowed only on macOS while a hold remap holds a button output: the worker re-posts it as a drag of that output.
+        e.SuppressEvent = _handler!(in raw);
     }
 
     private void OnWheel(object? sender, MouseWheelHookEventArgs e)

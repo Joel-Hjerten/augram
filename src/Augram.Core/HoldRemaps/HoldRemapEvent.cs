@@ -26,6 +26,13 @@ public abstract record HoldRemapEvent(long TimestampMs)
     /// <summary>A physical mouse button going down or up at (<paramref name="X"/>, <paramref name="Y"/>).</summary>
     public sealed record Button(MouseButton MouseButton, bool IsDown, int X, int Y, long TimestampMs) : HoldRemapEvent(TimestampMs);
 
+    /// <summary>
+    /// A physical pointer move (or drag) to (<paramref name="X"/>, <paramref name="Y"/>), fed only on a platform whose simulator
+    /// re-posts drags (<see cref="IInputSimulator.RepostsRemapDrags"/>, macOS) and only while the hook says a button output is
+    /// held: the machine answers whether it is, and which output the move is re-posted as a drag of.
+    /// </summary>
+    public sealed record Move(int X, int Y, long TimestampMs) : HoldRemapEvent(TimestampMs);
+
     /// <summary>One physical wheel notch at (<paramref name="X"/>, <paramref name="Y"/>).</summary>
     public sealed record Wheel(WheelDirection Direction, int X, int Y, long TimestampMs) : HoldRemapEvent(TimestampMs);
 

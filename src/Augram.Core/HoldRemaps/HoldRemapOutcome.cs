@@ -41,6 +41,13 @@ public abstract record HoldRemapOutcome
     /// <summary>The input key auto-repeated: send <paramref name="Output"/>'s key down again (a key output only; its modifiers are still held).</summary>
     public sealed record RepeatOutput(CommandId CommandId, RemapOutput Output) : HoldRemapOutcome;
 
+    /// <summary>
+    /// A swallowed physical move (<see cref="HoldRemapEvent.Move"/>) re-posted as a drag of the button output held, at
+    /// (<paramref name="X"/>, <paramref name="Y"/>); the worker adds the delta from the previous physical position it saw. Always
+    /// between that output's <see cref="PressOutput"/> and its <see cref="ReleaseOutput"/>.
+    /// </summary>
+    public sealed record DragOutput(CommandId CommandId, RemapOutput.Button Output, int X, int Y) : HoldRemapOutcome;
+
     /// <summary>Release what <see cref="PressOutput"/> pressed (a key output's modifiers with it).</summary>
     public sealed record ReleaseOutput(CommandId CommandId, RemapOutput Output) : HoldRemapOutcome;
 

@@ -108,6 +108,14 @@ public sealed class ScrollExecutionTests
 
         public SimulationResult Release(MouseButton button) => SimulationResult.Success;
 
+        public bool RepostsRemapDrags => false;
+
+        public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y) => SimulationResult.Success;
+
+        public SimulationResult ReleaseRemapButton(MouseButton button) => SimulationResult.Success;
+
+        public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => SimulationResult.Unsupported;
+
         public SimulationResult MoveTo(int x, int y) => SimulationResult.Success;
 
         public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) => SimulationResult.Success;

@@ -289,6 +289,14 @@ public sealed class TypeTextStepTests
 
         public SimulationResult Release(MouseButton button) => Record($"up {button}");
 
+        public bool RepostsRemapDrags => false;
+
+        public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y) => Record($"remap down {button}");
+
+        public SimulationResult ReleaseRemapButton(MouseButton button) => Record($"remap up {button}");
+
+        public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => Record($"drag {button}");
+
         public SimulationResult MoveTo(int x, int y) => Record($"move {x},{y}");
 
         public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => Record($"scroll {direction}");

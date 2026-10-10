@@ -23,10 +23,22 @@ namespace Augram.Engine.Tests.Input;
 /// and applies what the worker injects to a model of the OS. Proven, per sequence: a release gets its press's decision, the
 /// OS never gets an up for something it does not hold, a key the hook lets through never overtakes a replay still queued,
 /// and once everything is physically up the OS holds nothing, both machines are idle and no replay is pending.
+/// <para>
+/// Moves (plan 0002 step 3a): every other sequence runs as on macOS, with a simulator that asks for drags to be re-posted
+/// (<c>repostsRemapDrags</c>). There a move is swallowed exactly while the machine holds a button output (a passed move is fed
+/// to the machine here as a marker, in order, and it must pass it too), and every swallowed move is re-posted as a drag of the
+/// output held, after that output's down and before its up. The other sequences run as on Windows: no move is ever swallowed
+/// or posted to the hold remap, exactly as before.
+/// </para>
 /// </summary>
 public sealed class HoldPairingTests
 {
     private const int Sequences = 6000;
+
+    // Calibrated against the fixed seed (about 60% of what it reaches), as the counts above are.
+    private const int DragsAtLeast = 290;
+    private const int PassedAtLeast = 700;
+    private const int WindowsAtLeast = 260;
     private static readonly MouseButton[] Buttons = [MouseButton.Left, MouseButton.Right, MouseButton.Middle, MouseButton.X1];
     private static readonly KeyCode[] Letters = [KeyCode.W, KeyCode.E, KeyCode.Q, KeyCode.A, KeyCode.B];
     private static readonly KeyCode[] Modifiers = [KeyCode.RightShift, KeyCode.RightControl];
@@ -51,7 +63,7 @@ public sealed class HoldPairingTests
 
         for (var sequence = 0; sequence < Sequences; sequence++)
         {
-            var run = new Run(sequence, Buttons[rng.Next(Buttons.Length)], counts);
+            var run = new Run(sequence, Buttons[rng.Next(Buttons.Length)], counts, repostsRemapDrags: sequence % 2 == 1);
             run.Play(rng, Generate(rng));
         }
 
@@ -66,6 +78,9 @@ public sealed class HoldPairingTests
         Assert.True(counts.KeyPairs > 30_000, $"only {counts.KeyPairs} key presses released");
         Assert.True(counts.FocusEnds > 700, $"only {counts.FocusEnds} holds ended by focus moving");
         Assert.True(counts.FocusKept > 600, $"only {counts.FocusKept} republished plans mid-hold that left the hold alone");
+        Assert.True(counts.Drags > DragsAtLeast, $"only {counts.Drags} moves re-posted as drags");
+        Assert.True(counts.MovesPassedWhileEngaged > PassedAtLeast, $"only {counts.MovesPassedWhileEngaged} moves passed during a hold with no button output");
+        Assert.True(counts.WindowsMovesWhileOutput > WindowsAtLeast, $"only {counts.WindowsMovesWhileOutput} moves passed Windows-style while a button output was held");
     }
 
     /// <summary>Plausible input within 2 s (key records never age out): hold keys, buttons and keys go down and up with repeats, mouse events carry the modifiers held; everything released at the end.</summary>
@@ -163,12 +178,17 @@ public sealed class HoldPairingTests
         private readonly Os _os;
         private readonly HashSet<KeyCode> _orderedDown = [];
         private readonly Dictionary<object, bool> _pressDecisions = [];
+        private readonly bool _reposts;
+        private MouseButton? _outputHeld;
+        private int _swallowedMoves;
+        private int _drags;
 
-        public Run(int sequence, MouseButton strokeButton, Counts counts)
+        public Run(int sequence, MouseButton strokeButton, Counts counts, bool repostsRemapDrags)
         {
             _sequence = sequence;
             _counts = counts;
-            _gate = new InputGate(_queue.Writer, NullEventLog.Instance, strokeButton, KeyModifiers.Control, enabled: true);
+            _reposts = repostsRemapDrags;
+            _gate = new InputGate(_queue.Writer, NullEventLog.Instance, strokeButton, KeyModifiers.Control, enabled: true, repostsRemapDrags);
             _capture = new CaptureStateMachine(strokeButton, new CaptureThresholds(CancelDelayMs: 400));
             _os = new Os(sequence);
         }
@@ -190,6 +210,11 @@ public sealed class HoldPairingTests
                 var pendingBefore = _gate.Hold.PendingReplays;
                 var fresh = raw.Kind == RawInputKind.KeyDown && !_os.HoldsPhysically(raw.Key);
                 var suppressed = _gate.Handle(in raw);
+                if (raw.Kind == RawInputKind.Move)
+                {
+                    Moved(raw, suppressed);
+                }
+
                 _os.Physical(raw, suppressed);
                 if (fresh && !suppressed)
                 {
@@ -202,11 +227,34 @@ public sealed class HoldPairingTests
             }
 
             Drain(int.MaxValue);
+            Assert.True(_swallowedMoves == _drags, $"sequence {_sequence}: {_swallowedMoves} moves swallowed, {_drags} re-posted");
+            Assert.Null(_outputHeld);
             _os.AssertNothingHeld();
             Assert.Equal(HoldRemapState.Idle, _hold.State);
             Assert.True(_gate.Hold.Idle, $"sequence {_sequence}: the hook's hold record is not idle");
             Assert.Equal(0, _gate.Hold.PendingReplays);
             Assert.Equal(CaptureState.Idle, _capture.State);
+        }
+
+        /// <summary>
+        /// A move's decision. Windows-style: never swallowed. Re-posting: the hook posts only the moves it swallows, so a passed
+        /// one is fed to the machine here as a marker, in order with the rest, and the machine must pass it too.
+        /// </summary>
+        private void Moved(RawInput raw, bool suppressed)
+        {
+            if (!_reposts)
+            {
+                Assert.False(suppressed, $"sequence {_sequence}: a move swallowed with no simulator asking for drags");
+                _counts.WindowsMovesWhileOutput += _gate.Hold.HoldsButtonOutput ? 1 : 0;
+                return;
+            }
+
+            _swallowedMoves += suppressed ? 1 : 0;
+            _counts.MovesPassedWhileEngaged += !suppressed && _gate.Hold.Engaged ? 1 : 0;
+            if (!suppressed)
+            {
+                Assert.True(_queue.Writer.TryWrite(WorkerMessage.Hold(new HoldRemapEvent.Move(raw.X, raw.Y, raw.TimestampMs), hookSuppressed: false)));
+            }
         }
 
         /// <summary>Between events: the app in front, the window under the pointer, the tray toggle, the hotkey capture, the stroke button (in order with the input, as the worker applies it).</summary>
@@ -318,6 +366,7 @@ public sealed class HoldPairingTests
             // A focus move carries no input decision: the hook ended its hold, and the machine must end its own.
             var machineSays = e is HoldRemapEvent.FocusMoved ? outcomes.Any(outcome => outcome is HoldRemapOutcome.HoldEnded) : outcomes[0] is HoldRemapOutcome.Suppress;
             Assert.True(machineSays == hookSuppressed, $"sequence {_sequence}: {e}: hook {hookSuppressed}, machine {machineSays} (machine was {before})");
+            Assert.True(_reposts || e is not HoldRemapEvent.Move, $"sequence {_sequence}: a move posted to the hold remap with no simulator asking for drags");
             _counts.FocusEnds += e is HoldRemapEvent.FocusMoved ? 1 : 0;
             // The hook keeps later keys behind exactly the messages whose processing injects a key (a tap, a replay).
             var injectsKey = outcomes.Any(outcome => outcome is HoldRemapOutcome.TapHoldKey or HoldRemapOutcome.ReplayKey);
@@ -335,7 +384,16 @@ public sealed class HoldPairingTests
                         break;
                     case HoldRemapOutcome.PressOutput { Output: RemapOutput.Button button }:
                         _counts.Outputs++;
+                        Assert.True(_outputHeld is null, $"sequence {_sequence}: {button.MouseButton} pressed while the output {_outputHeld} is still down");
+                        _outputHeld = button.MouseButton;
                         _os.ButtonDown(button.MouseButton, "an output");
+                        break;
+                    case HoldRemapOutcome.DragOutput drag:
+                        // After its output's down and before its up: the output pressed last and not yet released.
+                        Assert.True(drag.Output.MouseButton == _outputHeld, $"sequence {_sequence}: a drag of {drag.Output.MouseButton} while {Describe(_outputHeld)} is held");
+                        Assert.True(_os.Holds(drag.Output.MouseButton), $"sequence {_sequence}: a drag of {drag.Output.MouseButton}, which the OS does not hold");
+                        _drags++;
+                        _counts.Drags++;
                         break;
                     case HoldRemapOutcome.PressOutput { Output: RemapOutput.Key key }:
                         _counts.Outputs++;
@@ -346,6 +404,8 @@ public sealed class HoldPairingTests
                         Assert.True(_os.Holds(key.KeyCode), $"sequence {_sequence}: a repeat of {key.KeyCode}, which the OS does not hold");
                         break;
                     case HoldRemapOutcome.ReleaseOutput { Output: RemapOutput.Button button }:
+                        Assert.True(_outputHeld == button.MouseButton, $"sequence {_sequence}: {button.MouseButton} released while the output held is {Describe(_outputHeld)}");
+                        _outputHeld = null;
                         _os.ButtonUp(button.MouseButton, "an output release");
                         break;
                     case HoldRemapOutcome.ReleaseOutput { Output: RemapOutput.Key key }:
@@ -362,6 +422,8 @@ public sealed class HoldPairingTests
                 }
             }
         }
+
+        private static string Describe(MouseButton? output) => output is { } button ? button.ToString() : "no output";
 
         private void Modifier(KeyModifiers modifiers, bool down)
         {
@@ -462,6 +524,8 @@ public sealed class HoldPairingTests
             _buttons[button]--;
         }
 
+        public bool Holds(MouseButton button) => _buttons.GetValueOrDefault(button) > 0;
+
         public void KeyDown(KeyCode key) => _keys.Add(key);
 
         public void KeyUp(KeyCode key, string what)
@@ -486,5 +550,8 @@ public sealed class HoldPairingTests
         public int KeyPairs;
         public int FocusEnds;
         public int FocusKept;
+        public int Drags;
+        public int MovesPassedWhileEngaged;
+        public int WindowsMovesWhileOutput;
     }
 }

@@ -39,6 +39,11 @@ namespace Augram.Engine.Input;
 /// key press nobody else claims is claimed too and replayed by the worker in order (<see cref="HoldKeyVerdict.Ordered"/>);
 /// its repeats and release follow it. Once the worker has caught up, keys pass through again.
 /// </para>
+/// <para>
+/// <b>Moves (macOS, plan 0002 step 3a).</b> <see cref="HoldsButtonOutput"/> says whether the owed button set holds a button
+/// output; where the simulator re-posts drags, the gate swallows every move while it is true and the worker re-posts each as
+/// a drag of that output. It changes only with the owed set, as the machine's output does.
+/// </para>
 /// Single writer (the hook thread), except <see cref="ReplayDone"/> (the worker) and <see cref="Reset"/> (after a hook
 /// reinstall, which may race the hook once, as the other shadows' resets do).
 /// </summary>
@@ -50,6 +55,7 @@ public sealed class HoldRemapShadow
     private bool _used;
     private long _downAt;
     private HeldButtons _owed;
+    private bool _buttonOutput;
     private KeyBits _claimed;
     private KeyBits _replayed;
     private KeyBits _ordered;
@@ -78,13 +84,21 @@ public sealed class HoldRemapShadow
     /// <summary>Input buttons whose consumed down still owes a consumed up (A19).</summary>
     public HeldButtons OwedButtons => _owed;
 
+    /// <summary>
+    /// The owed buttons are exactly the set of a Remap command with a button output, so the machine holds that output now
+    /// (<see cref="HoldRemapEntry.HoldsButtonOutput"/>, worked out when the owed set changes, as the machine follows the set). Where
+    /// the simulator re-posts drags (macOS), the gate swallows every move while this is true and the worker re-posts it as a
+    /// drag of that output. A field read: the hook asks it at every move.
+    /// </summary>
+    public bool HoldsButtonOutput => _buttonOutput;
+
     /// <summary>Messages whose injections (a tap, a replayed key) the worker has not made yet; while above zero, fresh key presses are replayed in order.</summary>
     public int PendingReplays => Volatile.Read(ref _pendingReplays);
 
     private bool Following => _owed != HeldButtons.None || !_claimed.IsEmpty;
 
     /// <summary>Everything this shadow decides from, to undo a decision whose event could not be enqueued (the replay count is not part of it).</summary>
-    public Snapshot Save() => new(_remap, _holding, _rolledOver, _used, _downAt, _owed, _claimed, _replayed, _ordered, _group, _ended);
+    public Snapshot Save() => new(_remap, _holding, _rolledOver, _used, _downAt, _owed, _buttonOutput, _claimed, _replayed, _ordered, _group, _ended);
 
     public void Restore(Snapshot snapshot)
     {
@@ -94,6 +108,7 @@ public sealed class HoldRemapShadow
         _used = snapshot.Used;
         _downAt = snapshot.DownAt;
         _owed = snapshot.Owed;
+        _buttonOutput = snapshot.ButtonOutput;
         _claimed = snapshot.Claimed;
         _replayed = snapshot.Replayed;
         _ordered = snapshot.Ordered;
@@ -145,6 +160,7 @@ public sealed class HoldRemapShadow
             }
 
             _owed &= ~flag;
+            Follow();
             EndIfDone();
             return true;
         }
@@ -163,8 +179,12 @@ public sealed class HoldRemapShadow
         }
 
         _owed |= flag;
+        Follow();
         return true;
     }
+
+    /// <summary>The owed set changed: whether its command holds a button output now (the machine's <c>Follow</c>, mirrored).</summary>
+    private void Follow() => _buttonOutput = _owed != HeldButtons.None && _remap!.HoldsButtonOutput(_owed);
 
     /// <summary>A wheel notch while <see cref="Holding"/>: it counts as used; true when it is an input of the hold remap (and not rolled over).</summary>
     public bool DecideWheel(in RawInput input)
@@ -297,7 +317,7 @@ public sealed class HoldRemapShadow
     /// <summary>What <see cref="Save"/> returns; opaque to callers.</summary>
     public readonly struct Snapshot
     {
-        internal Snapshot(HoldRemapEntry? remap, bool holding, bool rolledOver, bool used, long downAt, HeldButtons owed, KeyBits claimed, KeyBits replayed, KeyBits ordered, GroupId? group, KeyCode ended)
+        internal Snapshot(HoldRemapEntry? remap, bool holding, bool rolledOver, bool used, long downAt, HeldButtons owed, bool buttonOutput, KeyBits claimed, KeyBits replayed, KeyBits ordered, GroupId? group, KeyCode ended)
         {
             Remap = remap;
             Holding = holding;
@@ -305,6 +325,7 @@ public sealed class HoldRemapShadow
             Used = used;
             DownAt = downAt;
             Owed = owed;
+            ButtonOutput = buttonOutput;
             Claimed = claimed;
             Replayed = replayed;
             Ordered = ordered;
@@ -327,6 +348,8 @@ public sealed class HoldRemapShadow
         internal long DownAt { get; }
 
         internal HeldButtons Owed { get; }
+
+        internal bool ButtonOutput { get; }
 
         internal KeyBits Claimed { get; }
 

@@ -19,6 +19,8 @@ namespace Augram.Core.HoldRemaps;
 /// <item>Input buttons are followed as a set: the output held is the command whose set equals the input buttons held now
 /// (decision 7); on every change the old output is released first, then the new one pressed. The machine keeps following
 /// them after the hold key is released, until the last is up.</item>
+/// <item>Where moves are fed (macOS, whose simulator re-posts drags), a move while the set's output is a button is swallowed
+/// and re-posted as a drag of that output (<see cref="HoldRemapOutcome.DragOutput"/>); otherwise it passes.</item>
 /// <item>A key input's Remap key output mirrors its down, repeats and up; a Steps command runs once per press (repeats
 /// ignored) and once per wheel notch.</item>
 /// <item>Every output down is paired with its up (A19): at the input's release, whatever the hold key did meanwhile, or at
@@ -61,6 +63,7 @@ public sealed partial class HoldRemapMachine
             ? OnKey(new HoldRemapEvent.Key(up.HoldKey, KeyPhase.Up, up.TimestampMs))
             : OnHoldUp(up.TimestampMs),
         HoldRemapEvent.Button button => button.IsDown ? OnButtonDown(button) : OnButtonUp(button),
+        HoldRemapEvent.Move move => OnMove(move),
         HoldRemapEvent.Wheel wheel => OnWheel(wheel),
         HoldRemapEvent.Key key => OnKey(key),
         HoldRemapEvent.FocusMoved => OnFocusMoved(),
@@ -161,6 +164,15 @@ public sealed partial class HoldRemapMachine
             Fire(next, x, y, momentary: false, outcomes);
         }
     }
+
+    /// <summary>
+    /// A physical move (fed only where the simulator re-posts drags): while the owed set's output is a button, Suppress and
+    /// re-post it as a drag of that output; otherwise PassThrough. Changes nothing: what is held follows the buttons alone.
+    /// </summary>
+    private IReadOnlyList<HoldRemapOutcome> OnMove(HoldRemapEvent.Move move)
+        => _buttons is { Output: RemapOutput.Button button } binding
+            ? [HoldRemapOutcome.Suppress.Instance, new HoldRemapOutcome.DragOutput(binding.CommandId, button, move.X, move.Y)]
+            : PassThroughOnly;
 
     private IReadOnlyList<HoldRemapOutcome> OnWheel(HoldRemapEvent.Wheel wheel)
     {
