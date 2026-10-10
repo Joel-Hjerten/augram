@@ -1,6 +1,6 @@
 # Plan 0004: a command's own drag distance, and "Not in" for Global commands
 
-**Status: IN PROGRESS (2026-10-10, PC session).** Step 1 built (Core and engine). Steps 2 and 3 go to worktree agents. Origin: Joel, 2026-10-10. His Global › Media › Zoom In/Out are Right + wheel on the PC, so every right press is held back. Right-drags then started only after 30 px, which lags in Spine and in Eyeris, which pan with Right. He weighed letting the press through and closing the context menu afterwards, then **held it off** (requirements F1). He asked for these two instead. The Options › Capture **Button drag distance** (default 10 px, `c1b7ac0`) came first and becomes the default the per-command value overrides.
+**Status: IN PROGRESS (2026-10-10, PC session).** Step 1 built (Core and engine, `eadb13d`). Step 2 built by a worktree agent and merged (`804c5ae`, merge `b27876b`). Step 3 (App) with a worktree agent. Origin: Joel, 2026-10-10. His Global › Media › Zoom In/Out are Right + wheel on the PC, so every right press is held back. Right-drags then started only after 30 px, which lags in Spine and in Eyeris, which pan with Right. He weighed letting the press through and closing the context menu afterwards, then **held it off** (requirements F1). He asked for these two instead. The Options › Capture **Button drag distance** (default 10 px, `c1b7ac0`) came first and becomes the default the per-command value overrides.
 
 ## Done when
 
@@ -25,6 +25,7 @@ On the PC (Joel):
    - Sync format 12 with its comment line: command items carry both; the merge's repairs leave nothing naming a group that is gone (normalisation does it when the merged document is validated: check).
    - Transfer (plan 0003): a command's `notIn` remapped where the import maps a group id to a local one; dropped where the group is not there.
    - Round trip, defaults, format guard and merge tests; Config, Sync and Transfer READMEs.
+   - **Built:** an out-of-range `dragDistancePx` in a hand-edited file is dropped with a notice (the Options value is used), never the whole file; a `notIn` entry that is no id is dropped with a notice; a merge drops a "Not in" naming a group the other machine deleted, silently (no repair line). `ConfigSession` puts a Global command's "Not in" back after a piecemeal load (Global loads before its app groups). **Known edge:** exporting Global without the groups its commands name drops those entries from the file (the export is validated like any mapping), so importing it with Take theirs clears them here; select the groups with Global to keep them (Transfer README).
 3. **App (agent).**
    - In the command's trigger area, for a trigger whose set `HandsBackDrags` on the platform shown: "Drag distance". Either the Options value ("Options value, 10 px") or its own (1–200 px), with an ⓘ.
    - On a Global command: "Not in", the app groups as a check list (existing check-list field kind), with an ⓘ ("Over these apps the command does nothing and holds no button back").
