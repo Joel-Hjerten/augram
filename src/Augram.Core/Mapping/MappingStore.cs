@@ -114,6 +114,23 @@ public sealed partial class MappingStore
         return FindCommand(command.Id)!.Value.Command;
     }
 
+    /// <summary>
+    /// Adds <paramref name="added"/> to the ignore list and replaces the command with the same id in that group, as one change
+    /// and one undo step (plan 0004: the "Not in" dialog's Save, where Add app… made new Ignored › Per command entries the
+    /// command's <see cref="Command.NotIn"/> names). Refused as a whole when either part breaks a rule.
+    /// </summary>
+    public Command UpdateCommandAddingIgnored(GroupId groupId, Command command, IReadOnlyList<IgnoredApp> added)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(added);
+        var group = RequireGroup(groupId);
+        var commands = group.Commands.ToArray();
+        commands[IndexOfCommand(group, command.Id)] = command;
+        var groups = Current.Groups.Select(other => other.Id == group.Id ? group with { Commands = commands } : other).ToArray();
+        Commit(Current with { Groups = groups, Ignored = [.. Current.Ignored, .. added] });
+        return FindCommand(command.Id)!.Value.Command;
+    }
+
     public Command RemoveCommand(CommandId id)
     {
         var (group, removed) = RequireCommand(id);

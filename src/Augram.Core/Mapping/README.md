@@ -55,7 +55,8 @@ A null window (nothing under the point) skips 1 and 2. `Trigger.None` is `None`,
 | `AddGroup`, `UpdateGroup` (by id, commands and categories included), `RemoveGroup` | Global cannot be removed (`MappingValidationException`); `KeyNotFoundException` for an unknown id |
 | `AddCommand(groupId, command)`, `UpdateCommand(groupId, command)`, `RemoveCommand(id)`, `MoveCommand(id, toGroupId)` | one undo step each; a move keeps the id (paste into another group) and keeps the category only by name: the target group's category with the same name (case-insensitive), else Uncategorized; and its hold remap only by hold key: the target group's hold remap on the same key, else it lands an ordinary command without its input (`HoldRemapRules.Moved`); it is refused when its name is taken among the commands of the parent it lands in (rule 2). Commands go in and out of a hold remap through these, with `HoldRemapId` set or cleared |
 | `AddHoldRemap(groupId, holdRemap)`, `UpdateHoldRemap(groupId, holdRemap)`, `RemoveHoldRemap(groupId, id)` | F9 (`MappingStore.HoldRemaps.cs`): one undo step each; removing one removes the commands under it (the UI asks first); `KeyNotFoundException` for an unknown id |
-| `AddIgnored`, `UpdateIgnored`, `RemoveIgnored` | same shape |
+| `AddIgnored`, `UpdateIgnored`, `RemoveIgnored` | same shape; changing an entry's `Scope` to Global (or removing it) drops it from every command's `NotIn` in the same step (rule 11) |
+| `UpdateCommandAddingIgnored(groupId, command, added)` | plan 0004 step 7, the "Not in" dialog's Save: appends the new ignored apps (Per command entries made by Add app…) and replaces the command naming them, one change and one undo step, refused as a whole |
 | `ReplaceAll(document)` | import; validated as a whole first; one undo step |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` / `ClearHistory()` | linear history, 100 steps (`State/UndoStack`) |
 
