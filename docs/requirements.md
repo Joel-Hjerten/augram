@@ -221,7 +221,7 @@ Instead of one-off probe runs, the app logs its own health and timings continuou
 | D7 | Distribution ambitions (personal vs public; signing/notarization) | OPEN |
 | D8 | Start-on-login, onboarding | OPEN |
 | D9 | Import from StrokesPlus.net JSON in v1 | LEANING yes (see F8) |
-| D12 | Hold remaps (F9): structure, Global hold remaps, hold threshold for letter keys | **DECIDED** (Joel, 2026-10-10): a parent in the app group's command tree with commands under it; no Global hold remaps and no threshold for now. [plan 0002](plans/0002-hold-remaps.md) |
+| D12 | Hold remaps (F9): structure, Global hold remaps, hold threshold for letter keys | **DECIDED** (Joel, 2026-10-10): a parent in the app group's command tree with commands under it; no Global hold remaps and no threshold for now. [plan 0002](plans/completed/0002-hold-remaps.md) |
 | D11 | Pre-plan checklist (§6) | OPEN — walk through with Joel, then write the plan |
 | D10 | Initial implementation shape (project layout, build order, first milestone) | **DECIDED** — layout in [ADR-0002](adr/0002-code-and-repo-structure.md), build order in [plans/0001-first-version.md](plans/0001-first-version.md). **M1 reached 2026-10-06** (tag `m1`); Joel's acceptance pass pending |
 

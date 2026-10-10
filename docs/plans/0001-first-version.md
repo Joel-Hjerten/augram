@@ -85,4 +85,4 @@ Eight flicks (↑ ↓ ← → and the four diagonals), four out-and-backs (↑�
 
 ## Not in this plan
 
-Hold remaps (requirements F9): [plan 0002](0002-hold-remaps.md), which Joel put ahead of the rest of M2 on 2026-10-10; macOS adapter and permissions onboarding; signing and notarization (both started anyway on Joel's Mac, 2026-10-07/08: session handoff §8a, docs/release.md); cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.
+Hold remaps (requirements F9): [plan 0002](completed/0002-hold-remaps.md), which Joel put ahead of the rest of M2 on 2026-10-10 (done on both machines the same day); macOS adapter and permissions onboarding; signing and notarization (both started anyway on Joel's Mac, 2026-10-07/08: session handoff §8a, docs/release.md); cross-platform conversion UI beyond the data model; hold-modifier-across-wheel step; exclusion zones; rocker/modifier chords; config-file schema migrations beyond version 1.
