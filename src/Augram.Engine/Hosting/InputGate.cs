@@ -31,7 +31,7 @@ namespace Augram.Engine.Hosting;
 /// </summary>
 internal sealed class InputGate
 {
-    /// <summary><see cref="IgnoreState"/> bit: the pointer is over a window of an active ignored app; its stroke button passes through.</summary>
+    /// <summary><see cref="IgnoreState"/> bit: the pointer is over a window of an active ignored app; its stroke button passes through, and only the anchors of commands whose "Also in" names it are held back (the plan then holds no other).</summary>
     public const int OverIgnoredApp = 1;
 
     /// <summary><see cref="IgnoreState"/> bit: a "disable while focused" app has focus; everything passes through, as if disabled.</summary>
@@ -226,8 +226,11 @@ internal sealed class InputGate
                     // decided from the watch's last answer; the same answer says which buttons are anchors over this window. Nothing
                     // here looks a window up (invariant 1).
                     var answer = Volatile.Read(ref _pointerAnswer);
-                    var allowed = Enabled && (answer & ((1 << IgnoreBits) - 1)) == 0;
                     var plan = new AnchorPlan(answer >> IgnoreBits);
+                    // Over an excluded app the plan holds only the anchors of commands whose "Also in" names it (plan 0005): those
+                    // are held back there, the stroke button and everything else pass.
+                    var ignoreBits = (int)(answer & ((1 << IgnoreBits) - 1));
+                    var allowed = Enabled && (ignoreBits == 0 || (ignoreBits == OverIgnoredApp && input.Button != StrokeButton && plan.IsAnchor(input.Button)));
                     var drags = new AnchorDragDistances(Volatile.Read(ref _pointerDrags));
                     var ignore = (input.Modifiers & IgnoreKey) != 0;
                     // The press's Before keys: the library's mask, limited to keys this hook saw go down (a stale mask holds no phantom key).

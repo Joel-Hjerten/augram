@@ -50,6 +50,18 @@ public sealed partial record Command(
     }
 
     /// <summary>
+    /// The excluded apps the command still works over (Joel, 2026-10-10, plan 0005 decision 7: "Also in"): entries of
+    /// Exclusions › Global without the disable-while-focused mode. Over a window one of them claims, the command is the only kind
+    /// that applies there: its anchors are held back and it fires, while the stroke button stays the app's. Only a command whose
+    /// trigger holds no stroke button on some platform keeps it (a button trigger, Right + wheel), and none under a hold remap;
+    /// it names only such entries that exist, once each, sorted by id (<see cref="MappingRules.ValidDocument"/>).
+    /// </summary>
+    public IReadOnlyList<GroupId> AlsoIn { get; init; } = [];
+
+    /// <summary>True when <see cref="AlsoIn"/> names <paramref name="excluded"/>, the Exclusions › Global entry claiming a window.</summary>
+    public bool IsAlsoIn(GroupId excluded) => AlsoIn.Count > 0 && AlsoIn.Contains(excluded);
+
+    /// <summary>
     /// The hold remap of its group the command sits under (F9, plan 0002), as <see cref="CategoryId"/> names a category; null
     /// for an ordinary command. A command under a hold remap has an input (<see cref="Trigger.InputTrigger"/>) or no trigger
     /// yet, and no category; the resolver never fires it. <see cref="HoldRemapRules"/> keeps all of that true.

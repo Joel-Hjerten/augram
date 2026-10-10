@@ -70,17 +70,25 @@ public static class AnchorPlanner
 
     /// <summary>
     /// <see cref="AnswerForGroup"/> with the button trigger outputs the engine worker holds itself over the same window (plan 0005
-    /// decision 9), from the same commands in the same order, so the three always agree.
+    /// decision 9), from the same commands in the same order, so the three always agree. Over a window an Exclusions › Global entry
+    /// claims, <paramref name="excludedBy"/> is that entry: only the commands whose "Also in" names it apply there (plan 0005
+    /// decision 7), so the plan holds back their anchors alone, and none of the stroke button's extras.
     /// </summary>
     public static AnchorAnswer Answer(
-        MappingDocument mapping, AppGroup? group, HostPlatform platform, MouseButton strokeButton, IReadOnlyList<GroupId>? perCommand = null)
+        MappingDocument mapping, AppGroup? group, HostPlatform platform, MouseButton strokeButton, IReadOnlyList<GroupId>? perCommand = null, GroupId? excludedBy = null)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         var plan = AnchorPlan.None;
         var drags = AnchorDragDistances.None;
         List<ButtonOutput>? outputs = null;
-        foreach (var (command, trigger) in Holding(mapping, group, perCommand ?? [], platform))
+        foreach (var (command, trigger) in Holding(mapping, group, perCommand ?? [], platform, excludedBy))
         {
+            if (excludedBy is not null && trigger.Hold.ForStrokeButton(strokeButton).HoldsStroke)
+            {
+                // An excluded app keeps its stroke button: an "Also in" on a trigger that holds it here holds nothing back.
+                continue;
+            }
+
             (plan, drags) = Add(plan, drags, command, trigger, platform, strokeButton);
             if (OutputOf(command, trigger, platform, strokeButton) is { } output)
             {
@@ -95,16 +103,16 @@ public static class AnchorPlanner
     /// The commands that apply over a window of <paramref name="group"/>, as the resolver would see them: the group's, then
     /// Global's unless the group suppresses globals, without a Global command an app command overlaps (shadowed), and without
     /// any command whose "Not in" names one of <paramref name="perCommand"/> (plan 0004: as if it did not exist, so it shadows
-    /// nothing either).
+    /// nothing either). Over an excluded app (<paramref name="excludedBy"/>), only commands whose "Also in" names it exist.
     /// </summary>
-    private static IEnumerable<(Command Command, Trigger Trigger)> Holding(MappingDocument mapping, AppGroup? group, IReadOnlyList<GroupId> perCommand, HostPlatform platform)
+    private static IEnumerable<(Command Command, Trigger Trigger)> Holding(MappingDocument mapping, AppGroup? group, IReadOnlyList<GroupId> perCommand, HostPlatform platform, GroupId? excludedBy)
     {
         var shadowing = new List<Trigger>();
         if (group is not null)
         {
             foreach (var (command, trigger) in Applying(group, platform))
             {
-                if (!command.IsNotIn(perCommand))
+                if (!command.IsNotIn(perCommand) && (excludedBy is not { } app || command.IsAlsoIn(app)))
                 {
                     shadowing.Add(trigger);
                     yield return (command, trigger);
@@ -116,7 +124,7 @@ public static class AnchorPlanner
         {
             foreach (var (command, trigger) in Applying(mapping.Global, platform))
             {
-                if (!shadowing.Exists(trigger.Overlaps) && !command.IsNotIn(perCommand))
+                if (!shadowing.Exists(trigger.Overlaps) && !command.IsNotIn(perCommand) && (excludedBy is not { } app || command.IsAlsoIn(app)))
                 {
                     yield return (command, trigger);
                 }

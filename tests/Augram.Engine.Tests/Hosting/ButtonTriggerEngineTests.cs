@@ -128,6 +128,40 @@ public sealed class ButtonTriggerEngineTests
         Assert.Empty(harness.Simulator.Keys);
     }
 
+    [Fact]
+    public void OverAnExcludedApp_AnAlsoInChordWorks_TheStrokeButtonPasses_AndAnotherExcludedAppHoldsNothingBack()
+    {
+        var blender = new IgnoredApp(GroupId.New(), "Blender", IsActive: true, new AppMatcher { WindowsProcessNames = ["blender.exe"] }, DisableEntirely: false);
+        var game = new IgnoredApp(GroupId.New(), "Plague", IsActive: true, new AppMatcher { WindowsProcessNames = ["plague.exe"] }, DisableEntirely: false);
+        var magnifier = Mappings.Command("Magnifier", RightLeft, new RemapStep(new RemapOutput.Key(KeyCode.X, KeyModifiers.Shift | KeyModifiers.Meta))) with { AlsoIn = [blender.Id] };
+        var mapping = MappingRules.ValidDocument(new MappingDocument([AppGroup.EmptyGlobal with { Commands = [magnifier] }], [blender, game]));
+        using var harness = new EngineHarness(
+            new EngineHostOptions(MouseButton.Middle, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1)),
+            mapping: mapping);
+        harness.Windows.Window = FakeWindowSystem.Identity("blender.exe");
+        harness.Move(100, 100, 0);
+        EngineHarness.WaitFor(() => harness.Host.IgnoredUnderPointer?.Id == blender.Id && harness.Host.AnchorPlanUnderPointer.Fires(Right, Left), "Right + Left to fire over Blender");
+
+        Assert.False(harness.Down(MouseButton.Middle, 100, 100, 10), "Blender keeps its Middle");
+        Assert.False(harness.Up(MouseButton.Middle, 100, 100, 20));
+        Assert.True(harness.Down(Right, 100, 100, 30));
+        Assert.True(harness.Down(Left, 100, 100, 60));
+        EngineHarness.WaitFor(() => harness.Simulator.Keys.Count == 3, "Win+Shift+X pressed over Blender");
+        Assert.True(harness.Up(Left, 100, 100, 100));
+        Assert.True(harness.Up(Right, 100, 100, 120));
+        EngineHarness.WaitFor(() => harness.Simulator.Keys.Count == 6, "Win+Shift+X released");
+
+        harness.Windows.Window = FakeWindowSystem.Identity("plague.exe", handle: 0x9999, root: 0x9000);
+        harness.Move(60, 60, 200);
+        EngineHarness.WaitFor(() => harness.Host.IgnoredUnderPointer?.Id == game.Id && harness.Host.AnchorPlanUnderPointer.IsEmpty, "nothing held back over the game");
+        Assert.False(harness.Down(Right, 60, 60, 210), "the game gets its right-click at once");
+        Assert.False(harness.Down(Left, 60, 60, 220));
+        Assert.False(harness.Up(Left, 60, 60, 230));
+        Assert.False(harness.Up(Right, 60, 60, 240));
+        Assert.Equal(6, harness.Simulator.Keys.Count);
+        Assert.Empty(harness.Simulator.Mouse);
+    }
+
     private static EngineHarness Magnifier()
     {
         var output = new RemapOutput.Key(KeyCode.X, KeyModifiers.Shift | KeyModifiers.Meta);

@@ -37,7 +37,7 @@ internal sealed class IgnoreLookup
     private MouseButton _planStrokeButton;
     private WindowIdentity? _planWindow;
     private bool _planStale = true;
-    private readonly Dictionary<(GroupId Group, string PerCommand), AnchorAnswer> _plans = [];
+    private readonly Dictionary<(GroupId Group, string PerCommand, GroupId? Excluded), AnchorAnswer> _plans = [];
     private AnchorAnswer _answer = AnchorAnswer.None;
     private WindowIdentity? _holdWindow;
     private bool _holdStale = true;
@@ -159,7 +159,14 @@ internal sealed class IgnoreLookup
             CheckPointer(pointer, focusMoved);
         }
 
-        Over = _ignoring ? IgnoreList.Under(mapping, _pointerWindow, _platform) : null;
+        var over = _ignoring ? IgnoreList.Under(mapping, _pointerWindow, _platform) : null;
+        if (over?.Id != Over?.Id)
+        {
+            // Over an excluded app the plan is its "Also in" commands' alone (plan 0005): a new entry under the pointer is a new plan.
+            _planWindow = null;
+        }
+
+        Over = over;
         PausedBy = _ignoring ? IgnoreList.PausedBy(mapping, _focusWindow, _platform) : null;
         _answer = _anchoring ? AnswerFor(mapping, _pointerWindow) : AnchorAnswer.None;
         HoldPlan = _holdRemaps ? HoldPlanFor(mapping, _focusWindow) : HoldRemapPlan.Empty;
@@ -183,10 +190,12 @@ internal sealed class IgnoreLookup
         // A command's "Not in" (plan 0004) makes the plan depend on the Per command entries claiming the window too: they are part
         // of the key, worked out only while some command names one.
         var perCommand = _excluding ? IgnoreList.PerCommandUnder(mapping, window, _platform) : [];
-        var key = (group?.Id ?? GroupId.Global, perCommand.Count == 0 ? string.Empty : string.Join(',', perCommand));
+        // Over an app on Exclusions › Global only the commands whose "Also in" names it hold anything back (plan 0005 decision 7).
+        var excluded = Over?.Id;
+        var key = (group?.Id ?? GroupId.Global, perCommand.Count == 0 ? string.Empty : string.Join(',', perCommand), excluded);
         if (!_plans.TryGetValue(key, out var answer))
         {
-            answer = AnchorPlanner.Answer(mapping, group, _platform, _planStrokeButton, perCommand);
+            answer = AnchorPlanner.Answer(mapping, group, _platform, _planStrokeButton, perCommand, excluded);
             _plans[key] = answer;
         }
 

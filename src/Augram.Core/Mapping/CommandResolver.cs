@@ -10,7 +10,8 @@ namespace Augram.Core.Mapping;
 /// category and itself all include the platform, <see cref="AppGroup.IsCommandUsedOn"/>), are invisible here; matchers match
 /// on this platform's executable names or their known-app guess. The rule, in order:
 /// <list type="number">
-/// <item>the window belongs to an active ignored app on Ignored › Global → <see cref="ResolutionOutcome.Ignored"/>;</item>
+/// <item>the window belongs to an active ignored app on Ignored › Global → <see cref="ResolutionOutcome.Ignored"/>, unless (plan
+/// 0005 decision 7) a command whose "Also in" names that entry matches by the steps below: it fires, reason "global, also in 'Blender'";</item>
 /// <item>the first active app group (in document order) whose matcher matches the window is the app group;</item>
 /// <item>an active command in that group whose trigger on this platform matches the press exactly (the keys and buttons held, learnings 0003 §3.4; there is no fallback to a trigger holding fewer) → matched ("app override in 'Chrome'", or "override to nothing in 'Steam'" when it has no steps);</item>
 /// <item>else, if that group suppresses globals → none ("globals suppressed by 'FF7'");</item>
@@ -44,17 +45,27 @@ public static class CommandResolver
         }
 
         var ignored = FindIgnored(mapping, target, platform);
-        if (ignored is not null)
+        if (ignored is null)
         {
-            return CommandResolution.Ignored(ignored);
+            return ResolveCommands(mapping, target, trigger, platform, null);
         }
 
+        // Over an excluded app only the commands whose "Also in" names it apply (plan 0005 decision 7); nothing else fires there.
+        var also = ignored.DisableEntirely ? null : ResolveCommands(mapping, target, trigger, platform, ignored.Id);
+        return also is { Outcome: ResolutionOutcome.Matched }
+            ? also with { Reason = $"{also.Reason}, also in '{ignored.Name}'" }
+            : CommandResolution.Ignored(ignored);
+    }
+
+    /// <summary>Steps 2 to 6 of the rule; over an excluded app (<paramref name="excludedBy"/>), only commands whose "Also in" names it count.</summary>
+    private static CommandResolution ResolveCommands(MappingDocument mapping, WindowIdentity? target, PressedTrigger trigger, HostPlatform platform, GroupId? excludedBy)
+    {
         var group = FindGroup(mapping, target, platform);
         var perCommand = IgnoreList.PerCommandUnder(mapping, target, platform);
         string? notUsed = null;
         if (group is not null)
         {
-            var command = ActiveCommandFor(group, trigger, platform);
+            var command = ActiveCommandFor(group, trigger, platform, excludedBy);
             if (command is not null && command.IsNotIn(perCommand))
             {
                 notUsed = NotUsed(mapping, command, perCommand);
@@ -80,7 +91,7 @@ public static class CommandResolver
             return CommandResolution.None("the Global group is inactive");
         }
 
-        var globalCommand = ActiveCommandFor(global, trigger, platform);
+        var globalCommand = ActiveCommandFor(global, trigger, platform, excludedBy);
         if (globalCommand is not null && globalCommand.IsNotIn(perCommand))
         {
             return CommandResolution.None(NotUsed(mapping, globalCommand, perCommand));
@@ -143,12 +154,12 @@ public static class CommandResolver
         return null;
     }
 
-    /// <summary>The active command for the press; commands under a hold remap are skipped (F9: their inputs belong to the hold remap).</summary>
-    private static Command? ActiveCommandFor(AppGroup group, PressedTrigger trigger, HostPlatform platform)
+    /// <summary>The active command for the press; commands under a hold remap are skipped (F9: their inputs belong to the hold remap), and over an excluded app every command whose "Also in" does not name it.</summary>
+    private static Command? ActiveCommandFor(AppGroup group, PressedTrigger trigger, HostPlatform platform, GroupId? excludedBy)
     {
         foreach (var command in group.Commands)
         {
-            if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && trigger.Matches(command.TriggerFor(platform)))
+            if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && (excludedBy is not { } app || command.IsAlsoIn(app)) && trigger.Matches(command.TriggerFor(platform)))
             {
                 return command;
             }

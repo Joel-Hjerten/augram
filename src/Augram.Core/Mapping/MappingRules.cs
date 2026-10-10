@@ -45,7 +45,8 @@ public static class MappingRules
         }
 
         var perCommand = ignored.Where(app => app.IsPerCommand).Select(app => app.Id).ToHashSet();
-        groups = [.. groups.Select(group => WithKnownNotIn(group, perCommand))];
+        var plainGlobal = ignored.Where(app => !app.IsPerCommand && !app.DisableEntirely).Select(app => app.Id).ToHashSet();
+        groups = [.. groups.Select(group => WithKnownAlsoIn(WithKnownNotIn(group, perCommand), plainGlobal))];
 
         var sortedGroups = groups
             .OrderBy(group => group.IsGlobal ? 0 : 1)
@@ -94,6 +95,34 @@ public static class MappingRules
             })],
         };
     }
+
+    /// <summary>
+    /// The group with its commands' "Also in" lists (plan 0005 decision 7) naming only Exclusions › Global entries without the
+    /// disable-while-focused mode in <paramref name="plainGlobal"/>, once each, sorted by id; empty under a hold remap and on a
+    /// command whose trigger holds the stroke button on both platforms (nothing that uses it is allowed back into an excluded app).
+    /// </summary>
+    private static AppGroup WithKnownAlsoIn(AppGroup group, HashSet<GroupId> plainGlobal)
+    {
+        if (group.Commands.All(command => command.AlsoIn.Count == 0))
+        {
+            return group;
+        }
+
+        return group with
+        {
+            Commands = [.. group.Commands.Select(command => command.AlsoIn.Count == 0 ? command : command with
+            {
+                AlsoIn = command.HoldRemapId is not null || !HoldsBackWithoutStroke(command)
+                    ? []
+                    : [.. command.AlsoIn.Where(plainGlobal.Contains).Distinct().OrderBy(id => id.Value)],
+            })],
+        };
+    }
+
+    /// <summary>The command's trigger holds a button other than the stroke button, without it, on Windows or on macOS.</summary>
+    private static bool HoldsBackWithoutStroke(Command command)
+        => command.TriggerFor(HostPlatform.Windows) is { IsBound: true, Hold.HandsBackDrags: true }
+            || command.TriggerFor(HostPlatform.MacOS) is { IsBound: true, Hold.HandsBackDrags: true };
 
     /// <summary>Trims the name; a Per command entry never disables Augram while focused (it stops only the commands that name it).</summary>
     public static IgnoredApp Normalised(IgnoredApp app)
