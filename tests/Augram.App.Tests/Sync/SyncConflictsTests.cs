@@ -5,7 +5,9 @@ using Augram.App.Sync;
 using Augram.App.Tests.Support;
 using Augram.App.Tests.Sync.Support;
 using Augram.App.ViewModels;
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
 using Avalonia.Controls;
@@ -57,6 +59,24 @@ public sealed class SyncConflictsTests
         Assert.Equal(SyncConflictSide.DeletedText, vm.Entries[3].Theirs.Text);
         Assert.False(vm.Entries[3].Theirs.HasGlyph);
         Assert.Equal("4 conflicts with Mac", vm.Summary);
+    }
+
+    /// <summary>Plan 0002 step 2's sync item kind, labelled in the dialog (step 4): its header's name, hold key, tap time, Use on and active.</summary>
+    [Fact]
+    public void AHoldRemapConflictIsLabelledAndShowsItsHeaderOnBothSides()
+    {
+        var space = HoldRemap.For(KeyCode.Space);
+        var conflict = Conflict(
+            new SyncItem.HoldRemapItem(Chrome.Id, space),
+            new SyncItem.HoldRemapItem(Chrome.Id, space with { TapTimeMs = 220, UseOn = PlatformSet.Windows, IsActive = false }));
+
+        var entry = ViewModel(conflict).Entries.Single();
+
+        Assert.Equal("Hold remap", SyncConflictsViewModel.KindLabel(SyncItemKind.HoldRemap));
+        Assert.Equal(("Space", "Hold remap · with Mac"), (entry.Name, entry.Detail));
+        Assert.Equal("Space: hold Space, tap 180 ms", entry.Mine.Text);
+        Assert.Equal("Space: hold Space, tap 220 ms · Windows only (inactive)", entry.Theirs.Text);
+        Assert.Equal([SyncChoice.KeepMine, SyncChoice.TakeTheirs], SyncConflictsViewModel.Allowed(conflict));
     }
 
     [Fact]

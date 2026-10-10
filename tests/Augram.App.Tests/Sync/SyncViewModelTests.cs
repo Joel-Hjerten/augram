@@ -168,6 +168,7 @@ public sealed class SyncViewModelTests : SyncTestBase
         Assert.Equal($"Up to date (last synced {Time}).", SyncViewModel.Status(true, false, false, new SyncReport(SyncStatus.UpToDate, At), ["Mac"]));
         Assert.Equal($"Last synced {Time}: 3 commands changed from Mac.", SyncViewModel.Status(true, false, false, applied, ["Mac"]));
         Assert.Equal($"Last synced {Time}: 1 gesture, 2 app groups and 3 commands changed from Mac and PC-WORK.", SyncViewModel.Status(true, false, false, both, ["Mac", "PC-WORK"]));
+        Assert.Equal("1 hold remap and 3 commands changed", SyncViewModel.Changes(applied.Counts with { HoldRemaps = new SyncKindCounts(0, 1, 0) }));
         Assert.Equal(
             $"Sync failed at {Time}: sign-in needed: GitHub refused the credentials",
             SyncViewModel.Status(true, false, false, new SyncReport(SyncStatus.Failed, At) { Error = "sign-in needed: GitHub refused the credentials" }, ["Mac"]));

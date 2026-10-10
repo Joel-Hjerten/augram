@@ -7,6 +7,7 @@ using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Hotkey;
@@ -111,6 +112,7 @@ public sealed class SyncConflictsViewModel
         SyncItemKind.Category => "Category",
         SyncItemKind.Command => "Command",
         SyncItemKind.CommandVersion => "Own steps",
+        SyncItemKind.HoldRemap => "Hold remap",
         _ => "Ignored app",
     };
 
@@ -144,6 +146,7 @@ public sealed class SyncConflictsViewModel
             SyncItem.CommandItem command => new SyncConflictSide(CommandText(command.GroupId, command.Command)),
             SyncItem.GroupItem group => new SyncConflictSide(GroupText(group.Header)),
             SyncItem.CategoryItem category => new SyncConflictSide(CategoryText(category.Category)),
+            SyncItem.HoldRemapItem holdRemap => new SyncConflictSide(HoldRemapText(holdRemap.HoldRemap)),
             SyncItem.IgnoredItem ignored => new SyncConflictSide(IgnoredText(ignored.App)),
             SyncItem.VersionItem version => new SyncConflictSide(VersionText(version.Version)),
             _ => new SyncConflictSide(item.Name),
@@ -189,6 +192,14 @@ public sealed class SyncConflictsViewModel
     /// <summary>"Personal", or "Personal · Windows only" when its Use on (F8, 2026-10-08) is what differs.</summary>
     private static string CategoryText(CommandCategory category)
         => category.UseOn == PlatformSet.All ? category.Name : $"{category.Name} · {StepPlatformMarker.Only(category.UseOn)}";
+
+    /// <summary>"Space: hold Space, tap 180 ms", then " · Windows only" and " (inactive)" when they apply (plan 0002).</summary>
+    private static string HoldRemapText(HoldRemap holdRemap)
+    {
+        var key = holdRemap.HoldKey == KeyCode.None ? "no hold key yet" : $"hold {HotkeyText.KeyName(holdRemap.HoldKey)}";
+        var useOn = holdRemap.UseOn == PlatformSet.All ? string.Empty : $" · {StepPlatformMarker.Only(holdRemap.UseOn)}";
+        return string.Create(CultureInfo.InvariantCulture, $"{holdRemap.Name}: {key}, tap {holdRemap.TapTimeMs} ms{useOn}{(holdRemap.IsActive ? string.Empty : " (inactive)")}");
+    }
 
     private static string IgnoredText(IgnoredApp app)
     {

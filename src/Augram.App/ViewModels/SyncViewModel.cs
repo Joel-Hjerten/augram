@@ -261,6 +261,7 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
         Add(parts, counts.Gestures.Total, "gesture");
         Add(parts, counts.Groups.Total, "app group");
         Add(parts, counts.Categories.Total, "category", "categories");
+        Add(parts, counts.HoldRemaps.Total, "hold remap");
         Add(parts, counts.Commands.Total, "command");
         Add(parts, counts.Ignored.Total, "ignored app");
         if (parts.Count == 0)

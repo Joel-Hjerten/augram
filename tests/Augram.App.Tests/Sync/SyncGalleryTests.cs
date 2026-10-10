@@ -33,7 +33,7 @@ public sealed class SyncGalleryTests
         var lists = form.GetVisualDescendants().OfType<SyncConflictList>().ToList();
         Assert.Equal(2, lists.Count);
         var rows = lists[0].GetVisualDescendants().OfType<SyncConflictRow>().ToList();
-        Assert.Equal(5, rows.Count);
+        Assert.Equal(6, rows.Count);
         Assert.True(rows[0].HasMineGlyph && rows[0].HasTheirsGlyph);
         Assert.Empty(lists[1].Rows);
     }

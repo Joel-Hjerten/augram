@@ -6,6 +6,7 @@ using Augram.App.Sync;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Sync;
@@ -47,7 +48,7 @@ public static class SyncGalleryPages
                     list.ChoiceChanged += (_, e) => viewModel.Choose(e.Index, e.Choice);
                     return list;
                 }),
-            ], "A gesture changed on both machines (glyphs side by side), a command, an app group, a category deleted there, an ignored app deleted here. Keep both only on the gesture and the command."),
+            ], "A gesture changed on both machines (glyphs side by side), a command, an app group, a category deleted there, a hold remap's tap time, an ignored app deleted here. Keep both only on the gesture and the command."),
             new Section("No conflicts",
             [
                 new CustomField("Empty", () => new SyncConflictList { Width = 900, Height = 80 }),
@@ -61,7 +62,8 @@ public static class SyncGalleryPages
     private static MappingDocument Mapping()
     {
         var chrome = new AppGroup(GroupId.New(), "Chrome", IsActive: true, SuppressGlobals: false, AppMatcher.Empty with { WindowsProcessNames = ["chrome.exe"] }, []);
-        return new MappingDocument([AppGroup.EmptyGlobal, chrome], []);
+        var blender = new AppGroup(GroupId.New(), "Blender", IsActive: true, SuppressGlobals: false, AppMatcher.Empty with { WindowsProcessNames = ["blender.exe"] }, []);
+        return new MappingDocument([AppGroup.EmptyGlobal, chrome, blender], []);
     }
 
     private static IReadOnlyList<SyncConflict> Conflicts()
@@ -73,6 +75,8 @@ public static class SyncGalleryPages
         var close = new Command(CommandId.New(), "Close tab", Trigger.ForGesture(Starter[1].Id), IsActive: true, [new CommandStep(new DelayStep(30), HostPlatform.Windows)]);
         var closeThere = close with { Steps = [new CommandStep(new DelayStep(120), HostPlatform.MacOS)] };
         var media = new CommandCategory(CategoryId.New(), "Media");
+        var space = HoldRemap.For(KeyCode.Space);
+        var blender = Mapping().Groups[2];
         var game = new IgnoredApp(GroupId.New(), "Game", IsActive: true, AppMatcher.Empty with { WindowsProcessNames = ["game.exe"] }, DisableEntirely: true);
         return
         [
@@ -80,6 +84,7 @@ public static class SyncGalleryPages
             Conflict(new SyncItem.CommandItem(chrome.Id, close), new SyncItem.CommandItem(chrome.Id, closeThere)),
             Conflict(new SyncItem.GroupItem(chrome), new SyncItem.GroupItem(chrome with { Name = "Google Chrome", SuppressGlobals = true })),
             Conflict(new SyncItem.CategoryItem(GroupId.Global, media), null),
+            Conflict(new SyncItem.HoldRemapItem(blender.Id, space), new SyncItem.HoldRemapItem(blender.Id, space with { TapTimeMs = 220 })),
             Conflict(null, new SyncItem.IgnoredItem(game)),
         ];
     }
