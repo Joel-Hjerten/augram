@@ -28,7 +28,8 @@ internal static class CommandsTestData
 
     public static GestureId Left => StarterGestures.IdFor("Left");
 
-    public static MappingStore Store()
+    /// <summary>The mapping, with <paramref name="ignored"/> as its ignore list (none by default).</summary>
+    public static MappingStore Store(params IgnoredApp[] ignored)
     {
         var window = new CommandCategory(CategoryId.New(), "Window");
         var media = new CommandCategory(CategoryId.New(), "Media");
@@ -58,16 +59,17 @@ internal static class CommandsTestData
                 Command("Plain", Trigger.None, new DelayStep(2)),
             ],
             [general, blend]);
-        return new MappingStore(new MappingDocument([global, chrome, apple, photoshop], []));
+        return new MappingStore(new MappingDocument([global, chrome, apple, photoshop], ignored));
     }
 
-    /// <summary>One tab's view model over a fresh <see cref="Store"/>; the Apps tab unless told otherwise.</summary>
+    /// <summary>One tab's view model over a fresh <see cref="Store"/> (with <paramref name="ignored"/> as its ignore list); the Apps tab unless told otherwise.</summary>
     public static (CommandsViewModel Vm, MappingStore Store, FakeGesturePickerPresenter Picker, FakeFormDialogPresenter Dialogs) Create(
         CommandsScope scope = CommandsScope.Apps,
         FakeConfirmPresenter? confirm = null,
-        HostPlatform platform = HostPlatform.Windows)
+        HostPlatform platform = HostPlatform.Windows,
+        IgnoredApp[]? ignored = null)
     {
-        var store = Store();
+        var store = Store(ignored ?? []);
         var picker = new FakeGesturePickerPresenter();
         var dialogs = new FakeFormDialogPresenter();
         var vm = New(scope, store, picker, dialogs, confirm ?? new FakeConfirmPresenter(), new CommandClipboard(), platform);

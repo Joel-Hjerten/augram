@@ -15,7 +15,8 @@ namespace Augram.App.Components.MasterDetail;
 /// (<c>PART_New</c>, labelled <see cref="NewLabel"/>), the selected item's declared form (<see cref="Detail"/>, rendered by
 /// a <c>SectionForm</c> in <c>PART_Detail</c>) beside it, the help line under the list and the message line at the bottom.
 /// It looks like a Commands sub-tab and shares its keymap (<see cref="CommandsKeymap"/>): the rename key or a double click
-/// renames in place, Delete deletes, the new and undo keys work, and the right-click menu offers new, rename and delete.
+/// renames in place, Delete deletes, the new and undo keys work, and the right-click menu offers new, rename, delete and, while
+/// the host gives it a label (<see cref="MoveLabel"/>), a move to the host's other list.
 /// Every intent leaves as one <see cref="ActionRequested"/>; the host owns the selection (<see cref="SelectedId"/>) and the
 /// list (<see cref="Items"/>), and the selection survives a rebuild.
 /// </summary>
@@ -41,6 +42,9 @@ public sealed class MasterDetail : TemplatedControl
 
     public static readonly StyledProperty<string> NewLabelProperty =
         AvaloniaProperty.Register<MasterDetail, string>(nameof(NewLabel), "New");
+
+    public static readonly StyledProperty<string?> MoveLabelProperty =
+        AvaloniaProperty.Register<MasterDetail, string?>(nameof(MoveLabel));
 
     public static readonly StyledProperty<string> HelpTextProperty =
         AvaloniaProperty.Register<MasterDetail, string>(nameof(HelpText), string.Empty);
@@ -101,6 +105,13 @@ public sealed class MasterDetail : TemplatedControl
         set => SetValue(NewLabelProperty, value);
     }
 
+    /// <summary>The menu's move entry for the selected item ("Move to Per command"); null (the default) shows none.</summary>
+    public string? MoveLabel
+    {
+        get => GetValue(MoveLabelProperty);
+        set => SetValue(MoveLabelProperty, value);
+    }
+
     public string HelpText
     {
         get => GetValue(HelpTextProperty);
@@ -145,7 +156,7 @@ public sealed class MasterDetail : TemplatedControl
         {
             Region.Mark(_list, Heading.Length > 0 ? Heading : "List");
             _list.ContextMenu = MasterDetailMenu.Build(NewLabel, Request);
-            _list.ContextMenu.Opening += (_, _) => MasterDetailMenu.Refresh(_list.ContextMenu, NewLabel, SelectedItem is not null);
+            _list.ContextMenu.Opening += (_, _) => MasterDetailMenu.Refresh(_list.ContextMenu, NewLabel, MoveLabel, SelectedItem is not null);
             // On the list, not on this control: the form beside it has text boxes where Delete and the undo key belong to the text.
             _list.KeyBindings.Clear();
             MasterDetailMenu.BindKeys(_list, CommandsKeymap.Current, Request, () => !IsEditing);
@@ -256,7 +267,7 @@ public sealed class MasterDetail : TemplatedControl
         }
     }
 
-    /// <summary>The button, menu and keys: Rename starts the editor; Delete needs a selection; the rest go to the host.</summary>
+    /// <summary>The button, menu and keys: Rename starts the editor; Delete and Move need a selection; the rest go to the host.</summary>
     private void Request(MasterDetailAction action)
     {
         switch (action)
@@ -264,10 +275,10 @@ public sealed class MasterDetail : TemplatedControl
             case MasterDetailAction.Rename:
                 BeginRename(_list?.SelectedItem as MasterRow);
                 break;
-            case MasterDetailAction.Delete when SelectedItem is { } item:
+            case MasterDetailAction.Delete or MasterDetailAction.Move when SelectedItem is { } item:
                 Raise(action, item);
                 break;
-            case MasterDetailAction.Delete:
+            case MasterDetailAction.Delete or MasterDetailAction.Move:
                 break;
             default:
                 Raise(action);

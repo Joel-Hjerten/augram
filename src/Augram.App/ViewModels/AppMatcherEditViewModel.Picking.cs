@@ -43,6 +43,17 @@ public sealed partial class AppMatcherEditViewModel
         return true;
     }
 
+    /// <summary>
+    /// The name an entry made from a picked window starts with (plan 0004: the "Not in" dialog's Add app…): its executable
+    /// without ".exe", "Spine" for Spine.exe, a Mac app's name as it is ("Google Chrome").
+    /// </summary>
+    public static string AppNameOf(WindowIdentity window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        var name = window.ProcessName.Trim();
+        return name.Length > 4 && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+    }
+
     /// <summary>The executable's full path, into this platform's path, matched exactly (the regex toggle off).</summary>
     public void TakePath(WindowIdentity window)
     {

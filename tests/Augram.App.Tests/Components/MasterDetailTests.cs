@@ -141,6 +141,29 @@ public sealed class MasterDetailTests
         Assert.False(view.IsEditing);
     }
 
+    /// <summary>The Ignored tab's move between its lists (plan 0004): a menu entry only while the host labels it, raising Move for the selected item.</summary>
+    [AvaloniaFact]
+    public void TheMenusMoveEntry_FollowsTheHostsLabel_AndRaisesMoveForTheSelectedItem()
+    {
+        var (view, actions) = Show();
+        var list = view.GetVisualDescendants().OfType<ListBox>().Single();
+        var move = list.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Tag is MasterDetailAction.Move);
+
+        list.RaiseEvent(new ContextRequestedEventArgs());
+        Assert.False(move.IsVisible);
+        list.ContextMenu.Close();
+
+        view.MoveLabel = "Move to Per command";
+        view.SelectedId = Spine.Id;
+        list.RaiseEvent(new ContextRequestedEventArgs());
+        Assert.Equal(("Move to Per command", true, true), (move.Header as string, move.IsVisible, move.IsEnabled));
+
+        move.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        var raised = Assert.Single(actions);
+        Assert.Equal(MasterDetailAction.Move, raised.Action);
+        Assert.Same(Spine, raised.Item);
+    }
+
     private static void FocusSelectedRow(MasterDetail view)
     {
         var list = view.GetVisualDescendants().OfType<ListBox>().Single();

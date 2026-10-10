@@ -8,6 +8,7 @@ namespace Augram.App.Components.MasterDetail;
 /// <summary>
 /// The context menu and key bindings of a <see cref="MasterDetail"/> list, on the Commands tab's one per-platform keymap
 /// (<see cref="CommandsKeymap"/>: the rename key, Delete, new, undo, redo); every entry ends in one <see cref="MasterDetailAction"/>.
+/// The move entry shows only while the host gives it a label (<see cref="MasterDetail.MoveLabel"/>).
 /// </summary>
 internal static class MasterDetailMenu
 {
@@ -16,12 +17,13 @@ internal static class MasterDetailMenu
         var menu = new ContextMenu();
         menu.Items.Add(Item(newLabel, MasterDetailAction.New, request));
         menu.Items.Add(Item("Rename", MasterDetailAction.Rename, request));
+        menu.Items.Add(Item(string.Empty, MasterDetailAction.Move, request));
         menu.Items.Add(Item("Delete", MasterDetailAction.Delete, request));
         return menu;
     }
 
-    /// <summary>Labels the new entry as the host does; rename and delete need a selected row.</summary>
-    public static void Refresh(ContextMenu menu, string newLabel, bool hasSelection)
+    /// <summary>Labels the new and move entries as the host does (no move label hides the move entry); rename, move and delete need a selected row.</summary>
+    public static void Refresh(ContextMenu menu, string newLabel, string? moveLabel, bool hasSelection)
     {
         ArgumentNullException.ThrowIfNull(menu);
         foreach (var item in menu.Items.OfType<MenuItem>())
@@ -29,11 +31,16 @@ internal static class MasterDetailMenu
             if (item.Tag is MasterDetailAction.New)
             {
                 item.Header = newLabel;
+                continue;
             }
-            else
+
+            if (item.Tag is MasterDetailAction.Move)
             {
-                item.IsEnabled = hasSelection;
+                item.Header = moveLabel;
+                item.IsVisible = !string.IsNullOrEmpty(moveLabel);
             }
+
+            item.IsEnabled = hasSelection;
         }
     }
 

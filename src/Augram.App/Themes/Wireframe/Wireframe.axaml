@@ -720,7 +720,7 @@
                                VerticalAlignment="Center"
                                IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
-                  <!-- Plan 0004: a Global command's app groups it is not used in. Change… sits before the names, so a longer list never moves it. -->
+                  <!-- Plan 0004: the Ignored › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
                   <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
                     <StackPanel DockPanel.Dock="Left" Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                       <TextBlock Classes="field-label" Text="Not in" />
@@ -996,6 +996,24 @@
     <Setter Property="MaxHeight" Value="{StaticResource Editor.CheckListMaxHeight}" />
   </Style>
   <Style Selector="TextBlock.check-list-detail">
+    <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+  <!-- A links field (a Per command entry's Used by, plan 0004): one link per line in the accent colour, its detail muted after it. -->
+  <Style Selector="StackPanel.links">
+    <Setter Property="Spacing" Value="{StaticResource Space.XS}" />
+  </Style>
+  <Style Selector="Button.link">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+  </Style>
+  <Style Selector="TextBlock.link-detail">
     <Setter Property="Margin" Value="8,0,0,0" />
   </Style>
   <Style Selector="Button.toolbar">

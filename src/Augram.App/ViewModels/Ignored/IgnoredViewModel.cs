@@ -1,6 +1,7 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.MasterDetail;
+using Augram.App.Navigation;
 using Augram.App.UsedBy;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
@@ -10,13 +11,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Augram.App.ViewModels.Ignored;
 
 /// <summary>
-/// The Ignored tab's projection over <see cref="MappingStore"/> (F5 ignore list; plan 0001 M2 step 6; SP.net's Ignore List):
-/// the ignored apps as <see cref="MasterItem"/>s sorted by name (name, active, the mode and what the entry matches on this
-/// platform), the selection and the selected app's form (<c>.Panel</c>), and the message line. Turns the
-/// <see cref="MasterDetail"/>'s intents into store calls: a new app through the declared form in a dialog, rename in place,
-/// the active box, delete after a confirmation, undo and redo on the store's one history (the Commands tab's too). The
-/// rules live in <see cref="MappingRules"/>; only their messages show here. The engine follows every change through the
-/// store (<c>EngineSettingsLink</c>), so an edit here takes effect at once.
+/// One Ignored sub-tab's projection over <see cref="MappingStore"/> (F5 ignore list; plan 0001 M2 step 6; SP.net's Ignore List;
+/// Global / Per command, plan 0004): the entries of its <see cref="Scope"/> as <see cref="MasterItem"/>s sorted by name (name,
+/// active, the mode or what uses it, and what the entry matches on this platform), the selection and the selected app's form
+/// (<c>.Panel</c>), and the message line. Turns the <see cref="MasterDetail"/>'s intents into store calls: a new app through
+/// the declared form in a dialog, rename in place, the active box, a move to the other list (<c>.PerCommand</c>), delete after
+/// a confirmation, undo and redo on the store's one history (the Commands tab's too). The rules live in
+/// <see cref="MappingRules"/>; only their messages show here. The engine follows every change through the store
+/// (<c>EngineSettingsLink</c>), so an edit here takes effect at once.
 /// </summary>
 public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
 {
@@ -24,9 +26,14 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
     private readonly IFormDialogPresenter _dialogs;
     private readonly IConfirmPresenter _confirm;
     private readonly HostPlatform _platform;
+    private readonly ICommandLocator? _commands;
 
-    /// <summary><paramref name="platform"/> is where this runs: the row summary says what an entry matches here.</summary>
-    public IgnoredViewModel(MappingStore store, IFormDialogPresenter dialogs, IConfirmPresenter confirm, HostPlatform platform)
+    /// <summary>
+    /// <paramref name="platform"/> is where this runs: the row summary says what an entry matches here. <paramref name="scope"/>
+    /// is the sub-tab's list; <paramref name="commands"/> opens a command from a Per command entry's "Used by" (none in tests and
+    /// the gallery: the names show as plain text).
+    /// </summary>
+    public IgnoredViewModel(MappingStore store, IFormDialogPresenter dialogs, IConfirmPresenter confirm, HostPlatform platform, IgnoreScope scope = IgnoreScope.Global, ICommandLocator? commands = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(dialogs);
@@ -35,19 +42,34 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
         _dialogs = dialogs;
         _confirm = confirm;
         _platform = platform;
+        _commands = commands;
+        Scope = scope;
         _store.Changed += OnStoreChanged;
         Project();
     }
 
-    public string Heading => "Ignored apps";
+    /// <summary>Which list this sub-tab shows: Ignored › Global or Ignored › Per command.</summary>
+    public IgnoreScope Scope { get; }
 
-    public string NewLabel => "New ignored app";
+    public bool IsPerCommand => Scope == IgnoreScope.PerCommand;
 
-    public string Help =>
-        "Augram stays out of these apps: over their windows the stroke button passes through untouched, and a \"Disable while focused\" app pauses Augram while it has focus. "
-        + "Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
+    public string Heading => IsPerCommand ? "Per command apps" : "Ignored apps";
 
-    public string EmptyDetailText => "Select an ignored app to see how it is recognised, or add one with New ignored app.";
+    public string NewLabel => IsPerCommand ? "New app" : "New ignored app";
+
+    /// <summary>The right-click menu's move to the other list.</summary>
+    public string MoveLabel => IsPerCommand ? "Move to Global" : "Move to Per command";
+
+    public string Help => IsPerCommand
+        ? "Apps listed here change nothing on their own; a command that names one in its Not in does nothing over it and holds no button back there. "
+            + "Name them in a command's Not in on the Commands tab (its Change… also adds an app with the magnifier). "
+            + "Right-click a row for the menu (Move to Global stops all of Augram over the app); rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
+        : "Augram stays out of these apps: over their windows the stroke button passes through untouched, and a \"Disable while focused\" app pauses Augram while it has focus. "
+            + "Right-click a row for the menu (Move to Per command keeps Augram on and lets single commands leave the app alone); rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
+
+    public string EmptyDetailText => IsPerCommand
+        ? "Select an app to see how it is recognised and which commands leave it alone, or add one with New app."
+        : "Select an ignored app to see how it is recognised, or add one with New ignored app.";
 
     [ObservableProperty]
     public partial IReadOnlyList<MasterItem> Items { get; private set; } = [];
@@ -90,6 +112,9 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
                 var app = Require(item.Id);
                 _store.UpdateIgnored(app with { IsActive = !app.IsActive });
                 break;
+            case MasterDetailAction.Move when e.Item is { } item:
+                _ = MoveAsync(item);
+                break;
             case MasterDetailAction.Delete when e.Item is { } item:
                 _ = DeleteAsync(item);
                 break;
@@ -104,8 +129,8 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
 
     private async Task NewAsync()
     {
-        var edit = new IgnoredEditViewModel();
-        if (!await _dialogs.ShowAsync(new FormDialogRequest("New ignored app", "Create", Screen: edit.Declare())).ConfigureAwait(true))
+        var edit = new IgnoredEditViewModel(Scope);
+        if (!await _dialogs.ShowAsync(new FormDialogRequest(NewLabel, "Create", Screen: edit.Declare())).ConfigureAwait(true))
         {
             return;
         }
@@ -120,7 +145,10 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
 
     private async Task DeleteAsync(MasterItem item)
     {
-        if (!await _confirm.ConfirmAsync("Delete ignored app", $"Delete ignored app '{item.Name}'? Augram works over it again.", "Delete").ConfigureAwait(true))
+        var (title, question) = IsPerCommand
+            ? ("Delete app", $"Delete '{item.Name}' from Per command?{UsersSentence(new GroupId(item.Id))}")
+            : ("Delete ignored app", $"Delete ignored app '{item.Name}'? Augram works over it again.");
+        if (!await _confirm.ConfirmAsync(title, question, "Delete").ConfigureAwait(true))
         {
             return;
         }
@@ -147,10 +175,12 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
     private void Project()
     {
         Items = [.. _store.Current.Ignored
+            .Where(app => app.Scope == Scope)
             .OrderBy(app => app.Name, MappingRules.NameComparer)
             .ThenBy(app => app.Id.Value)
             .Select(app => new MasterItem(app.Id.Value, app.Name, app.IsActive, Summary(app)))];
-        if (SelectedId is { } id && _store.FindIgnored(new GroupId(id)) is null)
+        // Gone, or moved to the other list.
+        if (SelectedId is { } id && Find(id)?.Scope != Scope)
         {
             SelectedId = null;
         }
@@ -158,8 +188,8 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
         ProjectDetail();
     }
 
-    /// <summary>"Gestures off over this app · blender.exe", "Disable while focused · nothing on macOS": the mode and what it matches here.</summary>
-    private string Summary(IgnoredApp app) => $"{IgnoredModes.Label(app.DisableEntirely)} · {Matches(app.Matcher)}";
+    /// <summary>"Gestures off over this app · blender.exe", "Used by 2 commands · Spine.exe": the mode (or its users) and what it matches here.</summary>
+    private string Summary(IgnoredApp app) => $"{(app.IsPerCommand ? UsersText(app.Id) : IgnoredModes.Label(app.DisableEntirely))} · {Matches(app.Matcher)}";
 
     private string Matches(AppMatcher matcher)
     {
@@ -182,7 +212,9 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
         return matcher.Title ?? matcher.PathFor(_platform).Path ?? matcher.ProcessPath ?? matcher.MacProcessPath ?? "window details";
     }
 
-    private IgnoredApp Require(Guid id) => _store.FindIgnored(new GroupId(id)) ?? throw new KeyNotFoundException("That ignored app no longer exists.");
+    private IgnoredApp? Find(Guid id) => _store.FindIgnored(new GroupId(id));
+
+    private IgnoredApp Require(Guid id) => Find(id) ?? throw new KeyNotFoundException("That ignored app no longer exists.");
 
     private void Guard(Action action)
     {

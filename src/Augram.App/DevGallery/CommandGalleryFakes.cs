@@ -1,6 +1,7 @@
 #if DEBUG
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.GesturePicker;
+using Augram.App.Navigation;
 using Augram.App.UsedBy;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
@@ -74,26 +75,39 @@ public static class CommandGalleryFakes
     }
 
     /// <summary>
-    /// <see cref="Mapping"/> with Joel's Global zoom commands in Media (plan 0004): Zoom in on Right + wheel up with its own 3 px
-    /// drag distance, not used in Photoshop and Steam games; Zoom out on Right + wheel down with the Options value, used in every app.
+    /// <see cref="Mapping"/> with Joel's Global zoom commands in Media and the Ignored › Per command entries they leave alone
+    /// (plan 0004): Zoom in on Right + wheel up with its own 3 px drag distance, not used over Spine and Eyeris; Zoom out on Right +
+    /// wheel down with the Options value, used everywhere; Chrome's Zoom in not used over Eyeris. The ignore list also has Krita
+    /// (Per command, inactive, used by nothing) and VMware (Ignored › Global, never offered in a Not in).
     /// </summary>
     public static MappingDocument MappingWithZoom()
     {
         var mapping = Mapping();
+        var spine = PerCommand("Spine", "Spine.exe");
+        var eyeris = PerCommand("Eyeris", "Eyeris.exe");
+        var krita = PerCommand("Krita", "krita.exe") with { IsActive = false };
+        var vmware = new IgnoredApp(GroupId.New(), "VMware", IsActive: true, new AppMatcher { WindowsProcessNames = ["vmware.exe"] }, DisableEntirely: true);
         var global = mapping.Global;
         var media = global.Categories.Single(category => category.Name == "Media").Id;
-        GroupId[] notIn = [.. mapping.Groups.Where(group => group.Name is "Photoshop" or "Steam games").Select(group => group.Id)];
         global = global with
         {
             Commands =
             [
                 .. global.Commands,
-                Cmd("Zoom in", Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right, DragDistancePx: 3)), new DelayStep(10)) with { CategoryId = media, NotIn = notIn },
+                Cmd("Zoom in", Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.Right, DragDistancePx: 3)), new DelayStep(10)) with { CategoryId = media, NotIn = [spine.Id, eyeris.Id] },
                 Cmd("Zoom out", Trigger.ForWheel(WheelDirection.Down, new TriggerHold(HeldButtons.Right)), new DelayStep(10)) with { CategoryId = media },
             ],
         };
-        return mapping with { Groups = [global, .. mapping.Groups.Where(group => !group.IsGlobal)] };
+        var groups = mapping.Groups.Where(group => !group.IsGlobal).Select(group => group.Name != "Chrome" ? group : group with
+        {
+            Commands = [.. group.Commands.Select(command => command.Name == "Zoom in" ? command with { NotIn = [eyeris.Id] } : command)],
+        });
+        return new MappingDocument([global, .. groups], [spine, eyeris, krita, vmware]);
     }
+
+    /// <summary>An Ignored › Per command entry on one Windows executable (plan 0004).</summary>
+    public static IgnoredApp PerCommand(string name, string executable)
+        => new(GroupId.New(), name, IsActive: true, new AppMatcher { WindowsProcessNames = [executable] }, DisableEntirely: false) { Scope = IgnoreScope.PerCommand };
 
     /// <summary>
     /// Joel's Blender (F9, plan 0002): the Space hold remap with Orbit (Left → Middle), Pan (Right → Shift + Middle), Zoom both
@@ -156,6 +170,12 @@ public static class CommandGalleryFakes
     public sealed class Confirm : IConfirmPresenter
     {
         public Task<bool> ConfirmAsync(string title, string message, string confirmLabel) => Task.FromResult(true);
+    }
+
+    /// <summary>No Commands tab in the gallery: a "Used by" link answers that the command is there and opens nothing.</summary>
+    public sealed class Locator : ICommandLocator
+    {
+        public bool ShowCommand(CommandId id) => true;
     }
 }
 #endif
