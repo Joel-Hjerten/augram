@@ -290,6 +290,8 @@ public sealed class HoldRemapEngineTests
         Assert.True(harness.KeyDown(KeyCode.Space, 20));
         Assert.True(harness.KeyUp(KeyCode.Space, 30));
         harness.WaitForLog(LogSources.Hold, "Tap sent");
+        // The watch publishes first and logs second, on its own thread.
+        harness.WaitForLog(LogSources.Hold, "Foreground hold remaps");
         Assert.Equal("Blender", Property(harness.Log.From(LogSources.Hold).Last(e => e.Message == "Foreground hold remaps"), "app"));
     }
 
