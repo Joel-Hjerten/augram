@@ -21,14 +21,15 @@ namespace Augram.App.ViewModels;
 /// or "deleted") and the user's choice per conflict, Keep mine by default. Keep both is offered only for a gesture
 /// or a command that exists on both machines (<see cref="Allowed"/>); elsewhere Core would apply the nearest choice
 /// anyway. <see cref="Resolutions"/> is what Apply hands to <see cref="SyncService.Resolve"/>. Names in the summaries
-/// (a command's group and gesture) are read from this machine's stores, as snapshots, when the dialog opens.
+/// (a command's group and gesture) are read from this machine's stores, as snapshots, when the dialog opens. The Augram file
+/// import (plan 0003) reuses it for its differing items, with its own <see cref="Help"/> and the file as the other side.
 /// </summary>
 public sealed class SyncConflictsViewModel
 {
     public const string KeepMineLabel = "Keep mine";
     public const string TakeTheirsLabel = "Take theirs";
     public const string KeepBothLabel = "Keep both";
-    public const string Help =
+    public const string SyncHelp =
         "Each item changed here and on another machine since they last synced. Keep mine sends this machine's version to the other one on the next sync; Take theirs uses the other machine's here; Keep both keeps yours and adds theirs beside it. Cancel leaves them pending; nothing blocks meanwhile.";
 
     private readonly SyncConflict[] _conflicts;
@@ -37,7 +38,8 @@ public sealed class SyncConflictsViewModel
     private readonly MappingDocument _mapping;
     private readonly StepRegistry _steps;
 
-    public SyncConflictsViewModel(IReadOnlyList<SyncConflict> conflicts, IReadOnlyList<Gesture> gestures, MappingDocument mapping, StepRegistry? steps = null)
+    /// <summary><c>help</c> is the dialog's instructions (its ⓘ): the sync's (<see cref="SyncHelp"/>) unless the host has its own.</summary>
+    public SyncConflictsViewModel(IReadOnlyList<SyncConflict> conflicts, IReadOnlyList<Gesture> gestures, MappingDocument mapping, StepRegistry? steps = null, string? help = null)
     {
         ArgumentNullException.ThrowIfNull(conflicts);
         ArgumentNullException.ThrowIfNull(gestures);
@@ -47,10 +49,15 @@ public sealed class SyncConflictsViewModel
         _gestures = gestures;
         _mapping = mapping;
         _steps = steps ?? StepRegistry.BuiltIn;
+        Help = help ?? SyncHelp;
         Entries = [.. _conflicts.Select(Entry)];
     }
 
-    public IReadOnlyList<SyncConflictEntry> Entries { get; }
+    /// <summary>One per conflict, each showing its current choice; rebuilt by <see cref="ChooseAll"/>.</summary>
+    public IReadOnlyList<SyncConflictEntry> Entries { get; private set; }
+
+    /// <summary>The dialog's instructions, shown in its ⓘ.</summary>
+    public string Help { get; }
 
     /// <summary>The choice per conflict, in <see cref="Entries"/> order.</summary>
     public IReadOnlyList<SyncChoice> Choices => _choices;
@@ -93,6 +100,30 @@ public sealed class SyncConflictsViewModel
 
         _choices[index] = choice;
         return true;
+    }
+
+    /// <summary>
+    /// "Apply to all": every conflict that offers <paramref name="choice"/> takes it; one that does not (Keep both on an app
+    /// group) keeps its own. <see cref="Entries"/> is rebuilt so a list shows the new choices; false when nothing changed.
+    /// </summary>
+    public bool ChooseAll(SyncChoice choice)
+    {
+        var changed = false;
+        for (var i = 0; i < _conflicts.Length; i++)
+        {
+            if (_choices[i] != choice && Allowed(_conflicts[i]).Contains(choice))
+            {
+                _choices[i] = choice;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            Entries = [.. _conflicts.Select(Entry)];
+        }
+
+        return changed;
     }
 
     /// <summary>Every conflict with its choice, in order: what Apply resolves.</summary>

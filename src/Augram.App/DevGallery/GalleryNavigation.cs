@@ -43,6 +43,7 @@ public static class GalleryNavigation
         new("WindowFinder", Key + ".windowfinder", IgnoredGalleryPages.WindowFinderPage),
         new("Sync join", Key + ".syncjoin", SyncGalleryPages.JoinPage),
         new("Sync conflicts", Key + ".syncconflicts", SyncGalleryPages.ConflictsPage),
+        new("Transfer", Key + ".transfer", TransferGalleryPages.Page),
     ]);
 
     private static ScreenDeclaration SectionFormPage()
@@ -54,6 +55,12 @@ public static class GalleryNavigation
             [
                 new ToggleField("Toggle", new DelegateBinding<bool>(() => fake.Flag, v => fake.Flag = v, fake), "A bool."),
                 new TogglesField("Toggles", [new ToggleOption("First", new DelegateBinding<bool>(() => fake.Flag, v => fake.Flag = v, fake)), new ToggleOption("Second", new DelegateBinding<bool>(() => !fake.Flag, v => fake.Flag = !v, fake))], "Several bools on one row."),
+                new CheckListField("CheckList",
+                [
+                    new CheckListItem("Global", new DelegateBinding<bool>(() => fake.Flag, v => fake.Flag = v, fake), "7 commands"),
+                    new CheckListItem("Blender", new DelegateBinding<bool>(() => !fake.Flag, v => fake.Flag = !v, fake), "5 commands · 1 hold remap · Windows only"),
+                    new CheckListItem("No detail", new DelegateBinding<bool>(() => fake.Flag, v => fake.Flag = v, fake)),
+                ], "Bools one under the other, each with an optional detail; scrolls past its height."),
                 new DropdownField<string>("Dropdown", Choice.FromStrings("Alpha", "Beta", "Gamma"), new DelegateBinding<string>(() => fake.Choice, v => fake.Choice = v, fake)),
                 new ButtonRadioField<string>("ButtonRadio", Choice.FromStrings("Left", "Middle", "Right"), new DelegateBinding<string>(() => fake.Button, v => fake.Button = v, fake)),
                 new TextField("Text", new DelegateBinding<string>(() => fake.Name, v => fake.Name = v, fake)),

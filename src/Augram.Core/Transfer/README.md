@@ -62,4 +62,4 @@ Then `SyncDocumentBuilder.Build(items, arriving, local)`, exactly as a sync merg
 
 Everything but `ApplyTo` is pure and may run anywhere. `ApplyTo` runs on the stores' thread (the UI thread in the app), like every store mutation.
 
-**May reference:** `Config`, `Gestures`, `Mapping`, `HoldRemaps`, `Recognition`, `Steps`, `Sync`, `Abstractions`. **Referenced by:** the App's export and import dialogs (plan 0003 steps 3–4, not built yet).
+**May reference:** `Config`, `Gestures`, `Mapping`, `HoldRemaps`, `Recognition`, `Steps`, `Sync`, `Abstractions`. **Referenced by:** the App's export and import (`src/Augram.App/Transfer/`, the view models `ExportViewModel` and `AugramImportViewModel`; plan 0003 steps 3–4, built 2026-10-10; App README "Export and import of Augram files").

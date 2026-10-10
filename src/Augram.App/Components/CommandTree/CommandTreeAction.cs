@@ -53,6 +53,9 @@ public enum CommandTreeAction
     /// <summary>Paste the copied command into the section (a hold remap keeps it under it), or a copied hold remap into the section's app group.</summary>
     Paste,
 
+    /// <summary>Export the section's app group to an Augram file (plan 0003; a group's or a category's menu): the export dialog with that group, or Global, preselected.</summary>
+    Export,
+
     /// <summary>Change the command's trigger kind (the header dropdown); Gesture opens the picker.</summary>
     SetTriggerKind,
 

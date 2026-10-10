@@ -25,11 +25,23 @@ public static class OptionsScreen
 
     /// <param name="vm">The settings projection.</param>
     /// <param name="sync">Options › Sync (<see cref="OptionsSyncSection"/>); null leaves the section out (tests, a root without <c>SyncModule</c>).</param>
-    public static ScreenDeclaration Declare(AppSettingsViewModel vm, SyncViewModel? sync = null)
+    /// <param name="configuration">Options › Configuration (<see cref="OptionsConfigurationSection"/>: export and import), before About; null leaves it out (a root without <c>TransferModule</c>).</param>
+    public static ScreenDeclaration Declare(AppSettingsViewModel vm, SyncViewModel? sync = null, ConfigurationViewModel? configuration = null)
     {
         ArgumentNullException.ThrowIfNull(vm);
-        var sections = Sections(vm);
-        return new FormScreen("Options", sync is null ? [.. sections, About(vm)] : [.. sections, OptionsSyncSection.Declare(sync), About(vm)]);
+        var sections = new List<Section>(Sections(vm));
+        if (sync is not null)
+        {
+            sections.Add(OptionsSyncSection.Declare(sync));
+        }
+
+        if (configuration is not null)
+        {
+            sections.Add(OptionsConfigurationSection.Declare(configuration));
+        }
+
+        sections.Add(About(vm));
+        return new FormScreen("Options", sections);
     }
 
     /// <summary>Which build this is, read-only: version, commit and channel (<see cref="Hosting.AppInfo"/>).</summary>

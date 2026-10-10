@@ -31,7 +31,7 @@ public sealed class SyncConflictWindow : Window
         // The help is an (i) after the summary, its text in the tooltip (App README, help rule).
         var help = new TextBlock();
         help.Classes.Add("help-icon");
-        ToolTip.SetTip(help, SyncConflictsViewModel.Help);
+        ToolTip.SetTip(help, viewModel.Help);
         var cancel = new Button { Content = "Cancel", IsCancel = true };
         cancel.Classes.Add("toolbar");
         cancel.Click += (_, _) => Close();

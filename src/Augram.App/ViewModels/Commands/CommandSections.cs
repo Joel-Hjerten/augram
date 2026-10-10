@@ -84,6 +84,7 @@ internal static class CommandSections
             CanEditDefinition = true,
             CanToggleActive = true,
             CanAddHoldRemap = true,
+            CanExport = true,
             HoldRemapCount = holdRemaps.Count,
             IsElsewhere = !group.IsUsedOn(here),
             Note = PlatformNote(group, here),
@@ -145,7 +146,7 @@ internal static class CommandSections
         var uncategorized = items.Where(item => item.Section == SectionId.Uncategorized).ToList();
         if (uncategorized.Count > 0)
         {
-            sections.Add(new SectionItem(SectionId.Uncategorized, CategoryChoice.UncategorizedName, global.IsActive, expanded.Contains(SectionId.Uncategorized), uncategorized));
+            sections.Add(new SectionItem(SectionId.Uncategorized, CategoryChoice.UncategorizedName, global.IsActive, expanded.Contains(SectionId.Uncategorized), uncategorized) { CanExport = true });
         }
 
         foreach (var category in Sorted(global))
@@ -161,6 +162,7 @@ internal static class CommandSections
             {
                 CanRename = true,
                 CanDelete = true,
+                CanExport = true,
                 IsElsewhere = !usedHere,
                 Note = usedHere ? null : StepPlatformMarker.Only(category.UseOn),
             });

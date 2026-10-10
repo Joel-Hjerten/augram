@@ -10,7 +10,7 @@ namespace Augram.App.Components.GestureGrid;
 /// Lookless grid of gesture tiles (F3, F4, F5a): <see cref="Tiles"/> in (already sorted by the host),
 /// one <see cref="GestureGridActionEventArgs"/> out per user intent. The template supplies
 /// <c>PART_Tiles</c> (a <see cref="ListBox"/> the tiles live in), the toolbar buttons <c>PART_New</c>,
-/// <c>PART_Import</c>, <c>PART_Undo</c>, <c>PART_Redo</c>, and binds <see cref="Message"/> (rule
+/// <c>PART_Import</c>, <c>PART_Export</c>, <c>PART_Undo</c>, <c>PART_Redo</c>, and binds <see cref="Message"/> (rule
 /// feedback). Selecting a tile marks
 /// its confusion partners with their score. Selection survives a rebuild by gesture id. Right-click selects before the context menu opens; double-click redraws.
 /// </summary>
@@ -110,6 +110,7 @@ public sealed class GestureGrid : TemplatedControl
 
         Wire(e, "PART_New", GestureGridAction.New);
         Wire(e, "PART_Import", GestureGridAction.Import);
+        Wire(e, "PART_Export", GestureGridAction.Export);
         Wire(e, "PART_Undo", GestureGridAction.Undo);
         Wire(e, "PART_Redo", GestureGridAction.Redo);
     }

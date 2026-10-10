@@ -10,7 +10,8 @@ namespace Augram.App.Components.FormDialog;
 /// an optional <see cref="Message"/> line, an optional declared <see cref="Screen"/> rendered by
 /// <c>SectionForm</c>, and the buttons <c>PART_Confirm</c> (labelled <see cref="ConfirmLabel"/>) and
 /// <c>PART_Cancel</c>, which raise <see cref="Confirmed"/> and <see cref="Cancelled"/>. The host
-/// window closes on either.
+/// window closes on either. While <see cref="CanConfirm"/> is false the confirm button is disabled and
+/// <see cref="Confirm"/> does nothing (the export dialog with nothing selected).
 /// </summary>
 public sealed class FormDialog : TemplatedControl
 {
@@ -22,6 +23,9 @@ public sealed class FormDialog : TemplatedControl
 
     public static readonly StyledProperty<string> ConfirmLabelProperty =
         AvaloniaProperty.Register<FormDialog, string>(nameof(ConfirmLabel), "OK");
+
+    public static readonly StyledProperty<bool> CanConfirmProperty =
+        AvaloniaProperty.Register<FormDialog, bool>(nameof(CanConfirm), true);
 
     public static readonly StyledProperty<bool> HasMessageProperty =
         AvaloniaProperty.Register<FormDialog, bool>(nameof(HasMessage));
@@ -51,6 +55,13 @@ public sealed class FormDialog : TemplatedControl
         set => SetValue(ConfirmLabelProperty, value);
     }
 
+    /// <summary>The confirm button is enabled; true unless the request says otherwise.</summary>
+    public bool CanConfirm
+    {
+        get => GetValue(CanConfirmProperty);
+        set => SetValue(CanConfirmProperty, value);
+    }
+
     public bool HasMessage
     {
         get => GetValue(HasMessageProperty);
@@ -63,7 +74,13 @@ public sealed class FormDialog : TemplatedControl
         private set => SetValue(HasScreenProperty, value);
     }
 
-    public void Confirm() => Confirmed?.Invoke(this, EventArgs.Empty);
+    public void Confirm()
+    {
+        if (CanConfirm)
+        {
+            Confirmed?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     public void Cancel() => Cancelled?.Invoke(this, EventArgs.Empty);
 

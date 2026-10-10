@@ -1,11 +1,13 @@
 using Augram.App.Components.GestureGrid;
 using Augram.App.Import;
 using Augram.App.Training;
+using Augram.App.Transfer;
 using Augram.App.UsedBy;
 using Augram.Core.Gestures;
 using Augram.Core.Gestures.Cleanup;
 using Augram.Core.Mapping;
 using Augram.Core.Recognition;
+using Augram.Core.Transfer;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -32,8 +34,10 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     private readonly IImportPresenter _import;
     private readonly IUsedByPresenter _usedBy;
     private readonly IConfirmPresenter _confirm;
+    private readonly IExportPresenter? _export;
     private readonly DispatcherTimer _diagnosticTimer;
 
+    /// <summary>The <c>export</c> presenter runs the toolbar's Export… (plan 0003); null where there is none (tests, the gallery).</summary>
     public GesturesViewModel(
         GestureLibrary library,
         Func<RecognitionOptions> options,
@@ -41,7 +45,8 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         IImportPresenter import,
         MappingStore mapping,
         IUsedByPresenter usedBy,
-        IConfirmPresenter confirm)
+        IConfirmPresenter confirm,
+        IExportPresenter? export = null)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(options);
@@ -58,6 +63,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         _import = import;
         _usedBy = usedBy;
         _confirm = confirm;
+        _export = export;
         _diagnosticTimer = new DispatcherTimer { Interval = DiagnosticDelay };
         _diagnosticTimer.Tick += (_, _) => RefreshDiagnostic();
         _library.Changed += OnLibraryChanged;
@@ -141,6 +147,9 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
                 break;
             case GestureGridAction.Import:
                 _ = ImportAsync();
+                break;
+            case GestureGridAction.Export:
+                _ = ExportAsync();
                 break;
             case GestureGridAction.Undo:
                 _library.Undo();
@@ -244,6 +253,21 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             Message = "Import failed: " + exception.Message;
+        }
+    }
+
+    /// <summary>The export dialog with "gestures only" preselected (plan 0003); its outcome goes to the message line.</summary>
+    private async Task ExportAsync()
+    {
+        if (_export is null)
+        {
+            Message = "Export is not available here.";
+            return;
+        }
+
+        if (await _export.ExportAsync(ExportScope.GesturesOnly).ConfigureAwait(true) is { } outcome)
+        {
+            Message = outcome;
         }
     }
 
