@@ -1,8 +1,30 @@
-# Agent handoff — Augram: start at login built on both platforms, export/import under way, 0.7.1 on main (updated 2026-10-10 night, PC session)
+# Agent handoff — Augram: plan 0004 (drag distance, Ignored › Per command, Swap / Take it) on the PC as 0.9.1, the Mac next (updated 2026-10-10 night, PC session)
 
 You are picking up a project whose first runnable milestone is built and accepted by Joel. Everything decided is in the docs; this file tells you the state, the order to read things, what to do next, and the rules that came from mistakes. Joel works on his **Windows 11 PC** and his **Mac** (sections 8, 8a–8c); both run Augram and sync through `Joel-Hjerten/augram-sync`.
 
 ## 0. Right now
+
+### NEXT: Mac session, bring the Mac to 0.9.1 (written 2026-10-10 night, PC session)
+
+**Nothing to implement:** everything below is shared code (Core, Engine, App) already in the Mac build. The job is to build, install and check it on macOS, then fix only what a check shows. Main is **0.9.1** (`78de2d9`), CI green on both runners. The PC runs 0.9.1. Joel: "it works really well" for Swap / Take it, and "working" for the rest. The Mac still runs **0.7.0**, and sync is paused there ("uses a newer Augram"): the PC now writes **config schema 6, sync format 13**. Nothing is lost; the Mac catches up when it runs 0.9.1.
+
+What came in since 0.7.0, all in [plan 0004](plans/0004-drag-distance-and-not-in.md) (read decisions 1, 2, 5–8) and requirements F1 / F5:
+- **Options › Capture › Button drag distance** (per machine, default 10 px). A command's own **Drag distance** in its trigger area applies only to a trigger holding a button other than the stroke button, without it (Right + wheel).
+- **Ignored › Global / Per command.** A command's **Not in** names Per command entries; over their windows the command is absent. Each entry shows **Used by** links. The Not in dialog has **Add app…** with the window finder's magnifier.
+- **Swap / Take it** in the red "already uses" note of a trigger or hold-remap input.
+
+Steps (the Mac's run rules are in "Run rules on this Mac" below: the agent never launches the app; Joel runs it):
+1. **Pull, build, test, format** (`~/.dotnet/dotnet`). Then `node scripts/package.mjs mac --signed` (Joel allows exactly this). Joel quits the running Augram from the menu bar first: installing does not restart it, which bit once. Then he installs the .pkg (`open artifacts/releases/osx-arm64/Augram-osx-Setup.pkg`) and checks that the title says 0.9.1. Back up `~/Library/Application Support/Augram/augram.json` first (as `augram.before-0.9.1.json`).
+2. **Sync resumes** and brings what Joel set up on the PC: Global › Media › Zoom In / Zoom Out with Not in = Spine, Eyeris (and their Windows drag distance), and Ignored › Per command › Spine, Eyeris. Check they show on the Mac and that the log has no sync warning.
+3. **Mac-specific things to check, with Joel:**
+   - **Drag distance on the zoom commands.** On the Mac, Zoom In/Out have their own triggers, **Stroke + Right** + wheel. Right is never held back there, so their header shows **no Drag distance row**, and that is correct. The row appears only for a trigger such as Right + wheel without the stroke button.
+   - **Spine and Eyeris on the Mac.** The PC made those Per command entries from Windows windows (Add app…), so they hold Windows executable names only. They match on the Mac only through a `KnownApps` guess, and Spine and Eyeris are not in that table. So they **match nothing on the Mac** until macOS names are filled in: Ignored › Per command › Spine › Fields for: macOS › Executable, with the magnifier on a Spine window. Ask Joel whether he uses Spine and Eyeris on the Mac. The Mac's zoom holds the stroke button, so its zoom never held Right back anyway; Not in matters there only if he wants Zoom off in those apps.
+   - **Never seen on any real desktop yet:** the **Add app…** magnifier inside the modal Not in dialog (AppKit sends a drag to the window the press was in), and a **Used by** link opening its command on the Commands tab. Try both on the Mac. The PC may have done them, but Joel has not said.
+   - **Swap / Take it** on the Mac. A clash only on Windows (the other platform) shows the note without buttons, and that is correct.
+   - The Mac's own Options › Capture › Button drag distance (per machine, 10 px by default).
+4. **The log** (`~/Library/Application Support/Augram/logs/augram-<yyyyMMdd>.log`): no Warning or Error from `sync`, `ignore` or `hold`.
+5. **Record:** plan 0004 step 4 (Mac result) and this section. When Joel calls plan 0004 done, move it to `docs/plans/completed/` and fix the links (CLAUDE.md read-first table if it gains a row, requirements, this file).
+
 
 ### Right + wheel without the lag (2026-10-10, PC session)
 
