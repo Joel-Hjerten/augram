@@ -79,7 +79,7 @@ internal static partial class SyncDocumentBuilder
             var name = names.Claim(apps[index].Name);
             if (name != apps[index].Name)
             {
-                repairs.Add(new(items[index].Key, SyncRepairKind.Renamed, $"Incoming ignored app '{apps[index].Name}' renamed '{name}': the name is taken."));
+                repairs.Add(new(items[index].Key, SyncRepairKind.Renamed, $"Incoming excluded app '{apps[index].Name}' renamed '{name}': the name is taken."));
                 apps[index] = apps[index] with { Name = name };
             }
         }

@@ -95,7 +95,7 @@ public sealed class CommandResolverTests
         var ignored = CommandResolver.Resolve(Mapping, Window("game.exe"), UpGesture, HostPlatform.Windows);
 
         Assert.Equal(ResolutionOutcome.Ignored, ignored.Outcome);
-        Assert.Equal("ignored app 'Game'", ignored.Reason);
+        Assert.Equal("excluded app 'Game'", ignored.Reason);
         Assert.True(ignored.IgnoredBy!.DisableEntirely);
         Assert.Null(ignored.Group);
         Assert.False(ignored.Fires);

@@ -165,7 +165,7 @@ public sealed class ExportTests
         var contents = TransferContents.Of(Exporter.Export(ExportScope.Everything, SampleConfig()));
 
         Assert.Equal(new TransferContents(3, 2, HasGlobal: true, 1, 1, 13, 1, HasSettings: true, PrivateTextSteps: 0), contents);
-        Assert.Equal("options, 3 gestures, Global, 2 app groups, 1 hold remap, 13 commands, 1 ignored app", contents.ToString());
+        Assert.Equal("options, 3 gestures, Global, 2 app groups, 1 hold remap, 13 commands, 1 excluded app", contents.ToString());
         Assert.Equal("1 gesture", TransferContents.Of(new TransferFile([Flick("Up")], null)).ToString());
     }
 

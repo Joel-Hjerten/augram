@@ -173,7 +173,7 @@ public sealed class ConfigSession : IDisposable
 
             foreach (var app in mapping.Ignored)
             {
-                Try(() => store.AddIgnored(app), $"Ignored app '{app.Name}' ({app.Id})");
+                Try(() => store.AddIgnored(app), $"Excluded app '{app.Name}' ({app.Id})");
             }
 
             RestoreIgnoredReferences(store, mapping);

@@ -85,6 +85,6 @@ public sealed record SyncCounts(
         SyncItemKind.Category => "categories",
         SyncItemKind.HoldRemap => "hold remaps",
         SyncItemKind.Command => "commands",
-        _ => "ignored apps",
+        _ => "excluded apps",
     };
 }

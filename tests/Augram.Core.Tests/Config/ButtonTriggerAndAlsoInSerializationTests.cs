@@ -169,7 +169,7 @@ public sealed class ButtonTriggerAndAlsoInSerializationTests
         var loadedZoom = loaded.Commands.Single(command => command.Name == "Zoom In");
         Assert.Equal([spine.Id], loadedZoom.NotIn);
         Assert.Equal([blender.Id], loadedZoom.AlsoIn);
-        Assert.StartsWith($"Ignored app 'BLENDER' ({twin.Id}) skipped:", Assert.Single(notices), StringComparison.Ordinal);
+        Assert.StartsWith($"Excluded app 'BLENDER' ({twin.Id}) skipped:", Assert.Single(notices), StringComparison.Ordinal);
         Assert.False(session.Mapping.Undo());
     }
 

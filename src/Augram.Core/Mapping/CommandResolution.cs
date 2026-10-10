@@ -20,5 +20,5 @@ public sealed record CommandResolution(ResolutionOutcome Outcome, AppGroup? Grou
         => new(ResolutionOutcome.None, null, null, reason);
 
     public static CommandResolution Ignored(IgnoredApp app)
-        => new(ResolutionOutcome.Ignored, null, null, $"ignored app '{app.Name}'") { IgnoredBy = app };
+        => new(ResolutionOutcome.Ignored, null, null, $"excluded app '{app.Name}'") { IgnoredBy = app };
 }

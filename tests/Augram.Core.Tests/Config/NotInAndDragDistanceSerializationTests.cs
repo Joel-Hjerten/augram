@@ -174,7 +174,7 @@ public sealed class NotInAndDragDistanceSerializationTests
         Assert.Collection(
             notices,
             notice => Assert.StartsWith($"App group 'STEAM' ({twinGroup.Id}) skipped:", notice, StringComparison.Ordinal),
-            notice => Assert.StartsWith($"Ignored app 'EYERIS' ({twinApp.Id}) skipped:", notice, StringComparison.Ordinal));
+            notice => Assert.StartsWith($"Excluded app 'EYERIS' ({twinApp.Id}) skipped:", notice, StringComparison.Ordinal));
         Assert.False(session.Mapping.Undo());
     }
 

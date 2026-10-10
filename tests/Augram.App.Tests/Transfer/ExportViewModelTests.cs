@@ -54,7 +54,7 @@ public sealed class ExportViewModelTests
     {
         var vm = new ExportViewModel(Configuration(), ExportScope.Everything);
 
-        Assert.Equal($"options, {StarterCount} gestures, Global, 2 app groups, 1 hold remap, 6 commands, 1 ignored app", vm.ContentsText);
+        Assert.Equal($"options, {StarterCount} gestures, Global, 2 app groups, 1 hold remap, 6 commands, 1 excluded app", vm.ContentsText);
         Assert.True(vm.HasPrivateText);
         Assert.Equal("2 steps type text or run command lines; they are in the file as written. Do not share it if they hold passwords.", vm.PrivateTextNote);
 

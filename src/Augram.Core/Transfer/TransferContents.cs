@@ -47,7 +47,7 @@ public sealed record TransferContents(
         return group.Commands.Count == 0 && group.Categories.Count == 0 && group.HoldRemaps.Count == 0;
     }
 
-    /// <summary>"options, 90 gestures, Global, 19 app groups, 212 commands, 3 ignored apps": the parts that are there, for a dialog line and the log.</summary>
+    /// <summary>"options, 90 gestures, Global, 19 app groups, 212 commands, 3 excluded apps": the parts that are there, for a dialog line and the log.</summary>
     public override string ToString()
     {
         var parts = new List<string>();
@@ -65,7 +65,7 @@ public sealed record TransferContents(
         Add(parts, AppGroups, "app group");
         Add(parts, HoldRemaps, "hold remap");
         Add(parts, Commands, "command");
-        Add(parts, IgnoredApps, "ignored app");
+        Add(parts, IgnoredApps, "excluded app");
         return parts.Count == 0 ? "nothing" : string.Join(", ", parts);
     }
 

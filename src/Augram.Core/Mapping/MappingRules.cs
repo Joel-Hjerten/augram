@@ -295,20 +295,20 @@ public static class MappingRules
 
         if (app.Name.Length == 0)
         {
-            throw new MappingValidationException("An ignored app needs a name.");
+            throw new MappingValidationException("An excluded app needs a name.");
         }
 
         foreach (var other in others)
         {
             if (other.Id == app.Id)
             {
-                throw new MappingValidationException($"An ignored app with id {app.Id} already exists.");
+                throw new MappingValidationException($"An excluded app with id {app.Id} already exists.");
             }
 
             // Unique like group names (Joel, 2026-10-09).
             if (NameComparer.Equals(other.Name, app.Name))
             {
-                throw new MappingValidationException($"An ignored app named '{other.Name}' already exists.");
+                throw new MappingValidationException($"An excluded app named '{other.Name}' already exists.");
             }
         }
 

@@ -125,7 +125,7 @@ public sealed class IgnoredViewModelTests
 
         dialogs.Answer = _ => true;
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.New));
-        Assert.Equal("An ignored app needs a name.", vm.Message);
+        Assert.Equal("An excluded app needs a name.", vm.Message);
         Assert.Equal(4, store.Current.Ignored.Count);
     }
 
@@ -143,7 +143,7 @@ public sealed class IgnoredViewModelTests
         Assert.True(Item(vm, "Spine 4.2").IsActive);
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Rename, Item(vm, "Spine 4.2"), "  "));
-        Assert.Equal("An ignored app needs a name.", vm.Message);
+        Assert.Equal("An excluded app needs a name.", vm.Message);
     }
 
     [AvaloniaFact]

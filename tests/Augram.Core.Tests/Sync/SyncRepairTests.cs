@@ -60,7 +60,7 @@ public sealed class SyncRepairTests
 
         Assert.Equal("Steam", result.Mapping.Ignored.Single(app => app.Id == mine.Id).Name);
         Assert.Equal("steam (2)", result.Mapping.Ignored.Single(app => app.Id == theirs.Id).Name);
-        AssertRepair(result, SyncRepairKind.Renamed, SyncItemKey.ForIgnored(theirs.Id), "ignored app");
+        AssertRepair(result, SyncRepairKind.Renamed, SyncItemKey.ForIgnored(theirs.Id), "excluded app");
     }
 
     [Fact]

@@ -1,8 +1,18 @@
-# Agent handoff — Augram: plan 0004 (drag distance, Ignored › Per command, Swap / Take it) on the PC as 0.9.1, the Mac next (updated 2026-10-10 night, PC session)
+# Agent handoff — Augram: plan 0005 (button triggers, Also in, Exclusions) as 0.10.0, Joel's PC check next, then the Mac (updated 2026-10-11, PC session)
 
 You are picking up a project whose first runnable milestone is built and accepted by Joel. Everything decided is in the docs; this file tells you the state, the order to read things, what to do next, and the rules that came from mistakes. Joel works on his **Windows 11 PC** and his **Mac** (sections 8, 8a–8c); both run Augram and sync through `Joel-Hjerten/augram-sync`.
 
 ## 0. Right now
+
+### NOW: plan 0005 (button triggers, Also in, Exclusions) as 0.10.0 on the PC, Joel's check (written 2026-10-11, PC session)
+
+**[Plan 0005](plans/0005-button-triggers.md)** moves Eyeris's loupe chord into Augram (read its decisions first). Built and merged on main as **0.10.0**, CI green, nothing run on a desktop yet:
+- **Step 1, the foreign-release guard:** a simulated button release another program posts (Eyeris swallows the real Right up and posts its own) takes the button off the held set and ends a press it owns quietly. Augram's own releases are announced by the simulator and claimed by the hook (`OwnButtonInjections`). The stuck "Right + gesture" of Joel's log 2026-10-10 19:37 is gone.
+- **Steps 2–3, the Button trigger:** "Right + Left" fires at Left's press; a Remap step's key (Win+Shift+X) is held by the worker while both are down; ordinary steps run once at the press.
+- **Step 4:** config schema 7, sync format 14, export/import. **The Mac (still 0.7.0) pauses sync until it runs 0.10.0.**
+- **Steps 5–6:** the editor (Button kind, Remap with a key on it, Also in, Allowed for), the tab renamed **Exclusions**, the hold remap texts; user-facing Core words say "excluded app".
+
+Next: Joel installs 0.10.0 on the PC (`node scripts/package.mjs windows`; Joel runs the Setup.exe) and goes through the plan's "Done when" (step 7): Eyeris's chord off, Global "magnifier" changed to Button Left while holding Right with one Remap step (key X, Shift + Win) and Also in: Blender. Watch the log for `Button trigger`, `Button output held` / `released` and `Press released elsewhere`. Then the Mac goes straight to 0.10.0 (the 0.9.1 section below still describes its checks).
 
 ### NEXT: Mac session, bring the Mac to 0.9.1 (written 2026-10-10 night, PC session)
 
