@@ -76,7 +76,7 @@ internal static partial class SyncDocumentBuilder
             }
             else if (Problem(command, group) is { } problem)
             {
-                repairs.Add(new(key, SyncRepairKind.Unbound, $"Command '{command.Name}' in '{group.Name}' unbound: {problem}"));
+                repairs.Add(new(key, SyncRepairKind.Unbound, $"Command '{command.Name}' {CommandNames.Where(group, command)} unbound: {problem}"));
                 var own = command.OwnVersion is { Trigger: not null } version ? version with { Trigger = Trigger.None } : command.OwnVersion;
                 commands[i] = command with { Trigger = Trigger.None, OwnVersion = own };
             }

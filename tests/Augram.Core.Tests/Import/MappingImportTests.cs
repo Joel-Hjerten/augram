@@ -1,5 +1,7 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Import.StrokesPlus;
 using Xunit;
@@ -104,6 +106,23 @@ public sealed class MappingImportTests
         Assert.Equal(close, Assert.Single(result.Document.Global.Commands));
         Assert.Equal(0, result.CommandsAdded);
         Assert.Equal(1, result.CommandsSkipped);
+    }
+
+    /// <summary>Command names are unique within their parent (Joel, 2026-10-10): a command under a hold remap does not hold the name for an imported, ordinary one.</summary>
+    [Fact]
+    public void CommandNamedLikeOneUnderAHoldRemapIsAdded()
+    {
+        var space = HoldRemap.For(KeyCode.Space);
+        var orbit = Cmd("Orbit", Trigger.ForInput(HoldInput.Of(MouseButton.Left))) with { HoldRemapId = space.Id };
+        var existing = MappingRules.ValidDocument(Doc([AppGroup.EmptyGlobal, GroupOf("Blender", false, orbit) with { HoldRemaps = [space] }]));
+
+        var result = MappingImport.Merge(existing, Doc([AppGroup.EmptyGlobal, GroupOf("Blender", false, Cmd("orbit", Trigger.ForGesture(G1)))]));
+
+        var blender = result.Document.Groups[1];
+        Assert.Equal(2, blender.Commands.Count);
+        Assert.Single(blender.Commands, command => command.Name == "orbit" && command.HoldRemapId is null);
+        Assert.Equal(1, result.CommandsAdded);
+        Assert.Equal(0, result.CommandsSkipped);
     }
 
     [Fact]

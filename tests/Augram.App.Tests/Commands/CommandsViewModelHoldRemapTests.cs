@@ -1,6 +1,7 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Avalonia.Headless.XUnit;
@@ -202,6 +203,42 @@ public sealed class CommandsViewModelHoldRemapTests
         var second = Blender(store).HoldRemaps.Single(holdRemap => holdRemap.Name == "Space copy");
         Assert.Equal(KeyCode.None, second.HoldKey);
         Assert.Equal("Pasted 'Space copy' into 'Blender' without its hold key: 'Space' in 'Blender' already uses Space as its hold key.", vm.Message);
-        Assert.Equal(["Grab copy", "Orbit copy", "Pan copy", "Zoom both copy"], Blender(store).Commands.Where(command => command.HoldRemapId == second.Id).Select(command => command.Name));
+        Assert.Equal(["Grab", "Orbit", "Pan", "Zoom both"], Blender(store).Commands.Where(command => command.HoldRemapId == second.Id).Select(command => command.Name));
+    }
+
+    /// <summary>
+    /// Command names are unique within their parent (Joel, 2026-10-10): a pasted Orbit keeps its name under another hold remap
+    /// and is "Orbit copy" under its own; New command counts per parent; a rename is refused only by a sibling.
+    /// </summary>
+    [AvaloniaFact]
+    public void NamesAreFreeWithinTheParent_PasteNewCommandAndRenameAskOnlyTheSiblings()
+    {
+        var (vm, store, _) = CreateBlender();
+        var s = store.AddHoldRemap(Blender(store).Id, HoldRemap.For(KeyCode.S));
+        var spaceId = Space(store).Id;
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, HoldRemapSection(vm, "Space"), Item(vm, "Orbit")));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, HoldRemapSection(vm, "S")));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, HoldRemapSection(vm, "Space")));
+
+        var orbits = Blender(store).Commands.Where(command => command.Name.StartsWith("Orbit", StringComparison.Ordinal)).ToList();
+        Assert.Equal(3, orbits.Count);
+        Assert.Single(orbits, command => command.Name == "Orbit" && command.HoldRemapId == s.Id && command.Trigger == Trigger.ForInput(HoldInput.Of(MouseButton.Left)));
+        Assert.Single(orbits, command => command.Name == "Orbit" && command.HoldRemapId == spaceId);
+        Assert.Single(orbits, command => command.Name == "Orbit copy" && command.HoldRemapId == spaceId);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand, HoldRemapSection(vm, "Space")));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand, HoldRemapSection(vm, "S")));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand, Section(vm, "Blender")));
+        Assert.Equal(3, Blender(store).Commands.Count(command => command.Name == "New command 1"));
+
+        var orbitUnderS = HoldRemapSection(vm, "S").Commands.Single(command => command.Name == "Orbit");
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, HoldRemapSection(vm, "S"), orbitUnderS, "Pan"));
+        Assert.Equal("Pan", store.FindCommand(orbitUnderS.Id)!.Value.Command.Name);
+
+        var copy = HoldRemapSection(vm, "Space").Commands.Single(command => command.Name == "Orbit copy");
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, HoldRemapSection(vm, "Space"), copy, "Pan"));
+        Assert.Equal("A command named 'Pan' already exists under 'Space' in 'Blender'.", vm.Message);
+        Assert.Equal("Orbit copy", store.FindCommand(copy.Id)!.Value.Command.Name);
     }
 }

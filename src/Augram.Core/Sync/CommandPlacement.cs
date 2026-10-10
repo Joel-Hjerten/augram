@@ -7,7 +7,8 @@ namespace Augram.Core.Sync;
 /// <summary>
 /// The command part of <see cref="SyncDocumentBuilder"/>: puts every merged command into its group (Global
 /// when the group is gone), clears references the merge left dangling (a gesture, a category, a hold remap), then makes
-/// names unique and binds each trigger once per group (A7; an input once per hold remap), the commands already here first.
+/// names unique within each parent (a hold remap, or the group's ordinary commands: <see cref="CommandNames"/>) and binds each
+/// trigger once per group (A7; an input once per hold remap), the commands already here first.
 /// Every change is a <see cref="SyncRepair"/>.
 /// </summary>
 internal sealed class CommandPlacement
@@ -90,24 +91,28 @@ internal sealed class CommandPlacement
         return command;
     }
 
+    /// <summary>
+    /// Names unique among each command's siblings (its parent's commands, <see cref="CommandNames"/>: a hold remap's, or the
+    /// group's ordinary ones) and each trigger bound once among them (A7), the commands already here first.
+    /// </summary>
     private List<Command> Unique(GroupId groupId, List<(Command Command, SyncItemKey Key, bool Incoming)> entries)
     {
-        var names = new SyncNames();
         var result = new List<Command>(entries.Count);
         foreach (var (original, key, _) in entries.OrderBy(entry => entry.Incoming ? 1 : 0))
         {
             var command = original;
-            var name = names.Claim(command.Name);
+            var where = CommandNames.Where(_groupNames[groupId], HoldRemapName(groupId, command));
+            var name = new SyncNames(CommandNames.SiblingNames(result, command.HoldRemapId)).Claim(command.Name);
             if (name != command.Name)
             {
-                _repairs.Add(new(key, SyncRepairKind.Renamed, $"Incoming command '{command.Name}' in '{_groupNames[groupId]}' renamed '{name}': the name is taken."));
+                _repairs.Add(new(key, SyncRepairKind.Renamed, $"Incoming command '{command.Name}' {where} renamed '{name}': the name is taken."));
                 command = command with { Name = name };
             }
 
             // A7 as MappingRules has it: overlapping triggers (combinations included) on either platform.
             if (command.Trigger.IsBound && Clash(command, result) is { } clash)
             {
-                _repairs.Add(new(key, SyncRepairKind.Unbound, $"Incoming command '{command.Name}' in '{_groupNames[groupId]}' unbound: '{clash.Holder.Name}' already uses {clash.Phrase}."));
+                _repairs.Add(new(key, SyncRepairKind.Unbound, $"Incoming command '{command.Name}' {where} unbound: '{clash.Holder.Name}' already uses {clash.Phrase}."));
                 command = command with { Trigger = Trigger.None };
             }
 
@@ -116,6 +121,9 @@ internal sealed class CommandPlacement
 
         return result;
     }
+
+    private string? HoldRemapName(GroupId groupId, Command command)
+        => command.HoldRemapId is { } id ? _holdRemaps[groupId].FirstOrDefault(holdRemap => holdRemap.Id == id)?.Name : null;
 
     private static (Command Holder, string Phrase)? Clash(Command command, List<Command> placed)
     {

@@ -10,8 +10,8 @@ namespace Augram.App.ViewModels.Commands;
 /// nested in its app group's (<see cref="CommandSections"/>). New hold remap (the group's menu) adds one with no hold key yet,
 /// selected so its form shows (<c>.HoldRemapPanel</c>); rename and the active box act on it; delete asks, then removes it with
 /// its commands in one undo step (<see cref="MappingStore.RemoveHoldRemap"/>); copy takes it with its commands, and paste puts
-/// a copy into the target's app group in one undo step (fresh ids, free names; without its hold key when the group already
-/// uses that key, with the rule's words). The commands under it go through the ordinary command intents (<c>.Commands</c>).
+/// a copy into the target's app group in one undo step (fresh ids, a free name for the hold remap, its commands' names as they
+/// were; without its hold key when the group already uses that key, with the rule's words). The commands under it go through the ordinary command intents (<c>.Commands</c>).
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -83,8 +83,9 @@ public sealed partial class CommandsViewModel
 
     /// <summary>
     /// The copied hold remap into the target's app group with its commands, one undo step: fresh ids, a free name, the commands'
-    /// names made free in the group. When the rules refuse it (the group already uses the hold key) it is pasted without its
-    /// hold key and the message says why; any other refusal shows as it is.
+    /// names free among their new siblings (<see cref="CommandNames"/>: the new hold remap's commands, so they keep their names).
+    /// When the rules refuse it (the group already uses the hold key) it is pasted without its hold key and the message says
+    /// why; any other refusal shows as it is.
     /// </summary>
     private void PasteHoldRemap(HoldRemapCopy copy, SectionId target)
     {
@@ -94,12 +95,10 @@ public sealed partial class CommandsViewModel
             Id = HoldRemapId.New(),
             Name = FreeNames.CopyOf(copy.HoldRemap.Name, group.HoldRemaps.Select(existing => existing.Name)),
         };
-        var taken = group.Commands.Select(command => command.Name).ToList();
         var commands = new List<Command>(copy.Commands.Count);
         foreach (var command in copy.Commands)
         {
-            var name = FreeNames.CopyOf(command.Name, taken);
-            taken.Add(name);
+            var name = FreeNames.CopyOf(command.Name, CommandNames.SiblingNames([.. group.Commands, .. commands], holdRemap.Id));
             commands.Add(command with { Id = CommandId.New(), Name = name, HoldRemapId = holdRemap.Id, CategoryId = null });
         }
 

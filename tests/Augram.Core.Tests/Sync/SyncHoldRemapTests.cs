@@ -121,7 +121,42 @@ public sealed class SyncHoldRemapTests : TwoMachineTest
         Assert.Equal(space.Id, tilt.HoldRemapId);
         var repair = Assert.Single(result.Repairs);
         Assert.Equal(SyncRepairKind.Unbound, repair.Kind);
-        Assert.Equal("Command 'Tilt' in 'Blender' unbound: 'Tilt' cannot use T as its input: it is the hold key of 'Space'.", repair.Description);
+        Assert.Equal("Command 'Tilt' under 'Space' in 'Blender' unbound: 'Tilt' cannot use T as its input: it is the hold key of 'Space'.", repair.Description);
+    }
+
+    /// <summary>Command names are unique within their parent (Joel, 2026-10-10): a clash under one hold remap is renamed, one across parents is not a clash.</summary>
+    [Fact]
+    public void TwoMachinesAddingASpinUnderOneHoldRemap_TheIncomingOneIsRenamed()
+    {
+        var (space, group) = Blender();
+        var mine = group with { Commands = [.. group.Commands, Command(space, "Spin", HoldInput.Of(MouseButton.X1))] };
+        var theirs = group with { Commands = [.. group.Commands, Command(space, "SPIN", HoldInput.Of(MouseButton.X2))] };
+
+        var result = ThreeWayMerge.Merge(Items(group), Items(mine), Items(theirs));
+
+        var spins = result.Mapping.Groups[1].Commands.Where(command => command.Name.StartsWith("Spin", StringComparison.OrdinalIgnoreCase)).ToList();
+        Assert.Equal(["Spin", "SPIN (2)"], spins.Select(command => command.Name));
+        Assert.All(spins, command => Assert.Equal(space.Id, command.HoldRemapId));
+        var repair = Assert.Single(result.Repairs);
+        Assert.Equal(SyncRepairKind.Renamed, repair.Kind);
+        Assert.Equal("Incoming command 'SPIN' under 'Space' in 'Blender' renamed 'SPIN (2)': the name is taken.", repair.Description);
+    }
+
+    [Fact]
+    public void TwoMachinesAddingASpinUnderDifferentParents_KeepTheName()
+    {
+        var (space, group) = Blender();
+        var s = HoldRemap.For(KeyCode.S);
+        var both = group with { HoldRemaps = [space, s] };
+        var mine = both with { Commands = [.. group.Commands, Command(space, "Spin", HoldInput.Of(MouseButton.X1))] };
+        var theirs = both with { Commands = [.. group.Commands, Command(s, "Spin", HoldInput.Of(MouseButton.X1)), NewCommand("Spin")] };
+
+        var result = ThreeWayMerge.Merge(Items(both), Items(mine), Items(theirs));
+
+        var spins = result.Mapping.Groups[1].Commands.Where(command => command.Name == "Spin").Select(command => command.HoldRemapId).ToList();
+        Assert.Equal(3, spins.Count);
+        Assert.Equal(new HashSet<HoldRemapId?> { space.Id, s.Id, null }, spins.ToHashSet());
+        Assert.Empty(result.Repairs);
     }
 
     [Fact]

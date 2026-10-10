@@ -186,7 +186,7 @@ internal sealed class CommandExecutor : IDisposable
                 if (command.Id == id)
                 {
                     var target = _windows.Foreground();
-                    _log.Info(LogSources.Execution, "Hold command", ("trigger", request.Describe()), ("group", group.Name), ("command", command.Name), ("process", target?.ProcessName));
+                    _log.Info(LogSources.Execution, "Hold command", ("trigger", request.Describe()), ("command", CommandNames.Label(group, command)), ("process", target?.ProcessName));
                     _runner.Run(request, group, command, target);
                     return;
                 }

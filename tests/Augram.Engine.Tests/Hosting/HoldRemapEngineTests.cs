@@ -257,6 +257,8 @@ public sealed class HoldRemapEngineTests
         Assert.Equal(WindowOperation.Minimize, call.Operation);
         Assert.Same(BlenderHold.Window, call.Window);
         Assert.Equal("Space + Q", Property(harness.Log.Single(LogSources.Execution, "Hold command"), "trigger"));
+        Assert.Equal("Blender › Space › Minimize", Property(harness.Log.Single(LogSources.Execution, "Hold command"), "command"));
+        Assert.Equal("Blender › Space › Minimize", Property(harness.Log.Single(LogSources.Execution, "Command fired"), "command"));
         Assert.Empty(harness.Simulator.All);
     }
 

@@ -58,7 +58,7 @@ internal sealed class CommandRunner
         var plan = command.PlanFor(_operations.Platform);
         if (!plan.Any(step => step.Stored.IsActive))
         {
-            _log.Info(LogSources.Execution, "Command has no active steps", ("group", group.Name), ("command", command.Name));
+            _log.Info(LogSources.Execution, "Command has no active steps", ("command", CommandNames.Label(group, command)));
             return;
         }
 
@@ -109,7 +109,7 @@ internal sealed class CommandRunner
 
             if (result.Outcome == StepOutcome.Failed)
             {
-                _log.Warning(LogSources.Execution, "Command stopped", ("group", group.Name), ("command", command.Name), ("step", index), ("type", step.Type.Key), ("summary", step.LogSummary), ("reason", result.Reason));
+                _log.Warning(LogSources.Execution, "Command stopped", ("command", CommandNames.Label(group, command)), ("step", index), ("type", step.Type.Key), ("summary", step.LogSummary), ("reason", result.Reason));
                 return;
             }
 
@@ -132,8 +132,7 @@ internal sealed class CommandRunner
         _log.Info(
             LogSources.Execution,
             "Command fired",
-            ("group", group.Name),
-            ("command", command.Name),
+            ("command", CommandNames.Label(group, command)),
             ("trigger", request.Describe()),
             ("stepsRun", run),
             ("stepsSkipped", skipped),
@@ -186,5 +185,5 @@ internal sealed class CommandRunner
     }
 
     private void LogCancelled(AppGroup group, Command command, int index)
-        => _log.Info(LogSources.Execution, "Command cancelled", ("group", group.Name), ("command", command.Name), ("step", index));
+        => _log.Info(LogSources.Execution, "Command cancelled", ("command", CommandNames.Label(group, command)), ("step", index));
 }

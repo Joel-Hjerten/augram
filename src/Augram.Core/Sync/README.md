@@ -63,7 +63,7 @@ A **held** key (the other machine has a pending conflict on it, below) keeps wha
 
 The merged items are rebuilt into a document (`SyncDocumentBuilder`) and repaired where `GestureRules` / `MappingRules` would refuse it, each repair reported as a `SyncRepair` line. What was already here keeps its name and trigger; the **incoming** item (taken from the other side, or displaced by the merge) gives way:
 
-- name clash among gestures, among groups, among ignored apps, among one group's categories, among one group's commands → the incoming one takes the first free " (2)", " (3)"… (Global is never renamed);
+- name clash among gestures, among groups, among ignored apps, among one group's categories, among the commands of one parent (one hold remap's commands, or one group's ordinary commands: `Mapping/CommandNames`, Joel 2026-10-10; an "Orbit" under Space and one under S, or one under Space and an ordinary one, do not clash) → the incoming one takes the first free " (2)", " (3)"… (Global is never renamed); the repair line says where ("Incoming command 'Orbit' under 'Space' in 'Blender' renamed 'Orbit (2)': the name is taken.");
 - a trigger bound twice in one group (A7: triggers that overlap on Windows or macOS, combinations and conversions included, `MappingRules.Overlap`) → the incoming command is unbound (`Trigger.None`);
 - an own version's trigger (format 6) naming a gesture that is gone, or overlapping another command of its group → that platform's trigger is unbound (`TriggerCleared`);
 - a command whose group is gone → into Global, uncategorized;

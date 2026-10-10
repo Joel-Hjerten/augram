@@ -50,6 +50,7 @@ public sealed class CommandExecutionTests
         Assert.Null(harness.Health.Current().LastActivationOutcome);
         var fired = harness.Log.Single(LogSources.Execution, "Command fired");
         Assert.Contains(fired.Properties!, p => p.Key == "stepsRun" && (int)p.Value! == 1);
+        Assert.Contains(fired.Properties!, p => p.Key == "command" && (string)p.Value! == "Global › Minimize");
         Assert.Contains(fired.Properties!, p => p.Key == "process" && (string)p.Value! == "notepad.exe");
         Assert.Contains(fired.Properties!, p => p.Key == "trigger" && (string)p.Value! == "gesture 'right'");
         Assert.False(harness.Log.Has(LogSources.Execution, "Window activated"));

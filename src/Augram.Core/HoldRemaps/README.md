@@ -23,6 +23,7 @@ Hold remaps (requirements F9, plan 0002 steps 1–3): a key that, while held, ch
 6. Inputs are unique per hold remap (A7 in `MappingRules.Overlap`, which never matches commands under different hold remaps): two hold remaps may both use Left. Button sets match exactly, so Left and Left + Right are different inputs.
 7. A Remap step is a command's only step (anywhere). A wheel input takes a key or a wheel output, never a button; a wheel output needs a wheel input.
 8. Normalised, never refused: a command whose `HoldRemapId` names no hold remap of its group becomes an ordinary command with its input cleared (`Detached`; a hand-edited file, a deleted hold remap, a sync repair); a command under a hold remap has no category (cleared).
+9. Command names are unique within their hold remap, case-insensitively (Joel, 2026-10-10; `Mapping/CommandNames`, Mapping rule 2): Space and S may each have an "Orbit", and so may the group's ordinary commands ("A command named 'Orbit' already exists under 'Space' in 'Blender'."). Logs and lists name such a command "Blender › Space › Orbit" (`CommandNames.Label`).
 
 The resolver (`Mapping/CommandResolver`) and the anchor planner skip commands under a hold remap, and `PressedTrigger.Matches` never matches an input: a gesture or a wheel press never fires them. A command's "Use on" is group AND hold remap AND command (`AppGroup.IsCommandUsedOn`).
 
@@ -78,7 +79,7 @@ Events: `HoldDown(entry)` (the hook claimed a hold key's press for that hold rem
 
 ## Persistence and sync
 
-Config file (schema 4, `../Config/README.md`): a group's `holdRemaps` (omitted when empty), a command's `holdRemap` (omitted for an ordinary command), the input trigger `{ "input": { "buttons" | "wheel" | "key": … } }`, the Remap step's `params` (`../Steps/Remap/README.md`); an older file reads as no hold remaps, a bad hold remap entry is dropped with a notice. Sync (format 11, `../Sync/README.md`): a hold remap's header is an item of its own, `holdRemap:<groupId>/<id>`, merged like a category; the commands under it are command items carrying `holdRemap`; the merge repairs name and hold key clashes, a hold remap whose group is gone, a command whose hold remap is gone, and a command that breaks these rules across items.
+Config file (schema 4, `../Config/README.md`): a group's `holdRemaps` (omitted when empty), a command's `holdRemap` (omitted for an ordinary command), the input trigger `{ "input": { "buttons" | "wheel" | "key": … } }`, the Remap step's `params` (`../Steps/Remap/README.md`); an older file reads as no hold remaps, a bad hold remap entry is dropped with a notice. Sync (format 11, `../Sync/README.md`): a hold remap's header is an item of its own, `holdRemap:<groupId>/<id>`, merged like a category; the commands under it are command items carrying `holdRemap`; the merge repairs name and hold key clashes (a command's name clashes only with its hold remap's other commands, rule 9), a hold remap whose group is gone, a command whose hold remap is gone, and a command that breaks these rules across items.
 
 ## Threading
 

@@ -15,7 +15,7 @@ public sealed partial class CommandsViewModel
     private SectionId? TargetOf(SectionItem? section)
         => section?.Id ?? SelectedSectionId ?? (Scope == CommandsScope.Global ? SectionId.Uncategorized : null);
 
-    /// <summary>"New command N" in the section, unbound and empty, selected and handed to the tree for renaming.</summary>
+    /// <summary>"New command N" in the section (N free among the commands of its parent: <see cref="CommandNames"/>), unbound and empty, selected and handed to the tree for renaming.</summary>
     private void NewCommand(SectionId? target)
     {
         if (RequireTarget(target) is not { } section)
@@ -25,7 +25,7 @@ public sealed partial class CommandsViewModel
 
         var group = RequireGroup(section.GroupId);
         Expand(section);
-        var name = FreeNames.Next("New command", group.Commands.Select(command => command.Name));
+        var name = FreeNames.Next("New command", CommandNames.SiblingNames(group.Commands, section.HoldRemapId));
         var command = new Command(CommandId.New(), name, Trigger.None, IsActive: true, Steps: [], CategoryId: section.CategoryId) { HoldRemapId = section.HoldRemapId };
         var stored = _store.AddCommand(group.Id, command);
         Select(section, stored.Id);
@@ -40,7 +40,8 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// A copy with a fresh id and a free name; when the group already uses the trigger (A7) it is pasted unbound rather than
+    /// A copy with a fresh id and a name free among the commands of the parent it lands in (<see cref="CommandNames"/>: a hold
+    /// remap's, or the group's ordinary commands); when the group already uses the trigger (A7) it is pasted unbound rather than
     /// refused. Into a hold remap (plan 0002) it lands under it, keeping an input but no other trigger; elsewhere it lands an
     /// ordinary command, without the input it had under a hold remap. A copied hold remap pastes into the target's group.
     /// </summary>
@@ -69,7 +70,7 @@ public sealed partial class CommandsViewModel
 
         var group = RequireGroup(section.GroupId);
         Expand(section);
-        var name = FreeNames.CopyOf(source.Name, group.Commands.Select(command => command.Name));
+        var name = FreeNames.CopyOf(source.Name, CommandNames.SiblingNames(group.Commands, section.HoldRemapId));
         var copy = Placed(source with { Id = CommandId.New(), Name = name, CategoryId = PastedCategory(section, group, source), HoldRemapId = section.HoldRemapId }, section);
         Command stored;
         try

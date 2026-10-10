@@ -124,9 +124,11 @@ public static class MappingRules
     }
 
     /// <summary>
-    /// Checks a normalised command against the other commands of its group (A7: one command per trigger per group, an input once
-    /// per hold remap, where two triggers are the same when they overlap on either platform, learnings 0003 §3.5), that every
-    /// trigger it has can be held (a wheel trigger needs a button to hold), and <see cref="HoldRemapRules.EnsureValid(Command, AppGroup)"/>.
+    /// Checks a normalised command against the other commands of its group: ids unique; a name unique among its siblings (the
+    /// commands of its parent, <see cref="CommandNames"/>: its hold remap's, or the group's ordinary commands); A7 among the same
+    /// siblings (one command per trigger, an input once per hold remap, where two triggers are the same when they overlap on
+    /// either platform, learnings 0003 §3.5); that every trigger it has can be held (a wheel trigger needs a button to hold);
+    /// and <see cref="HoldRemapRules.EnsureValid(Command, AppGroup)"/>.
     /// </summary>
     public static void EnsureValid(Command command, AppGroup group, IEnumerable<Command> others)
     {
@@ -160,15 +162,19 @@ public static class MappingRules
                 throw new MappingValidationException($"A command with id {command.Id} already exists.");
             }
 
-            if (NameComparer.Equals(other.Name, command.Name))
+            if (!CommandNames.AreSiblings(command, other))
             {
-                throw new MappingValidationException($"A command named '{other.Name}' already exists in '{group.Name}'.");
+                continue;
             }
 
-            if (other.HoldRemapId == command.HoldRemapId && OverlapOf(mine, other) is { } clash)
+            if (NameComparer.Equals(other.Name, command.Name))
             {
-                var where = group.HoldRemapOf(command) is { } holdRemap ? $"under '{holdRemap.Name}' in '{group.Name}'" : $"in '{group.Name}'";
-                throw new MappingValidationException($"'{other.Name}' {where} already uses {clash}.");
+                throw new MappingValidationException($"A command named '{other.Name}' already exists {CommandNames.Where(group, command)}.");
+            }
+
+            if (OverlapOf(mine, other) is { } clash)
+            {
+                throw new MappingValidationException($"'{other.Name}' {CommandNames.Where(group, command)} already uses {clash}.");
             }
         }
     }
@@ -182,7 +188,7 @@ public static class MappingRules
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(other);
-        return command.HoldRemapId == other.HoldRemapId ? OverlapOf(TriggersOf(command), other) : null;
+        return CommandNames.AreSiblings(command, other) ? OverlapOf(TriggersOf(command), other) : null;
     }
 
     private static (Trigger Windows, Trigger MacOS) TriggersOf(Command command)

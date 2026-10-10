@@ -51,7 +51,7 @@ public sealed class SyncConflictsTests
 
         var command = vm.Entries[1];
         Assert.False(command.Mine.HasGlyph);
-        Assert.Equal("Close tab in Chrome: gesture Zig → Wait 30 ms", command.Mine.Text);
+        Assert.Equal("Chrome › Close tab: gesture Zig → Wait 30 ms", command.Mine.Text);
         Assert.Contains("Wait 120 ms", command.Theirs.Text, StringComparison.Ordinal);
 
         Assert.Equal("Chrome: matches no app yet", vm.Entries[2].Mine.Text);
@@ -77,6 +77,25 @@ public sealed class SyncConflictsTests
         Assert.Equal("Space: hold Space, tap 180 ms", entry.Mine.Text);
         Assert.Equal("Space: hold Space, tap 220 ms · Windows only (inactive)", entry.Theirs.Text);
         Assert.Equal([SyncChoice.KeepMine, SyncChoice.TakeTheirs], SyncConflictsViewModel.Allowed(conflict));
+    }
+
+    /// <summary>A command under a hold remap reads "group › hold remap › command" (Joel, 2026-10-10: names are unique per parent only).</summary>
+    [Fact]
+    public void ACommandUnderAHoldRemapIsLabelledWithItsHoldRemap()
+    {
+        var space = HoldRemap.For(KeyCode.Space);
+        var orbit = CloseTab with { Id = CommandId.New(), Name = "Orbit", Trigger = Trigger.ForInput(HoldInput.Of(Core.Capture.MouseButton.Left)), HoldRemapId = space.Id };
+        var elsewhere = orbit with { Id = CommandId.New(), HoldRemapId = HoldRemapId.New() };
+        var mapping = new MappingDocument([AppGroup.EmptyGlobal, Chrome with { HoldRemaps = [space], Commands = [orbit] }], []);
+
+        var entries = new SyncConflictsViewModel(
+            [Conflict(new SyncItem.CommandItem(Chrome.Id, orbit), new SyncItem.CommandItem(Chrome.Id, orbit with { IsActive = false })), Conflict(new SyncItem.CommandItem(Chrome.Id, elsewhere), new SyncItem.CommandItem(Chrome.Id, elsewhere))],
+            [Zig],
+            mapping).Entries;
+
+        Assert.Equal("Chrome › Space › Orbit: Left → Wait 30 ms", entries[0].Mine.Text);
+        Assert.Equal("Chrome › Space › Orbit: Left → Wait 30 ms (inactive)", entries[0].Theirs.Text);
+        Assert.Equal("Chrome › another hold remap › Orbit: Left → Wait 30 ms", entries[1].Mine.Text);
     }
 
     [Fact]

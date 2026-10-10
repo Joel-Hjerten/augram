@@ -8,7 +8,9 @@ namespace Augram.Import.StrokesPlus;
 /// replaces). <see cref="Rebind"/> points the imported commands at the gesture ids the gesture merge
 /// settled on; <see cref="Merge"/> is add-only in this slice: groups merge by name (case-insensitive,
 /// Global always into Global; an existing group keeps its own matcher and flags), a command whose name
-/// or bound trigger is already taken in its group is skipped and counted, ignored apps merge by name.
+/// is already taken among the group's ordinary commands (an import never makes a hold remap, and a command under one does not
+/// hold the name: <see cref="CommandNames"/>) or whose bound trigger is taken in its group is skipped and counted, ignored apps
+/// merge by name.
 /// Categories merge by name too: an added command lands in the existing category of the same name, or
 /// brings its category along when the group lacks it. A per-group replace/overwrite choice is a later
 /// slice. No UI, no store.
@@ -112,9 +114,13 @@ public static class MappingImport
         return added.Id;
     }
 
+    /// <summary>
+    /// The name among the command's siblings (an imported command is always ordinary, so the group's ordinary commands, not
+    /// those under a hold remap: <see cref="CommandNames"/>) or the trigger in the group.
+    /// </summary>
     private static bool IsTaken(Command command, List<Command> commands)
-        => commands.Any(other => MappingRules.NameComparer.Equals(other.Name, command.Name)
-            || command.Trigger.Overlaps(other.Trigger));
+        => CommandNames.SiblingNames(commands, command.HoldRemapId).Contains(command.Name, MappingRules.NameComparer)
+            || commands.Any(other => command.Trigger.Overlaps(other.Trigger));
 
     /// <summary>The command bound to the gesture its source gesture was merged into, keeping what its trigger holds.</summary>
     private static Command Rebound(Command command, IReadOnlyDictionary<GestureId, GestureId> idMap)

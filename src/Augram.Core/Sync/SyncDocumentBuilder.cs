@@ -37,7 +37,7 @@ internal static partial class SyncDocumentBuilder
                     HoldRemaps = holdRemaps[group.Id],
                     Commands = OwnTriggersChecked(
                         [.. commands[group.Id].Select(command => versions.TryGetValue(command.Id, out var own) ? command with { OwnVersion = own } : command)],
-                        group.Name,
+                        group with { HoldRemaps = holdRemaps[group.Id] },
                         gestureIds,
                         repairs),
                 },
@@ -168,7 +168,7 @@ internal static partial class SyncDocumentBuilder
     /// An own version's trigger (F8, 2026-10-09) arrives with its own-steps item, after the commands were placed: one naming a
     /// gesture that is gone, or overlapping another command of the group, leaves that platform unbound, with a repair line.
     /// </summary>
-    private static Command[] OwnTriggersChecked(Command[] commands, string groupName, HashSet<GestureId> gestures, List<SyncRepair> repairs)
+    private static Command[] OwnTriggersChecked(Command[] commands, AppGroup group, HashSet<GestureId> gestures, List<SyncRepair> repairs)
     {
         for (var i = 0; i < commands.Length; i++)
         {
@@ -185,7 +185,7 @@ internal static partial class SyncDocumentBuilder
                     : null;
             if (problem is not null)
             {
-                repairs.Add(new(key, SyncRepairKind.TriggerCleared, $"The own trigger of '{commands[i].Name}' in '{groupName}' unbound: {problem}."));
+                repairs.Add(new(key, SyncRepairKind.TriggerCleared, $"The own trigger of '{commands[i].Name}' {CommandNames.Where(group, commands[i])} unbound: {problem}."));
                 commands[i] = commands[i] with { OwnVersion = own with { Trigger = Trigger.None } };
             }
         }

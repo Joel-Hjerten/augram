@@ -159,12 +159,15 @@ public sealed class SyncConflictsViewModel
         return $"{gesture.Name} · {samples}{(gesture.IsActive ? string.Empty : " · inactive")}";
     }
 
+    /// <summary>"Chrome › Close tab: gesture Zig → Wait 30 ms", "Blender › Space › Orbit: Left → …" (<see cref="CommandNames.Label(string, string?, string)"/>).</summary>
     private string CommandText(GroupId groupId, Command command)
     {
-        var group = _mapping.Groups.FirstOrDefault(candidate => candidate.Id == groupId)?.Name ?? "another group";
+        var group = _mapping.Groups.FirstOrDefault(candidate => candidate.Id == groupId);
+        var holdRemap = command.HoldRemapId is not { } id ? null : group?.FindHoldRemap(id)?.Name ?? "another hold remap";
+        var label = CommandNames.Label(group?.Name ?? "another group", holdRemap, command.Name);
         var trigger = TriggerText(command.Trigger);
         var steps = command.Steps.Count == 0 ? "no steps" : string.Join(", ", command.Steps.Select(step => step.Step.Summary));
-        return $"{command.Name} in {group}: {trigger} → {steps}{(command.IsActive ? string.Empty : " (inactive)")}";
+        return $"{label}: {trigger} → {steps}{(command.IsActive ? string.Empty : " (inactive)")}";
     }
 
     /// <summary>"gesture Undo", "Shift + gesture Undo", "Right + wheel up", "a gesture not on this machine".</summary>
