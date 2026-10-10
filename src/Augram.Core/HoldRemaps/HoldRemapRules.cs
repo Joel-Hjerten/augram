@@ -73,10 +73,9 @@ public static partial class HoldRemapRules
             throw new MappingValidationException($"A hold remap in '{group.Name}' needs a name.");
         }
 
-        if (HotkeyKeys.IsModifier(holdRemap.HoldKey))
+        if (HoldKeyProblem(holdRemap.HoldKey) is { } problem)
         {
-            throw new MappingValidationException(
-                $"{HotkeyText.KeyName(holdRemap.HoldKey)} cannot be a hold key: Ctrl, Alt, Shift and Win are already held for triggers.");
+            throw new MappingValidationException(problem);
         }
 
         if (holdRemap.TapTimeMs is < MinTapTimeMs or > MaxTapTimeMs)
@@ -107,6 +106,14 @@ public static partial class HoldRemapRules
             }
         }
     }
+
+    /// <summary>
+    /// Why <paramref name="key"/> cannot be a hold key, as the sentence <see cref="EnsureValid(HoldRemap, AppGroup, IEnumerable{HoldRemap})"/>
+    /// refuses it with ("Left Shift cannot be a hold key: …"); null when it can. Decision 2: a modifier never can. The App's
+    /// hold key field asks this before it takes a key, so it can say why without a rule of its own.
+    /// </summary>
+    public static string? HoldKeyProblem(KeyCode key)
+        => HotkeyKeys.IsModifier(key) ? $"{HotkeyText.KeyName(key)} cannot be a hold key: Ctrl, Alt, Shift and Win are already held for triggers." : null;
 
     /// <summary>The group's hold remap on <paramref name="holdKey"/>; null when it has none (or for <see cref="KeyCode.None"/>).</summary>
     public static HoldRemap? FindByHoldKey(AppGroup group, KeyCode holdKey)

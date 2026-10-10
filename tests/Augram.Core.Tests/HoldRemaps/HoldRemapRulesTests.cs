@@ -110,6 +110,21 @@ public sealed class HoldRemapRulesTests
         Assert.Equal("'Loop' cannot use Space as its input: it is the hold key of 'Space'.", Refused(Under(space, Remap(space, "Loop", new HoldInput.Key(KeyCode.Space), G))).Message);
     }
 
+    /// <summary>What the App's one-key fields ask before they take a key (plan 0002 step 4): the rules' own reasons, as sentences.</summary>
+    [Fact]
+    public void TheKeyProblemsAreTheRulesReasons_NullForAKeyTheyAccept()
+    {
+        var space = NewSpace();
+
+        Assert.Equal("Right Alt cannot be a hold key: Ctrl, Alt, Shift and Win are already held for triggers.", HoldRemapRules.HoldKeyProblem(KeyCode.RightAlt));
+        Assert.Null(HoldRemapRules.HoldKeyProblem(KeyCode.Space));
+        Assert.Null(HoldRemapRules.HoldKeyProblem(KeyCode.None));
+        Assert.Equal("Left Shift cannot be an input of 'Space': Ctrl, Alt, Shift and Win pass through while a hold key is held.", HoldRemapRules.InputKeyProblem(KeyCode.LeftShift, space));
+        Assert.Equal("Space cannot be an input of 'Space': it is the hold key of 'Space'.", HoldRemapRules.InputKeyProblem(KeyCode.Space, space));
+        Assert.Null(HoldRemapRules.InputKeyProblem(KeyCode.W, space));
+        Assert.Null(HoldRemapRules.InputKeyProblem(KeyCode.None, HoldRemap.For(KeyCode.None)));
+    }
+
     [Fact]
     public void ARemapStepIsACommandsOnlyStep()
     {

@@ -56,13 +56,27 @@ public static partial class HoldRemapRules
                 throw new MappingValidationException($"'{command.Name}' needs at least one button as its input.");
             case HoldInput.Key { KeyCode: KeyCode.None }:
                 throw new MappingValidationException($"'{command.Name}' needs a key as its input.");
-            case HoldInput.Key { KeyCode: var key } when HotkeyKeys.IsModifier(key):
-                throw new MappingValidationException(
-                    $"'{command.Name}' cannot use {HotkeyText.KeyName(key)} as its input: Ctrl, Alt, Shift and Win pass through while a hold key is held.");
-            case HoldInput.Key { KeyCode: var key } when key == holdRemap.HoldKey:
-                throw new MappingValidationException($"'{command.Name}' cannot use {HotkeyText.KeyName(key)} as its input: it is the hold key of '{holdRemap.Name}'.");
+            case HoldInput.Key { KeyCode: var key } when InputKeyReason(key, holdRemap) is { } reason:
+                throw new MappingValidationException($"'{command.Name}' cannot use {HotkeyText.KeyName(key)} as its input: {reason}.");
         }
     }
+
+    /// <summary>
+    /// Why <paramref name="key"/> cannot be the input of a command under <paramref name="holdRemap"/> ("Left Shift cannot be an
+    /// input of 'Space': Ctrl, Alt, Shift and Win pass through while a hold key is held."); null when it can. The same reason
+    /// <see cref="EnsureValid(Command, AppGroup)"/> refuses such a command with; the App's input key field asks it before it
+    /// takes a key.
+    /// </summary>
+    public static string? InputKeyProblem(KeyCode key, HoldRemap holdRemap)
+    {
+        ArgumentNullException.ThrowIfNull(holdRemap);
+        return InputKeyReason(key, holdRemap) is { } reason ? $"{HotkeyText.KeyName(key)} cannot be an input of '{holdRemap.Name}': {reason}." : null;
+    }
+
+    private static string? InputKeyReason(KeyCode key, HoldRemap holdRemap)
+        => HotkeyKeys.IsModifier(key) ? "Ctrl, Alt, Shift and Win pass through while a hold key is held"
+            : key != KeyCode.None && key == holdRemap.HoldKey ? $"it is the hold key of '{holdRemap.Name}'"
+            : null;
 
     private static void EnsureSteps(Command command, Trigger trigger, IReadOnlyList<CommandStep> steps)
     {
