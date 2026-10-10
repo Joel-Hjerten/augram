@@ -1,6 +1,6 @@
 # Plan 0003: Export and import of Augram JSON
 
-**Status: PROPOSED (2026-10-10, night).** Written by an agent while Joel slept; the decisions marked "Decided for Joel" below were taken on his behalf and wait for him. **Progress:** steps 1–2 (Core) **built** on branch `worktree-agent-a403e5e408abef04b` (`5de531b` groundwork, `6a0b1fd` `Core/Transfer` with 47 tests; build, every test project and the format check green), not reviewed or merged yet; nothing in the App. This is plan 0001 M2 step 9. The *what* is [requirements F8](../requirements.md) ("Export is the same format as the on-disk file…", read the sync section too) and F5a's Copy leaning; this plan says how, where the code goes and in what order. Structure rules: [ADR-0002](../adr/0002-code-and-repo-structure.md).
+**Status: PROPOSED (2026-10-10, night).** Written by an agent while Joel slept; the decisions marked "Decided for Joel" below were taken on his behalf and wait for him. **Progress:** steps 1–2 (Core) **built, reviewed and merged** (`5de531b` groundwork, `6a0b1fd` `Core/Transfer` with 47 tests; merge `0734bd8`); the App (steps 3–4) is next, built to the sketch below while Joel decides the questions. This is plan 0001 M2 step 9. The *what* is [requirements F8](../requirements.md) ("Export is the same format as the on-disk file…", read the sync section too) and F5a's Copy leaning; this plan says how, where the code goes and in what order. Structure rules: [ADR-0002](../adr/0002-code-and-repo-structure.md).
 
 ## Done when
 
