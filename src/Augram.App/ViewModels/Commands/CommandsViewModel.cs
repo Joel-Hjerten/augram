@@ -27,8 +27,8 @@ namespace Augram.App.ViewModels.Commands;
 /// switches, closing and reopening the window) and starts collapsed again on the next launch. This file
 /// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c>, <c>.HoldRemapPanel</c> and
 /// <c>.CategoryPanel</c> keep the selected app group's, hold remap's or category's form in step with it, and <c>.Commands</c>,
-/// <c>.Sections</c>, <c>.Groups</c>, <c>.HoldRemaps</c>, <c>.Categories</c>, <c>.Trigger</c>, <c>.Input</c> and <c>.Steps</c>
-/// hold the intents of each level.
+/// <c>.Sections</c>, <c>.Groups</c>, <c>.HoldRemaps</c>, <c>.Categories</c>, <c>.Trigger</c> (its draft <c>.TriggerDraft</c>, the
+/// draft's Swap and Take it <c>.TriggerConflict</c>), <c>.Input</c> and <c>.Steps</c> hold the intents of each level.
 /// </summary>
 public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 {
@@ -240,6 +240,12 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 break;
             case CommandTreeAction.SetInput when e.Command is { } command && e.Input is { } input:
                 SetInput(command, input);
+                break;
+            case CommandTreeAction.SwapTrigger when e.Command is { } command:
+                SettleConflict(command.Id, take: false);
+                break;
+            case CommandTreeAction.TakeTrigger when e.Command is { } command:
+                SettleConflict(command.Id, take: true);
                 break;
             case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
                 UpdateCommand(command.Id, stored => stored with { UseOn = useOn });

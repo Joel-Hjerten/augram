@@ -14,9 +14,9 @@ namespace Augram.App.Components.CommandTree;
 /// app group that has categories, the category as a small tag. It also carries what the header's
 /// Category dropdown offers for it, and for a command under a hold remap (F9, plan 0002) that hold remap, so the header shows
 /// the Input editor instead of the trigger. A projection of a <see cref="Command"/>; the view model resolves
-/// the gesture and decides the section, the tag and the choices.
+/// the gesture and decides the section, the tag and the choices. The header's trigger draft is <c>CommandItem.Draft.cs</c>.
 /// </summary>
-public sealed record CommandItem(
+public sealed partial record CommandItem(
     CommandId Id,
     GroupId GroupId,
     string Name,
@@ -86,12 +86,6 @@ public sealed record CommandItem(
 
     /// <summary>F8 for the trigger: converted from the other platform, this platform's own, or no counterpart here; null for a trigger authored here.</summary>
     public string? TriggerNote { get; init; }
-
-    /// <summary>
-    /// The header's note on a trigger the rules refused, kept as a draft while the user composes it (Joel, 2026-10-09): what is
-    /// wrong and how to fix it. Null for the stored trigger, and always on a row (<see cref="WithDraft"/>).
-    /// </summary>
-    public string? DraftNote { get; init; }
 
     /// <summary>
     /// Options › Capture's button drag distance (plan 0004), what a trigger without its own falls back to: the header's "Options
@@ -169,26 +163,6 @@ public sealed record CommandItem(
             IsOwnVersionStale = command.IsOwnVersionStale,
             CanSetNotIn = holdRemap is null,
             NotIn = command.NotIn,
-        };
-    }
-
-    /// <summary>
-    /// The item as the header shows it while <paramref name="draft"/> waits (a trigger the rules refused): its kind, words, glyph
-    /// (<paramref name="gesture"/>, for a gesture), hint and anchor warning, with <paramref name="note"/>. The row keeps the stored item.
-    /// </summary>
-    public CommandItem WithDraft(Trigger draft, Gesture? gesture, AppGroup group, HostPlatform here, string note)
-    {
-        ArgumentNullException.ThrowIfNull(draft);
-        ArgumentNullException.ThrowIfNull(group);
-        return this with
-        {
-            TriggerKind = TriggerKindExtensions.KindOf(draft),
-            TriggerText = HoldRemap is null ? TriggerKindExtensions.Text(draft, gesture?.Name ?? "Missing gesture", here) : InputKindExtensions.Text(draft),
-            GlyphPoints = gesture is { Samples.Count: > 0 } ? gesture.Samples[0] : null,
-            Trigger = draft,
-            TriggerHint = HoldRemap is { } holdRemap ? InputKindExtensions.Hint(holdRemap) : TriggerKindExtensions.Hint(draft, here),
-            AnchorWarning = TriggerKindExtensions.AnchorWarning(draft, group),
-            DraftNote = note,
         };
     }
 

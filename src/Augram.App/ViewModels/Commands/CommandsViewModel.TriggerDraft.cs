@@ -11,6 +11,7 @@ namespace Augram.App.ViewModels.Commands;
 /// starts from it, and as soon as the rules accept it, it is saved as one normal store edit and the draft is gone. Only the
 /// header shows a draft; the row keeps the stored trigger. It is UI state: selecting anything else drops it, and so does a
 /// store change that removes the command or changes its stored trigger (an undo, a sync) or after which the rules accept it.
+/// A draft refused only because another command of the group uses it here offers Swap and Take it (<c>.TriggerConflict</c>).
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -67,23 +68,29 @@ public sealed partial class CommandsViewModel
             || item.Id != draft.Id
             || _store.FindCommand(draft.Id) is not { } found
             || found.Command.TriggerFor(_platform) != draft.Stored
-            || NoteFor(found.Group, found.Command, draft.Trigger) is not { } note)
+            || RefusalOf(found.Group, found.Command, draft.Trigger) is not { } refusal)
         {
             _draft = null;
             return item;
         }
 
         var gesture = draft.Trigger is Trigger.GestureTrigger named ? _gestures.Find(named.GestureId) : null;
-        var shown = item.WithDraft(draft.Trigger, gesture, found.Group, _platform, note);
+        var shown = item.WithDraft(draft.Trigger, gesture, found.Group, _platform, refusal.Note);
+        if (refusal.TakenBy is { } other)
+        {
+            shown = WithConflict(shown, found.Group, found.Command, draft, other);
+        }
+
         return StrokeButton is { } stroke ? CommandSections.WithStrokeButtonNote(shown, stroke) : shown;
     }
 
     /// <summary>
     /// Why the rules refuse <paramref name="trigger"/> as the command's trigger here, in plain words with how to fix it; null when
     /// they accept it. The rule is Core's (<see cref="MappingRules.EnsureValid(Command, AppGroup, IEnumerable{Command})"/>); this
-    /// only finds the words: the button a wheel trigger lacks, or the command that already uses the trigger in the group (A7).
+    /// only finds the words: the button a wheel trigger lacks, or the command that already uses the trigger in the group (A7),
+    /// which is also what the note's Swap and Take it act on when it uses it on this platform (<c>.TriggerConflict</c>).
     /// </summary>
-    private string? NoteFor(AppGroup group, Command command, Trigger trigger)
+    private DraftRefusal? RefusalOf(AppGroup group, Command command, Trigger trigger)
     {
         var candidate = MappingRules.Normalised(WithTriggerHere(command, trigger));
         var others = group.Commands.Where(other => other.Id != command.Id).ToList();
@@ -96,7 +103,7 @@ public sealed partial class CommandsViewModel
         {
             if (trigger.IsBound && !trigger.Hold.HasAnchor)
             {
-                return "Not saved yet: a wheel trigger needs the stroke button or another button held.";
+                return new DraftRefusal("Not saved yet: a wheel trigger needs the stroke button or another button held.", null);
             }
 
             foreach (var other in others)
@@ -104,12 +111,13 @@ public sealed partial class CommandsViewModel
                 if (MappingRules.Overlap(candidate, other) is { } phrase)
                 {
                     // Taken on this platform reads as the header does; taken only on the other one says which ("… on macOS").
-                    var uses = trigger.Overlaps(other.TriggerFor(_platform)) ? $"{Phrase(trigger)} here" : phrase;
-                    return $"Not saved yet: '{other.Name}' already uses {uses}. {TriggerKindExtensions.FixHint(trigger)}";
+                    var here = trigger.Overlaps(other.TriggerFor(_platform));
+                    var uses = here ? $"{Phrase(trigger)} here" : phrase;
+                    return new DraftRefusal($"Not saved yet: '{other.Name}' already uses {uses}. {TriggerKindExtensions.FixHint(trigger)}", here ? other : null);
                 }
             }
 
-            return $"Not saved yet: {refusal.Message}";
+            return new DraftRefusal($"Not saved yet: {refusal.Message}", null);
         }
     }
 
@@ -121,4 +129,7 @@ public sealed partial class CommandsViewModel
 
     /// <summary>A trigger the rules refused for one command, and the stored trigger it was drafted over.</summary>
     private sealed record TriggerDraft(CommandId Id, Trigger Stored, Trigger Trigger);
+
+    /// <summary>The note on a refused draft, and the command that uses the trigger on this platform when that is the refusal (else null).</summary>
+    private sealed record DraftRefusal(string Note, Command? TakenBy);
 }

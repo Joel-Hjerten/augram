@@ -101,11 +101,15 @@ public sealed partial class CommandsViewModel
     private void SaveTrigger(CommandId id, Trigger trigger)
     {
         var (group, command) = RequireCommand(id);
-        var forked = command.Origin is { } origin && origin != _platform && !command.HasOwnTriggerOn(_platform);
+        var forked = ForksHere(command);
         _store.UpdateCommand(group.Id, WithTriggerHere(command, trigger));
         if (forked)
         {
             Message = $"'{command.Name}' now has its own trigger and steps here; the original keeps running where it was authored. {CommandsKeymap.Current.Undo} undoes it.";
         }
     }
+
+    /// <summary>True when a trigger edit here makes the command this platform's own (F8: authored on the other platform, no own trigger here yet).</summary>
+    private bool ForksHere(Command command)
+        => command.Origin is { } origin && origin != _platform && !command.HasOwnTriggerOn(_platform);
 }
