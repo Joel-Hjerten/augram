@@ -1,11 +1,10 @@
+using Augram.App.Dialogs;
 using Augram.App.Transfer;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Import.StrokesPlus;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 
 namespace Augram.App.Import;
@@ -68,7 +67,7 @@ public sealed class ImportPresenter : IImportPresenter
 
     public async Task OpenAsync()
     {
-        if ((Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } owner)
+        if (DialogHost.MainWindow is not { } owner)
         {
             return;
         }

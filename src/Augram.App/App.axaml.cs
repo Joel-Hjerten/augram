@@ -1,3 +1,4 @@
+using Augram.App.Dialogs;
 using Augram.App.Hosting;
 using Augram.App.Sync;
 using Augram.App.Themes;
@@ -76,7 +77,7 @@ public sealed partial class App : Application
     /// </summary>
     private async void ChooseThenStart(IClassicDesktopStyleApplicationLifetime desktop, InstanceStartup startup)
     {
-        if (await startup.ChooseAsync(_services.GetRequiredService<ITakeOverPresenter>()).ConfigureAwait(true))
+        if (await startup.ChooseAsync(_services.GetRequiredKeyedService<IConfirmPresenter>(ConfirmPresenter.AloneKey)).ConfigureAwait(true))
         {
             // The lifetime showed MainWindow when it started, while it was still null: this launch shows it itself (unless hidden).
             StartDesktop(desktop, lifetimeShowsWindow: false);
@@ -224,7 +225,7 @@ public sealed partial class App : Application
 
     private void ShowMainWindow()
     {
-        if ((ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } window)
+        if (DialogHost.MainWindow is not { } window)
         {
             return;
         }

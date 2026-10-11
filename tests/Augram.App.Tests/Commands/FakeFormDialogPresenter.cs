@@ -1,4 +1,4 @@
-using Augram.App.Components.FormDialog;
+using Augram.App.Dialogs;
 
 namespace Augram.App.Tests.Commands;
 

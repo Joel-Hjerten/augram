@@ -1,17 +1,16 @@
 using Augram.App.Components.Fields;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
+using Augram.App.Components.FormDialog;
 
-namespace Augram.App.Components.FormDialog;
+namespace Augram.App.Dialogs;
 
-/// <summary>Shows a <see cref="FormDialogRequest"/> as a <see cref="FormDialogWindow"/>, modal to the main window when there is one. Nothing here decides what the answer means.</summary>
+/// <summary>Shows a <see cref="FormDialogRequest"/> as a <see cref="FormDialogWindow"/> through <see cref="DialogHost"/>: modal to the main window when it is visible, otherwise alone (activated if the request says so). Nothing here decides what the answer means.</summary>
 public sealed class FormDialogPresenter : IFormDialogPresenter
 {
     public async Task<bool> ShowAsync(FormDialogRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         var dialog = Build(request);
-        var window = new FormDialogWindow(dialog, request.Title);
+        var window = new FormDialogWindow(dialog, request.Title, request.Width);
         var confirmed = false;
         dialog.Confirmed += (_, _) =>
         {
@@ -20,19 +19,7 @@ public sealed class FormDialogPresenter : IFormDialogPresenter
         };
         dialog.Cancelled += (_, _) => window.Close();
 
-        var owner = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-        if (owner is not null && owner.IsVisible)
-        {
-            await window.ShowDialog(owner).ConfigureAwait(true);
-        }
-        else
-        {
-            var closed = new TaskCompletionSource();
-            window.Closed += (_, _) => closed.TrySetResult();
-            window.Show();
-            await closed.Task.ConfigureAwait(true);
-        }
-
+        await DialogHost.ShowModalAsync(window, request.ActivateWhenAlone).ConfigureAwait(true);
         return confirmed;
     }
 

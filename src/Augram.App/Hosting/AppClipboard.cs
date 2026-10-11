@@ -1,6 +1,5 @@
-using Avalonia;
+using Augram.App.Dialogs;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Augram.App.Hosting;
 
@@ -9,7 +8,7 @@ public sealed class AppClipboard : IClipboardText
 {
     public async Task SetTextAsync(string text)
     {
-        var window = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        var window = DialogHost.MainWindow;
         var clipboard = window is null ? null : TopLevel.GetTopLevel(window)?.Clipboard;
         if (clipboard is not null)
         {

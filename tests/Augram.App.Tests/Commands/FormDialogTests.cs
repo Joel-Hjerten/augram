@@ -1,6 +1,7 @@
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.WindowFinder;
+using Augram.App.Dialogs;
 using Augram.App.ViewModels.Commands;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;

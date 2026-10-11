@@ -1,3 +1,4 @@
+using Augram.App.Dialogs;
 using Augram.App.Sync;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
@@ -63,6 +64,7 @@ public static class SyncModule
             Clock(sp),
             sp.GetRequiredService<IEventLog>(),
             options.Schedule));
+        services.TryAddSingleton<IFormDialogPresenter, FormDialogPresenter>();
         services.TryAddSingleton<ISyncJoinPresenter, SyncJoinPresenter>();
         services.TryAddSingleton<ISyncConflictPresenter>(sp => new SyncConflictPresenter(sp.GetRequiredService<GestureLibrary>(), sp.GetRequiredService<MappingStore>()));
         services.AddSingleton(sp => new SyncPrompter(sp.GetRequiredService<SyncService>(), sp.GetRequiredService<ISyncJoinPresenter>(), options.Marshal));

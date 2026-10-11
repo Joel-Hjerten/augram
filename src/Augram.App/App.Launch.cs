@@ -1,4 +1,5 @@
 using System.Runtime.Versioning;
+using Augram.App.Dialogs;
 using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
@@ -54,7 +55,7 @@ public sealed partial class App
 
         // macOS: the bundle starts with a Dock icon (LSUIElement unset); with no window it goes, as when the window closes
         // (MacDockPresence). Not when a reopen has shown the window meanwhile.
-        if (OperatingSystem.IsMacOS() && (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { IsVisible: true })
+        if (OperatingSystem.IsMacOS() && DialogHost.MainWindow is not { IsVisible: true })
         {
             MacDock.SetShown(false);
         }

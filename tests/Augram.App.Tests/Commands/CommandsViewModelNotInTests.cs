@@ -1,8 +1,8 @@
 using Augram.App.Components.CommandTree;
-using Augram.App.Components.FormDialog;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.WindowFinder;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;

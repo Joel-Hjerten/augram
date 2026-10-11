@@ -1,8 +1,7 @@
 #if DEBUG
-using Augram.App.Components.FormDialog;
 using Augram.App.Components.GesturePicker;
+using Augram.App.Dialogs;
 using Augram.App.Navigation;
-using Augram.App.UsedBy;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
@@ -202,6 +201,8 @@ public static class CommandGalleryFakes
     public sealed class Confirm : IConfirmPresenter
     {
         public Task<bool> ConfirmAsync(string title, string message, string confirmLabel) => Task.FromResult(true);
+
+        public Task InformAsync(string title, string message) => Task.CompletedTask;
     }
 
     /// <summary>No Commands tab in the gallery: a "Used by" link answers that the command is there and opens nothing.</summary>

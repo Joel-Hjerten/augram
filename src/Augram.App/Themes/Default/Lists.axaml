@@ -11,6 +11,7 @@
         xmlns:picker="using:Augram.App.Components.StepTypePicker"
         xmlns:gpicker="using:Augram.App.Components.GesturePicker"
         xmlns:dialog="using:Augram.App.Components.FormDialog"
+        xmlns:dialogs="using:Augram.App.Dialogs"
         xmlns:md="using:Augram.App.Components.MasterDetail"
         xmlns:sync="using:Augram.App.Components.SyncConflictList"
         xmlns:wf="using:Augram.App.Components.WindowFinder"
@@ -973,24 +974,41 @@
         </Setter>
       </ControlTheme>
 
-      <!-- The small popup form (F7): message, the declared form, Cancel and the confirm button. The window gives the backdrop. -->
+      <!-- The dialog chrome (Dialogs/DialogShell): the heading with its ⓘ, the content, the buttons bottom right (built by the
+           shell from its labels: Cancel first, the default button last). The window gives the backdrop; the shell's margin is
+           the old DockPanel.dialog's, so a window's content keeps its place. -->
+      <ControlTheme x:Key="{x:Type dialogs:DialogShell}" TargetType="dialogs:DialogShell">
+        <Setter Property="Margin" Value="{StaticResource Pad.L}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <DockPanel>
+              <StackPanel Name="PART_Buttons" DockPanel.Dock="Bottom" Classes="dialog-buttons" />
+              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" IsVisible="{TemplateBinding HasHeading}">
+                <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
+                <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
+              </StackPanel>
+              <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+            </DockPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- The small popup form (F7): message and the declared form in the dialog shell, Cancel and the confirm button. -->
       <ControlTheme x:Key="{x:Type dialog:FormDialog}" TargetType="dialog:FormDialog">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
           <ControlTemplate>
             <Border Background="{TemplateBinding Background}">
-              <DockPanel Classes="dialog">
-                <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
-                  <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
-                  <Button Name="PART_Confirm" Classes="toolbar" Content="{TemplateBinding ConfirmLabel}" IsDefault="True" IsEnabled="{TemplateBinding CanConfirm}" />
-                </StackPanel>
-                <TextBlock DockPanel.Dock="Top"
-                           Classes="dialog-message"
-                           Text="{TemplateBinding Message}"
-                           TextWrapping="Wrap"
-                           IsVisible="{TemplateBinding HasMessage}" />
-                <form:SectionForm Screen="{TemplateBinding Screen}" IsVisible="{TemplateBinding HasScreen}" />
-              </DockPanel>
+              <dialogs:DialogShell Name="PART_Shell" ConfirmLabel="{TemplateBinding ConfirmLabel}" CanConfirm="{TemplateBinding CanConfirm}">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top"
+                             Classes="dialog-message"
+                             Text="{TemplateBinding Message}"
+                             TextWrapping="Wrap"
+                             IsVisible="{TemplateBinding HasMessage}" />
+                  <form:SectionForm Screen="{TemplateBinding Screen}" IsVisible="{TemplateBinding HasScreen}" />
+                </DockPanel>
+              </dialogs:DialogShell>
             </Border>
           </ControlTemplate>
         </Setter>
@@ -1377,7 +1395,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="Padding" Value="10,8" />
   </Style>
-  <!-- Dialogs (FormDialog, the gesture picker, the training and import windows): a margin round the content, the buttons
+  <!-- Dialogs (the dialog shell, the gesture picker, the training window): a margin round the content, the buttons
        bottom right, rows apart. -->
   <Style Selector="DockPanel.dialog">
     <Setter Property="Margin" Value="{StaticResource Pad.L}" />

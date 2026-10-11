@@ -8,6 +8,7 @@ using Augram.App.Components.Steps;
 using Augram.App.Components.Steps.DisplayMode;
 using Augram.App.Components.StepTypePicker;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
@@ -112,7 +113,7 @@ public static class CommandGalleryPages
     private static FormDialog NotInDialog(NotInEditViewModel edit)
     {
         var dialog = FormDialogPresenter.Build(new FormDialogRequest(NotInEditViewModel.Title, NotInEditViewModel.ConfirmLabel, Screen: edit.Declare()));
-        dialog.Width = 560;
+        dialog.Width = DialogSize.Width(DialogSize.Form);
         return dialog;
     }
 
@@ -257,19 +258,19 @@ public static class CommandGalleryPages
         [
             new Section("The app group form: a declared screen",
             [
-                new CustomField("New app group", () => new FormDialog { Screen = new GroupEditViewModel().Declare(), ConfirmLabel = "Create", Width = 560 }),
+                new CustomField("New app group", () => new FormDialog { Screen = new GroupEditViewModel().Declare(), ConfirmLabel = "Create", Width = DialogSize.Width(DialogSize.Form) }),
             ]),
             new Section("With a message line above the form",
             [
-                new CustomField("Edit app group", () => new FormDialog { Message = "Chrome has 2 commands; they stay as they are.", Screen = GroupEditViewModel.From(CommandGalleryFakes.Mapping().Groups[1]).Declare(), ConfirmLabel = "Save", Width = 560 }),
+                new CustomField("Edit app group", () => new FormDialog { Message = "Chrome has 2 commands; they stay as they are.", Screen = GroupEditViewModel.From(CommandGalleryFakes.Mapping().Groups[1]).Declare(), ConfirmLabel = "Save", Width = DialogSize.Width(DialogSize.Form) }),
             ]),
             new Section("The hold remap form (the Apps tab's side panel): name, hold key, tap time, active, Use on",
             [
-                new CustomField("Hold remap", () => new FormDialog { Screen = HoldRemapEditViewModel.From(CommandGalleryFakes.Blender().HoldRemaps[0]).Declare(), ConfirmLabel = "Save", Width = 560 }),
+                new CustomField("Hold remap", () => new FormDialog { Screen = HoldRemapEditViewModel.From(CommandGalleryFakes.Blender().HoldRemaps[0]).Declare(), ConfirmLabel = "Save", Width = DialogSize.Width(DialogSize.Form) }),
             ]),
             new Section("The category form (the Global tab's side panel): name and Use on, here Windows only",
             [
-                new CustomField("Category", () => new FormDialog { Screen = CategoryEditViewModel.From(CommandGalleryFakes.Mapping().Global.Categories.Single(category => category.Name == "PC tools")).Declare(), ConfirmLabel = "Save", Width = 560 }),
+                new CustomField("Category", () => new FormDialog { Screen = CategoryEditViewModel.From(CommandGalleryFakes.Mapping().Global.Categories.Single(category => category.Name == "PC tools")).Declare(), ConfirmLabel = "Save", Width = DialogSize.Width(DialogSize.Form) }),
             ]),
         ]);
 

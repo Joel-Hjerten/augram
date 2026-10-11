@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Augram.App.Dialogs;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 
@@ -134,7 +135,7 @@ public sealed class InstanceStartup : IDisposable
     /// On the UI thread, after <see cref="Begin"/> answered <see cref="InstanceStartupStep.Choose"/>: asks the user, and on yes
     /// takes over. True when this launch now holds the name (<see cref="Guard"/>) and should start; false when it should exit.
     /// </summary>
-    public async Task<bool> ChooseAsync(ITakeOverPresenter presenter)
+    public async Task<bool> ChooseAsync(IConfirmPresenter presenter)
     {
         ArgumentNullException.ThrowIfNull(presenter);
         if (Guard is not null)

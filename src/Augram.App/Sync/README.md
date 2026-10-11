@@ -15,7 +15,7 @@ The App's part of machine-to-machine sync (requirements F8 sync): when a run hap
 | `SyncStatusText` | Every sync status string: `Status` (Options › Sync), `Short` (the tray tooltip), `Outcome` (Diagnostics › Health), `NeedsUpdateText`, `Changes` |
 | `SyncHealthContributor` | Fills `HealthSnapshot.LastSyncOutcome` / `LastSyncAt` from the last report |
 | `SyncPrompter` | Asks the join question when a finished run answered `NeedsJoinChoice` (once per report, one dialog at a time) and hands the answer to `SyncService.Join` |
-| `ISyncJoinPresenter` / `SyncJoinPresenter` | The join question as a `FormDialog` over `SyncJoinViewModel` |
+| `ISyncJoinPresenter` / `SyncJoinPresenter` | The join question through the shared `IFormDialogPresenter` over `SyncJoinViewModel` (`Request`: wider, activated when alone) |
 | `ISyncConflictPresenter` / `SyncConflictPresenter`, `SyncConflictWindow` | Resolve…: the conflict list over `SyncConflictsViewModel`, Cancel / Apply |
 | `SyncConflictSideText` | One version of a conflicting item in words ("Chrome › Close tab: gesture Zig → Wait 30 ms", "deleted"); `SyncConflictsViewModel` builds its entries with it, for sync and for the Augram file import |
 

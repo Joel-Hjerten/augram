@@ -145,6 +145,37 @@
   <!-- A small bordered tag inside a row (a command's category on the Apps tab). -->
   <Thickness x:Key="Pad.Tag">4,0</Thickness>
   <x:Double x:Key="Opacity.Dragging">0.5</x:Double>
+  <!--
+    Dialog windows, one set per window (Dialogs/DialogSize reads them; the training window's XAML too). A set has only the
+    dimensions its window fixes: the form, confirmation and join dialogs size their height to the content.
+  -->
+  <x:Double x:Key="Dialog.Form.Width">560</x:Double>
+  <x:Double x:Key="Dialog.Form.MinWidth">360</x:Double>
+  <!-- Sync's join question: the form dialog, wide enough for its choices. -->
+  <x:Double x:Key="Dialog.Join.Width">680</x:Double>
+  <x:Double x:Key="Dialog.Confirm.Width">480</x:Double>
+  <x:Double x:Key="Dialog.Confirm.MinHeight">140</x:Double>
+  <x:Double x:Key="Dialog.UsedBy.Width">560</x:Double>
+  <x:Double x:Key="Dialog.UsedBy.Height">360</x:Double>
+  <x:Double x:Key="Dialog.UsedBy.MinWidth">400</x:Double>
+  <x:Double x:Key="Dialog.UsedBy.MinHeight">240</x:Double>
+  <x:Double x:Key="Dialog.Conflicts.Width">960</x:Double>
+  <x:Double x:Key="Dialog.Conflicts.Height">480</x:Double>
+  <x:Double x:Key="Dialog.Conflicts.MinWidth">640</x:Double>
+  <x:Double x:Key="Dialog.Conflicts.MinHeight">280</x:Double>
+  <!-- The Augram import review: as wide as the conflicts dialog, taller for its form. -->
+  <x:Double x:Key="Dialog.Import.Width">960</x:Double>
+  <x:Double x:Key="Dialog.Import.Height">640</x:Double>
+  <x:Double x:Key="Dialog.Import.MinWidth">640</x:Double>
+  <x:Double x:Key="Dialog.Import.MinHeight">320</x:Double>
+  <x:Double x:Key="Dialog.Picker.Width">560</x:Double>
+  <x:Double x:Key="Dialog.Picker.Height">520</x:Double>
+  <x:Double x:Key="Dialog.Picker.MinWidth">360</x:Double>
+  <x:Double x:Key="Dialog.Picker.MinHeight">320</x:Double>
+  <x:Double x:Key="Dialog.Training.Width">520</x:Double>
+  <x:Double x:Key="Dialog.Training.Height">560</x:Double>
+  <x:Double x:Key="Dialog.Training.MinWidth">360</x:Double>
+  <x:Double x:Key="Dialog.Training.MinHeight">400</x:Double>
 
   <!-- Type. The Default theme uses these through the text roles in Themes/Default/Text.axaml only. -->
   <FontFamily x:Key="Font.Family">$Default</FontFamily>

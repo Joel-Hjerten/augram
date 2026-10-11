@@ -1,7 +1,5 @@
+using Augram.App.Dialogs;
 using Augram.Core.Transfer;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 
 namespace Augram.App.Transfer;
@@ -32,7 +30,7 @@ public sealed class TransferFilePicker : ITransferFilePicker
     public async Task<string?> PickSaveAsync(string suggestedFileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(suggestedFileName);
-        if (Owner() is not { } owner)
+        if (DialogHost.MainWindow is not { } owner)
         {
             return null;
         }
@@ -52,7 +50,7 @@ public sealed class TransferFilePicker : ITransferFilePicker
     public async Task<string?> PickOpenAsync(FileOpenRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (Owner() is not { } owner)
+        if (DialogHost.MainWindow is not { } owner)
         {
             return null;
         }
@@ -76,8 +74,6 @@ public sealed class TransferFilePicker : ITransferFilePicker
         ArgumentNullException.ThrowIfNull(path);
         return path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? path : path + TransferFile.Extension;
     }
-
-    private static Window? Owner() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
     private static async Task<IStorageFolder?> StartAsync(IStorageProvider storage, string? folder)
         => folder is not null ? await storage.TryGetFolderFromPathAsync(folder).ConfigureAwait(true) : null;

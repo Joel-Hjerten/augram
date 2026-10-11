@@ -49,7 +49,7 @@ public static class GestureGalleryPages
             new GalleryImportPresenter(),
             mapping,
             new UsedBy.UsedByPresenter(mapping, library, () => null),
-            new UsedBy.ConfirmPresenter());
+            new Dialogs.ConfirmPresenter());
         return Screens.GesturesScreen.Declare(vm);
     }
 

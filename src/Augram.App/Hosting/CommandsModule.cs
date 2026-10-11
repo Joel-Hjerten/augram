@@ -1,11 +1,10 @@
-using Augram.App.Components.FormDialog;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.Navigation;
 using Augram.App.Screens;
 using Augram.App.Training;
 using Augram.App.Transfer;
-using Augram.App.UsedBy;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
 using Augram.Core.Config;

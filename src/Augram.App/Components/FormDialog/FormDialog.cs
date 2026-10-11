@@ -1,4 +1,5 @@
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -6,11 +7,10 @@ using Avalonia.Controls.Primitives;
 namespace Augram.App.Components.FormDialog;
 
 /// <summary>
-/// Lookless dialog content shared by every small popup form (F7: dialog chrome implemented once):
-/// an optional <see cref="Message"/> line, an optional declared <see cref="Screen"/> rendered by
-/// <c>SectionForm</c>, and the buttons <c>PART_Confirm</c> (labelled <see cref="ConfirmLabel"/>) and
-/// <c>PART_Cancel</c>, which raise <see cref="Confirmed"/> and <see cref="Cancelled"/>. The host
-/// window closes on either. While <see cref="CanConfirm"/> is false the confirm button is disabled and
+/// Lookless dialog content shared by every small popup form (F7): an optional <see cref="Message"/> line and an
+/// optional declared <see cref="Screen"/> rendered by <c>SectionForm</c>, inside the shared chrome <c>PART_Shell</c> (a
+/// <see cref="DialogShell"/>: Cancel, then the confirm button labelled <see cref="ConfirmLabel"/>), whose buttons raise
+/// <see cref="Confirmed"/> and <see cref="Cancelled"/>. The host window closes on either. While <see cref="CanConfirm"/> is false the confirm button is disabled and
 /// <see cref="Confirm"/> does nothing (the export dialog with nothing selected).
 /// </summary>
 public sealed class FormDialog : TemplatedControl
@@ -87,14 +87,10 @@ public sealed class FormDialog : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
-        if (e.NameScope.Find<Button>("PART_Confirm") is { } confirm)
+        if (e.NameScope.Find<DialogShell>("PART_Shell") is { } shell)
         {
-            confirm.Click += (_, _) => Confirm();
-        }
-
-        if (e.NameScope.Find<Button>("PART_Cancel") is { } cancel)
-        {
-            cancel.Click += (_, _) => Cancel();
+            shell.Confirmed += (_, _) => Confirm();
+            shell.Cancelled += (_, _) => Cancel();
         }
     }
 

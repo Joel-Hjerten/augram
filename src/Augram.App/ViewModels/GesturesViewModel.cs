@@ -1,4 +1,5 @@
 using Augram.App.Components.GestureGrid;
+using Augram.App.Dialogs;
 using Augram.App.Import;
 using Augram.App.Training;
 using Augram.App.Transfer;
