@@ -7,7 +7,9 @@
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding Title}"
         Width="960"
-        Height="680">
+        Height="680"
+        MinWidth="960"
+        MinHeight="560">
   <!-- The window composes the shell and the F1 inspector overlay; it owns no visuals of its own (ADR-0002 §5). -->
   <Grid>
     <shell:Shell x:Name="Shell" Registry="{Binding Registry}" SelectedKey="{Binding InitialTabKey}" />
