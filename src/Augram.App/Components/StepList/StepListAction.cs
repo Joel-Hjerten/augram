@@ -3,7 +3,7 @@ namespace Augram.App.Components.StepList;
 /// <summary>The intents a <see cref="StepList"/> raises for the host view model (F5a step editing); the event args carry the step and, where needed, the type, the edited step or the target index.</summary>
 public enum StepListAction
 {
-    /// <summary>The user selected a step; the host expands it in place.</summary>
+    /// <summary>The user selected a step, which the host expands in place; with no step, the open one was closed and none is selected.</summary>
     Select,
 
     /// <summary>Append a default step of the chosen type, select and expand it.</summary>

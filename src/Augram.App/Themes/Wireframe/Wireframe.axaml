@@ -859,21 +859,24 @@
           <ControlTemplate>
             <Border Name="PART_Frame" Classes="row">
               <StackPanel>
-                <Grid Classes="row-line" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                  <TextBlock Grid.Column="0" Classes="drag-handle" Text="≡" />
-                  <TextBlock Grid.Column="1" Classes="row-index" Text="{TemplateBinding IndexText}" />
-                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto,Auto">
+                  <!-- The grip: the handle and the number. A press there only drags; a click on the rest of the header opens or closes the step. -->
+                  <StackPanel Grid.Column="0" Name="PART_Grip" Orientation="Horizontal">
+                    <TextBlock Classes="drag-handle" Text="≡" />
+                    <TextBlock Classes="row-index" Text="{TemplateBinding IndexText}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
                     <TextBlock Name="PART_Name" Classes="row-name" Text="{TemplateBinding SummaryText}" />
                     <TextBlock Classes="help" Text="{TemplateBinding TypeText}" />
                   </StackPanel>
-                  <TextBlock Grid.Column="3"
+                  <TextBlock Grid.Column="2"
                              Classes="platform-marker"
                              Text="{TemplateBinding MarkerText}"
                              IsVisible="{TemplateBinding HasMarker}"
                              VerticalAlignment="Center" />
-                  <CheckBox Grid.Column="4" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+                  <CheckBox Grid.Column="3" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
                 </Grid>
-                <Border Classes="step-form" IsVisible="{TemplateBinding IsExpanded}">
+                <Border Name="PART_FormHost" Classes="step-form" IsVisible="{TemplateBinding IsExpanded}">
                   <ContentPresenter Content="{TemplateBinding Form}" />
                 </Border>
               </StackPanel>

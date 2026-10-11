@@ -87,21 +87,45 @@ public sealed class CommandsViewModelStepTests
     }
 
     [AvaloniaFact]
-    public void ToggleActiveAndReorderUpdateTheCommand()
+    public void ToggleActiveAndReorderUpdateTheCommandAndTheOpenStepStaysTheOpenOne()
     {
         var (vm, store, _, _) = Select("Three steps");
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[1]));
 
+        // The active box opens nothing (Joel, 0.11.4): Wait 20 ms stays the open step.
         vm.Handle(new StepListActionEventArgs(StepListAction.ToggleActive, vm.Steps[0]));
         Assert.False(CommandsTestData.Find(store, "Three steps").Steps[0].IsActive);
         Assert.False(vm.Steps[0].IsActive);
+        Assert.Equal(1, vm.SelectedStepIndex);
 
+        // A reorder moves the open step with its step, and never opens the one dragged.
         vm.Handle(new StepListActionEventArgs(StepListAction.Reorder, vm.Steps[0], targetIndex: 2));
         Assert.Equal(["Wait 20 ms", "Wait 30 ms", "Wait 10 ms"], vm.Steps.Select(step => step.Summary));
-        Assert.Equal(2, vm.SelectedStepIndex);
+        Assert.Equal(0, vm.SelectedStepIndex);
         Assert.False(vm.Steps[2].IsActive);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Reorder, vm.Steps[2], targetIndex: 0));
         Assert.Equal(["Wait 10 ms", "Wait 20 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
+        Assert.Equal(1, vm.SelectedStepIndex);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select));
+        vm.Handle(new StepListActionEventArgs(StepListAction.Reorder, vm.Steps[0], targetIndex: 2));
+        Assert.Equal(["Wait 20 ms", "Wait 30 ms", "Wait 10 ms"], vm.Steps.Select(step => step.Summary));
+        Assert.Equal(-1, vm.SelectedStepIndex);
+    }
+
+    [AvaloniaFact]
+    public void SelectWithNoStepClosesTheOpenStep()
+    {
+        var (vm, _, _, _) = Select("Three steps");
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[2]));
+        Assert.Equal(2, vm.SelectedStepIndex);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select));
+
+        Assert.Equal(-1, vm.SelectedStepIndex);
+        Assert.Equal(3, vm.Steps.Count);
+        Assert.False(vm.CanUndo);
     }
 
     [AvaloniaFact]

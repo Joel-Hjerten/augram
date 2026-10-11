@@ -13,9 +13,10 @@ namespace Augram.App.Components.StepList;
 /// Lookless step list of the selected command (F5a): <see cref="Steps"/> in, one
 /// <see cref="StepListActionEventArgs"/> out per intent. One <see cref="StepRow"/> per step in
 /// <c>PART_Rows</c>; the row at <see cref="SelectedIndex"/> is expanded with its type's form from
-/// <see cref="Forms"/>. <c>PART_New</c> opens the <see cref="StepTypePicker"/> in a flyout; the menu,
-/// the keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event. Rows are
-/// reused when the count is unchanged, so a form survives the store echoing its own edit back.
+/// <see cref="Forms"/>. A click on a step's header asks to open it, or to close it when it is the open one
+/// (Select with no step); the grip only drags (Joel, 0.11.4). <c>PART_New</c> opens the <see cref="StepTypePicker"/>
+/// in a flyout; the menu, the keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event.
+/// Rows are reused when the count is unchanged, so a form survives the store echoing its own edit back.
 /// </summary>
 public sealed partial class StepList : TemplatedControl
 {
@@ -41,7 +42,7 @@ public sealed partial class StepList : TemplatedControl
 
     public StepList()
     {
-        _drag = new StepDragReorder(() => Rows, () => _list, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to));
+        _drag = new StepDragReorder(() => Rows, () => _list, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to), OnDragStarted, OnHeaderClicked);
     }
 
     public event EventHandler<StepListActionEventArgs>? ActionRequested;
@@ -244,11 +245,47 @@ public sealed partial class StepList : TemplatedControl
             FormContext);
     }
 
+    /// <summary>
+    /// Right-click selects before the context menu opens, so the menu acts on the step under the pointer. A left press on a
+    /// step's header or grip goes to the drag tracker and is marked handled, so the list does not select (open) the step on
+    /// the press: it opens and closes on the click, and a press that becomes a drag leaves it closed (Joel, 0.11.4). Presses
+    /// in the open form and on the active box are theirs. Keyboard focus still moves to the step's container on the press:
+    /// Avalonia's focus manager does that on the tunnelling press, before this bubbling handler (StepListFocusTests).
+    /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is StepRow row && _list is not null && e.GetCurrentPoint(row).Properties.IsRightButtonPressed)
+        if (sender is not StepRow row || _list is null)
+        {
+            return;
+        }
+
+        var properties = e.GetCurrentPoint(row).Properties;
+        if (properties.IsRightButtonPressed)
         {
             _list.SelectedItem = row;
+        }
+        else if (properties.IsLeftButtonPressed && e.Source is Visual source && !row.IsInForm(source) && !row.IsFromOwnControl(source))
+        {
+            _drag.Press(row, e, clickable: !row.IsOnGrip(e));
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>A click on a closed step's header opens it; on the open one's it closes it, leaving no step selected.</summary>
+    private void OnHeaderClicked(StepRow row)
+    {
+        if (row.Item is { } item)
+        {
+            Raise(StepListAction.Select, row.IsExpanded ? null : item);
+        }
+    }
+
+    /// <summary>A drag of the open step closes it first, so its form is not dragged along; the host leaves it closed after the drop.</summary>
+    private void OnDragStarted(StepRow row)
+    {
+        if (row.IsExpanded)
+        {
+            Raise(StepListAction.Select, null);
         }
     }
 

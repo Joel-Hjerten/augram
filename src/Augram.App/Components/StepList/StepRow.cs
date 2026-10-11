@@ -4,6 +4,10 @@ using Augram.Core.Steps;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 namespace Augram.App.Components.StepList;
 
@@ -12,7 +16,9 @@ namespace Augram.App.Components.StepList;
 /// the active toggle; the selected row is <c>:expanded</c> and shows its type's parameter
 /// <see cref="Form"/> in place (accordion). <c>:dragging</c> and <c>:drop-target</c> mark a reorder
 /// in progress. The list remembers which step the form was built from and what it last emitted, so
-/// an edit does not rebuild the form under the user's hands while an undo does.
+/// an edit does not rebuild the form under the user's hands while an undo does. Two parts tell the list
+/// where a press landed: <c>PART_Grip</c> (the drag handle and the number, <see cref="IsOnGrip"/>) and
+/// <c>PART_FormHost</c> (around the form, <see cref="IsInForm"/>); the rest of the card is its header.
 /// </summary>
 [PseudoClasses(":expanded", ":dragging", ":drop-target")]
 public sealed class StepRow : ItemRow
@@ -40,6 +46,9 @@ public sealed class StepRow : ItemRow
 
     public static readonly StyledProperty<Control?> FormProperty =
         AvaloniaProperty.Register<StepRow, Control?>(nameof(Form));
+
+    private Control? _grip;
+    private Control? _formHost;
 
     public StepRow()
     {
@@ -104,6 +113,41 @@ public sealed class StepRow : ItemRow
     public void SetDragging(bool dragging) => PseudoClasses.Set(":dragging", dragging);
 
     public void SetDropTarget(bool target) => PseudoClasses.Set(":drop-target", target);
+
+    /// <summary>
+    /// Whether a press landed on the grip: on the header line, left of where <c>PART_Grip</c> (the drag handle and the
+    /// number) ends, the card's edge before it included, so the whole left column drags and never opens the step.
+    /// </summary>
+    internal bool IsOnGrip(PointerEventArgs e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return _grip is not null && !IsInForm(e.Source as Visual) && e.GetPosition(_grip).X < _grip.Bounds.Width;
+    }
+
+    /// <summary>
+    /// Whether a pointer event landed in the open step's form (<c>PART_FormHost</c>, its padding included); the form keeps
+    /// its presses. A press in one of its popups (a combo box's list) leaves the visual tree at the popup's root, so the
+    /// walk goes on through the logical parent there.
+    /// </summary>
+    internal bool IsInForm(Visual? source)
+    {
+        for (var visual = source; visual is not null && visual != this; visual = visual.GetVisualParent() ?? (visual as ILogical)?.GetLogicalParent() as Visual)
+        {
+            if (ReferenceEquals(visual, _formHost))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+        _grip = e.NameScope.Find<Control>("PART_Grip");
+        _formHost = e.NameScope.Find<Control>("PART_FormHost");
+    }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
