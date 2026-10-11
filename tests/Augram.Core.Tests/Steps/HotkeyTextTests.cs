@@ -134,5 +134,17 @@ public sealed class HotkeyTextTests
             HotkeyKeys.LeftKeys(KeyModifiers.Meta | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Control));
         Assert.Equal([KeyCode.LeftShift], HotkeyKeys.LeftKeys(KeyModifiers.Shift | (KeyModifiers)0x40));
         Assert.Empty(HotkeyKeys.LeftKeys(KeyModifiers.None));
+        Assert.Empty(HotkeyKeys.Keys(KeyModifiers.None, KeyModifiers.Alt));
     }
+
+    [Theory]
+    [InlineData(KeyModifiers.Alt, KeyModifiers.Alt, new[] { KeyCode.RightAlt })]
+    [InlineData(KeyModifiers.Control, KeyModifiers.Control, new[] { KeyCode.RightControl })]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Shift, KeyModifiers.Control | KeyModifiers.Shift, new[] { KeyCode.RightControl, KeyCode.RightShift })]
+    [InlineData(KeyModifiers.Control | KeyModifiers.Alt, KeyModifiers.Alt, new[] { KeyCode.LeftControl, KeyCode.RightAlt })]
+    [InlineData(KeyModifiers.Shift | KeyModifiers.Meta, KeyModifiers.Meta, new[] { KeyCode.LeftShift, KeyCode.RightMeta })]
+    [InlineData(KeyModifiers.Control, KeyModifiers.Alt | KeyModifiers.Shift, new[] { KeyCode.LeftControl })]
+    [InlineData(KeyModifiers.Meta | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Control, KeyModifiers.None, new[] { KeyCode.LeftControl, KeyCode.LeftAlt, KeyCode.LeftShift, KeyCode.LeftMeta })]
+    public void Keys_RightHandModifiersPressTheRightKey_BitsOutsideTheModifiersPressNothing(KeyModifiers modifiers, KeyModifiers rightHand, KeyCode[] expected)
+        => Assert.Equal(expected, HotkeyKeys.Keys(modifiers, rightHand));
 }

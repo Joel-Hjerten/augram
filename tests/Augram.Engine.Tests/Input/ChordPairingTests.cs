@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
+using Augram.Core.Steps.Hotkey;
 using Augram.Engine.Hosting;
 using Xunit;
 
@@ -204,7 +205,7 @@ public sealed class ChordPairingTests
             var held = KeyModifiers.None;
             for (var i = 0; i < Keys.Length; i++)
             {
-                held |= keyDown[i] ? KeySuppressionShadowModifier(Keys[i]) : KeyModifiers.None;
+                held |= keyDown[i] ? HotkeyKeys.ModifierOf(Keys[i]) : KeyModifiers.None;
             }
 
             return held;
@@ -272,8 +273,6 @@ public sealed class ChordPairingTests
 
         return events;
     }
-
-    private static KeyModifiers KeySuppressionShadowModifier(KeyCode key) => Engine.Input.KeySuppressionShadow.ModifierOf(key);
 
     private sealed class Counts
     {

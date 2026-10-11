@@ -12,7 +12,14 @@ public static class HotkeyKeys
     /// <summary>Every modifier flag, for masking a reported set down to the four a hotkey stores.</summary>
     public const KeyModifiers AllModifiers = KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta;
 
-    private static readonly KeyCode[] LeftKeysInPressOrder = [KeyCode.LeftControl, KeyCode.LeftAlt, KeyCode.LeftShift, KeyCode.LeftMeta];
+    /// <summary>Each modifier flag with its left- and right-hand key, in press order (Ctrl, Alt, Shift, Meta).</summary>
+    private static readonly (KeyModifiers Flag, KeyCode Left, KeyCode Right)[] KeysInPressOrder =
+    [
+        (KeyModifiers.Control, KeyCode.LeftControl, KeyCode.RightControl),
+        (KeyModifiers.Alt, KeyCode.LeftAlt, KeyCode.RightAlt),
+        (KeyModifiers.Shift, KeyCode.LeftShift, KeyCode.RightShift),
+        (KeyModifiers.Meta, KeyCode.LeftMeta, KeyCode.RightMeta),
+    ];
 
     /// <summary>The flag a modifier key holds; <see cref="KeyModifiers.None"/> for every other key.</summary>
     public static KeyModifiers ModifierOf(KeyCode key) => key switch
@@ -30,6 +37,24 @@ public static class HotkeyKeys
     public static bool IsRightHand(KeyCode key) => key is KeyCode.RightControl or KeyCode.RightAlt or KeyCode.RightShift or KeyCode.RightMeta;
 
     /// <summary>The left-hand key of each modifier in <paramref name="modifiers"/>, in press order (Ctrl, Alt, Shift, Meta): what a step holds down for a modifier set.</summary>
-    public static IReadOnlyList<KeyCode> LeftKeys(KeyModifiers modifiers)
-        => [.. LeftKeysInPressOrder.Where(key => (modifiers & ModifierOf(key)) != 0)];
+    public static IReadOnlyList<KeyCode> LeftKeys(KeyModifiers modifiers) => Keys(modifiers, KeyModifiers.None);
+
+    /// <summary>
+    /// The key of each modifier in <paramref name="modifiers"/>, in press order (Ctrl, Alt, Shift, Meta): the right-hand key for
+    /// a modifier in <paramref name="rightHand"/>, the left one otherwise; right-hand bits outside the modifiers press nothing,
+    /// and only the four modifier flags count. What a hotkey, a click relay or a hold remap output holds down.
+    /// </summary>
+    public static IReadOnlyList<KeyCode> Keys(KeyModifiers modifiers, KeyModifiers rightHand)
+    {
+        var keys = new List<KeyCode>(KeysInPressOrder.Length);
+        foreach (var (flag, left, right) in KeysInPressOrder)
+        {
+            if ((modifiers & flag) != 0)
+            {
+                keys.Add((rightHand & flag) != 0 ? right : left);
+            }
+        }
+
+        return keys;
+    }
 }

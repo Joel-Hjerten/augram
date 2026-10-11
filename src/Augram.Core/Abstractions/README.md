@@ -33,6 +33,7 @@ The ports (ADR-0002 §2): the interfaces in the table below, each with the recor
 
 | Helper | What | Used by |
 |---|---|---|
+| `InputSimulation` | `Worst(a, b)` (the later `SimulationResult` member wins: Unsupported over Failed over Success); `WithModifiersHeld(simulator, keys, action)` (the keys down in order, the action, the keys up in reverse, the worst answer; every key goes down and up whatever an earlier injection answered) and its two halves `PressKeys`/`ReleaseKeys`, for a hold that spans two calls (a hold remap's key output). Injection order is behaviour: Blender reads the modifiers at the button's down | `SharpHookInputSimulator` (`Hotkey`, `PressRemapButton`), the engine's `ClickRelay` and hold remap outputs, `MacRemapButtonSimulator` |
 | `AsciiKeyLayout` | `TryGetKey(c, out key, out shift)`, `IndexOfUntypeable(text)`: the US-layout table `IInputSimulator.TypeTextByKeys` presses | the simulator, the Type text step's check, the SendKeys importer |
 | `DisplayLookup` | `Find(displays, target, x, y)`, `Main(displays)`: the display a Display step acts on (under the gesture start, or the main one) | the Display mode and HDR steps |
 | `RefreshRate` | millihertz; `FromHertz`, `FromLegacyHertz` (Windows' whole hertz, 119 → 119.88), `IsNear`, `Text` | `IDisplayModes` adapters, the Display mode step, the importer |

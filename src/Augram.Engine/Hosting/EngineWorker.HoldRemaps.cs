@@ -151,7 +151,7 @@ internal sealed partial class EngineWorker
         }
     }
 
-    private SimulationResult Tap(KeyCode key) => Worst(_simulator.KeyPress(key), _simulator.KeyRelease(key));
+    private SimulationResult Tap(KeyCode key) => InputSimulation.Worst(_simulator.KeyPress(key), _simulator.KeyRelease(key));
 
     /// <summary>A button output: its modifiers around the down only (Blender reads them when the drag starts), the simulator's own way; a key output: its modifiers held until its release.</summary>
     private SimulationResult PressOutput(RemapOutput output, int x, int y)
@@ -161,7 +161,7 @@ internal sealed partial class EngineWorker
             case RemapOutput.Button button:
                 return _simulator.PressRemapButton(button.MouseButton, button.Modifiers & HotkeyKeys.AllModifiers, x, y);
             case RemapOutput.Key { IsSet: true } key:
-                return Worst(PressKeys(ModifierKeysOf(key)), _simulator.KeyPress(key.KeyCode));
+                return InputSimulation.Worst(_simulator.PressKeys(ModifierKeysOf(key)), _simulator.KeyPress(key.KeyCode));
             default:
                 return SimulationResult.Success;
         }
@@ -177,7 +177,7 @@ internal sealed partial class EngineWorker
                 _dragFailures = 0;
                 return _simulator.ReleaseRemapButton(button.MouseButton);
             case RemapOutput.Key { IsSet: true } key:
-                return Worst(_simulator.KeyRelease(key.KeyCode), ReleaseKeys(ModifierKeysOf(key)));
+                return InputSimulation.Worst(_simulator.KeyRelease(key.KeyCode), _simulator.ReleaseKeys(ModifierKeysOf(key)));
             default:
                 return SimulationResult.Success;
         }
@@ -224,26 +224,12 @@ internal sealed partial class EngineWorker
 
     /// <summary>One notch at the event's position with the output's modifiers held around it; <see cref="IInputSimulator.Scroll"/> announces it to <see cref="OwnWheelInjections"/>, so no wheel trigger sees it.</summary>
     private SimulationResult TurnWheel(RemapOutput.Wheel wheel, int x, int y)
-    {
-        var keys = SharpHookInputSimulator.ModifierKeys(wheel.Modifiers & HotkeyKeys.AllModifiers, KeyModifiers.None);
-        var result = PressKeys(keys);
-        result = Worst(result, _simulator.Scroll(wheel.Direction, 1, x, y));
-        return Worst(result, ReleaseKeys(keys));
-    }
+        => _simulator.WithModifiersHeld(HotkeyKeys.LeftKeys(wheel.Modifiers), () => _simulator.Scroll(wheel.Direction, 1, x, y));
 
     /// <summary>A Steps command: to the executor, target the foreground window; nothing to do without one (no mapping).</summary>
     private SimulationResult RunSteps(HoldRemapOutcome.RunSteps run, HoldRemapEntry? entry)
     {
-        HoldBinding? binding = null;
-        foreach (var candidate in entry?.Bindings ?? [])
-        {
-            if (candidate.CommandId == run.CommandId)
-            {
-                binding = candidate;
-                break;
-            }
-        }
-
+        var binding = entry?.FindBinding(run.CommandId);
         if (_executor is null)
         {
             _log.Debug(LogSources.Hold, "Steps not run: no mapping", ("command", binding?.Name));
@@ -255,32 +241,8 @@ internal sealed partial class EngineWorker
         return SimulationResult.Success;
     }
 
-    private SimulationResult PressKeys(List<KeyCode> keys)
-    {
-        var result = SimulationResult.Success;
-        foreach (var key in keys)
-        {
-            result = Worst(result, _simulator.KeyPress(key));
-        }
-
-        return result;
-    }
-
-    private SimulationResult ReleaseKeys(List<KeyCode> keys)
-    {
-        var result = SimulationResult.Success;
-        for (var i = keys.Count - 1; i >= 0; i--)
-        {
-            result = Worst(result, _simulator.KeyRelease(keys[i]));
-        }
-
-        return result;
-    }
-
-    private static List<KeyCode> ModifierKeysOf(RemapOutput.Key key)
-        => SharpHookInputSimulator.ModifierKeys(key.Modifiers & HotkeyKeys.AllModifiers, key.RightHand);
-
-    private static SimulationResult Worst(SimulationResult a, SimulationResult b) => a >= b ? a : b;
+    /// <summary>A key output's modifier keys, left or right hand as it says: pressed before its key (<see cref="PressOutput"/>), released after it (<see cref="ReleaseOutput"/>).</summary>
+    private static IReadOnlyList<KeyCode> ModifierKeysOf(RemapOutput.Key key) => HotkeyKeys.Keys(key.Modifiers, key.RightHand);
 
     /// <summary>
     /// The hook decided from its shadow, which follows the machine's rules; a mismatch on the hold key's own press or release,
@@ -385,18 +347,7 @@ internal sealed partial class EngineWorker
 
     private static string KeyName(KeyCode key) => HotkeyText.KeyName(key);
 
-    private static string? CommandName(HoldRemapEntry? entry, CommandId id)
-    {
-        foreach (var binding in entry?.Bindings ?? [])
-        {
-            if (binding.CommandId == id)
-            {
-                return binding.Name;
-            }
-        }
-
-        return null;
-    }
+    private static string? CommandName(HoldRemapEntry? entry, CommandId id) => entry?.FindBinding(id)?.Name;
 
     private static string Describe(HoldRemapOutcome outcome) => outcome switch
     {

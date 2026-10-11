@@ -5,6 +5,7 @@ using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
+using Augram.Core.Steps.Hotkey;
 using Augram.Engine.Input;
 
 namespace Augram.Engine.Hosting;
@@ -302,7 +303,7 @@ internal sealed class InputGate
                 }
 
                 // While a press is held, Ctrl/Alt/Shift/Win presses go to the machine with the decision: a consumed one is an After key.
-                if (!held && input.Kind == RawInputKind.KeyDown && _shadow.Owed.HasValue && KeySuppressionShadow.ModifierOf(input.Key) is var modifier and not KeyModifiers.None)
+                if (!held && input.Kind == RawInputKind.KeyDown && _shadow.Owed.HasValue && HotkeyKeys.ModifierOf(input.Key) is var modifier and not KeyModifiers.None)
                 {
                     Post(WorkerMessage.Input(new CaptureEvent.Key(modifier, suppress, input.TimestampMs), suppress), critical: false);
                 }

@@ -42,13 +42,13 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
         var result = SimulationResult.Success;
         foreach (var change in keys.Downs)
         {
-            result = Worst(result, PostFlagsChanged(change, keyDown: true));
+            result = InputSimulation.Worst(result, PostFlagsChanged(change, keyDown: true));
         }
 
-        result = Worst(result, PostButton(mouse.Down, mouse.Button, Point(x, y), keys.MouseDownFlags));
+        result = InputSimulation.Worst(result, PostButton(mouse.Down, mouse.Button, Point(x, y), keys.MouseDownFlags));
         foreach (var change in keys.Ups)
         {
-            result = Worst(result, PostFlagsChanged(change, keyDown: false));
+            result = InputSimulation.Worst(result, PostFlagsChanged(change, keyDown: false));
         }
 
         return result;
@@ -158,6 +158,4 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
         Cf.Release(cgEvent);
         return SimulationResult.Success;
     }
-
-    private static SimulationResult Worst(SimulationResult a, SimulationResult b) => a >= b ? a : b;
 }
