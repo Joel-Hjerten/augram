@@ -62,5 +62,14 @@ public sealed class TextMappingTests
         Assert.Null(TextMapping.TryUpgrade(new ImportedStep("SendAltDown", "Hold Alt", ImportedStep.NoParameters)));
     }
 
+    [Theory]
+    [InlineData("go{ENTER}", true)]
+    [InlineData("{LEFT 0}", false)]
+    [InlineData("{BREAK}x", false)]
+    public void ASendKeysResultIsCompleteWhenCleanAndNotEmpty(string keys, bool complete)
+    {
+        Assert.Equal(complete, TextMapping.FromSendKeys(Parameters("sendKeysString", keys))!.IsComplete);
+    }
+
     private static Dictionary<string, string> Parameters(string name, string value) => new(StringComparer.Ordinal) { [name] = value };
 }

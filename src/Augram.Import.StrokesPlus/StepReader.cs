@@ -71,7 +71,7 @@ internal sealed class StepReader
             return null;
         }
 
-        if (!result.IsClean || result.Steps.Count == 0)
+        if (!result.IsComplete)
         {
             foreach (var warning in result.Warnings)
             {

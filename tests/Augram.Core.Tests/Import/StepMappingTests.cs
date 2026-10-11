@@ -177,6 +177,15 @@ public sealed class StepMappingTests
     }
 
     [Fact]
+    public void ASendKeysStringThatMakesNoStepsStaysAPlaceholderWithoutAWarning()
+    {
+        var result = Read("{ \"Method\": \"SendKeys\", \"MethodParameters\": [ { \"Name\": \"sendKeysString\", \"Value\": \"{LEFT 0}\" } ] }");
+
+        Assert.Equal("SendKeys", Assert.IsType<ImportedStep>(Assert.Single(Probe(result).Steps).Step).SourceMethod);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Message.StartsWith("SendKeys:", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void StepsAreAuthoredOnWindows()
     {
         Assert.Equal(HostPlatform.Windows, OnlyStep("{ \"Method\": \"CloseWindow\" }").AuthoredOn);

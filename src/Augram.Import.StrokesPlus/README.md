@@ -55,7 +55,7 @@ One **Info** line per distinct placeholder method per file ("3 MouseClick step(s
 
 | Call | Produces |
 |---|---|
-| `TextMapping.FromSendKeys(parameters, textMethod)` | `sendKeysString` through `SendKeysSyntax.Parse`: a `SendKeysResult` (`Steps`, `Warnings`, `IsClean`); null when the parameter is missing or empty. One SP.net step becomes several Augram steps, so the caller splices them in |
+| `TextMapping.FromSendKeys(parameters, textMethod)` | `sendKeysString` through `SendKeysSyntax.Parse`: a `SendKeysResult` (`Steps`, `Warnings`, `IsClean`, and `IsComplete`: clean and at least one step, the one test every caller uses before replacing a placeholder); null when the parameter is missing or empty. One SP.net step becomes several Augram steps, so the caller splices them in |
 | `TextMapping.FromSendString(parameters, method)` | `characters` as one `TypeTextStep`, exactly as written (SendString is text, not key syntax); null when missing or empty |
 | `TextMapping.TryUpgrade(ImportedStep, textMethod)` | a saved `SendKeys` or `SendString` placeholder as the steps that replace it; null for any other method |
 

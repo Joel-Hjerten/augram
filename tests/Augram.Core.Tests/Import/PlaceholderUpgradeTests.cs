@@ -138,6 +138,14 @@ public sealed class PlaceholderUpgradeTests
     }
 
     [Fact]
+    public void ASendKeysStringThatMakesNoStepsStaysAPlaceholder()
+    {
+        var mapping = Mapping(Command("Nothing", Placeholder("SendKeys", ("sendKeysString", "{LEFT 0}"))));
+
+        Assert.Same(mapping, PlaceholderUpgrade.Upgrade(mapping).Mapping);
+    }
+
+    [Fact]
     public void OnlyTheChangedCommandIsReplaced_AndASecondRunHasNothingToDo()
     {
         var untouched = Command("Close", Real(new HotkeyStep(KeyModifiers.Control, KeyCode.W)));

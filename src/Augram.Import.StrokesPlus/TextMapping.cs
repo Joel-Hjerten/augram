@@ -9,7 +9,8 @@ namespace Augram.Import.StrokesPlus;
 /// syntax, parsed by <see cref="SendKeysSyntax"/> into several steps (text runs, hotkeys, delays); <c>SendString</c> carries
 /// <c>characters</c>, plain text typed as it is: one <see cref="TypeTextStep"/>, no syntax. Both answer null when the
 /// parameter is missing or empty, so the caller keeps its placeholder. A SendKeys result can still hold no steps (a string
-/// of nothing but modifiers); its warnings say why, and keeping a placeholder then is the caller's choice.
+/// of nothing but modifiers, or <c>{LEFT 0}</c>) or a part that did not map; <see cref="SendKeysResult.IsComplete"/> says
+/// when its steps can replace the placeholder, and every caller keeps the placeholder otherwise.
 /// </summary>
 public static class TextMapping
 {
