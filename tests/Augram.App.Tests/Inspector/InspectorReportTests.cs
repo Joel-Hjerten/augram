@@ -14,7 +14,7 @@ public sealed class InspectorReportTests
         var control = new Border();
         Region.Mark(control, "Stroke button", new RegionInfo("Options › General › Stroke button", "ButtonRadio", new SourceLocation(@"C:\x\OptionsScreen.cs", 17), "StrokeButton"));
 
-        var text = InspectorReport.Describe(control, "Wireframe");
+        var text = InspectorReport.Describe(control, "Default");
 
         Assert.Equal(
             [
@@ -23,7 +23,7 @@ public sealed class InspectorReportTests
                 "kind: ButtonRadio",
                 @"source: C:\x\OptionsScreen.cs:17",
                 "binding: StrokeButton",
-                "theme: Wireframe",
+                "theme: Default",
             ],
             text.Split(Environment.NewLine));
     }
@@ -34,7 +34,7 @@ public sealed class InspectorReportTests
         var control = new Border();
         Region.Mark(control, "Diagnostics");
 
-        var text = InspectorReport.Describe(control, "Wireframe");
+        var text = InspectorReport.Describe(control, "Default");
 
         Assert.Contains("path: Diagnostics", text, StringComparison.Ordinal);
         Assert.Contains("binding: (none)", text, StringComparison.Ordinal);

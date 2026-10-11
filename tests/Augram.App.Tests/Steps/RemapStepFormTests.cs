@@ -114,7 +114,6 @@ public sealed class RemapStepFormTests
     {
         var form = StepFormRegistry.Default.Build(step, changed, context ?? StepFormContext.None);
         var window = new Window { Width = 800, Height = 700 };
-        window.Resources.MergedDictionaries.Add(HotkeyCaptureBoxTests.Theme());
         window.Content = form;
         window.Show();
         return form;

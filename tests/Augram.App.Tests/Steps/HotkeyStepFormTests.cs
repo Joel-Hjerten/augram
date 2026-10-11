@@ -151,7 +151,6 @@ public sealed class HotkeyStepFormTests
     {
         var form = StepFormRegistry.Default.Build(step, changed);
         var window = new Window { Width = 700, Height = 600 };
-        window.Resources.MergedDictionaries.Add(HotkeyCaptureBoxTests.Theme());
         window.Content = form;
         window.Show();
         window.UpdateLayout();

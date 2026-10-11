@@ -1,16 +1,17 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:shell="using:Augram.App.Components.Shell">
+        xmlns:shell="using:Augram.App.Components.Shell"
+        xmlns:host="using:Augram.App.Components.ScreenHost">
   <!--
-    The glass look (plan 0006, D2; visual reference design/mockups/augram-glass-theme.html). It grows on top of the
-    Wireframe theme: Wireframe supplies every ControlTheme this file does not replace yet, and this file's own Resources
-    win over the included ones (a Styles object looks in its own Resources before its children's). Colours come from the
-    per-variant tokens in Tokens.axaml (Layer.*, Text.*, Accent.*), always as DynamicResource, so Light, Dark and Follow
-    system switch while the window is open.
+    The glass look (plan 0006, D2; visual reference design/mockups/augram-glass-theme.html), the app's only theme (ADR-0002
+    §5b, amended 2026-10-11: the Wireframe theme it grew on is retired). This file holds the shell and its tabs and includes
+    the rest: Forms.axaml, Lists.axaml, then Text.axaml. Its own Resources win over the included ones (a Styles object
+    looks in its own Resources before its children's). Colours come from the per-variant tokens in Tokens.axaml (Layer.*,
+    Text.*, Accent.*), always as DynamicResource, so Light, Dark and Follow system switch while the window is open.
   -->
   <Styles.Resources>
     <ResourceDictionary>
-      <!-- The tokens again, here: this file's setters are resolved while it loads, before the Wireframe include below exists. -->
+      <!-- The tokens again, here: this file's setters are resolved while it loads, before the includes below exist. -->
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
       </ResourceDictionary.MergedDictionaries>
@@ -58,6 +59,7 @@
 
       <!-- A top-level tab: a folder tab in the page's colour when selected, joined to the page by two flares (decision 5). -->
       <ControlTheme x:Key="ShellTab" TargetType="TabItem">
+        <Setter Property="MinHeight" Value="32" />
         <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
@@ -161,10 +163,18 @@
           </ControlTemplate>
         </Setter>
       </ControlTheme>
+
+      <!-- A tab's page: its screen, nothing around it. -->
+      <ControlTheme x:Key="{x:Type host:ScreenHost}" TargetType="host:ScreenHost">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <ContentPresenter Content="{TemplateBinding Content}" />
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
 
-  <StyleInclude Source="avares://Augram/Themes/Wireframe/Wireframe.axaml" />
   <StyleInclude Source="avares://Augram/Themes/Default/Forms.axaml" />
   <!-- After Forms: equal styles go to the later one, so the lists' row metrics keep winning. -->
   <StyleInclude Source="avares://Augram/Themes/Default/Lists.axaml" />
@@ -177,12 +187,10 @@
   <Style Selector="TabControl.sub">
     <Setter Property="Theme" Value="{StaticResource SubTabControl}" />
   </Style>
-  <!-- Wireframe's TabItem rule sets a 32 px minimum and its padding; pills size to their text. -->
   <Style Selector="TabControl.sub > TabItem">
     <Setter Property="Theme" Value="{StaticResource SubTabPill}" />
-    <Setter Property="MinHeight" Value="0" />
   </Style>
-  <!-- Wireframe paints the sub-tab strip opaque; here the page shows through. -->
+  <!-- The sub-tab strip is clear: the page shows through. -->
   <Style Selector="TabControl.sub /template/ WrapPanel">
     <Setter Property="Background" Value="Transparent" />
   </Style>

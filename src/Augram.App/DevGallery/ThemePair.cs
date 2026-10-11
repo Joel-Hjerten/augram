@@ -10,8 +10,8 @@ namespace Augram.App.DevGallery;
 /// <summary>
 /// A gallery page in both themes, side by side (plan 0006 step 6): the page is declared twice and each copy sits in a
 /// <see cref="ThemeVariantScope"/> on that theme's opaque window colour (<c>Layer.Solid</c>), so a component that reads
-/// badly in one theme shows at a glance, whatever the app's own theme is. Only the Default theme follows the scope:
-/// its colours are dynamic resources per theme variant; Wireframe's are fixed.
+/// badly in one theme shows at a glance, whatever the app's own theme is. The scope works because the theme's colours
+/// are dynamic resources per theme variant.
 /// </summary>
 internal static class ThemePair
 {

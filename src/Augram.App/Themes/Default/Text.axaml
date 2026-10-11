@@ -32,7 +32,7 @@
 
     Order matters (learnings 0008: no selector specificity, the later of two equal styles wins; a style with a class or
     pseudo-class outranks a plain type rule). Default.axaml includes this file after Forms.axaml and Lists.axaml, so the
-    roles win over every class style before them (Wireframe's too). Here: the plain default and the template parts it
+    roles win over every class style before them. Here: the plain default and the template parts it
     must not override, the controls, then the roles (Mono after Body: a log cell is both), the modifiers, and last the
     states, which change a role's colour only (never its size or weight) and must come after it to win.
   -->
@@ -65,10 +65,6 @@
     <Setter Property="FontSize" Value="{StaticResource Font.M}" />
     <Setter Property="FontWeight" Value="Normal" />
   </Style>
-  <!-- Wireframe makes the in-place rename box small; it replaces a name, so it takes Body like every editor. -->
-  <Style Selector="TextBox.tile-editor">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-  </Style>
 
   <!-- ===== Roles ===== -->
   <!-- Heading: the command header's name (bench-title), a dialog's title (section-title, the gesture picker's). -->
@@ -95,7 +91,7 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
   </Style>
-  <!-- Body: field labels, notes, messages, cells, values (the default above, again for the classes Wireframe styles otherwise). -->
+  <!-- Body: field labels, notes, messages, cells, values (the default above, again as a role for the classes that name it). -->
   <Style Selector="TextBlock.body, TextBlock.field-label, TextBlock.note, TextBlock.error, TextBlock.dialog-message, TextBlock.cell, TextBlock.slider-value, TextBlock.bench-label, TextBlock.bench-value, TextBlock.bench-error">
     <Setter Property="FontSize" Value="{StaticResource Font.M}" />
     <Setter Property="FontWeight" Value="Normal" />

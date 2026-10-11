@@ -8,8 +8,7 @@ namespace Augram.App.Tests.Architecture;
 /// The text rule (App README; Joel, 2026-10-11: "set down a couple of font stylings and then reuse those"): a text takes a
 /// role class from <c>Themes/Default/Text.axaml</c>, which defines each role once, and never a size or weight of its own.
 /// So no markup in the app but Text.axaml sets <c>FontSize</c> or <c>FontWeight</c> (as an attribute or a style setter),
-/// no TextBlock carries the classes of two roles, and no code sets either property. The Wireframe theme is left out: it is
-/// the older look, kept as a gallery option, and the Default theme's roles win over it.
+/// no TextBlock carries the classes of two roles, and no code sets either property.
 /// </summary>
 public sealed partial class TextRoleTests
 {
@@ -105,11 +104,10 @@ public sealed partial class TextRoleTests
         Assert.True(offenders.Count == 0, "A TextBlock in two text roles (the later one in Text.axaml wins silently):" + Environment.NewLine + string.Join(Environment.NewLine, offenders) + Environment.NewLine + UseARole);
     }
 
-    /// <summary>The app's markup that the text roles style: everything but the Wireframe theme.</summary>
+    /// <summary>The app's markup that the text roles style: all of it.</summary>
     private static IEnumerable<string> RoledMarkup()
         => Directory.EnumerateFiles(AppFolder, "*.axaml", SearchOption.AllDirectories)
-            .Where(file => !IsBuildOutput(Path.GetRelativePath(AppFolder, file)))
-            .Where(file => !file.StartsWith(Path.Combine(AppFolder, "Themes", "Wireframe"), StringComparison.Ordinal));
+            .Where(file => !IsBuildOutput(Path.GetRelativePath(AppFolder, file)));
 
     /// <summary>
     /// Each role in Text.axaml: a style that sets a FontSize and selects TextBlock classes only, named by its first class (the

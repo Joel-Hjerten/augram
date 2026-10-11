@@ -8,7 +8,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
-using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 using Xunit;
 using KeyModifiers = Augram.Core.Abstractions.KeyModifiers;
@@ -253,15 +252,12 @@ public sealed class HotkeyCaptureBoxTests
         box.Accept();
     }
 
-    internal static ResourceDictionary Theme() => (ResourceDictionary)AvaloniaXamlLoader.Load(new Uri("avares://Augram/Themes/Wireframe/Hotkey.axaml"));
-
     private static (HotkeyCaptureBox Box, Button Other, Window Window) Show(IKeyCapture? capture)
     {
         var box = new HotkeyCaptureBox { KeyCapture = capture };
         var other = new Button { Content = "Elsewhere", Width = 120, Height = 40 };
-        // The theme goes in before the content: a control picks its implicit ControlTheme when it joins the tree.
+        // The field's ControlTheme is the app's theme (App loads ThemeSelector.Active, also in the headless tests).
         var window = new Window { Width = 600, Height = 300 };
-        window.Resources.MergedDictionaries.Add(Theme());
         window.Content = new StackPanel { Children = { box, other } };
         window.Show();
         window.UpdateLayout();

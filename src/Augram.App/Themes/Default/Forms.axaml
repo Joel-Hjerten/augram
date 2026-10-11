@@ -3,15 +3,16 @@
         xmlns:conv="using:Avalonia.Controls.Converters"
         xmlns:form="using:Augram.App.Components.SectionForm"
         xmlns:text="using:Augram.App.Components.TextPanel"
+        xmlns:color="using:Augram.App.Components.Fields.Color"
         xmlns:hk="using:Augram.App.Components.HotkeyCapture"
         xmlns:wf="using:Augram.App.Components.WindowFinder">
   <!--
     The glass look's forms, text and standard controls (plan 0006 step 4; visual reference
     design/mockups/augram-glass-theme.html, its .frow, .opt-title, .btn, .input, .select, .num, .segm, .switch, .box,
-    .slider-field, .info and .link rules). Included by Default.axaml right after the Wireframe theme, so its ControlThemes
-    and styles win over Wireframe's. Text sizes, weights and colours are not here: they are the text roles in Text.axaml.
+    .slider-field, .info and .link rules). Included by Default.axaml first, before Lists.axaml and Text.axaml. Text sizes,
+    weights and colours are not here: they are the text roles in Text.axaml.
     - forms: SectionForm, SectionView (the title above its card, decision 12), FieldRow (rows split by a faint divider),
-      TextPanel, and the field editors' classes;
+      TextPanel, the colour field (ColorEditor), and the field editors' classes;
     - the standard controls app-wide: Button (and the primary button: class primary, or IsDefault), ToggleButton, TextBox,
       ComboBox and its dropdown, NumericUpDown, CheckBox, the switch (CheckBox.field-editor, decision 11), the segmented
       ButtonRadioField (RadioButton.button-radio), Slider, ScrollBar, ToolTip, ContextMenu and MenuItem, flyouts and the
@@ -731,12 +732,82 @@
         </Style>
       </ControlTheme>
 
+      <!-- The colour field: the swatch button and R, G, B, or with presets (plan 0006 decision 8) the round swatches in their
+           order, then Custom…, whose flyout is the same picker. ColorEditor wires PART_Picker. -->
+      <ControlTheme x:Key="{x:Type color:ColorEditor}" TargetType="color:ColorEditor">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+              <!-- The swatch is Avalonia's ColorPicker: click it for the picker, laid out by its own theme. -->
+              <ColorPicker Name="PART_Picker"
+                           IsAlphaEnabled="False"
+                           IsAlphaVisible="False"
+                           IsColorPaletteVisible="False"
+                           ToolTip.Tip="Pick a colour" />
+              <TextBlock Classes="help" Text="R" VerticalAlignment="Center" />
+              <NumericUpDown Name="PART_Red" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+              <TextBlock Classes="help" Text="G" VerticalAlignment="Center" />
+              <NumericUpDown Name="PART_Green" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+              <TextBlock Classes="help" Text="B" VerticalAlignment="Center" />
+              <NumericUpDown Name="PART_Blue" Classes="channel" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+            </StackPanel>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:presets">
+          <Setter Property="Template">
+            <ControlTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Swatch.Spacing}">
+                <ItemsControl ItemsSource="{TemplateBinding SwatchButtons}" VerticalAlignment="Center">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Swatch.Spacing}" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <Button Name="PART_Custom" Classes="toolbar" Content="Custom…" VerticalAlignment="Center">
+                  <Button.Styles>
+                    <!-- As ColorPicker's own button does: the picker fills its flyout, no padding round it. -->
+                    <Style Selector="FlyoutPresenter.nopadding">
+                      <Setter Property="Padding" Value="0" />
+                    </Style>
+                  </Button.Styles>
+                  <Button.Flyout>
+                    <Flyout FlyoutPresenterClasses="nopadding">
+                      <ColorView Name="PART_Picker"
+                                 IsAlphaEnabled="False"
+                                 IsAlphaVisible="False"
+                                 IsColorPaletteVisible="False" />
+                    </Flyout>
+                  </Button.Flyout>
+                </Button>
+              </StackPanel>
+            </ControlTemplate>
+          </Setter>
+        </Style>
+      </ControlTheme>
+
     </ResourceDictionary>
   </Styles.Resources>
 
-  <!-- ===== The ⓘ's place beside its label (its look is the Secondary text role, Text.axaml). ===== -->
+  <!-- ===== The ⓘ that carries a field's or a section's help in its tooltip, beside its label (its look is the Secondary text
+       role, Text.axaml). ===== -->
   <Style Selector="TextBlock.help-icon">
+    <Setter Property="Text" Value="ⓘ" />
+    <Setter Property="Background" Value="Transparent" />
     <Setter Property="Margin" Value="6,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Help" />
+    <Setter Property="ToolTip.ShowDelay" Value="200" />
+    <!-- Beside the mark, not at the pointer: the help cursor covered a tooltip opened under it (Joel, 2026-10-09). -->
+    <Setter Property="ToolTip.Placement" Value="Right" />
+    <Setter Property="ToolTip.HorizontalOffset" Value="8" />
+  </Style>
+  <!-- Help lines and error messages wrap. -->
+  <Style Selector="TextBlock.help">
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <!-- A link (the mockup's .link): accent text, no frame; under the pointer, the primary text colour. -->
   <Style Selector="Button.link">
@@ -744,10 +815,31 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
   </Style>
   <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.link:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <!-- A links field (a Per command entry's Used by, plan 0004): one link per line, its detail after it. -->
+  <Style Selector="StackPanel.links">
+    <Setter Property="Spacing" Value="{StaticResource Space.XS}" />
+  </Style>
+  <Style Selector="TextBlock.link-detail">
+    <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+
+  <!--
+    Scroll bars sit beside the content, never over it (Joel, 2026-10-09): Fluent's auto-hiding bar draws over the right
+    edge and widens on hover, and on the Commands tab it covered every row's active check box. With auto-hide off the
+    bar gets its own column whenever the content scrolls. Set on the scroll viewer itself and as the attached value
+    the list and text box templates bind to. ScrollBarLayoutTests holds it.
+  -->
+  <Style Selector="ScrollViewer">
+    <Setter Property="AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ListBox, TextBox">
+    <Setter Property="ScrollViewer.AllowAutoHide" Value="False" />
   </Style>
 
   <!-- ===== Standard controls (type styles over Fluent's templates, their states after). ===== -->
@@ -795,10 +887,34 @@
     <Setter Property="MinHeight" Value="0" />
   </Style>
 
-  <!-- Wireframe's field-editor, channel and toolbar rules set square corners and a fixed grey frame; the same classes here win. -->
+  <!-- A form's editors: a common minimum width, wider for a long text; a multi-line text field grows with its text up to
+       MaxHeight, then scrolls (wrapping and Enter are the renderer's). -->
   <Style Selector="ComboBox.field-editor, TextBox.field-editor, NumericUpDown.field-editor">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.MinWidth}" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Layer.Edge}" />
+  </Style>
+  <Style Selector="TextBox.field-editor.wide">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.WideMinWidth}" />
+  </Style>
+  <Style Selector="TextBox.field-editor.multiline">
+    <Setter Property="MinHeight" Value="{StaticResource Editor.MultilineMinHeight}" />
+    <Setter Property="MaxHeight" Value="{StaticResource Editor.MultilineMaxHeight}" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <!-- A row whose editor fills its column (the pattern field), so the line never runs over the label. -->
+  <Style Selector="form|FieldRow.stretch-editor /template/ ContentPresenter#PART_Editor">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <!-- A button and its status text on one form line (Options › Sync). -->
+  <Style Selector="DockPanel.field-line > Button">
+    <Setter Property="Margin" Value="0,0,8,0" />
+  </Style>
+  <!-- Several controls side by side on one form line (Options › Sync › Export and import's buttons, the import review's Apply to all). -->
+  <Style Selector="StackPanel.field-buttons">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
   </Style>
   <Style Selector="NumericUpDown.channel">
     <Setter Property="Width" Value="110" />
@@ -914,11 +1030,18 @@
   <Style Selector="form|SectionForm form|SectionForm /template/ ItemsControl#PART_Sections">
     <Setter Property="Margin" Value="0" />
   </Style>
-  <!-- The pattern line (text box, magnifier, Use Regex): the magnifier is a field-high button, so side margins only, and the text box keeps its height. -->
+  <!-- The pattern line (text box, magnifier, Use Regex; as SP.net's App Definition): the magnifier is a field-high button, so
+       side margins only, and the text box keeps its height and gives way in a narrow window. -->
   <Style Selector="Grid.pattern-line > :is(Control).pattern-finder">
     <Setter Property="Margin" Value="6,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Grid.pattern-line > CheckBox.pattern-regex">
+    <Setter Property="Margin" Value="8,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="TextBox.field-editor.pattern-box">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.PatternMinWidth}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <!-- Check boxes side by side (Ignore keys, Use on; the mockup's .ck). -->
@@ -926,12 +1049,62 @@
     <Setter Property="Margin" Value="0,0,14,0" />
   </Style>
 
-  <!-- A check list (the export dialog's selection): the input fill, a faint frame, one box per line. -->
+  <!-- A check list (the export dialog's selection): the input fill, a faint frame, one box per line; scrolls past its maximum height. -->
   <Style Selector="Border.check-list">
     <Setter Property="Background" Value="{DynamicResource Layer.Input}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Layer.Edge}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="Padding" Value="8,4" />
+    <Setter Property="MinWidth" Value="{StaticResource Editor.MinWidth}" />
+    <Setter Property="MaxHeight" Value="{StaticResource Editor.CheckListMaxHeight}" />
+  </Style>
+  <Style Selector="TextBlock.check-list-detail">
+    <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+
+  <!-- A slider field (plan 0006: Tint, Corner rounding): the slider, then its value and unit. -->
+  <Style Selector="StackPanel.slider-line">
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
+  </Style>
+  <Style Selector="Slider.field-slider">
+    <Setter Property="Width" Value="{StaticResource Editor.SliderWidth}" />
+  </Style>
+  <Style Selector="TextBlock.slider-value">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.SliderValueWidth}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- A colour field's preset swatch (plan 0006 decision 8): a round fill inside a ring that shows only on the selected one. -->
+  <Style Selector="Button.swatch">
+    <Setter Property="Width" Value="{StaticResource Swatch.Size}" />
+    <Setter Property="Height" Value="{StaticResource Swatch.Size}" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="{StaticResource Swatch.RingGap}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Swatch.CornerRadius}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Swatch.Ring}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.swatch.selected">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Text}" />
+  </Style>
+  <!-- The button's hover and press would paint it over the ring; keep it clear and hint the ring instead. -->
+  <Style Selector="Button.swatch:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.swatch:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.TextMuted}" />
+  </Style>
+  <Style Selector="Button.swatch.selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.swatch.selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Text}" />
+  </Style>
+  <Style Selector="Border.swatch-fill">
+    <Setter Property="CornerRadius" Value="{StaticResource Swatch.FillCornerRadius}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
   </Style>
 
   <!-- Popups: tooltips, menus and flyouts on the opaque popup layer, readable in both themes. -->
@@ -1014,5 +1187,13 @@
   </Style>
   <Style Selector="FlyoutPresenter.nopadding TabItem /template/ Border#PART_SelectedPipe">
     <Setter Property="Background" Value="{DynamicResource Accent.Fill}" />
+  </Style>
+  <!-- Its tabs: lower than the platform's 48 (a plain type rule, as the platform's own setters are), their padding the
+       picker's own, so they fit their background. -->
+  <Style Selector="ColorView TabItem">
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <Style Selector="FlyoutPresenter.nopadding TabItem">
+    <Setter Property="Padding" Value="6,0" />
   </Style>
 </Styles>

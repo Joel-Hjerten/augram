@@ -114,7 +114,6 @@ public sealed class HoldRemapFormTests
         var box = (HotkeyCaptureBox)Field<CustomField>(form, "Hold key").Build();
         box.KeyCapture = capture;
         var window = new Window { Width = 600, Height = 300 };
-        window.Resources.MergedDictionaries.Add(HotkeyCaptureBoxTests.Theme());
         window.Content = box;
         window.Show();
         return (box, capture);
