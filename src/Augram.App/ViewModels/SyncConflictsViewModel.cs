@@ -3,7 +3,7 @@ using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.App.Components.SyncConflictList;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
+using Augram.App.Sync;
 using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Gestures;

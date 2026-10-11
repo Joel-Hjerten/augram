@@ -1,7 +1,7 @@
 using Augram.Core.Sync;
 using Avalonia.Threading;
 
-namespace Augram.App.Hosting;
+namespace Augram.App.Sync;
 
 /// <summary>
 /// The <c>onStoreThread</c> delegate <see cref="SyncCoordinator"/> applies through (Core/Sync README: threading):

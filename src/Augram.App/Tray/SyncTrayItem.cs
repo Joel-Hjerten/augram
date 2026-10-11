@@ -1,5 +1,5 @@
 using System.Globalization;
-using Augram.App.Hosting;
+using Augram.App.Sync;
 using Augram.Core.Sync;
 using Avalonia.Controls;
 using Avalonia.Threading;

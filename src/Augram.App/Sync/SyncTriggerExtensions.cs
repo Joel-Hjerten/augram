@@ -1,4 +1,4 @@
-namespace Augram.App.Hosting;
+namespace Augram.App.Sync;
 
 public static class SyncTriggerExtensions
 {

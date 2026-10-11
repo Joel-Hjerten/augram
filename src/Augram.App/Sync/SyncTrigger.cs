@@ -1,4 +1,4 @@
-namespace Augram.App.Hosting;
+namespace Augram.App.Sync;
 
 /// <summary>
 /// Why <see cref="SyncService"/> ran (F8 sync, "when"). The automatic ones (<see cref="Start"/>,

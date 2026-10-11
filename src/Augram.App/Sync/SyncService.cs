@@ -1,3 +1,4 @@
+using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Diagnostics;
@@ -5,7 +6,7 @@ using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
 
-namespace Augram.App.Hosting;
+namespace Augram.App.Sync;
 
 /// <summary>
 /// Runs machine-to-machine sync (F8 sync) on one dedicated background worker, so there is never more than one run

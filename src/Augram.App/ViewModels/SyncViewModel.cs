@@ -1,5 +1,4 @@
 using System.Globalization;
-using Augram.App.Hosting;
 using Augram.App.Sync;
 using Augram.Core.Config;
 using Augram.Core.Sync;

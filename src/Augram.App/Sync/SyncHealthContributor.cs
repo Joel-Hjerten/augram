@@ -1,7 +1,7 @@
 using Augram.Core.Diagnostics;
 using Augram.Core.Sync;
 
-namespace Augram.App.Hosting;
+namespace Augram.App.Sync;
 
 /// <summary>
 /// Contributes the last sync (F8) to the health summary (N4): its status and when it finished, read from

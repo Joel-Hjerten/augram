@@ -1,4 +1,3 @@
-using Augram.App.Hosting;
 using Augram.Core.Sync;
 using Avalonia.Threading;
 
