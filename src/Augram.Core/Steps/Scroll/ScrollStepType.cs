@@ -62,7 +62,7 @@ public sealed class ScrollStepType : IStepType
         ArgumentNullException.ThrowIfNull(parameters);
         var direction = StepParameters.ReadEnum<ScrollDirection>(parameters, DirectionMember) ?? ScrollDirection.Down;
         var notches = StepParameters.ReadInt32(parameters, NotchesMember, MinNotches, MaxNotches) ?? MinNotches;
-        var keys = HotkeyStepType.ReadModifiers(parameters, KeysMember);
+        var keys = StepParameters.ReadFlags<KeyModifiers>(parameters, KeysMember);
         return new ScrollStep(direction, notches, keys);
     }
 

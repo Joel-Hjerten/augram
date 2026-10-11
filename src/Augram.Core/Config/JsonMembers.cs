@@ -1,14 +1,14 @@
-using System.Globalization;
 using System.Text.Json.Nodes;
+using Augram.Core.Json;
 
 namespace Augram.Core.Config;
 
 /// <summary>
 /// Typed access to the members of a hand-editable <see cref="JsonObject"/>, for the mapping subtree
-/// that <see cref="ConfigJsonContext"/> does not cover: a missing or null member takes the fallback
-/// the caller passes (or is demanded), a present member must have the right shape, and every refusal
-/// is a <see cref="ConfigFormatException"/> that names the member and where it sits
-/// ("'id' of app group 'Chrome' must be a Guid string.").
+/// that <see cref="ConfigJsonContext"/> does not cover: the config file's front for <see cref="JsonMember"/> (one reader,
+/// one rule for shapes and enum names). A missing or null member takes the fallback the caller passes (or is demanded), a
+/// present member must have the right shape, and every refusal is a <see cref="ConfigFormatException"/> that names the member
+/// and where it sits ("'id' of app group 'Chrome' must be a Guid string.").
 /// </summary>
 internal static class JsonMembers
 {
@@ -17,24 +17,13 @@ internal static class JsonMembers
 
     /// <summary>Missing or null → an empty array.</summary>
     public static JsonArray OptionalArray(JsonObject owner, string name, string where)
-    {
-        var node = owner[name];
-        return node is null ? [] : node as JsonArray ?? throw Refuse(name, where, "an array");
-    }
+        => JsonMember.ReadArray(owner, name, Refusal(name, where, "an array")) ?? [];
 
     public static string RequireString(JsonObject owner, string name, string where)
         => OptionalString(owner, name, where) ?? throw new ConfigFormatException($"'{name}' of {where} is required.");
 
     public static string? OptionalString(JsonObject owner, string name, string where)
-    {
-        var node = owner[name];
-        if (node is null)
-        {
-            return null;
-        }
-
-        return node is JsonValue value && value.TryGetValue(out string? text) ? text : throw Refuse(name, where, "a string");
-    }
+        => JsonMember.ReadString(owner, name, Refusal(name, where, "a string"));
 
     /// <summary>The member as a string, or null when it is missing, null or not a string: for members a reader drops rather than refuses.</summary>
     public static string? TryString(JsonObject owner, string name)
@@ -45,15 +34,7 @@ internal static class JsonMembers
         => Guid.TryParse(TryString(owner, name), out var guid) ? guid : null;
 
     public static bool OptionalBool(JsonObject owner, string name, bool fallback, string where)
-    {
-        var node = owner[name];
-        if (node is null)
-        {
-            return fallback;
-        }
-
-        return node is JsonValue value && value.TryGetValue(out bool flag) ? flag : throw Refuse(name, where, "true or false");
-    }
+        => JsonMember.ReadBoolean(owner, name, Refusal(name, where, "true or false")) ?? fallback;
 
     /// <summary>Missing or null → the fallback; otherwise an integer (a string such as "180" is refused).</summary>
     public static int OptionalInt32(JsonObject owner, string name, int fallback, string where)
@@ -61,15 +42,7 @@ internal static class JsonMembers
 
     /// <summary>Missing or null → null; otherwise an integer (a string such as "4" is refused).</summary>
     public static int? OptionalInt32(JsonObject owner, string name, string where)
-    {
-        var node = owner[name];
-        if (node is null)
-        {
-            return null;
-        }
-
-        return node is JsonValue value && value.TryGetValue(out int number) ? number : throw Refuse(name, where, "an integer");
-    }
+        => JsonMember.ReadInt32(owner, name, Refusal(name, where, "an integer"));
 
     public static Guid RequireGuid(JsonObject owner, string name, string where)
     {
@@ -95,41 +68,19 @@ internal static class JsonMembers
         return strings;
     }
 
-    /// <summary>Missing or null → the fallback; otherwise one of the enum's names, matched case-insensitively like the file's other enums.</summary>
+    /// <summary>Missing or null → the fallback; otherwise one of the enum's names, matched case-insensitively like the file's other enums (<see cref="JsonMember"/>: a number is refused).</summary>
     public static TEnum OptionalEnum<TEnum>(JsonObject owner, string name, TEnum fallback, string where)
         where TEnum : struct, Enum
-    {
-        var text = OptionalString(owner, name, where);
-        if (text is null)
-        {
-            return fallback;
-        }
+        => JsonMember.ReadEnum<TEnum>(owner, name, Refusal(name, where, "a string"), _ => Refuse(name, where, $"one of {string.Join(", ", Enum.GetNames<TEnum>())}"))
+            ?? fallback;
 
-        return Enum.TryParse<TEnum>(text, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
-            ? parsed
-            : throw Refuse(name, where, $"one of {string.Join(", ", Enum.GetNames<TEnum>())}");
-    }
-
-    /// <summary>A flags enum written by name, comma-separated ("Stroke, Right"); missing or null is <paramref name="fallback"/>, a name or bit the enum lacks is refused.</summary>
+    /// <summary>A flags enum written by name, comma-separated ("Stroke, Right"); missing or null is <paramref name="fallback"/>, a name the enum lacks is refused.</summary>
     public static TEnum OptionalFlags<TEnum>(JsonObject owner, string name, TEnum fallback, string where)
         where TEnum : struct, Enum
-    {
-        var text = OptionalString(owner, name, where);
-        if (text is null)
-        {
-            return fallback;
-        }
+        => JsonMember.ReadFlags<TEnum>(owner, name, Refusal(name, where, "a string"), _ => Refuse(name, where, $"a comma-separated list of {string.Join(", ", Enum.GetNames<TEnum>())}"))
+            ?? fallback;
 
-        long defined = 0;
-        foreach (var value in Enum.GetValues<TEnum>())
-        {
-            defined |= Convert.ToInt64(value, CultureInfo.InvariantCulture);
-        }
-
-        return Enum.TryParse<TEnum>(text, ignoreCase: true, out var parsed) && (Convert.ToInt64(parsed, CultureInfo.InvariantCulture) & ~defined) == 0
-            ? parsed
-            : throw Refuse(name, where, $"a comma-separated list of {string.Join(", ", Enum.GetNames<TEnum>())}");
-    }
+    private static Func<Exception> Refusal(string name, string where, string expected) => () => Refuse(name, where, expected);
 
     private static ConfigFormatException Refuse(string name, string where, string expected)
         => new($"'{name}' of {where} must be {expected}.");

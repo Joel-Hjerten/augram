@@ -88,23 +88,20 @@ public static partial class HoldRemapRules
             throw new MappingValidationException($"Use '{holdRemap.Name}' on at least one platform.");
         }
 
-        foreach (var other in others)
-        {
-            if (other.Id == holdRemap.Id)
+        Unique.Ensure(
+            others,
+            other => other.Id == holdRemap.Id,
+            other => other.Name,
+            holdRemap.Name,
+            $"A hold remap with id {holdRemap.Id} already exists in '{group.Name}'.",
+            taken => $"A hold remap named '{taken}' already exists in '{group.Name}'.",
+            andThen: other =>
             {
-                throw new MappingValidationException($"A hold remap with id {holdRemap.Id} already exists in '{group.Name}'.");
-            }
-
-            if (MappingRules.NameComparer.Equals(other.Name, holdRemap.Name))
-            {
-                throw new MappingValidationException($"A hold remap named '{other.Name}' already exists in '{group.Name}'.");
-            }
-
-            if (holdRemap.HoldKey != KeyCode.None && other.HoldKey == holdRemap.HoldKey)
-            {
-                throw new MappingValidationException($"'{other.Name}' in '{group.Name}' already uses {HotkeyText.KeyName(holdRemap.HoldKey)} as its hold key.");
-            }
-        }
+                if (holdRemap.HoldKey != KeyCode.None && other.HoldKey == holdRemap.HoldKey)
+                {
+                    throw new MappingValidationException($"'{other.Name}' in '{group.Name}' already uses {HotkeyText.KeyName(holdRemap.HoldKey)} as its hold key.");
+                }
+            });
     }
 
     /// <summary>

@@ -26,8 +26,8 @@ namespace Augram.Core.Mapping;
 /// </summary>
 public static class CommandResolver
 {
-    /// <summary>The press a configured trigger describes (<see cref="PressedTrigger.Of"/>), resolved: for callers that hold a trigger rather than a press.</summary>
-    public static CommandResolution Resolve(MappingDocument mapping, WindowIdentity? target, Trigger trigger, HostPlatform platform)
+    /// <summary>The press a configured trigger describes (<see cref="PressedTrigger.Of"/>), resolved: a test's shorthand (the engine passes a press).</summary>
+    internal static CommandResolution Resolve(MappingDocument mapping, WindowIdentity? target, Trigger trigger, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(trigger);
         return Resolve(mapping, target, PressedTrigger.Of(trigger), platform);
@@ -44,7 +44,7 @@ public static class CommandResolver
             return CommandResolution.None("no trigger");
         }
 
-        var ignored = FindIgnored(mapping, target, platform);
+        var ignored = IgnoreList.Under(mapping, target, platform);
         if (ignored is null)
         {
             return ResolveCommands(mapping, target, trigger, platform, null);
@@ -109,31 +109,6 @@ public static class CommandResolver
         return $"'{command.Name}' is not used in '{app.Name}'";
     }
 
-    /// <summary>
-    /// The first active ignored app on Ignored › Global (either mode) whose matcher claims the window, or null; a Per command
-    /// entry stops only the commands that name it (plan 0004). <see cref="IgnoreList.Under"/> is
-    /// this rule: the engine's ignore-list watch asks it as the pointer moves, so the stroke button passes through over the app
-    /// before any stroke; here it is the backstop for a stroke captured on a stale answer.
-    /// </summary>
-    public static IgnoredApp? FindIgnored(MappingDocument mapping, WindowIdentity? target, HostPlatform platform)
-    {
-        ArgumentNullException.ThrowIfNull(mapping);
-        if (target is null)
-        {
-            return null;
-        }
-
-        foreach (var app in mapping.Ignored)
-        {
-            if (app.IsActive && !app.IsPerCommand && app.Matcher.Matches(target, platform))
-            {
-                return app;
-            }
-        }
-
-        return null;
-    }
-
     /// <summary>The first active app group (never Global) used on <paramref name="platform"/> whose matcher claims the window, or null.</summary>
     public static AppGroup? FindGroup(MappingDocument mapping, WindowIdentity? target, HostPlatform platform)
     {
@@ -157,9 +132,9 @@ public static class CommandResolver
     /// <summary>The active command for the press; commands under a hold remap are skipped (F9: their inputs belong to the hold remap), and over an excluded app every command whose "Also in" does not name it.</summary>
     private static Command? ActiveCommandFor(AppGroup group, PressedTrigger trigger, HostPlatform platform, GroupId? excludedBy)
     {
-        foreach (var command in group.Commands)
+        foreach (var (command, here) in group.ActiveCommandsOn(platform))
         {
-            if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && (excludedBy is not { } app || command.IsAlsoIn(app)) && trigger.Matches(command.TriggerFor(platform)))
+            if ((excludedBy is not { } app || command.IsAlsoIn(app)) && trigger.Matches(here))
             {
                 return command;
             }

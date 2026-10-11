@@ -17,7 +17,7 @@ The **Hotkey** step (key `hotkey`, category Keyboard, **platform-bound**): press
 { "modifiers": "Control, Alt", "rightHand": "Alt", "key": "F9" }
 ```
 
-- `modifiers`: `KeyModifiers` flag names (`Control`, `Alt`, `Shift`, `Meta`), case-insensitive, comma-separated; `"None"` or `""` for none; absent = none. Any other name is a `StepFormatException` naming `modifiers`. The reader (`HotkeyStepType.ReadModifiers`) is shared with the Scroll step's `keys`. `Write` emits `KeyModifiers.ToString()` ("None", "Control", "Control, Shift"), so the round trip is byte-stable.
+- `modifiers`: `KeyModifiers` flag names (`Control`, `Alt`, `Shift`, `Meta`), case-insensitive, comma-separated; `"None"` or `""` for none; absent = none. Any other name is a `StepFormatException` naming `modifiers`. Read by `StepParameters.ReadFlags`, as the Scroll step's `keys` and the Remap step's modifiers are. `Write` emits `KeyModifiers.ToString()` ("None", "Control", "Control, Shift"), so the round trip is byte-stable.
 - `rightHand`: the same flag names for the modifiers pressed with the right-hand key. Written only when there are any (so a plain hotkey's JSON is unchanged and older files read as plain); read and written cut down to `modifiers`. A bad name is a `StepFormatException` naming `rightHand`.
 - `key`: a `KeyCode` name (`T`, `Digit5`, `F5`, `PageUp`, `Escape`…), case-insensitive; absent = `None` (unset). Numbers are refused: the stored name is the contract, not the enum value.
 
@@ -25,7 +25,7 @@ The **Hotkey** step (key `hotkey`, category Keyboard, **platform-bound**): press
 
 Some apps treat plain Alt and Ctrl differently from the right-hand keys, which is why 8 of Joel's 199 SP.net hotkeys use RAlt or RControl (RAlt+F9, RAlt+F10, RControl+RShift+P, RControl+0). A hotkey records, shows, stores and sends the right-hand key when that is what was pressed or imported; it is never folded into the plain modifier.
 
-- `RightHand` is a second `KeyModifiers` set, not new enum bits: `KeyModifiers` stays four bits because `Config.IgnoreKeys` shares it bit for bit.
+- `RightHand` is a second `KeyModifiers` set, not new enum bits: `KeyModifiers` stays four bits: the ignore-key setting (`Config.GeneralSettings.IgnoreKey`) is a `KeyModifiers` too, written by four names.
 - A positional record cannot validate in its constructor, so `RightHand` may carry bits outside `Modifiers` in memory. They mean nothing: `HotkeyText` and the executor ignore them, and `Read`, `Write`, the App's form and capture field and the importer normalise (`Normalized()`).
 - Held on both sides at once, a modifier is plain. The importer does the same for `LAlt` and `RAlt` both true.
 - AltGr layouts (Joel's Swedish one): Windows reports AltGr as a synthesised LeftControl plus RightAlt, so the capture field records "Ctrl+RAlt+…", and replaying it sends what Windows saw. An imported `RAlt` alone stays RAlt, the key SP.net sent.
@@ -50,4 +50,4 @@ Some apps treat plain Alt and Ctrl differently from the right-hand keys, which i
 
 The exception table is in `HotkeyConversion` and grows as real use shows more. `SummaryOn(platform)` reads a step in that platform's names, so a Windows "Win+D" reads "Win+D" on a Mac too.
 
-**May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn` (one line), `Steps/Scroll` (`HotkeyText`, `HotkeyKeys`, `ReadModifiers`, `SwapModifiers`), the importer (`Augram.Import.StrokesPlus/HotkeyMapping`: `SendHotKey` and non-media `SendVKey`), the App's `Components/Steps/Hotkey/` form and `Components/HotkeyCapture/` field.
+**May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn` (one line), `Steps/Scroll` (`HotkeyText`, `HotkeyKeys`, `SwapModifiers`), the importer (`Augram.Import.StrokesPlus/HotkeyMapping`: `SendHotKey` and non-media `SendVKey`), the App's `Components/Steps/Hotkey/` form and `Components/HotkeyCapture/` field.

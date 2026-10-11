@@ -46,7 +46,6 @@ public sealed class NotInTests
         var close = NewCommand("Close", Up, NewStep("close"));
         var mapping = Document([NewGlobal(zoom, close)], spine, off);
 
-        Assert.Null(CommandResolver.FindIgnored(mapping, Window("spine.exe"), HostPlatform.Windows));
         Assert.Null(IgnoreList.Under(mapping, Window("spine.exe"), HostPlatform.Windows));
         Assert.False(IgnoreList.WatchesPointer(mapping, HostPlatform.Windows));
         Assert.Equal("Close", CommandResolver.Resolve(mapping, Window("spine.exe"), Trigger.ForGesture(Up), HostPlatform.Windows).Command?.Name);

@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Xunit;
@@ -40,6 +41,20 @@ public sealed class ConfigSerializerTests
         Assert.Contains("\"noMatch\": \"ReplayClick\"", json, StringComparison.Ordinal);
         Assert.Contains("[[1,2],[3,4]]", json, StringComparison.Ordinal);
         Assert.Contains($"\"id\": \"{SampleDocuments.ThreeGestures[0].Id.Value}\"", json, StringComparison.Ordinal);
+    }
+
+    /// <summary>The ignore keys are <c>KeyModifiers</c> since plan 0007; the file keeps the name it always had for the fourth, "Win".</summary>
+    [Fact]
+    public void TheIgnoreKeysKeepTheirFileNames_WinIncluded()
+    {
+        var document = new ConfigDocument(settings: Settings.Default with { General = GeneralSettings.Default with { IgnoreKey = KeyModifiers.Shift | KeyModifiers.Meta } });
+
+        var json = ConfigSerializer.Write(document);
+
+        Assert.Contains("\"ignoreKey\": \"Shift, Win\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"ignoreKey\": \"None\"", ConfigSerializer.Write(ConfigDocument.Default), StringComparison.Ordinal);
+        Assert.Equal(KeyModifiers.Shift | KeyModifiers.Meta, ConfigSerializer.Read(json).Settings.General.IgnoreKey);
+        Assert.Equal(KeyModifiers.Control | KeyModifiers.Meta, ConfigSerializer.Read(json.Replace("\"Shift, Win\"", "\"control,win\"", StringComparison.Ordinal)).Settings.General.IgnoreKey);
     }
 
     [Fact]

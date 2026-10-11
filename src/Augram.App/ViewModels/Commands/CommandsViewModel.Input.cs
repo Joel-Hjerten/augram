@@ -4,7 +4,6 @@ using Augram.Core.Capture;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
-using Augram.Core.Steps.Remap;
 
 namespace Augram.App.ViewModels.Commands;
 
@@ -45,29 +44,20 @@ public sealed partial class CommandsViewModel
     private void SetInput(CommandItem command, HoldInput input) => EditTrigger(command.Id, _ => Trigger.ForInput(input));
 
     /// <summary>
-    /// The command with <paramref name="trigger"/> as this platform's trigger, one edit: for an input, its Remap step's output is
-    /// first fitted to the input (<see cref="HoldRemapRules.FittedTo"/>: a button output on a wheel input becomes a notch the
-    /// same way, a wheel output elsewhere Middle), and for a button trigger (plan 0005 decision 8) a button or wheel output
-    /// becomes a key output with no key yet (<see cref="KeyOutput"/>), so changing the input or the trigger is never refused for
-    /// the output, and the undo of it brings both back. Every trigger save and the draft's note go through this.
+    /// The command with <paramref name="trigger"/> as this platform's trigger, one edit: its steps are first fitted to it
+    /// (<see cref="HoldRemapRules.FittedTo(IStep, Trigger)"/>: on an input, a Remap step's button output on a wheel input becomes
+    /// a notch the same way, a wheel output elsewhere Middle; on a button trigger, plan 0005 decision 8, a button or wheel output
+    /// becomes a key output with no key yet), so changing the input or the trigger is never refused for the output, and the undo
+    /// of it brings both back. Every trigger save and the draft's note go through this.
     /// </summary>
     private Command WithTriggerHere(Command command, Trigger trigger)
     {
         var now = DateTimeOffset.UtcNow;
-        Func<RemapOutput, RemapOutput>? fit = trigger switch
+        var steps = EditableSteps(command);
+        var fitted = steps.Select(step => step with { Step = HoldRemapRules.FittedTo(step.Step, trigger) }).ToList();
+        if (!fitted.SequenceEqual(steps))
         {
-            Trigger.InputTrigger { Input: var input } => output => HoldRemapRules.FittedTo(output, input),
-            Trigger.ButtonTrigger => KeyOutput,
-            _ => null,
-        };
-        if (fit is not null)
-        {
-            var steps = EditableSteps(command);
-            var fitted = steps.Select(step => step.Step is RemapStep remap ? step with { Step = new RemapStep(fit(remap.Output)) } : step).ToList();
-            if (!fitted.SequenceEqual(steps))
-            {
-                command = command.WithStepsFor(_platform, fitted, now);
-            }
+            command = command.WithStepsFor(_platform, fitted, now);
         }
 
         return command.WithTriggerFor(_platform, trigger, now);
@@ -78,9 +68,6 @@ public sealed partial class CommandsViewModel
     /// output fitted to the command's input here, or a key output on a button trigger, the header's, a draft included).
     /// </summary>
     private IStep NewStep(IStepType type, Command command) => StepOffer.NewStep(type, command, _platform, DraftedTrigger(command.Id));
-
-    /// <summary>A Remap output as a button trigger holds it (plan 0005 decision 8: a key): a button or wheel output becomes a key output with no key yet, its modifiers kept.</summary>
-    private static RemapOutput KeyOutput(RemapOutput output) => output is RemapOutput.Key ? output : new RemapOutput.Key(KeyCode.None, output.Modifiers);
 
     private void ChooseWheelInput(CommandId id)
     {

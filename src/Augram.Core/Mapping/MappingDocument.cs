@@ -28,4 +28,18 @@ public sealed record MappingDocument(IReadOnlyList<AppGroup> Groups, IReadOnlyLi
             }
         }
     }
+
+    /// <summary>The command with this id and its group, in any group; null when the mapping has none.</summary>
+    public (AppGroup Group, Command Command)? FindCommand(CommandId id)
+    {
+        foreach (var group in Groups)
+        {
+            if (group.FindCommand(id) is { } command)
+            {
+                return (group, command);
+            }
+        }
+
+        return null;
+    }
 }

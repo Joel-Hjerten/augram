@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 
 namespace Augram.Core.Config;
@@ -8,13 +10,17 @@ namespace Augram.Core.Config;
 /// revisit at M3).
 /// </summary>
 /// <param name="StrokeButton">The button that, held, starts a gesture.</param>
-/// <param name="IgnoreKey">Modifiers that make the stroke button pass through.</param>
+/// <param name="IgnoreKey">
+/// Modifier keys that, when held while the stroke button goes down, make Augram pass the button through untouched (the
+/// Ignore Key, requirements F1); any held member of the set ignores. Written as <c>"Control, Win"</c>
+/// (<see cref="IgnoreKeyJsonConverter"/>), as the file always has.
+/// </param>
 /// <param name="StartAtLogin">Register Augram with the OS login items.</param>
 /// <param name="Enabled">The tray toggle: when false the hook passes everything through.</param>
 /// <param name="ColourMenuBarIcon">macOS: the colour app icon in the menu bar instead of the single-colour shape the system tints (Joel, 2026-10-08, as in Eyeris).</param>
 public sealed record GeneralSettings(
     MouseButton StrokeButton = MouseButton.Right,
-    IgnoreKeys IgnoreKey = IgnoreKeys.None,
+    [property: JsonConverter(typeof(IgnoreKeyJsonConverter))] KeyModifiers IgnoreKey = KeyModifiers.None,
     bool StartAtLogin = false,
     bool Enabled = true,
     bool ColourMenuBarIcon = false)

@@ -19,9 +19,6 @@ public sealed class HotkeyStepType : IStepType
 
     public const string KeyMember = "key";
 
-    private static readonly string[] ModifierNames =
-        [.. Enum.GetNames<KeyModifiers>().Where(name => name != nameof(KeyModifiers.None))];
-
     private HotkeyStepType()
     {
     }
@@ -45,8 +42,8 @@ public sealed class HotkeyStepType : IStepType
     public IStep Read(JsonObject parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        var modifiers = ReadModifiers(parameters, ModifiersMember);
-        var rightHand = ReadModifiers(parameters, RightHandMember);
+        var modifiers = StepParameters.ReadFlags<KeyModifiers>(parameters, ModifiersMember);
+        var rightHand = StepParameters.ReadFlags<KeyModifiers>(parameters, RightHandMember);
         var key = StepParameters.ReadEnum<KeyCode>(parameters, KeyMember) ?? KeyCode.None;
         return new HotkeyStep(modifiers, key, rightHand).Normalized();
     }
@@ -68,33 +65,5 @@ public sealed class HotkeyStepType : IStepType
     {
         ArgumentNullException.ThrowIfNull(context);
         return HotkeyExecutor.Execute(StepParameters.Expect<HotkeyStep>(step, this), context);
-    }
-
-    /// <summary>
-    /// Flag names, case-insensitive, comma-separated; "None", an empty string and an absent member mean none; anything else
-    /// names the member. Shared with the Scroll step's held keys, so a modifier set reads the same in every step.
-    /// </summary>
-    internal static KeyModifiers ReadModifiers(JsonObject parameters, string member)
-    {
-        var text = StepParameters.ReadString(parameters, member);
-        if (text is null)
-        {
-            return KeyModifiers.None;
-        }
-
-        var modifiers = KeyModifiers.None;
-        foreach (var part in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (string.Equals(part, nameof(KeyModifiers.None), StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var name = ModifierNames.FirstOrDefault(candidate => string.Equals(candidate, part, StringComparison.OrdinalIgnoreCase))
-                ?? throw new StepFormatException($"'{member}' must list {string.Join(", ", ModifierNames)} separated by commas, or None; got '{text}'.");
-            modifiers |= Enum.Parse<KeyModifiers>(name);
-        }
-
-        return modifiers;
     }
 }

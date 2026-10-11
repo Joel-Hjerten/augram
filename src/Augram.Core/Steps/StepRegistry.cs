@@ -65,7 +65,4 @@ public sealed class StepRegistry
         ArgumentNullException.ThrowIfNull(key);
         return _byKey.GetValueOrDefault(key);
     }
-
-    public IStepType Require(string key)
-        => Find(key) ?? throw new StepFormatException($"Unknown step type '{key}'.");
 }

@@ -2,8 +2,8 @@ namespace Augram.Core.Abstractions;
 
 /// <summary>
 /// Modifier keys held at the moment of an input event, as the input source reports them.
-/// Left and right are folded together. Bit values match <c>Config.IgnoreKeys</c> so the
-/// Options page's ignore-key set casts straight to a mask.
+/// Left and right are folded together. Also the Options page's ignore-key set
+/// (<c>Config.GeneralSettings.IgnoreKey</c>, written "Win" for <see cref="Meta"/> as the file always has).
 /// </summary>
 [Flags]
 public enum KeyModifiers

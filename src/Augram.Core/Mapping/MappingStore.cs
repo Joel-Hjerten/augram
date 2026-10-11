@@ -31,8 +31,8 @@ public sealed partial class MappingStore
     /// <summary>An immutable, sorted snapshot; a new instance after every change.</summary>
     public MappingDocument Current { get; private set; }
 
-    /// <summary>Increments on every change, undo and redo included.</summary>
-    public int Version { get; private set; }
+    /// <summary>Increments on every change, undo and redo included: what tests count (the app listens to <see cref="Changed"/>).</summary>
+    internal int Version { get; private set; }
 
     public bool CanUndo => _history.CanUndo;
 
@@ -44,18 +44,7 @@ public sealed partial class MappingStore
 
     public AppGroup? FindGroup(GroupId id) => Current.Groups.FirstOrDefault(group => group.Id == id);
 
-    public (AppGroup Group, Command Command)? FindCommand(CommandId id)
-    {
-        foreach (var pair in Current.AllCommands())
-        {
-            if (pair.Command.Id == id)
-            {
-                return pair;
-            }
-        }
-
-        return null;
-    }
+    public (AppGroup Group, Command Command)? FindCommand(CommandId id) => Current.FindCommand(id);
 
     public IgnoredApp? FindIgnored(GroupId id) => Current.Ignored.FirstOrDefault(app => app.Id == id);
 
@@ -107,10 +96,7 @@ public sealed partial class MappingStore
     public Command UpdateCommand(GroupId groupId, Command command)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var group = RequireGroup(groupId);
-        var commands = group.Commands.ToArray();
-        commands[IndexOfCommand(group, command.Id)] = command;
-        UpdateGroup(group with { Commands = commands });
+        Commit(WithCommandReplaced(groupId, command));
         return FindCommand(command.Id)!.Value.Command;
     }
 
@@ -123,11 +109,7 @@ public sealed partial class MappingStore
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(added);
-        var group = RequireGroup(groupId);
-        var commands = group.Commands.ToArray();
-        commands[IndexOfCommand(group, command.Id)] = command;
-        var groups = Current.Groups.Select(other => other.Id == group.Id ? group with { Commands = commands } : other).ToArray();
-        Commit(Current with { Groups = groups, Ignored = [.. Current.Ignored, .. added] });
+        Commit(WithCommandReplaced(groupId, command) with { Ignored = [.. Current.Ignored, .. added] });
         return FindCommand(command.Id)!.Value.Command;
     }
 
@@ -253,6 +235,18 @@ public sealed partial class MappingStore
     public void ClearHistory() => _history.Clear();
 
     private AppGroup RequireGroup(GroupId id) => Current.Groups[IndexOfGroup(id)];
+
+    /// <summary>The current document with the command of the same id in that group replaced, not yet committed.</summary>
+    private MappingDocument WithCommandReplaced(GroupId groupId, Command command)
+    {
+        var index = IndexOfGroup(groupId);
+        var group = Current.Groups[index];
+        var commands = group.Commands.ToArray();
+        commands[IndexOfCommand(group, command.Id)] = command;
+        var groups = Current.Groups.ToArray();
+        groups[index] = group with { Commands = commands };
+        return Current with { Groups = groups };
+    }
 
     private (AppGroup Group, Command Command) RequireCommand(CommandId id)
         => FindCommand(id) ?? throw new KeyNotFoundException($"No command with id {id}.");

@@ -145,8 +145,7 @@ public sealed partial class CommandsViewModel
             return null;
         }
 
-        var name = source.CategoryId is { } id ? _store.FindCommand(source.Id)?.Group.FindCategory(id)?.Name : null;
-        return name is null ? null : group.Categories.FirstOrDefault(category => MappingRules.NameComparer.Equals(category.Name, name))?.Id;
+        return _store.FindCommand(source.Id) is { } found ? CategoryRules.Carried(source.CategoryId, found.Group, group) : null;
     }
 
     private async Task DeleteCommandAsync(CommandItem command)

@@ -99,10 +99,10 @@ public sealed class CommandResolverTests
         Assert.True(ignored.IgnoredBy!.DisableEntirely);
         Assert.Null(ignored.Group);
         Assert.False(ignored.Fires);
-        Assert.NotNull(CommandResolver.FindIgnored(Mapping, Window("game.exe"), HostPlatform.Windows));
+        Assert.NotNull(IgnoreList.Under(Mapping, Window("game.exe"), HostPlatform.Windows));
 
         Assert.Equal("global", CommandResolver.Resolve(Mapping, Window("notepad.exe"), UpGesture, HostPlatform.Windows).Reason);
-        Assert.Null(CommandResolver.FindIgnored(Mapping, null, HostPlatform.Windows));
+        Assert.Null(IgnoreList.Under(Mapping, null, HostPlatform.Windows));
     }
 
     [Fact]

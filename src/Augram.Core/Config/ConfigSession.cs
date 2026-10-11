@@ -10,6 +10,7 @@ namespace Augram.Core.Config;
 /// write and one backup. The scheduler is injected so the host runs the save on its UI thread
 /// (same thread as the edits; this type is single-writer) and tests run it by hand. Other
 /// threads (the engine) read each store's current snapshot after <see cref="DocumentChanged"/>.
+/// What survives a loaded file that breaks a rule is <see cref="ConfigRecovery"/>'s.
 /// </summary>
 public sealed class ConfigSession : IDisposable
 {
@@ -31,9 +32,9 @@ public sealed class ConfigSession : IDisposable
         _notice = notice;
 
         var loaded = store.Load();
-        Settings = new SettingsStore(ValidSettings(loaded.Settings));
-        Gestures = ValidLibrary(loaded.Gestures);
-        Mapping = ValidMapping(loaded.Mapping);
+        Settings = new SettingsStore(ConfigRecovery.ValidSettings(loaded.Settings, notice));
+        Gestures = ConfigRecovery.ValidLibrary(loaded.Gestures, notice);
+        Mapping = ConfigRecovery.ValidMapping(loaded.Mapping, notice);
         Settings.Changed += OnChanged;
         Gestures.Changed += OnChanged;
         Mapping.Changed += OnChanged;
@@ -105,154 +106,5 @@ public sealed class ConfigSession : IDisposable
     {
         _pending?.Dispose();
         _pending = null;
-    }
-
-    private Settings ValidSettings(Settings settings)
-    {
-        try
-        {
-            SettingsRules.EnsureValid(settings);
-            return settings;
-        }
-        catch (SettingsValidationException ex)
-        {
-            _notice?.Invoke($"Settings reset to defaults: {ex.Message}");
-            return Config.Settings.Default;
-        }
-    }
-
-    /// <summary>Strict first; if the saved set breaks a rule, keep every gesture that passes on its own and report the rest.</summary>
-    private GestureLibrary ValidLibrary(IReadOnlyList<Gesture> gestures)
-    {
-        try
-        {
-            return new GestureLibrary(gestures);
-        }
-        catch (GestureValidationException)
-        {
-            var library = new GestureLibrary();
-            foreach (var gesture in gestures)
-            {
-                try
-                {
-                    library.Add(gesture);
-                }
-                catch (GestureValidationException ex)
-                {
-                    _notice?.Invoke($"Gesture '{gesture.Name}' ({gesture.Id}) skipped: {ex.Message}");
-                }
-            }
-
-            library.ClearHistory();
-            return library;
-        }
-    }
-
-    /// <summary>Strict first; if the saved mapping breaks a rule, load group by group and command by command, keep what passes and report the rest.</summary>
-    private MappingStore ValidMapping(MappingDocument mapping)
-    {
-        try
-        {
-            return new MappingStore(mapping);
-        }
-        catch (MappingValidationException)
-        {
-            var store = new MappingStore();
-            bool globalLoaded = false;
-            foreach (var group in mapping.Groups)
-            {
-                if (group.IsGlobal && globalLoaded)
-                {
-                    _notice?.Invoke($"App group '{group.Name}' ({group.Id}) skipped: only one Global group is allowed.");
-                    continue;
-                }
-
-                globalLoaded |= group.IsGlobal;
-                LoadGroup(store, group);
-            }
-
-            foreach (var app in mapping.Ignored)
-            {
-                Try(() => store.AddIgnored(app), $"Excluded app '{app.Name}' ({app.Id})");
-            }
-
-            RestoreIgnoredReferences(store, mapping);
-            store.ClearHistory();
-            return store;
-        }
-    }
-
-    /// <summary>
-    /// The group without its commands, categories and hold remaps first, then each category, each hold remap, each command: a
-    /// bad category costs only itself (its commands load without it: on Global, in Uncategorized), and so does a bad hold remap (its commands load as
-    /// ordinary commands without their input).
-    /// </summary>
-    private void LoadGroup(MappingStore store, AppGroup group)
-    {
-        var shell = group with { Commands = [], Categories = [], HoldRemaps = [] };
-        if (!Try(() => _ = group.IsGlobal ? store.UpdateGroup(shell) : store.AddGroup(shell), $"App group '{group.Name}' ({group.Id})"))
-        {
-            return;
-        }
-
-        foreach (var category in group.Categories)
-        {
-            Try(() => AddCategory(store, group.Id, category), $"Category '{category.Name}' ({category.Id}) in '{group.Name}'");
-        }
-
-        foreach (var holdRemap in group.HoldRemaps)
-        {
-            Try(() => store.AddHoldRemap(group.Id, holdRemap), $"Hold remap '{holdRemap.Name}' ({holdRemap.Id}) in '{group.Name}'");
-        }
-
-        foreach (var command in group.Commands)
-        {
-            Try(() => store.AddCommand(group.Id, command), $"Command '{command.Name}' ({command.Id}) in '{group.Name}'");
-        }
-    }
-
-    /// <summary>
-    /// The "Not in" (plan 0004) and "Also in" (plan 0005) of every command that loaded: they name ignored apps (Ignored › Per
-    /// command entries, plain Exclusions › Global entries), which load after every group, so the store dropped those ids then.
-    /// Now that the ignored apps are in, both lists are put back on the command loaded from that group; an entry that did not
-    /// load stays out.
-    /// </summary>
-    private void RestoreIgnoredReferences(MappingStore store, MappingDocument mapping)
-    {
-        foreach (var (group, command) in mapping.AllCommands().Where(pair => pair.Command.NotIn.Count > 0 || pair.Command.AlsoIn.Count > 0))
-        {
-            if (store.FindCommand(command.Id) is { } loaded && loaded.Group.Id == group.Id)
-            {
-                var lists = (command.NotIn.Count > 0, command.AlsoIn.Count > 0) switch
-                {
-                    (true, true) => "'Not in' and 'Also in'",
-                    (true, false) => "'Not in'",
-                    _ => "'Also in'",
-                };
-                Try(
-                    () => store.UpdateCommand(group.Id, loaded.Command with { NotIn = command.NotIn, AlsoIn = command.AlsoIn }),
-                    $"The {lists} of command '{command.Name}' ({command.Id}) in '{group.Name}'");
-            }
-        }
-    }
-
-    private static void AddCategory(MappingStore store, GroupId groupId, CommandCategory category)
-    {
-        var group = store.FindGroup(groupId)!;
-        store.UpdateGroup(group with { Categories = [.. group.Categories, category] });
-    }
-
-    private bool Try(Action load, string what)
-    {
-        try
-        {
-            load();
-            return true;
-        }
-        catch (MappingValidationException ex)
-        {
-            _notice?.Invoke($"{what} skipped: {ex.Message}");
-            return false;
-        }
     }
 }

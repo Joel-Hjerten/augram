@@ -114,6 +114,10 @@ public sealed class ButtonTriggerAndAlsoInSerializationTests
     [InlineData("""{ "button": "Thumb", "hold": { "buttons": "Right" } }""", "", $"'button' of 'trigger' of {Where} must be one of Left, Middle, Right, X1, X2.")]
     [InlineData("""{ "button": 1, "hold": { "buttons": "Right" } }""", "", $"'button' of 'trigger' of {Where} must be a string.")]
     [InlineData("""{ "button": "Left", "hold": { "buttons": "Right, Thumb" } }""", "", $"'buttons' of 'hold' of 'trigger' of {Where} must be a comma-separated list of None, Stroke, Left, Middle, Right, X1, X2.")]
+    // Plan 0007 (Joel, Q5): enums are read by name only, as a step's parameters are; Augram never writes a number.
+    [InlineData("""{ "button": "1", "hold": { "buttons": "Right" } }""", "", $"'button' of 'trigger' of {Where} must be one of Left, Middle, Right, X1, X2.")]
+    [InlineData("""{ "button": "Left", "hold": { "buttons": "8" } }""", "", $"'buttons' of 'hold' of 'trigger' of {Where} must be a comma-separated list of None, Stroke, Left, Middle, Right, X1, X2.")]
+    [InlineData("""{ "button": "Left, Right", "hold": { "buttons": "Right" } }""", "", $"'button' of 'trigger' of {Where} must be one of Left, Middle, Right, X1, X2.")]
     [InlineData("""{ "button": "Left", "hold": { "buttons": "Right" } }""", """, "alsoIn": "Blender" """, $"'alsoIn' of {Where} must be an array.")]
     [InlineData("""{ "button": "Left", "hold": { "buttons": "Right" } }""", """, "alsoIn": [ 3 ] """, $"'alsoIn' of {Where} must be an array of strings.")]
     public void AMemberOfTheWrongShape_IsAFormatErrorNamingIt(string trigger, string alsoIn, string message)

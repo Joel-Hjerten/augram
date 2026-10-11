@@ -53,11 +53,4 @@ public sealed record TriggerConversion(Trigger? Trigger, string? Reason)
 
         return To(trigger with { Hold = trigger.Hold with { Keys = (keys & ~from) | to } });
     }
-
-    /// <summary>For display: "Ctrl + gesture → Cmd + gesture", or the reason there is none.</summary>
-    public string Explain(Trigger original, HostPlatform from, HostPlatform to)
-    {
-        ArgumentNullException.ThrowIfNull(original);
-        return Trigger is null ? Reason ?? string.Empty : $"{original.Describe(from)} → {Trigger.Describe(to)}";
-    }
 }

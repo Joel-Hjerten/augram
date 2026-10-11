@@ -65,7 +65,7 @@ public sealed class HoldRemapModelTests
 
         Assert.Equal(("Close", "global"), (resolved.Command?.Name, resolved.Reason));
         Assert.False(AnchorPlanner.UsesButtons(raw, HostPlatform.Windows));
-        Assert.True(AnchorPlanner.ForGroup(raw, raw.Groups[1], HostPlatform.Windows, MouseButton.Right).IsEmpty);
+        Assert.True(AnchorPlanner.Answer(raw, raw.Groups[1], HostPlatform.Windows, MouseButton.Right).Plan.IsEmpty);
     }
 
     [Fact]
