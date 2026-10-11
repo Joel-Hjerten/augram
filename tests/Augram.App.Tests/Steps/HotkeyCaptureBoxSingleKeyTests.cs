@@ -63,7 +63,6 @@ public sealed class HotkeyCaptureBoxSingleKeyTests
     {
         var box = new HotkeyCaptureBox { KeyCapture = capture, SingleKey = true };
         var window = new Window { Width = 600, Height = 300 };
-        window.Resources.MergedDictionaries.Add(HotkeyCaptureBoxTests.Theme());
         window.Content = box;
         window.Show();
         return box;

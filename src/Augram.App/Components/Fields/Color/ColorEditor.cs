@@ -11,7 +11,7 @@ namespace Augram.App.Components.Fields.Color;
 /// <summary>
 /// Lookless RGB editor: three channels in, a <see cref="Swatch"/> out. The template supplies
 /// <c>PART_Red</c>, <c>PART_Green</c> and <c>PART_Blue</c> (<see cref="NumericUpDown"/>) and may bind
-/// <see cref="Swatch"/> to a preview surface. A <c>PART_Picker</c> (<see cref="ColorView"/>; the Wireframe theme uses
+/// <see cref="Swatch"/> to a preview surface. A <c>PART_Picker</c> (<see cref="ColorView"/>; the theme uses
 /// Avalonia's <see cref="ColorPicker"/>, a swatch button whose flyout is laid out by its own theme) picks the colour
 /// with a spectrum, sliders and hex; no alpha, opacity is a setting of its own (Joel, 2026-10-08). <see cref="ColorChanged"/> fires once
 /// per colour change: <see cref="SetRgb"/> moves all three channels as one, so setting a colour from outside or dragging in

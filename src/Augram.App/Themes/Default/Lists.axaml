@@ -18,9 +18,8 @@
   <!--
     The glass look for lists, panels and the workbenches (plan 0006 step 4; visual reference
     design/mockups/augram-glass-theme.html: .island, .ihead, .row, .gt, .tag, .steps, .ggrid, .log). Included by Default.axaml
-    after the Wireframe include, so the ControlThemes here replace Wireframe's for the same types and the styles below win
-    over Wireframe's class styles (Avalonia has no selector specificity: of two styles at the same priority, the later one
-    wins).
+    after Forms.axaml and before Text.axaml, so the styles below win over Forms' (Avalonia has no selector specificity: of
+    two styles at the same priority, the later one wins).
 
     How it holds together:
     - A panel is a Border in Layer.Panel with a 1 px Layer.Edge and Radius.Panel corners; its title sits in its header row,
@@ -352,7 +351,7 @@
       </ControlTheme>
 
       <!-- The training canvas: a well a step darker than its page. The stroke is a quiet colour of the theme, so the cleaned
-           shape drawn over it in its own colour (draw|GestureDrawArea.cleaned, Wireframe's rule) always stands out. Fills and
+           shape drawn over it in its own colour (draw|GestureDrawArea.cleaned, below) always stands out. Fills and
            the stroke are set by style, not locally, so the cleaned overlay's rule can clear them. -->
       <ControlTheme x:Key="{x:Type draw:GestureDrawArea}" TargetType="draw:GestureDrawArea">
         <Setter Property="MinHeight" Value="240" />
@@ -1134,12 +1133,50 @@
     text role (Text.axaml); state styles come after the base ones they override.
   -->
 
-  <!-- Rows (the Row rule): the frame is quiet (its container draws hover and selection); the metrics stay Wireframe's Row.*. -->
+  <!-- A list box's container adds nothing around a row: the row's own frame and line set its size. -->
+  <Style Selector="ListBox > ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <!-- Rows (the Row rule): the frame is quiet (its container draws hover and selection); the line inside it is the one place
+       a row's spacing and control sizes are set (tokens Row.*). -->
   <Style Selector="Border.row">
     <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+  <Style Selector="Grid.row-line">
+    <Setter Property="Margin" Value="{StaticResource Row.Padding}" />
+    <Setter Property="MinHeight" Value="{StaticResource Row.ControlSize}" />
+  </Style>
+  <Style Selector="Grid.row-line.indented">
+    <Setter Property="Margin" Value="{StaticResource Row.IndentedPadding}" />
+  </Style>
+  <!-- A hold remap's header sits at a command's indent inside its app group, and its commands one indent further (F9). -->
+  <Style Selector="tree|SectionRow:nested /template/ Grid.row-line">
+    <Setter Property="Margin" Value="{StaticResource Row.IndentedPadding}" />
+  </Style>
+  <Style Selector="tree|CommandRow:nested /template/ Grid.row-line.indented">
+    <Setter Property="Margin" Value="{StaticResource Row.NestedPadding}" />
+  </Style>
+  <!-- A row's active box: the row's control height, no room of its own around it. -->
+  <Style Selector="CheckBox.row-active">
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Height" Value="{StaticResource Row.ControlSize}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+  <!-- Lists of text cells (ListRowBuilder: Diagnostics, the import review): a line at least a control high, its filter's spacing. -->
+  <Style Selector="Grid.list-row">
+    <Setter Property="MinHeight" Value="{StaticResource Row.ControlSize}" />
+  </Style>
+  <Style Selector="TextBlock.cell">
+    <Setter Property="Padding" Value="{StaticResource Row.Padding}" />
+  </Style>
+  <Style Selector="StackPanel.list-filter">
+    <Setter Property="Spacing" Value="{StaticResource Space.S}" />
   </Style>
   <!-- The dragged step floats above the others under the pointer (StepDragReorder): solid, with the accent's tint, so it reads as picked up (Joel, 0.11.12: half see-through, it seemed to vanish). -->
   <Style Selector="steps|StepRow:dragging /template/ Border.row">
@@ -1222,9 +1259,11 @@
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <!-- A name being renamed in place: the standard text box, rounded like its row. -->
+  <!-- A name being renamed in place: the standard text box, rounded like its row, no taller than the name it replaces. -->
   <Style Selector="TextBox.tile-editor">
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
   </Style>
 
   <!-- Steps: the grip and the number, quiet; the open step's form below a faint line inside the card (.grip, .idx, .sform). -->
@@ -1271,6 +1310,22 @@
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
+  <!-- Gesture tiles: a partner's score in a framed box over its glyph. -->
+  <Style Selector="Border.tile-partner">
+    <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+    <Setter Property="Padding" Value="{StaticResource Pad.S}" />
+  </Style>
+  <!-- A draw area laid over another to show the cleaned shape: no background or frame, the stroke in the cleaned colour. -->
+  <Style Selector="draw|GestureDrawArea.cleaned /template/ Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="draw|GestureDrawArea.cleaned /template/ Path#PART_Stroke">
+    <Setter Property="Stroke" Value="{StaticResource Brush.Cleaned}" />
+    <Setter Property="StrokeThickness" Value="3" />
+  </Style>
   <!-- Gesture tiles: the duplicate frame in danger red (the name and the partner's score are text roles, Text.axaml). -->
   <Style Selector="grid|GestureTile:duplicate /template/ Border#PART_Frame, grid|GestureTile:partner /template/ Border#PART_Frame">
     <Setter Property="BorderBrush" Value="{DynamicResource Text.Danger}" />
@@ -1321,6 +1376,23 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="Padding" Value="10,8" />
+  </Style>
+  <!-- Dialogs (FormDialog, the gesture picker, the training and import windows): a margin round the content, the buttons
+       bottom right, rows apart. -->
+  <Style Selector="DockPanel.dialog">
+    <Setter Property="Margin" Value="{StaticResource Pad.L}" />
+  </Style>
+  <Style Selector="StackPanel.dialog-buttons">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
+    <Setter Property="Margin" Value="0,8,0,0" />
+  </Style>
+  <Style Selector="StackPanel.dialog-row, Grid.dialog-row">
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+  <Style Selector="StackPanel.dialog-row">
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
   </Style>
   <Style Selector="TextBlock.dialog-message">
     <Setter Property="Margin" Value="0,0,0,8" />
