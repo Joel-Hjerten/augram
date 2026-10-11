@@ -164,6 +164,7 @@
   </Styles.Resources>
 
   <StyleInclude Source="avares://Augram/Themes/Wireframe/Wireframe.axaml" />
+  <StyleInclude Source="avares://Augram/Themes/Default/Lists.axaml" />
 
   <Style Selector="TabControl.shell > TabItem">
     <Setter Property="Theme" Value="{StaticResource ShellTab}" />
