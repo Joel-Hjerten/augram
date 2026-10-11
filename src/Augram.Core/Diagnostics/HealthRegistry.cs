@@ -15,8 +15,6 @@ public sealed class HealthRegistry : IHealthSource
     private readonly object _gate = new();
     private Func<HealthSnapshot, HealthSnapshot>[] _contributors = [];
 
-    public int ContributorCount => Volatile.Read(ref _contributors).Length;
-
     /// <summary>Adds a contributor. Dispose the result to remove it (a reinstalled hook registers afresh).</summary>
     public IDisposable Register(Func<HealthSnapshot, HealthSnapshot> contributor)
     {

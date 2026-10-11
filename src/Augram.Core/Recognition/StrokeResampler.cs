@@ -44,7 +44,7 @@ public static class StrokeResampler
         {
             var currentPoint = points[currentIndex];
 
-            double incToCurrentLength = Distance(lastTestPoint, currentPoint);
+            double incToCurrentLength = lastTestPoint.DistanceTo(currentPoint);
             double testSegmentLength = currentSegmentLength + incToCurrentLength;
 
             if (testSegmentLength < desiredSegmentLength)
@@ -74,7 +74,7 @@ public static class StrokeResampler
         return interpolatedPoints.ToArray();
     }
 
-    /// <summary>Sum of the segment lengths (<c>GetPointArrayLength</c>).</summary>
+    /// <summary>Sum of the segment lengths (<c>GetPointArrayLength</c>); shape cleanup measures a stroke with it too.</summary>
     public static double PathLength(IReadOnlyList<GesturePoint> points)
     {
         ArgumentNullException.ThrowIfNull(points);
@@ -82,17 +82,10 @@ public static class StrokeResampler
         double length = 0;
         for (int i = 1; i < points.Count; i++)
         {
-            length += Distance(points[i - 1], points[i]);
+            length += points[i - 1].DistanceTo(points[i]);
         }
 
         return length;
-    }
-
-    private static double Distance(GesturePoint a, GesturePoint b)
-    {
-        double dx = b.X - a.X;
-        double dy = b.Y - a.Y;
-        return Math.Sqrt((dx * dx) + (dy * dy));
     }
 
     private static GesturePoint Interpolate(GesturePoint start, GesturePoint end, double position)

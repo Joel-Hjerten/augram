@@ -11,18 +11,7 @@ namespace Augram.Core.Recognition;
 /// </summary>
 public sealed class GestureMatcher
 {
-    private readonly TemplateCache _templates;
-
-    public GestureMatcher()
-        : this(new TemplateCache())
-    {
-    }
-
-    public GestureMatcher(TemplateCache templates)
-    {
-        ArgumentNullException.ThrowIfNull(templates);
-        _templates = templates;
-    }
+    private readonly TemplateCache _templates = new();
 
     /// <summary>Every active gesture with its score, best first. Feeds the recognition log.</summary>
     public IReadOnlyList<MatchResult> Rank(IReadOnlyList<GesturePoint> stroke, IEnumerable<Gesture> gestures, RecognitionOptions options)
@@ -49,10 +38,19 @@ public sealed class GestureMatcher
         return results.OrderByDescending(result => result.Score).ToList();
     }
 
-    /// <summary>The best-scoring active gesture if its score is strictly above the threshold, else null.</summary>
+    /// <summary>The best-scoring active gesture if its score is strictly above the threshold, else null: <see cref="Best"/> of <see cref="Rank"/>.</summary>
     public MatchResult? Match(IReadOnlyList<GesturePoint> stroke, IEnumerable<Gesture> gestures, RecognitionOptions options)
+        => Best(Rank(stroke, gestures, options), options);
+
+    /// <summary>
+    /// The threshold rule, the one place it is written: the first of a <see cref="Rank"/> result if its score is strictly
+    /// above <see cref="RecognitionOptions.Threshold"/> and above 0, else null (also for an empty ranking). The engine ranks
+    /// once (the whole ranking goes to the recognition log) and asks this for the match.
+    /// </summary>
+    public static MatchResult? Best(IReadOnlyList<MatchResult> ranked, RecognitionOptions options)
     {
-        var ranked = Rank(stroke, gestures, options);
+        ArgumentNullException.ThrowIfNull(ranked);
+        ArgumentNullException.ThrowIfNull(options);
         if (ranked.Count == 0)
         {
             return null;

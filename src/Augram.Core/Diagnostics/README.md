@@ -14,8 +14,8 @@ The data side of N4 (observability): what a log event is, how to emit one cheapl
 | `NullEventLog` | `Instance`; never enabled, discards everything; the default for tests |
 | `HealthSnapshot` | `HookAliveSince`, `HookReinstallCount`, `EventsLastMinute`, `LastStrokeLatencyMs`, `LastActivationOutcome`, `OverlayFirstFrameMs`, `UptimeSeconds`, `WorkingSetBytes`, `LastSyncOutcome` + `LastSyncAt` (F8 sync, filled by the App's sync service); every field nullable, null = unknown |
 | `HealthRegistry` | the `IHealthSource`; `Register(Func<HealthSnapshot, HealthSnapshot>)` returns an `IDisposable` to unregister; `Current()` folds contributors over `HealthSnapshot.Empty` |
-| `RingLog<T>` | fixed-capacity ring: `Add`, `Snapshot()` (oldest first), `Count`, `Version`, `Changed`, `Clear()` |
-| `RecognitionCandidate` | `(Name, Score)` |
+| `RingLog<T>` | fixed-capacity ring: `Add`, `Snapshot()` (oldest first), `Count`, `Version`, `Changed` |
+| `RecognitionCandidate` | `(Name, Score, Id)`: the gesture's id, so a view shows its glyph beside the score |
 | `RecognitionLogEntry` | per stroke: timestamp, point count, duration, top matches (trimmed to 3, best first), matched group, fired command or why nothing fired |
 | `RecognitionLog` | `RingLog<RecognitionLogEntry>`, capacity 200 |
 

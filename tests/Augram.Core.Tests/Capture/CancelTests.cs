@@ -90,7 +90,6 @@ public sealed class CancelTests
             results[2]);
         Assert.Equal([CaptureOutcome.PassThrough.Instance], results[3]);
         Assert.Equal(CaptureState.Cancelled, machine.State);
-        Assert.False(machine.IsOtherButtonDown(MouseButton.Left));
     }
 
     [Fact]
@@ -101,7 +100,6 @@ public sealed class CancelTests
         var outcomes = new EventScript().Down(Stroke, 100, 100).Down(MouseButton.Middle).RunOnForLast(machine);
 
         Assert.Equal([CaptureOutcome.PassThrough.Instance, new CaptureOutcome.Cancelled(CancelReason.OtherButton)], outcomes);
-        Assert.True(machine.IsOtherButtonDown(MouseButton.Middle));
     }
 
     [Fact]
@@ -153,7 +151,10 @@ public sealed class CancelTests
         machine.Reset();
 
         Assert.Equal(CaptureState.Idle, machine.State);
-        Assert.False(machine.IsOtherButtonDown(MouseButton.Left));
         Assert.Equal([CaptureOutcome.PassThrough.Instance], machine.Handle(new CaptureEvent.ButtonUp(Stroke, 150, 100, 0)));
+
+        // Left is forgotten too: the next click holds nothing before it, so it is replayed, not a click trigger.
+        machine.Handle(new CaptureEvent.ButtonDown(Stroke, 150, 100, 0));
+        Assert.Equal([CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReplayClick(Stroke, 150, 100)], machine.Handle(new CaptureEvent.ButtonUp(Stroke, 150, 100, 0)));
     }
 }

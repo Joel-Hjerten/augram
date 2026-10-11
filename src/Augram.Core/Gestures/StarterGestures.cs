@@ -56,7 +56,7 @@ public static class StarterGestures
     /// <summary>A straight leg with a point every <see cref="StepPx"/> or so, both ends included.</summary>
     private static List<GesturePoint> Segment(GesturePoint from, GesturePoint to)
     {
-        double length = Math.Sqrt(Math.Pow(to.X - from.X, 2) + Math.Pow(to.Y - from.Y, 2));
+        double length = from.DistanceTo(to);
         int steps = Math.Max(1, (int)Math.Round(length / StepPx));
         var points = new List<GesturePoint>(steps + 1);
         for (int i = 0; i <= steps; i++)

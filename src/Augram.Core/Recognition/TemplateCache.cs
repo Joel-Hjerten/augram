@@ -33,13 +33,5 @@ public sealed class TemplateCache
         }
     }
 
-    public void Clear()
-    {
-        lock (_gate)
-        {
-            _entries.Clear();
-        }
-    }
-
     private readonly record struct Entry(GestureSample Sample, double[] Angles);
 }
