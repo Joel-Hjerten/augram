@@ -70,7 +70,7 @@ On the PC and on the Mac (Joel):
    - Tests: round trip, defaults, and an older file without the section.
 4. **The Default theme (agent, from the mockup).**
    - A ControlTheme in `Themes/Default/` for every component, replacing the Wireframe include: `Shell` (title-bar tabs, folder tab, page; the tab strip a horizontal scroller whose wheel scrolls sideways and which can be dragged), sub-tab pills in a wrapping panel, `SectionView` (title above the card), `FieldRow`, `ItemList`, `CommandTree` rows, `MasterDetail`, `GestureGrid` tiles, `StepList`, `WindowFinder`, `SyncConflictList`, `FormDialog`.
-   - The standard editors: button, primary button, dropdown, text and number fields, the segmented `ButtonRadioField`, the switch, the check box, the colour field, the slider (accent fill, a light track in the light theme, never the platform's dark one).
+   - The standard editors: button, primary button, dropdown, text and number fields, the segmented `ButtonRadioField`, the switch, the check box, the colour field, the slider. In dark: a solid accent thumb on an accent fill, with a lighter track (the browser's own slider in the mockup; Joel: "the old one was fine"). In light: an accent fill on a light grey track and a white-ringed thumb, never a dark track.
    - The Row rule's metrics stay as they are.
 5. **Options sub-tabs and Appearance (agent).**
    - `OptionsScreen` becomes five declarations under one `NavEntry` with sub-entries, as Diagnostics has: keys `options.general`, `options.strokes`, `options.appearance`, `options.sync`, `options.about`. Anything that sends the user to "Options › Sync" (Resolve…, notes) targets the sub-tab key.

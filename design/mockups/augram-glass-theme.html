@@ -242,13 +242,15 @@ input.input:focus{outline:none; box-shadow:inset 0 0 0 1px var(--m-accent-line),
 .opts.inside{display:grid; gap:14px}
 .opts.inside .ihead + .frow{box-shadow:inset 0 1px 0 var(--m-divider)}
 .slider-field{display:inline-flex; align-items:center; gap:10px; min-width:0; max-width:100%}
-.slider-field input{-webkit-appearance:none; appearance:none; width:min(240px,100%); height:6px; margin:0; border-radius:3px; cursor:pointer;
+/* Dark keeps the platform slider in the accent (Joel preferred it); light gets our own, with a light track. */
+.slider-field input{width:min(240px,100%); accent-color:var(--m-accent)}
+[data-mode="light"] .slider-field input{-webkit-appearance:none; appearance:none; width:min(240px,100%); height:6px; margin:0; border-radius:3px; cursor:pointer;
   background:linear-gradient(to right, var(--m-accent) 0 var(--pct,50%), var(--m-track) var(--pct,50%) 100%)}
-.slider-field input::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
+[data-mode="light"] .slider-field input::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
   background:radial-gradient(circle, var(--m-accent) 0 36%, var(--m-thumb) 40%); box-shadow:0 0 0 1px var(--m-edge), 0 1px 3px rgba(0,0,0,.3)}
-.slider-field input::-moz-range-thumb{width:18px; height:18px; border:0; border-radius:50%;
+[data-mode="light"] .slider-field input::-moz-range-thumb{width:18px; height:18px; border:0; border-radius:50%;
   background:radial-gradient(circle, var(--m-accent) 0 36%, var(--m-thumb) 40%); box-shadow:0 0 0 1px var(--m-edge), 0 1px 3px rgba(0,0,0,.3)}
-.slider-field input::-moz-range-track{background:transparent}
+[data-mode="light"] .slider-field input::-moz-range-track{background:transparent}
 .slider-field input:disabled{opacity:.4; cursor:not-allowed}
 .slider-field output{min-width:44px; font-size:12.5px; color:var(--m-muted); font-variant-numeric:tabular-nums}
 
