@@ -11,8 +11,9 @@ namespace Augram.Core.Transfer;
 /// <see cref="ImportStatus.Different"/> (a <see cref="SyncConflict"/>, Keep mine until chosen). Nothing is ever deleted: an
 /// item the file lacks is not in the plan. The Global group of a file that did not export it is an empty shell and is left
 /// out entirely. A command's own steps follow their command when it differs, so they are no entry then. Pure; the result
-/// of <see cref="Resolve"/> is applied by <see cref="ImportResult.ApplyTo"/>. Make the plan from the stores' snapshots
-/// (<see cref="ConfigSession.Document"/>), so that applying can tell whether they moved meanwhile.
+/// of <see cref="Resolve"/> is applied by <see cref="ImportResult.ApplyTo"/> (<see cref="ImportApplier"/> plans again when the
+/// stores moved). Make the plan from the stores' snapshots (<see cref="ConfigSession.Document"/>), so that applying can tell
+/// whether they moved meanwhile.
 /// </summary>
 public sealed class ImportPlan
 {
@@ -20,6 +21,7 @@ public sealed class ImportPlan
     private readonly SyncItemSet _local;
     private readonly SyncItemSet _items;
     private readonly Dictionary<SyncItemKey, SyncConflict> _conflicts = [];
+    private readonly Dictionary<SyncItemKey, ImportStatus> _statuses = [];
     private ImportResult? _preview;
 
     private ImportPlan(TransferFile file, ConfigDocument current, SyncItemSet items, IReadOnlyDictionary<SyncItemKey, ImportMatch> matches, string sourceName)
@@ -43,6 +45,7 @@ public sealed class ImportPlan
                 : string.Equals(mine.Content, item.Content, StringComparison.Ordinal) ? ImportStatus.Same
                 : ImportStatus.Different;
             entries.Add(new ImportEntry(item.Key, mine?.Name ?? item.Name, status) { Match = matches.GetValueOrDefault(item.Key) });
+            _statuses[item.Key] = status;
             if (status == ImportStatus.Different)
             {
                 _conflicts[item.Key] = new SyncConflict(item.Key, mine!.Name, mine.Content, item.Content) { MachineName = sourceName };
@@ -55,7 +58,7 @@ public sealed class ImportPlan
 
         Entries = entries;
         Conflicts = [.. _conflicts.Values];
-        SettingsDiffer = file.Settings is { } theirs && ImportResolution.WithOptionsFrom(current.Settings, theirs) != current.Settings;
+        SettingsDiffer = file.Settings is { } theirs && WithOptionsFrom(current.Settings, theirs) != current.Settings;
     }
 
     /// <summary>The file as read.</summary>
@@ -98,14 +101,57 @@ public sealed class ImportPlan
 
     public int Count(ImportStatus status) => Entries.Count(entry => entry.Status == status);
 
-    /// <summary>The configuration the import leaves under <paramref name="choices"/>, repaired and validated, with what changed.</summary>
+    /// <summary>
+    /// The configuration the import leaves under <paramref name="choices"/>, repaired and validated, with what changed (plan 0003,
+    /// decisions 6–8): the sync's <see cref="ConflictResolution"/> over every item of the file by its status: a New one taken, a
+    /// Same one skipped, a Different one by its effective choice (<see cref="SyncChoiceRules.Effective"/>, the sync's: Keep both
+    /// only for gestures and commands, else the nearest choice with a note), a differing command's own steps following it.
+    /// </summary>
     public ImportResult Resolve(ImportChoices choices)
     {
         ArgumentNullException.ThrowIfNull(choices);
-        var (built, notes) = ImportResolution.Resolve(_local, _items, _conflicts, choices);
+        var notes = new List<string>();
+        var answers = new List<ConflictResolution.Answer>();
+        foreach (var item in _items)
+        {
+            if (!_statuses.TryGetValue(item.Key, out var status))
+            {
+                answers.Add(new ConflictResolution.Answer(item.Key, item, SyncChoice.KeepMine) { FollowsCommand = true });
+            }
+            else if (status == ImportStatus.New)
+            {
+                answers.Add(new ConflictResolution.Answer(item.Key, item, SyncChoice.TakeTheirs));
+            }
+            else if (status == ImportStatus.Different)
+            {
+                var (choice, note) = SyncChoiceRules.Effective(_conflicts[item.Key], choices.For(item.Key));
+                if (note is not null)
+                {
+                    notes.Add(note);
+                }
+
+                answers.Add(new ConflictResolution.Answer(item.Key, item, choice));
+            }
+        }
+
+        var built = ConflictResolution.Apply(_local, answers, _items);
         var settings = choices.TakeSettings && File.Settings is { } theirs
-            ? ImportResolution.WithOptionsFrom(_current.Settings, theirs)
+            ? WithOptionsFrom(_current.Settings, theirs)
             : _current.Settings;
         return new ImportResult(built.Gestures, built.Mapping, settings, SyncCounts.Between(_local, built.Items), built.Repairs, notes, _current);
     }
+
+    /// <summary>
+    /// Decision 2: the file's preferences over this machine's options. Capture, trail, recognition and no-match whole, and the
+    /// stroke button and ignore keys of General; this machine keeps its sync section and the rest of General (start at login,
+    /// enabled, the menu-bar icon), which are its state, not preferences, and its appearance (plan 0006), a preference of its own.
+    /// </summary>
+    internal static Settings WithOptionsFrom(Settings current, Settings file) => current with
+    {
+        General = current.General with { StrokeButton = file.General.StrokeButton, IgnoreKey = file.General.IgnoreKey },
+        Capture = file.Capture,
+        Trail = file.Trail,
+        Recognition = file.Recognition,
+        NoMatch = file.NoMatch,
+    };
 }

@@ -66,14 +66,8 @@ public sealed class SyncConflictsViewModel
     /// <summary>"2 conflicts with Mac", for the dialog's title line.</summary>
     public string Summary => Describe(_conflicts);
 
-    /// <summary>Keep mine and Take theirs always; Keep both for a gesture or a command present on both machines.</summary>
-    public static IReadOnlyList<SyncChoice> Allowed(SyncConflict conflict)
-    {
-        ArgumentNullException.ThrowIfNull(conflict);
-        return conflict.Kind is SyncItemKind.Gesture or SyncItemKind.Command && !conflict.DeletedHere && !conflict.DeletedThere
-            ? [SyncChoice.KeepMine, SyncChoice.TakeTheirs, SyncChoice.KeepBoth]
-            : [SyncChoice.KeepMine, SyncChoice.TakeTheirs];
-    }
+    /// <summary>Keep mine and Take theirs always; Keep both for a gesture or a command present on both machines: Core's rule, <see cref="SyncChoiceRules.Allowed"/>.</summary>
+    public static IReadOnlyList<SyncChoice> Allowed(SyncConflict conflict) => SyncChoiceRules.Allowed(conflict);
 
     /// <summary>"1 conflict with Mac", "3 conflicts with Mac and PC-WORK"; empty when there are none.</summary>
     public static string Describe(IReadOnlyList<SyncConflict> conflicts)

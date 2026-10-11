@@ -190,7 +190,7 @@ public sealed class SyncCoordinator
             return new SyncReport(SyncStatus.UpToDate, _clock.UtcNow) { Conflicts = _bases.PendingConflicts(), Notes = ["That conflict is no longer pending."] };
         }
 
-        var (effective, note) = ConflictResolution.Effective(pending, choice);
+        var (effective, note) = SyncChoiceRules.Effective(pending, choice);
         SyncMergeResult? result = null;
         if (effective != SyncChoice.KeepMine)
         {

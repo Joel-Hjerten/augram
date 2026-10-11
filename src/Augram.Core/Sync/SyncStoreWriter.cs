@@ -8,7 +8,9 @@ namespace Augram.Core.Sync;
 /// and mapping from a snapshot of the stores; the function handed to <c>onStoreThread</c> applies them only when the
 /// stores still hold that snapshot (reference equality: every store change makes new instances), so an edit the
 /// user made meanwhile is never overwritten; otherwise the worker computes again, at most
-/// <see cref="SyncCoordinator.MaxAttempts"/> times. Applying is one <c>ReplaceAll</c> per store that changed.
+/// <see cref="SyncCoordinator.MaxAttempts"/> times. Applying is one <c>ReplaceAll</c> per store that changed. The two
+/// store-thread steps, <see cref="StillHolds"/> and <see cref="Replace"/>, are the Augram import's apply too
+/// (<c>Transfer/ImportResult.ApplyTo</c>), which then applies the options.
 /// </summary>
 internal sealed class SyncStoreWriter
 {
@@ -57,30 +59,37 @@ internal sealed class SyncStoreWriter
     /// <summary>Runs on the store thread: refuse a stale snapshot, validate both results, then replace what changed.</summary>
     private SyncApplied Apply(IReadOnlyList<Gesture> gesturesSeen, MappingDocument mappingSeen, IReadOnlyList<Gesture> gestures, MappingDocument mapping, SyncCounts counts)
     {
-        if (!ReferenceEquals(_gestures.All, gesturesSeen) || !ReferenceEquals(_mapping.Current, mappingSeen))
+        if (!StillHolds(_gestures, _mapping, gesturesSeen, mappingSeen))
         {
             return SyncApplied.Moved;
         }
 
         try
         {
-            var validGestures = GestureRules.ValidSet(gestures);
-            var validMapping = MappingRules.ValidDocument(mapping);
-            if (counts.Gestures.Total > 0)
-            {
-                _gestures.ReplaceAll(validGestures);
-            }
-
-            if (counts.MappingChanged)
-            {
-                _mapping.ReplaceAll(validMapping);
-            }
-
+            Replace(_gestures, _mapping, GestureRules.ValidSet(gestures), MappingRules.ValidDocument(mapping), counts);
             return SyncApplied.Done;
         }
         catch (Exception ex) when (ex is GestureValidationException or MappingValidationException)
         {
             return SyncApplied.Failed($"The merged result was refused: {ex.Message}");
+        }
+    }
+
+    /// <summary>Store thread: both stores still hold the snapshots a result was computed from (reference equality: every store change makes new instances).</summary>
+    internal static bool StillHolds(GestureLibrary gestures, MappingStore mapping, IReadOnlyList<Gesture> gesturesSeen, MappingDocument mappingSeen)
+        => ReferenceEquals(gestures.All, gesturesSeen) && ReferenceEquals(mapping.Current, mappingSeen);
+
+    /// <summary>Store thread: one <c>ReplaceAll</c> per store that <paramref name="counts"/> says changed (one undo step each).</summary>
+    internal static void Replace(GestureLibrary gestures, MappingStore mapping, IReadOnlyList<Gesture> nextGestures, MappingDocument nextMapping, SyncCounts counts)
+    {
+        if (counts.Gestures.Total > 0)
+        {
+            gestures.ReplaceAll(nextGestures);
+        }
+
+        if (counts.MappingChanged)
+        {
+            mapping.ReplaceAll(nextMapping);
         }
     }
 }
