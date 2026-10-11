@@ -155,6 +155,10 @@
   <Style Selector="TextBlock.slider-value:disabled">
     <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
   </Style>
+  <!-- A step type the command cannot take now (the step picker greys it, Core's StepOffer): its name faint, as the Body default would paint it primary. -->
+  <Style Selector="Button.picker-type:disabled TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+  </Style>
   <!-- Lists of text cells (Diagnostics › Log and › Recognition): the first column (the time) muted. -->
   <Style Selector="Grid.list-row > TextBlock.cell:nth-child(1)">
     <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />

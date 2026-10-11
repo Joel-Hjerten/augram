@@ -139,6 +139,21 @@ public static class CommandGalleryPages
             [
                 new CustomField("Empty", () => new StepList { HasCommand = false, Width = 520 }),
             ]),
+            new Section("A command whose only step is a Remap step (Magnifier): New step… disabled, why in its tooltip",
+            [
+                new CustomField("Magnifier", () =>
+                {
+                    var magnifier = Magnifier();
+                    return new StepList
+                    {
+                        Steps = [.. magnifier.Steps.Select((step, index) => StepItem.From(step, index, HostPlatform.Windows))],
+                        StepTypes = StepRegistry.BuiltIn.All,
+                        StepRefusals = StepOffer.Refusals(StepRegistry.BuiltIn.All, magnifier, HostPlatform.Windows),
+                        HasCommand = true,
+                        Width = 520,
+                    };
+                }),
+            ]),
         ]);
     }
 
@@ -162,18 +177,42 @@ public static class CommandGalleryPages
         return new FormScreen("Step forms", [new Section("One form per step type (StepFormRegistry)", fields)]);
     }
 
+    /// <summary>
+    /// The picker as each kind of command sees it, its refusals from Core's <see cref="StepOffer"/> over the gallery's commands:
+    /// greyed types carry their reason as a tooltip (Joel, 0.11.3).
+    /// </summary>
     public static ScreenDeclaration StepTypePickerPage() =>
         new FormScreen("StepTypePicker",
         [
-            new Section("Every built-in type by category; Other is never offered, nor Remap outside a hold remap",
+            new Section("Nothing refused by the host: every built-in type by category; Other is never listed",
             [
-                new CustomField("Picker", () => new StepTypePicker { Types = StepRegistry.BuiltIn.All, Width = 260 }),
+                new CustomField("Picker", () => TypePicker(null)),
             ]),
-            new Section("Under a hold remap: Remap is offered too (Mouse)",
+            new Section("An ordinary command (Blender's Undo, a gesture): Remap greyed, for a hold remap or a button trigger only",
             [
-                new CustomField("Picker", () => new StepTypePicker { Types = StepRegistry.BuiltIn.All, UnderHoldRemap = true, Width = 260 }),
+                new CustomField("Picker", () => TypePicker(BlenderCommand("Undo"))),
+            ]),
+            new Section("Under a hold remap with no steps yet (Blender's Orbit, emptied): Remap offered too (Mouse)",
+            [
+                new CustomField("Picker", () => TypePicker(BlenderCommand("Orbit") with { Steps = [] })),
+            ]),
+            new Section("A command whose only step is a Remap step (Magnifier, Right + Left): every type greyed",
+            [
+                new CustomField("Picker", () => TypePicker(Magnifier())),
             ]),
         ]);
+
+    /// <summary>A picker over every built-in type, refusing what <paramref name="command"/> cannot take on Windows (nothing for null).</summary>
+    private static StepTypePicker TypePicker(Command? command) => new()
+    {
+        Types = StepRegistry.BuiltIn.All,
+        Refusals = command is null ? new Dictionary<IStepType, string>() : StepOffer.Refusals(StepRegistry.BuiltIn.All, command, HostPlatform.Windows),
+        Width = 260,
+    };
+
+    private static Command BlenderCommand(string name) => CommandGalleryFakes.Blender().Commands.Single(command => command.Name == name);
+
+    private static Command Magnifier() => CommandGalleryFakes.MappingWithMagnifier().Global.Commands.Single(command => command.Name == "Magnifier");
 
     public static ScreenDeclaration GesturePickerPage() =>
         new FormScreen("GesturePicker",

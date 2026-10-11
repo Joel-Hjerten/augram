@@ -160,8 +160,10 @@ public sealed class CommandsViewModelInputTests
         Assert.Equal(new RemapOutput.Button(MouseButton.Middle), remap.Output);
         Assert.Equal(0, vm.SelectedStepIndex);
 
+        // Refused before the store, in the words the picker greys Delay with (Core's StepOffer, the rule validation runs).
+        Assert.Equal("A Remap step is a command's only step.", vm.SelectedCommand!.StepRefusals[DelayStepType.Instance]);
         vm.Handle(new StepListActionEventArgs(StepListAction.Add, type: DelayStepType.Instance));
-        Assert.Equal("'New command 1' has a Remap step among other steps: a Remap step is a command's only step.", vm.Message);
+        Assert.Equal("A Remap step is a command's only step.", vm.Message);
         Assert.Single(Find(store, "New command 1").Steps);
 
         Select(vm, "Orbit");

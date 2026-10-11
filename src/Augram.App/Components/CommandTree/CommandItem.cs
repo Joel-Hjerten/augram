@@ -1,9 +1,11 @@
+using System.Collections.ObjectModel;
 using Augram.App.Components.StepList;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
+using Augram.Core.Steps;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -42,14 +44,15 @@ public sealed partial record CommandItem(
     /// </summary>
     public HoldRemap? HoldRemap { get; init; }
 
-    /// <summary>A command under a hold remap: the header shows its Input, the step picker offers the Remap step.</summary>
+    /// <summary>A command under a hold remap: the header shows its Input in place of the trigger.</summary>
     public bool IsUnderHoldRemap => HoldRemap is not null;
 
     /// <summary>
-    /// The step picker offers the Remap step (<c>IStepType.HoldRemapsOnly</c>): a command under a hold remap, or one whose trigger
-    /// here (on the header's item, the draft while one waits) is a button trigger (plan 0005: its key is held while both buttons are down).
+    /// The step types the command cannot take a step of now, each with the reason "New step…" greys it with ("A Remap step is a
+    /// command's only step."); a type left out can be added. Core's answer (<see cref="StepOffer"/>, the draft's trigger while
+    /// one waits); the view model sets it on the header's item, rows keep it empty.
     /// </summary>
-    public bool OffersRemapStep => IsUnderHoldRemap || Trigger is Trigger.ButtonTrigger;
+    public IReadOnlyDictionary<IStepType, string> StepRefusals { get; init; } = ReadOnlyDictionary<IStepType, string>.Empty;
 
     /// <summary>The small tag on the row (an app group with categories, e.g. Photoshop); null shows none.</summary>
     public string? CategoryLabel { get; init; }

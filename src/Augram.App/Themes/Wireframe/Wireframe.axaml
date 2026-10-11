@@ -405,7 +405,7 @@
                                     SelectedIndex="{TemplateBinding SelectedStepIndex}"
                                     StepTypes="{TemplateBinding StepTypes}"
                                     HasCommand="{TemplateBinding HasCommand}"
-                                    UnderHoldRemap="{TemplateBinding OffersRemapStep}"
+                                    StepRefusals="{TemplateBinding StepRefusals}"
                                     FormContext="{TemplateBinding StepFormContext}" />
                   </DockPanel>
                   <form:SectionForm Name="PART_GroupForm"
@@ -818,7 +818,12 @@
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                     <TextBlock Classes="section-title" Text="Steps" VerticalAlignment="Center" />
                     <TextBlock Classes="help-icon" Margin="0,0,8,0" ToolTip.Tip="Steps run top to bottom; drag one to reorder. Duplicate places the copy below it, Paste adds at the bottom. Delete asks nothing; Undo brings it back." />
-                    <Button Name="PART_New" Classes="toolbar" Content="New step…" IsEnabled="{TemplateBinding HasCommand}" />
+                    <Button Name="PART_New"
+                            Classes="toolbar"
+                            Content="New step…"
+                            IsEnabled="{TemplateBinding CanAddStep}"
+                            ToolTip.Tip="{TemplateBinding NewStepRefusal}"
+                            ToolTip.ShowOnDisabled="True" />
                   </StackPanel>
                 </Border>
                 <ListBox Name="PART_Rows"

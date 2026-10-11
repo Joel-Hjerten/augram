@@ -27,7 +27,8 @@ public sealed class HoldRemapGalleryTests
         Assert.Equal("Orbit", bench.SelectedCommand!.Name);
         Assert.True(bench.HeaderPart!.IsInputCommand);
         Assert.True(bench.IsUnderHoldRemap);
-        Assert.True(bench.StepsPart!.UnderHoldRemap);
+        Assert.False(bench.StepsPart!.CanAddStep);
+        Assert.Equal("A Remap step is a command's only step.", bench.StepsPart.NewStepRefusal);
         var row = Assert.Single(bench.StepsPart.Rows);
         Assert.True(row.IsExpanded);
         Assert.IsType<RemapStep>(row.Item!.Step.Step);

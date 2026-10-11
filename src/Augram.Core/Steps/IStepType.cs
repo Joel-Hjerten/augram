@@ -28,8 +28,9 @@ public interface IStepType
     bool IsPlatformNeutral { get; }
 
     /// <summary>
-    /// True for a type the step picker offers only for a command under a hold remap (plan 0002: the Remap step), false (the
-    /// default) for one it offers everywhere. The picker reads this; it never names a type.
+    /// True for a type a command takes only under a hold remap (plan 0002: the Remap step) or with a button trigger (plan 0005
+    /// decision 8), false (the default) for one any command takes. <c>Mapping/StepOffer</c> reads this (the step picker greys the
+    /// type elsewhere, a paste is refused); loading never checks it. Nothing names a type to decide this.
     /// </summary>
     bool HoldRemapsOnly => false;
 

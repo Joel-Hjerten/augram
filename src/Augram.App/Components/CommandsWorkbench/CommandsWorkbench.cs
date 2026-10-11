@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.App.Components.Steps;
@@ -54,8 +55,8 @@ public sealed class CommandsWorkbench : TemplatedControl
     public static readonly StyledProperty<bool> IsUnderHoldRemapProperty =
         AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(IsUnderHoldRemap));
 
-    public static readonly StyledProperty<bool> OffersRemapStepProperty =
-        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(OffersRemapStep));
+    public static readonly StyledProperty<IReadOnlyDictionary<IStepType, string>> StepRefusalsProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, IReadOnlyDictionary<IStepType, string>>(nameof(StepRefusals), ReadOnlyDictionary<IStepType, string>.Empty);
 
     public static readonly StyledProperty<StepFormContext> StepFormContextProperty =
         AvaloniaProperty.Register<CommandsWorkbench, StepFormContext>(nameof(StepFormContext), StepFormContext.None);
@@ -151,13 +152,13 @@ public sealed class CommandsWorkbench : TemplatedControl
     }
 
     /// <summary>
-    /// The selected command's step list offers the Remap step (<see cref="CommandItem.OffersRemapStep"/>): it is under a hold
-    /// remap (plan 0002) or has a button trigger here (plan 0005).
+    /// The step types the selected command cannot take a step of now, with the reasons (<see cref="CommandItem.StepRefusals"/>):
+    /// its step list's "New step…" greys them, and is disabled when it can take none.
     /// </summary>
-    public bool OffersRemapStep
+    public IReadOnlyDictionary<IStepType, string> StepRefusals
     {
-        get => GetValue(OffersRemapStepProperty);
-        private set => SetValue(OffersRemapStepProperty, value);
+        get => GetValue(StepRefusalsProperty);
+        private set => SetValue(StepRefusalsProperty, value);
     }
 
     /// <summary>The selected command as its step forms see it (<see cref="StepList.StepList.FormContext"/>: its trigger here).</summary>
@@ -281,7 +282,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         {
             HasCommand = SelectedCommand is not null;
             IsUnderHoldRemap = SelectedCommand is { IsUnderHoldRemap: true };
-            OffersRemapStep = SelectedCommand is { OffersRemapStep: true };
+            StepRefusals = SelectedCommand?.StepRefusals ?? ReadOnlyDictionary<IStepType, string>.Empty;
 
             // A new context rebuilds the expanded step form; an equal one (the same trigger) must not.
             var context = StepFormContext.For(SelectedCommand?.Trigger);

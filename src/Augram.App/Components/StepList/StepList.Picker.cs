@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using Augram.Core.Steps;
 using Avalonia;
 using Avalonia.Controls;
 
@@ -5,25 +7,49 @@ namespace Augram.App.Components.StepList;
 
 /// <summary>
 /// The "New step…" half of <see cref="StepList"/>: the <see cref="StepTypePicker.StepTypePicker"/> in a flyout under
-/// <c>PART_New</c>, kept in step with <see cref="StepList.StepTypes"/> and <see cref="UnderHoldRemap"/> (plan 0002: a command
-/// under a hold remap is offered the Remap step too); a chosen type raises <see cref="StepListAction.Add"/>.
+/// <c>PART_New</c>, kept in step with <see cref="StepList.StepTypes"/> and <see cref="StepRefusals"/> (the types the command
+/// cannot take now, greyed with their reasons); a chosen type raises <see cref="StepListAction.Add"/>. When no listed type can
+/// be added (the command's only step is a Remap step), <see cref="CanAddStep"/> is false and <see cref="NewStepRefusal"/> says
+/// why: the template disables "New step…" with it as the tooltip, the menu's New step… is disabled and its key opens nothing.
 /// </summary>
 public sealed partial class StepList
 {
-    public static readonly StyledProperty<bool> UnderHoldRemapProperty =
-        AvaloniaProperty.Register<StepList, bool>(nameof(UnderHoldRemap));
+    public static readonly StyledProperty<IReadOnlyDictionary<IStepType, string>> StepRefusalsProperty =
+        AvaloniaProperty.Register<StepList, IReadOnlyDictionary<IStepType, string>>(nameof(StepRefusals), ReadOnlyDictionary<IStepType, string>.Empty);
+
+    public static readonly DirectProperty<StepList, bool> CanAddStepProperty =
+        AvaloniaProperty.RegisterDirect<StepList, bool>(nameof(CanAddStep), list => list.CanAddStep);
+
+    public static readonly DirectProperty<StepList, string?> NewStepRefusalProperty =
+        AvaloniaProperty.RegisterDirect<StepList, string?>(nameof(NewStepRefusal), list => list.NewStepRefusal);
 
     private StepTypePicker.StepTypePicker? _picker;
     private Flyout? _flyout;
+    private bool _canAddStep;
+    private string? _newStepRefusal;
 
     /// <summary>
-    /// "New step…" offers the types offered only to a hold remap's commands (the Remap step): the command is under a hold remap
-    /// (plan 0002) or has a button trigger (plan 0005; the workbench sets it from <c>CommandItem.OffersRemapStep</c>).
+    /// The step types the command cannot take a step of now, each with its reason; the picker greys them. The workbench sets it
+    /// from the selected command's <c>CommandItem.StepRefusals</c> (Core's <c>StepOffer</c>); empty offers every type.
     /// </summary>
-    public bool UnderHoldRemap
+    public IReadOnlyDictionary<IStepType, string> StepRefusals
     {
-        get => GetValue(UnderHoldRemapProperty);
-        set => SetValue(UnderHoldRemapProperty, value);
+        get => GetValue(StepRefusalsProperty);
+        set => SetValue(StepRefusalsProperty, value);
+    }
+
+    /// <summary>"New step…" is enabled: a command is selected and some listed type can be added to it.</summary>
+    public bool CanAddStep
+    {
+        get => _canAddStep;
+        private set => SetAndRaise(CanAddStepProperty, ref _canAddStep, value);
+    }
+
+    /// <summary>Why "New step…" is disabled though a command is selected (the reason most types are greyed with); null otherwise.</summary>
+    public string? NewStepRefusal
+    {
+        get => _newStepRefusal;
+        private set => SetAndRaise(NewStepRefusalProperty, ref _newStepRefusal, value);
     }
 
     /// <summary>The picker "New step…" shows; built on first use so tests can choose a type without a flyout.</summary>
@@ -42,6 +68,13 @@ public sealed partial class StepList
 
     private void SyncPicker(AvaloniaPropertyChangedEventArgs change)
     {
+        if (change.Property != StepTypesProperty && change.Property != StepRefusalsProperty && change.Property != HasCommandProperty)
+        {
+            return;
+        }
+
+        NewStepRefusal = HasCommand ? StepTypePicker.StepTypePicker.NothingOffered(StepTypes, StepRefusals) : null;
+        CanAddStep = HasCommand && NewStepRefusal is null;
         if (_picker is null)
         {
             return;
@@ -51,15 +84,15 @@ public sealed partial class StepList
         {
             _picker.Types = StepTypes;
         }
-        else if (change.Property == UnderHoldRemapProperty)
+        else if (change.Property == StepRefusalsProperty)
         {
-            _picker.UnderHoldRemap = UnderHoldRemap;
+            _picker.Refusals = StepRefusals;
         }
     }
 
     private StepTypePicker.StepTypePicker BuildPicker()
     {
-        var picker = new StepTypePicker.StepTypePicker { Types = StepTypes, UnderHoldRemap = UnderHoldRemap };
+        var picker = new StepTypePicker.StepTypePicker { Types = StepTypes, Refusals = StepRefusals };
         picker.TypeChosen += (_, type) =>
         {
             _flyout?.Hide();
