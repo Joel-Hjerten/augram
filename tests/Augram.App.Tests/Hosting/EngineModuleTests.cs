@@ -1,13 +1,15 @@
 using Augram.App.Hosting;
+using Augram.App.Hosting.Modules;
+using Augram.App.Hosting.Startup;
 using Augram.App.Overlay;
 using Augram.App.Tests.Support;
-using Augram.App.Training;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
+using Augram.Core.Training;
 using Augram.Engine.Hosting;
 using Augram.Platform.Windows.Display;
 using Augram.Platform.Windows.Launch;
@@ -28,7 +30,7 @@ public sealed class EngineModuleTests
         var source = new FakeInputSource();
         var log = new ListEventLog();
         var services = Services(log);
-        EngineModule.Register(services, Options(folder, source));
+        Register(services, folder, source);
 
         try
         {
@@ -96,7 +98,7 @@ public sealed class EngineModuleTests
         var services = Services(new ListEventLog());
         var training = new FakeTrainingSession();
         services.AddSingleton<ITrainingSession>(training);
-        EngineModule.Register(services, Options(folder, new FakeInputSource()));
+        Register(services, folder, new FakeInputSource());
 
         try
         {
@@ -135,7 +137,7 @@ public sealed class EngineModuleTests
     {
         var folder = TempFolder();
         var services = Services(new ListEventLog());
-        EngineModule.Register(services, Options(folder, new FakeInputSource()));
+        Register(services, folder, new FakeInputSource());
 
         try
         {
@@ -158,7 +160,7 @@ public sealed class EngineModuleTests
 
         var folder = TempFolder();
         var services = Services(new ListEventLog());
-        EngineModule.Register(services, Options(folder, new FakeInputSource()) with { PlatformAdapters = true });
+        Register(services, folder, new FakeInputSource(), adapters: true);
 
         try
         {
@@ -182,17 +184,23 @@ public sealed class EngineModuleTests
         services.AddSingleton<HealthRegistry>();
         services.AddSingleton<RecognitionLog>();
         services.AddSingleton(TestBuilds.Release);
+        services.AddSingleton<StartAtLoginLink>();
         services.AddSingleton<AppState>();
         return services;
     }
 
-    private static EngineModuleOptions Options(string folder, FakeInputSource source) => new()
+    /// <summary>The three slices the engine stands on, as the composition root registers them.</summary>
+    private static void Register(ServiceCollection services, string folder, FakeInputSource source, bool adapters = false)
     {
-        ConfigFolder = folder,
-        InputSource = _ => source,
-        PlatformAdapters = false,
-        Marshal = action => action(),
-    };
+        ConfigModule.Register(services, new ConfigModuleOptions { ConfigFolder = folder, Marshal = action => action() });
+        PlatformModule.Register(services, adapters);
+        EngineModule.Register(services, new EngineModuleOptions
+        {
+            InputSource = _ => source,
+            PlatformAdapters = adapters,
+            Marshal = action => action(),
+        });
+    }
 
     private static string TempFolder() => Path.Combine(Path.GetTempPath(), "augram-module-tests", Guid.NewGuid().ToString("N"));
 

@@ -1,3 +1,4 @@
+using Augram.App.Components;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.WindowFinder;
@@ -280,7 +281,7 @@ public sealed class CommandsViewModelNotInTests
         var window = new Window { Width = 700, Height = 900, Content = form };
         window.Show();
         var at = window.PointToScreen(OverSpine);
-        window.Resources[WindowFinder.WindowSystemResourceKey] = new FakeWindowSystem().Around(at.X, at.Y, FakeWindowSystem.Window("Spine.exe", "Spine 4.2"));
+        window.Resources[ComponentPorts.ResourceKey] = new ComponentPorts { WindowSystem = new FakeWindowSystem().Around(at.X, at.Y, FakeWindowSystem.Window("Spine.exe", "Spine 4.2")) };
         return (window, form);
     }
 

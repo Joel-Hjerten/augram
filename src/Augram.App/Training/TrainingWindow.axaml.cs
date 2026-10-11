@@ -1,4 +1,5 @@
 using Augram.App.ViewModels;
+using Augram.Core.Training;
 using Avalonia.Controls;
 
 namespace Augram.App.Training;

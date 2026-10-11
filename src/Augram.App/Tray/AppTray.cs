@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
+using Augram.App.Hosting.Startup;
 using Augram.App.Sync;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
@@ -39,6 +41,7 @@ public sealed class AppTray : IDisposable
     private readonly NativeMenuItem _startAtLoginItem;
     private readonly SyncTrayItem? _sync;
     private readonly EnginePauseState? _pause;
+    private bool _disposed;
 
     /// <remarks><c>sync</c> is the sync service, for Sync now and the tooltip; null leaves both out. <c>pause</c> is the
     /// ignore list's pause for the tooltip; null leaves it out.</remarks>
@@ -94,8 +97,15 @@ public sealed class AppTray : IDisposable
         Sync();
     }
 
+    /// <summary>Once: <c>App</c> disposes the tray when the app exits, and the service provider that made it again later.</summary>
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         _timer.Stop();
         _sync?.Dispose();
         _state.PropertyChanged -= OnStateChanged;

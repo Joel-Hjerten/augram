@@ -1,9 +1,10 @@
 using Augram.App.Dialogs;
 using Augram.App.Hosting;
-using Augram.App.Sync;
+using Augram.App.Hosting.Instance;
+using Augram.App.Hosting.Launch;
+using Augram.App.Hosting.Modules;
 using Augram.App.Themes;
 using Augram.App.Tray;
-using Augram.App.Views;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Avalonia;
@@ -21,6 +22,7 @@ public sealed partial class App : Application
     private readonly InstanceStartup? _startup;
     private AppTray? _tray;
     private AppHealthContributor? _health;
+    private MainWindowOpener? _opener;
 
     /// <summary>macOS: the launch event, observed from before the main loop (<see cref="ObserveLaunchEvent"/>); null elsewhere.</summary>
     private IDisposable? _launchEvent;
@@ -94,9 +96,9 @@ public sealed partial class App : Application
     {
         var log = _services.GetRequiredService<IEventLog>();
         var app = _services.GetRequiredService<AppInfo>();
-        var args = desktop.Args ?? [];
+        var arguments = _services.GetRequiredService<LaunchArguments>();
         // Windows: known now. macOS: --hidden is; a login-item launch only once launching has finished (LaunchVisibility.AtStart).
-        var launch = LaunchVisibility.AtStart(args, waitsForLaunchEvent: _launchEvent is not null);
+        var launch = LaunchVisibility.AtStart(arguments.Hidden, waitsForLaunchEvent: _launchEvent is not null);
         log.Info(LogSources.App, "App started",
         [
             ("version", app.Version),
@@ -110,15 +112,13 @@ public sealed partial class App : Application
         _startup?.LogNotes(log);
         _health = _services.GetRequiredService<AppHealthContributor>();
 #if DEBUG
-        if (desktop.Args?.Contains("--gallery", StringComparer.Ordinal) == true)
+        if (arguments.Gallery)
         {
             _services.GetRequiredService<ViewModels.MainWindowViewModel>().InitialTabKey = DevGallery.GalleryNavigation.Key;
         }
 #endif
         // The look follows Options › Appearance and the trail colour (plan 0006); set before the first window builds its glyphs.
-        var appearance = AppearanceLink.Follow(_services.GetRequiredService<Core.Config.SettingsStore>(), this);
-        var window = _services.GetRequiredService<MainWindow>();
-        appearance.Attach(window);
+        var (window, appearance) = MainWindowFactory.Create(_services, this);
         // Dialogs get the same backdrop (plan 0006 decision 14): every window with an owner, when it loads. Never the trail
         // overlay (CLAUDE.md invariant 6): it has no owner, and it is excluded by type as well.
         Control.LoadedEvent.AddClassHandler<Window>((dialog, _) =>
@@ -136,19 +136,17 @@ public sealed partial class App : Application
         }
 
         // The Open app step's "This app (Augram)" opens the window as the tray does.
-        if (_services.GetService<MainWindowOpener>() is { } opener)
-        {
-            opener.Requested = ShowMainWindow;
-        }
+        _opener = _services.GetRequiredService<MainWindowOpener>();
+        _opener.Attach();
 
-        EngineModule.Start(_services);
-        PublishButtonCapture();
+        var engineRuns = EngineModule.Start(_services);
+        FormServices.Publish(_services, this, engineRuns);
         // Sync starts also under --no-engine: it never touches input.
         SyncModule.Start(_services);
-        _tray = new AppTray(_services.GetRequiredService<AppState>(), ShowMainWindow, () => desktop.Shutdown(), log, _services.GetService<SyncService>(), _services.GetService<EnginePauseState>());
-        if (_startup?.Guard is { } guard)
+        _tray = _services.GetRequiredService<AppTray>();
+        if (_startup?.Listener is { } listener)
         {
-            ListenToOtherLaunches(guard, desktop, log);
+            ListenToOtherLaunches(listener, desktop, log);
         }
 
         ShowOnReopen(log);
@@ -162,7 +160,7 @@ public sealed partial class App : Application
 
         if (OperatingSystem.IsMacOS() && _launchEvent is not null)
         {
-            WaitForLaunchEvent(args, log);
+            WaitForLaunchEvent(arguments.Hidden, log);
         }
         else
         {
@@ -173,17 +171,17 @@ public sealed partial class App : Application
     /// <summary>
     /// The running side of one Augram at a time: a second launch of this install shows the window, a different build that the
     /// user chose to start instead quits this one as the tray's Quit does (the single-instance name is released last, in
-    /// <see cref="Program"/>). Raised on the guard's listener thread; logged there, acted on the UI thread.
+    /// <see cref="Program"/>). Raised on the listener's thread; logged there, acted on the UI thread.
     /// </summary>
-    private void ListenToOtherLaunches(SingleInstanceGuard guard, IClassicDesktopStyleApplicationLifetime desktop, IEventLog log)
+    private void ListenToOtherLaunches(InstanceListener listener, IClassicDesktopStyleApplicationLifetime desktop, IEventLog log)
     {
-        guard.Introduced += (_, e) => log.Info(LogSources.App, "Another Augram is starting", Who(e));
-        guard.ShowRequested += (_, e) =>
+        listener.Introduced += (_, e) => log.Info(LogSources.App, "Another Augram is starting", Who(e));
+        listener.ShowRequested += (_, e) =>
         {
             log.Info(LogSources.App, "Asked to show the window by another launch", Who(e));
             Dispatcher.UIThread.Post(ShowMainWindow);
         };
-        guard.QuitRequested += (_, e) =>
+        listener.QuitRequested += (_, e) =>
         {
             log.Info(LogSources.App, "Asked to quit by another Augram", Who(e));
             Dispatcher.UIThread.Post(() => desktop.Shutdown());
@@ -193,20 +191,6 @@ public sealed partial class App : Application
     private static LogProperty[] Who(InstanceRequestEventArgs e) => e.From is { } from
         ? [("from", from.App.Describe()), ("channel", from.App.Channel), ("version", from.App.InformationalVersion), ("path", from.ExecutablePath), ("reason", e.Reason)]
         : [("from", "an Augram from before identities")];
-
-    /// <summary>
-    /// Makes the engine's button detection reachable from the command header's Add button… (a hold remap command's buttons,
-    /// plan 0002 step 4), as <c>EngineModule.Start</c> publishes the key capture for hotkey fields: only with the engine
-    /// running; under <c>--no-engine</c> the header falls back to presses on its own window. Kept here, not in
-    /// <c>EngineModule</c>, while the engine side of plan 0002 is built in parallel there; it can move beside the key capture.
-    /// </summary>
-    private void PublishButtonCapture()
-    {
-        if (!EngineKillSwitch.IsSet())
-        {
-            Resources[Components.ButtonDetect.ButtonDetector.ButtonCaptureResourceKey] = _services.GetRequiredService<Components.ButtonDetect.IButtonCapture>();
-        }
-    }
 
     /// <summary>A development build runs as dotnet, which the Dock shows as "exec"; it gets Augram's icon instead (Joel, 2026-10-09).</summary>
     [System.Runtime.Versioning.SupportedOSPlatform("macos")]
@@ -223,19 +207,5 @@ public sealed partial class App : Application
         Platform.MacOS.MacDock.SetIcon(bytes.ToArray());
     }
 
-    private void ShowMainWindow()
-    {
-        if (DialogHost.MainWindow is not { } window)
-        {
-            return;
-        }
-
-        window.Show();
-        if (window.WindowState == WindowState.Minimized)
-        {
-            window.WindowState = WindowState.Normal;
-        }
-
-        window.Activate();
-    }
+    private void ShowMainWindow() => _opener?.ShowNow();
 }

@@ -1,5 +1,5 @@
 using System.Reflection;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
 using Xunit;
 
 namespace Augram.App.Tests.Hosting;

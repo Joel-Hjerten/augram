@@ -1,4 +1,5 @@
 using System.Reflection;
+using Augram.App.Components;
 using Augram.App.Components.HotkeyCapture;
 using Augram.Core.Abstractions;
 using Augram.Engine.Hosting;
@@ -243,7 +244,7 @@ public sealed class HotkeyCaptureBoxTests
     {
         var capture = new FakeKeyCapture();
         var (box, _, window) = Show(null);
-        window.Resources[HotkeyCaptureBox.KeyCaptureResourceKey] = capture;
+        window.Resources[ComponentPorts.ResourceKey] = new ComponentPorts { KeyCapture = capture };
 
         box.BeginCapture();
 

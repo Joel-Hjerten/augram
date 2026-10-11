@@ -14,8 +14,8 @@ namespace Augram.App.Components.WindowFinder;
 /// says what is under the pointer (<see cref="Describe"/>: "chrome.exe · Google Chrome" by default), which the theme shows
 /// beside the magnifier. Released over Augram's own windows, over nothing, or after Esc, a right-click or a lost capture,
 /// nothing is picked; the release itself never reaches the window underneath. The windows come from
-/// <see cref="IWindowSystem"/> (<see cref="WindowSystem"/>, else the application resource
-/// <see cref="WindowSystemResourceKey"/> that <c>EngineModule.Start</c> publishes, else none) through
+/// <see cref="IWindowSystem"/> (<see cref="WindowSystem"/>, else <see cref="ComponentPorts.WindowSystem"/>, which the
+/// composition root publishes, else none) through
 /// <see cref="WindowProbe"/>, on the UI thread: neither <c>WindowAt</c> nor <c>WindowKeyAt</c> asks another app anything.
 /// <para>
 /// Outside the window: Avalonia's pointer capture is the platform's (Windows: <c>SetCapture</c>, so moves and the release
@@ -29,7 +29,6 @@ namespace Augram.App.Components.WindowFinder;
 /// </summary>
 public sealed class WindowFinder : TemplatedControl
 {
-    public const string WindowSystemResourceKey = "Augram.WindowSystem";
     public const string PromptText = "Drag onto a window. Esc cancels.";
     public const string OwnWindowText = "Augram's own window: nothing to pick";
     public const string NoWindowText = "No window here";
@@ -50,7 +49,7 @@ public sealed class WindowFinder : TemplatedControl
     /// <summary>Released over another app's window.</summary>
     public event EventHandler<WindowPickedEventArgs>? Picked;
 
-    /// <summary>Explicit window system (tests, gallery); null looks up <see cref="WindowSystemResourceKey"/>.</summary>
+    /// <summary>Explicit window system (tests, gallery); null looks up <see cref="ComponentPorts.WindowSystem"/>.</summary>
     public IWindowSystem? WindowSystem { get => GetValue(WindowSystemProperty); set => SetValue(WindowSystemProperty, value); }
 
     public bool IsFinding { get => GetValue(IsFindingProperty); private set => SetValue(IsFindingProperty, value); }
@@ -80,7 +79,7 @@ public sealed class WindowFinder : TemplatedControl
         }
 
         var windows = WindowSystem
-            ?? (this.TryFindResource(WindowSystemResourceKey, out var found) ? found as IWindowSystem : null)
+            ?? ComponentPorts.Near(this)?.WindowSystem
             ?? NullWindowSystem.Instance;
         _probe = new WindowProbe(windows, Environment.ProcessId);
         _keys = topLevel;

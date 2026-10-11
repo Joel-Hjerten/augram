@@ -1,4 +1,5 @@
-using Augram.App.Hosting;
+using Augram.App.Hosting.Instance;
+using Augram.App.Hosting.Launch;
 using Augram.Core.Abstractions;
 using Avalonia;
 using Velopack;
@@ -21,8 +22,11 @@ internal static class Program
     public static void Main(string[] args)
     {
         VelopackApp.Build().Run(); // First, always: answers the installer's hooks and exits for them (docs/release.md).
+        // The switches, parsed once: everything after reads them (the config folder, --no-engine, --hidden, --gallery).
+        var launch = LaunchArguments.Parse(args, Environment.GetEnvironmentVariable(EngineKillSwitch.EnvironmentVariable));
+        LaunchArguments.Current = launch;
         var app = AppInfo.Current;
-        using var startup = new InstanceStartup(InstanceName, InstanceIdentity.Current(app)) { IsHiddenLaunch = LaunchVisibility.HasHiddenArgument(args) };
+        using var startup = new InstanceStartup(InstanceName, InstanceIdentity.Current(app)) { IsHiddenLaunch = launch.Hidden };
         if (startup.Begin() == InstanceStartupStep.Exit)
         {
             return;

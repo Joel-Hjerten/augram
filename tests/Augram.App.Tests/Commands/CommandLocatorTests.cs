@@ -1,7 +1,8 @@
 using Augram.App.Components.Shell;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Modules;
 using Augram.App.Navigation;
+using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Mapping;
@@ -77,6 +78,7 @@ public sealed class CommandLocatorTests
         var store = Store();
         var services = new ServiceCollection();
         services.AddSingleton(store);
+        services.AddSiblings();
         CommandsModule.Register(services);
         services.AddSingleton(sp => new MainWindowViewModel(new NavigationRegistry(
         [

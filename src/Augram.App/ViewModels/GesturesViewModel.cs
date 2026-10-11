@@ -9,6 +9,7 @@ using Augram.Core.Gestures.Cleanup;
 using Augram.Core.Mapping;
 using Augram.Core.Recognition;
 using Augram.Core.Text;
+using Augram.Core.Training;
 using Augram.Core.Transfer;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;

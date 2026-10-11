@@ -2,6 +2,7 @@ using Augram.App.Components.GestureGrid;
 using Augram.App.Dialogs;
 using Augram.App.Training;
 using Augram.Core.Gestures;
+using Augram.Core.Training;
 
 namespace Augram.App.Components.GesturePicker;
 

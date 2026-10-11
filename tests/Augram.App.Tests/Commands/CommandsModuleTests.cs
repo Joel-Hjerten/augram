@@ -3,8 +3,9 @@ using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Modules;
 using Augram.App.Navigation;
+using Augram.App.Tests.Support;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
@@ -25,6 +26,7 @@ public sealed class CommandsModuleTests
         var store = Store();
         var services = new ServiceCollection();
         services.AddSingleton(store);
+        services.AddSiblings();
         CommandsModule.Register(services);
         using var provider = services.BuildServiceProvider();
 
@@ -53,6 +55,7 @@ public sealed class CommandsModuleTests
         var store = Store();
         var services = new ServiceCollection();
         services.AddSingleton(store);
+        services.AddSiblings();
         CommandsModule.Register(services);
         using var provider = services.BuildServiceProvider();
 

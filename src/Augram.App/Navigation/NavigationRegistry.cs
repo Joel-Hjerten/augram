@@ -25,6 +25,29 @@ public sealed class NavigationRegistry
 
     public NavEntry? Find(string key) => Flatten(Entries).FirstOrDefault(entry => entry.Key == key);
 
+    /// <summary>
+    /// The keys a screen hangs on, in tab order: each tab's sub-tabs, or the tab itself when it has none (<c>tools/UiShots</c>
+    /// renders one shot per key).
+    /// </summary>
+    /// <param name="include">Which tabs to take; null takes all.</param>
+    public IReadOnlyList<string> LeafKeys(Func<NavEntry, bool>? include = null)
+    {
+        var keys = new List<string>();
+        foreach (var entry in Entries.Where(entry => include?.Invoke(entry) != false))
+        {
+            if (entry.HasSubEntries)
+            {
+                keys.AddRange(entry.SubEntries!.Select(sub => sub.Key));
+            }
+            else
+            {
+                keys.Add(entry.Key);
+            }
+        }
+
+        return keys;
+    }
+
     private static IEnumerable<NavEntry> Flatten(IEnumerable<NavEntry> entries)
     {
         foreach (var entry in entries)

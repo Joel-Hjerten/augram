@@ -1,4 +1,4 @@
-using Augram.App.Hosting;
+using Augram.App.Hosting.Startup;
 using Augram.App.Tests.Support;
 using Augram.App.Tray;
 using Augram.Core.Abstractions;
@@ -19,7 +19,8 @@ public sealed class TrayClickPreviewTests
     public void TheFirstClickShowsTheToggledIconAtOnce_AndADoublePutsItBack()
     {
         using var engine = new EngineFixture(start: false);
-        using var state = new AppState(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Dev);
+        using var link = new StartAtLoginLink(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Dev);
+        using var state = new AppState(engine.Settings, link);
         var host = new FakeTrayHost();
         var opened = 0;
         using var tray = new AppTray(state, () => opened++, () => { }, NullEventLog.Instance, null, null, _ => host);

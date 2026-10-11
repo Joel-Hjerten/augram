@@ -1,7 +1,8 @@
 using System.Globalization;
 using Augram.App.Components.SectionForm;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Modules;
+using Augram.App.Hosting.Startup;
 using Augram.App.Screens;
 using Augram.App.Sync;
 using Augram.App.Tests.Support;
@@ -194,10 +195,13 @@ public sealed class SyncModuleTests : IDisposable
         services.AddSingleton<HealthRegistry>();
         services.AddSingleton<RecognitionLog>();
         services.AddSingleton(TestBuilds.Release);
+        services.AddSingleton<StartAtLoginLink>();
         services.AddSingleton<AppState>();
+        DialogsModule.Register(services);
+        ConfigModule.Register(services, new ConfigModuleOptions { ConfigFolder = _folder, Marshal = action => action() });
+        PlatformModule.Register(services, adapters: false);
         EngineModule.Register(services, new EngineModuleOptions
         {
-            ConfigFolder = _folder,
             InputSource = _ => new FakeInputSource(),
             PlatformAdapters = false,
             Marshal = action => action(),

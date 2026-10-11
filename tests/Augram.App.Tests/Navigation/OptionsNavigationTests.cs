@@ -1,6 +1,6 @@
 using Augram.App.Components.Shell;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Startup;
 using Augram.App.Navigation;
 using Augram.App.Screens;
 using Augram.App.ViewModels;
