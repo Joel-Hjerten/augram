@@ -119,6 +119,28 @@ public sealed class AppSettingsViewModelTests
     }
 
     [Fact]
+    public void TheThemeSection_DisablesTintUnderSolid_AndShowsTheAccentColourOnlyWhenItDoesNotFollowTheTrail()
+    {
+        using var engine = new EngineFixture(start: false);
+        using var state = new AppState(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Release);
+        using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
+        using var vm = new AppSettingsViewModel(engine.Settings, state, detection);
+        var fields = Assert.IsType<FormScreen>(OptionsScreen.DeclareAppearance(vm)).Sections.Single(section => section.Title == OptionsScreen.ThemeTitle).Fields;
+        var tint = fields.Single(field => field.Label == "Tint");
+        var accent = fields.Single(field => field.Label == "Accent colour");
+
+        Assert.True(tint.Enabled!.Get());
+        Assert.False(accent.Visible!.Get());
+
+        vm.WindowBackground = WindowBackground.Solid;
+        vm.AccentFollowsTrail = false;
+
+        Assert.False(tint.Enabled.Get());
+        Assert.True(accent.Visible.Get());
+        Assert.Equal(WindowBackground.Solid, engine.Settings.Current.Appearance.WindowBackground);
+    }
+
+    [Fact]
     public void StartAtLoginGoesThroughAppState()
     {
         using var engine = new EngineFixture(start: false);

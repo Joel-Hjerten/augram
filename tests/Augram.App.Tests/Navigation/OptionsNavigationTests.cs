@@ -15,7 +15,7 @@ namespace Augram.App.Tests.Navigation;
 
 /// <summary>
 /// Options as five sub-tabs (plan 0006 decision 9), as Diagnostics has them: General, Strokes (Capture, Recognition),
-/// Appearance (Trail), Sync (Sync, Export and import) and About, every field where it was, and a key that selects each.
+/// Appearance (Theme, Trail), Sync (Sync, Export and import) and About, every field where it was, and a key that selects each.
 /// </summary>
 public sealed class OptionsNavigationTests
 {
@@ -44,7 +44,7 @@ public sealed class OptionsNavigationTests
 
         Assert.Equal(["General"], Titles(screens[AppNavigation.OptionsGeneralKey]));
         Assert.Equal(["Capture", "Recognition"], Titles(screens[AppNavigation.OptionsStrokesKey]));
-        Assert.Equal(["Trail"], Titles(screens[AppNavigation.OptionsAppearanceKey]));
+        Assert.Equal([OptionsScreen.ThemeTitle, "Trail"], Titles(screens[AppNavigation.OptionsAppearanceKey]));
         Assert.Equal([OptionsSyncSection.Title, "Export and import"], Titles(screens[AppNavigation.OptionsSyncKey]));
         Assert.Equal([OptionsScreen.AboutTitle], Titles(screens[AppNavigation.OptionsAboutKey]));
 
@@ -56,11 +56,12 @@ public sealed class OptionsNavigationTests
             general);
         Assert.Equal(["Start distance (px)", "Button drag distance (px)", "Cancel delay (ms)", "When nothing matches"], Labels(screens[AppNavigation.OptionsStrokesKey], "Capture"));
         Assert.Equal(["Threshold", "Precision", "Scoring mode"], Labels(screens[AppNavigation.OptionsStrokesKey], "Recognition"));
+        Assert.Equal(["Theme", "Window background", "Tint", "Corner rounding", "Accent from trail colour", "Accent colour"], Labels(screens[AppNavigation.OptionsAppearanceKey], OptionsScreen.ThemeTitle));
         Assert.Equal(["Colour", "Width (px)", "Opacity"], Labels(screens[AppNavigation.OptionsAppearanceKey], "Trail"));
         Assert.Equal(["Version", "Commit", "Channel"], Labels(screens[AppNavigation.OptionsAboutKey], OptionsScreen.AboutTitle));
 
         // The trail colour is picked from the rainbow swatches or with Custom… (decision 8).
-        var colour = Assert.IsType<ColorField>(screens[AppNavigation.OptionsAppearanceKey].Sections.Single().Fields[0]);
+        var colour = Assert.IsType<ColorField>(screens[AppNavigation.OptionsAppearanceKey].Sections.Single(section => section.Title == "Trail").Fields[0]);
         Assert.Same(ColourPresets.Rainbow, colour.Presets);
 
         // The inspector names a field where the user finds it.

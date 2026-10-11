@@ -23,6 +23,7 @@ public static class OptionsScreen
     public const string GeneralTitle = "General";
     public const string StrokesTitle = "Strokes";
     public const string AppearanceTitle = "Appearance";
+    public const string ThemeTitle = "Theme";
     public const string SyncTitle = "Sync";
 
     public const string StartAtLoginHelp = "Also in the tray menu.";
@@ -48,11 +49,11 @@ public static class OptionsScreen
         return SubTab(StrokesTitle, [CaptureSection(vm), RecognitionSection(vm)]);
     }
 
-    /// <summary>Options › Appearance: Trail. Plan 0006's Theme section goes in front of it, as one more entry in this list.</summary>
+    /// <summary>Options › Appearance: Theme (plan 0006 decision 10), then Trail, whose colour the accent follows by default.</summary>
     public static ScreenDeclaration DeclareAppearance(AppSettingsViewModel vm)
     {
         ArgumentNullException.ThrowIfNull(vm);
-        return SubTab(AppearanceTitle, [TrailSection(vm)]);
+        return SubTab(AppearanceTitle, [ThemeSection(vm), TrailSection(vm)]);
     }
 
     /// <summary>
@@ -162,6 +163,37 @@ public static class OptionsScreen
             "Holding still this long cancels the stroke and replays the click."),
         new DropdownField<NoMatchBehaviour>("When nothing matches", Choice.FromEnum<NoMatchBehaviour>(),
             new DelegateBinding<NoMatchBehaviour>(() => vm.NoMatch, v => vm.NoMatch = v, vm)),
+    ]);
+
+    /// <summary>
+    /// The look (plan 0006 decisions 2–4, 6, 10): theme, window background, tint (nothing to tint under Solid), corner
+    /// rounding, and the accent, which follows the trail colour until the switch is off and then has its own colour.
+    /// </summary>
+    private static Section ThemeSection(AppSettingsViewModel vm) => new(ThemeTitle,
+    [
+        new ButtonRadioField<AppTheme>("Theme",
+            [new("Dark", AppTheme.Dark), new("Light", AppTheme.Light), new("Follow system", AppTheme.System)],
+            new DelegateBinding<AppTheme>(() => vm.Theme, v => vm.Theme = v, vm),
+            "Dark is the default. Follow system switches with Windows or macOS."),
+        new ButtonRadioField<WindowBackground>("Window background",
+            [new("Frosted glass", WindowBackground.FrostedGlass), new("Wallpaper tint", WindowBackground.WallpaperTint), new("Solid", WindowBackground.Solid)],
+            new DelegateBinding<WindowBackground>(() => vm.WindowBackground, v => vm.WindowBackground = v, vm),
+            "Frosted glass blurs what is behind the window; wallpaper tint picks up only the wallpaper's colour. The system does the blur. Windows shows either one solid when transparency effects are off or in battery saver."),
+        new SliderField("Tint", new DelegateBinding<double>(() => vm.TintPercent, v => vm.TintPercent = v, vm), 0, AppearanceSettings.MaxTintPercent,
+            Unit: "%", Help: "More tint keeps text readable over a bright or busy desktop; less shows more of what is behind the window.")
+        {
+            Enabled = new DelegateBinding<bool>(() => vm.WindowBackground != WindowBackground.Solid, owner: vm),
+        },
+        new SliderField("Corner rounding", new DelegateBinding<double>(() => vm.CornerRadiusPx, v => vm.CornerRadiusPx = v, vm),
+            AppearanceSettings.MinCornerRadiusPx, AppearanceSettings.MaxCornerRadiusPx,
+            Unit: " px", Help: "Panels, tabs, buttons and fields. The window's own corners follow the system."),
+        new ToggleField("Accent from trail colour", new DelegateBinding<bool>(() => vm.AccentFollowsTrail, v => vm.AccentFollowsTrail = v, vm),
+            "Buttons, selections and tabs use the trail colour. Turn this off to give them a colour of their own. Each theme takes a lighter or darker shade of it, so text stays readable."),
+        new ColorField("Accent colour", new DelegateBinding<RgbColor>(() => vm.Accent, v => vm.Accent = v, vm))
+        {
+            Presets = ColourPresets.Rainbow,
+            Visible = new DelegateBinding<bool>(() => !vm.AccentFollowsTrail, owner: vm),
+        },
     ]);
 
     /// <summary>The trail's colour is picked from the rainbow swatches or with Custom… (plan 0006 decision 8).</summary>
