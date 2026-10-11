@@ -101,7 +101,7 @@ public sealed class SyncRunTests : TwoMachineTest
 
         work.Sync();
 
-        var line = work.Log.Events.Last(e => e.Source == SyncCoordinator.LogSource);
+        var line = work.Log.Events.Last(e => e.Source == LogSources.Sync);
         Assert.Equal(EventLevel.Info, line.Level);
         Assert.Equal("github.com", line.Properties!.Single(property => property.Key == "host").Value);
         Assert.Contains(line.Properties!, property => property.Key == "changes");

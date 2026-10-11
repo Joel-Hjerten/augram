@@ -19,7 +19,7 @@ internal static class DisplayModeExecutor
         DisplayModeResolution? resolved = null;
         var result = Run(step, context, ref display, ref resolved);
         context.Log.Debug(
-            "steps",
+            LogSources.Steps,
             "Display mode",
             ("requested", step.Summary),
             ("display", display?.Name),

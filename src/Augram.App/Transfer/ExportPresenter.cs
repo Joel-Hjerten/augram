@@ -17,7 +17,6 @@ namespace Augram.App.Transfer;
 /// </summary>
 public sealed class ExportPresenter : IExportPresenter
 {
-    public const string LogSource = "export";
     public const string LogMessage = "Exported Augram file";
 
     private readonly ConfigSession _session;
@@ -64,11 +63,11 @@ public sealed class ExportPresenter : IExportPresenter
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _log.Warning(LogSource, "Could not write Augram file", ("error", exception.Message));
+            _log.Warning(LogSources.Export, "Could not write Augram file", ("error", exception.Message));
             return $"Could not save {name}: {exception.Message}";
         }
 
-        _log.Info(LogSource, LogMessage, ("scope", viewModel.Kind), ("contents", contents.ToString()), ("privateTextSteps", contents.PrivateTextSteps));
+        _log.Info(LogSources.Export, LogMessage, ("scope", viewModel.Kind), ("contents", contents.ToString()), ("privateTextSteps", contents.PrivateTextSteps));
         return $"Exported {contents} to {name}.";
     }
 

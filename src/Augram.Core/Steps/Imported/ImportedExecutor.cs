@@ -7,7 +7,7 @@ internal static class ImportedExecutor
 {
     public static StepResult Execute(ImportedStep step, StepExecutionContext context)
     {
-        context.Log.Info("steps", "Imported step skipped", ("method", step.SourceMethod), ("description", step.Description));
+        context.Log.Info(LogSources.Steps, "Imported step skipped", ("method", step.SourceMethod), ("description", step.Description));
         return StepResult.Skipped($"imported step '{step.SourceMethod}' is not supported yet");
     }
 }

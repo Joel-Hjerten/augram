@@ -44,7 +44,7 @@ public sealed class TrailOverlayWindowTests
         Assert.True(window.IsVisible);
         Assert.True(window.IsUsable);
         Assert.True(style.ApplyCount >= 2, "styles are applied before Show and verified after it");
-        Assert.True(log.Has(TrailOverlayWindow.LogSource, "Overlay style verified"));
+        Assert.True(log.Has(LogSources.Overlay, "Overlay style verified"));
         Assert.Equal(1, window.FramesRendered);
         Assert.Equal(41, window.PointsOnScreen);
 
@@ -101,8 +101,8 @@ public sealed class TrailOverlayWindowTests
         Assert.False(window.IsVisible);
         Assert.False(window.IsUsable);
         Assert.Equal(0, window.PointsOnScreen);
-        Assert.True(log.Has(TrailOverlayWindow.LogSource, "Overlay not click-through, hidden"));
-        Assert.Contains(log.Events, e => e.Level == EventLevel.Error && e.Source == TrailOverlayWindow.LogSource);
+        Assert.True(log.Has(LogSources.Overlay, "Overlay not click-through, hidden"));
+        Assert.Contains(log.Events, e => e.Level == EventLevel.Error && e.Source == LogSources.Overlay);
 
         var requests = window.Buffer.RequestCount;
         OnWorker(() => window.Begin(new CapturePoint(1, 1, 20)));
@@ -135,7 +135,7 @@ public sealed class TrailOverlayWindowTests
         window.CheckIdle(DateTimeOffset.UtcNow + TrailOverlayWindow.IdleVisibleLimit + TimeSpan.FromSeconds(1));
 
         Assert.False(window.IsVisible);
-        Assert.True(log.Has(TrailOverlayWindow.LogSource, "Overlay visible without a stroke, hidden"));
+        Assert.True(log.Has(LogSources.Overlay, "Overlay visible without a stroke, hidden"));
     }
 
     [AvaloniaFact]

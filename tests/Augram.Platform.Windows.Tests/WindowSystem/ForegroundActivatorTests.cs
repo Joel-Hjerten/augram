@@ -22,7 +22,7 @@ public sealed class ForegroundActivatorTests
         Assert.Equal("set-foreground", result.Technique);
         Assert.Equal(["set:16:attached=False:alt=False"], win.Calls);
         var e = Assert.Single(log.Events);
-        Assert.Equal(ForegroundActivator.Source, e.Source);
+        Assert.Equal(LogSources.Window, e.Source);
         Assert.Equal(EventLevel.Info, e.Level);
         Assert.Equal("set-foreground", log.Property(e, "technique"));
         Assert.Equal("app.exe", log.Property(e, "process"));

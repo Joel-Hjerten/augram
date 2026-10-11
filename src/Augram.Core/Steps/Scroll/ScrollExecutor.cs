@@ -18,7 +18,7 @@ internal static class ScrollExecutor
     {
         var result = Run(step, context);
         context.Log.Debug(
-            "steps",
+            LogSources.Steps,
             "Scroll",
             ("direction", step.Direction),
             ("notches", step.NotchCount),

@@ -15,7 +15,7 @@ internal static class WindowOpExecutor
     {
         var result = Run(step, context);
         context.Log.Debug(
-            "steps",
+            LogSources.Steps,
             "Window operation",
             ("operation", step.Operation),
             ("outcome", result.Outcome),

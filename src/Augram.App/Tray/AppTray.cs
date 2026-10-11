@@ -20,8 +20,6 @@ namespace Augram.App.Tray;
 /// </summary>
 public sealed class AppTray : IDisposable
 {
-    private const string LogSource = "app";
-
     private readonly AppState _state;
     private readonly Action _open;
     private readonly IEventLog _log;
@@ -149,7 +147,7 @@ public sealed class AppTray : IDisposable
         // The engine logs "Engine enabled" / "Engine disabled" itself; here only the icon follows the store.
         if (e.PropertyName == nameof(AppState.Enabled))
         {
-            _log.Debug(LogSource, "Tray icon updated", ("enabled", _state.Enabled));
+            _log.Debug(LogSources.App, "Tray icon updated", ("enabled", _state.Enabled));
         }
 
         if (e.PropertyName == nameof(AppState.ColourMenuBarIcon))

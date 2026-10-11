@@ -36,9 +36,8 @@ public sealed class LogViewModel : ObservableObject
 
     public static IReadOnlyList<string> Levels { get; } = [All, .. Enum.GetNames<EventLevel>()];
 
-    /// <summary>The N4 source names, plus the app's own; a source not listed here still shows under "All".</summary>
-    public static IReadOnlyList<string> Sources { get; } =
-        [All, "app", "hook", "capture", "recognition", "activate", "steps", "config", "overlay", ChannelEventLog.Source];
+    /// <summary>"All", then every source the solution emits (<see cref="LogSources.All"/>, alphabetical).</summary>
+    public static IReadOnlyList<string> Sources { get; } = [All, .. LogSources.All];
 
     public ListSource<LogEvent> Source { get; }
 

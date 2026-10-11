@@ -117,7 +117,7 @@ public sealed class AppStateTests
 
         Assert.True(registration.IsEnabled);
         Assert.Empty(registration.Writes);
-        Assert.True(log.Has(AppState.LogSource, "Start at login left to the installed Augram"));
+        Assert.True(log.Has(LogSources.Startup, "Start at login left to the installed Augram"));
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public sealed class AppStateTests
         state.SyncStartupRegistration();
 
         Assert.Empty(registration.Writes);
-        Assert.True(log.Has(AppState.LogSource, "Start at login checked"));
+        Assert.True(log.Has(LogSources.Startup, "Start at login checked"));
         Assert.Empty(state.StartAtLoginNote);
     }
 
@@ -194,7 +194,7 @@ public sealed class AppStateTests
 
         Assert.Equal([true], registration.Writes);
         Assert.Equal(StartupStatus.Registered, registration.Status);
-        Assert.True(log.Has(AppState.LogSource, "Start at login registered"));
+        Assert.True(log.Has(LogSources.Startup, "Start at login registered"));
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public sealed class AppStateTests
         Assert.NotEmpty(state.StartAtLoginNote);
         Assert.Contains(nameof(AppState.StartAtLogin), changes);
         Assert.Contains(nameof(AppState.StartAtLoginNote), changes);
-        Assert.True(log.Has(AppState.LogSource, "Start at login was turned off outside Augram; the setting follows"));
+        Assert.True(log.Has(LogSources.Startup, "Start at login was turned off outside Augram; the setting follows"));
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public sealed class AppStateTests
 
         Assert.True(state.StartAtLogin);
         Assert.Equal(AppState.FailedNote, state.StartAtLoginNote);
-        Assert.True(log.Has(AppState.LogSource, "Could not change start at login"));
+        Assert.True(log.Has(LogSources.Startup, "Could not change start at login"));
 
         registration.Status = StartupStatus.Registered;
         registration.WriteFailure = new IOException("registry");
@@ -307,7 +307,7 @@ public sealed class AppStateTests
 
         Assert.Empty(registration.Writes);
         Assert.True(state.StartAtLogin);
-        Assert.True(log.Has(AppState.LogSource, "Could not read start at login"));
+        Assert.True(log.Has(LogSources.Startup, "Could not read start at login"));
     }
 
     [Fact]

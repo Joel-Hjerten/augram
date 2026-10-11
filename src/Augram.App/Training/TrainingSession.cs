@@ -133,13 +133,13 @@ public sealed class TrainingSession : ITrainingSession
 
         if (canvas is null || !canvas.Contains(startX, startY))
         {
-            _log.Info("training", "Stroke outside the draw area", ("start", $"{startX},{startY}"), ("canvas", canvas is null ? "none" : $"{canvas.Left:0},{canvas.Top:0} {canvas.Width:0}x{canvas.Height:0}"));
+            _log.Info(LogSources.Training, "Stroke outside the draw area", ("start", $"{startX},{startY}"), ("canvas", canvas is null ? "none" : $"{canvas.Left:0},{canvas.Top:0} {canvas.Width:0}x{canvas.Height:0}"));
             return false;
         }
 
         var local = points.Select(canvas.ToLocal).ToArray();
         // Where a stroke-button stroke landed in the draw area (Joel, 2026-10-09: it showed in the corner): enough to see an offset.
-        _log.Info("training", "Stroke drawn into the draw area", ("start", $"{startX},{startY}"), ("canvas", $"{canvas.Left:0},{canvas.Top:0} {canvas.Width:0}x{canvas.Height:0} ×{canvas.Scale}"), ("firstLocal", local.Length > 0 ? $"{local[0].X:0},{local[0].Y:0}" : "none"));
+        _log.Info(LogSources.Training, "Stroke drawn into the draw area", ("start", $"{startX},{startY}"), ("canvas", $"{canvas.Left:0},{canvas.Top:0} {canvas.Width:0}x{canvas.Height:0} ×{canvas.Scale}"), ("firstLocal", local.Length > 0 ? $"{local[0].X:0},{local[0].Y:0}" : "none"));
         if (Dispatcher.UIThread.CheckAccess())
         {
             ReplaceStroke(local);

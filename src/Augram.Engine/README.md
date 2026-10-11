@@ -71,7 +71,6 @@ The engine learns its platform from `EnginePorts.Platform` (which steps a comman
 | `StrokeRecognizer` (internal) | button-up only: `GestureMatcher.Rank`, top 3, threshold, one Info line; a no-match entry goes into the `RecognitionLog` at once, a recognised gesture's entry comes back as a draft in `RecognitionResult` for the executor (or the worker) to complete with group, command or reason |
 | `EngineEvent` | `GestureRecognized`, `NoMatch`, `WheelTriggered`; raised on the worker thread with the raw points so training can keep them |
 | `WorkerMessage` (internal) | the channel item: input with the hook's decision, a hold remap event with the hook's hold decision (`Hold`; `Ordered` when the hook counts it as a pending replay) or a key kept in order (`HoldReplay`), or a setting change, or a reset |
-| `LogSources` | `hook`, `capture`, `recognition`, `engine`, `exec`, `ignore`, `hold` |
 
 ## Key capture (F5 hotkey field)
 
@@ -211,4 +210,4 @@ The `IEventLog` implementation and its sinks. BCL only: `System.Threading.Channe
 - **Level filtering happens before the queue**, so `Trace` hook traces cost one comparison while off.
 - **Shutdown drains.** `Dispose` is the only call that waits, and it is made from the composition root at exit, never from the hook thread.
 
-The hook thread logs at `Trace` only and guards value-typed properties with `IsEnabled` (they box at the call site); everything at Info and above is emitted by the worker.
+The hook thread logs at `Trace` only and guards value-typed properties with `IsEnabled` (they box at the call site); everything at Info and above is emitted by the worker. Every source the Engine logs under is a constant in Core's `LogSources` (`src/Augram.Core/Diagnostics/README.md`), the one list the Log tab filters on.

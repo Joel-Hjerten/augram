@@ -77,7 +77,7 @@ public sealed class AugramImportPresenter : IAugramImportPresenter
     /// <summary>"Blender.augram.json was not imported. The file was written by a newer Augram (schema version 5); …", shown and returned.</summary>
     private async Task<string> RefuseAsync(string name, string reason)
     {
-        _log.Warning(AugramImportViewModel.LogSource, "Could not import Augram file", ("error", reason));
+        _log.Warning(LogSources.Import, "Could not import Augram file", ("error", reason));
         var line = $"{name} was not imported. {reason}";
         await _windows.ShowMessageAsync(AugramImportViewModel.Title, line).ConfigureAwait(true);
         return line;

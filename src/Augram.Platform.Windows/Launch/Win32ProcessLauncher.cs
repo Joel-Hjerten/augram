@@ -102,11 +102,11 @@ public sealed class Win32ProcessLauncher : IProcessLauncher
     {
         if (result.Outcome == ProcessLaunchOutcome.Started)
         {
-            _log.Info("steps", "Run started late", ("file", launch.File));
+            _log.Info(LogSources.Steps, "Run started late", ("file", launch.File));
         }
         else
         {
-            _log.Warning("steps", "Run did not start", ("file", launch.File), ("outcome", result.Outcome), ("reason", result.Reason));
+            _log.Warning(LogSources.Steps, "Run did not start", ("file", launch.File), ("outcome", result.Outcome), ("reason", result.Reason));
         }
     }
 

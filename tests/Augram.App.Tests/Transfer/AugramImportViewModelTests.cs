@@ -58,7 +58,7 @@ public sealed class AugramImportViewModelTests
         Assert.DoesNotContain(session.Mapping.Current.Groups, group => group.Name == "Blender");
         Assert.False(session.Mapping.CanUndo);
 
-        var logged = Assert.Single(_log.Events, e => e.Source == AugramImportViewModel.LogSource);
+        var logged = Assert.Single(_log.Events, e => e.Source == LogSources.Import);
         Assert.Equal((EventLevel.Info, AugramImportViewModel.LogMessage), (logged.Level, logged.Message));
         Assert.Contains(logged.Properties!, property => property.Key == "counts" && Equals(property.Value, "groups +1 ~0 -0, commands +2 ~0 -0, hold remaps +1 ~0 -0"));
     }
@@ -247,7 +247,7 @@ public sealed class AugramImportViewModelTests
 
         Assert.Contains(session.Mapping.Current.Groups, group => group.Name == "Notepad");
         Assert.Contains(session.Mapping.Current.Groups, group => group.Name == "Blender");
-        var logged = Assert.Single(_log.Events, e => e.Source == AugramImportViewModel.LogSource);
+        var logged = Assert.Single(_log.Events, e => e.Source == LogSources.Import);
         Assert.Contains(logged.Properties!, property => property.Key == "replanned" && Equals(property.Value, 1));
     }
 
@@ -265,7 +265,7 @@ public sealed class AugramImportViewModelTests
         Assert.Equal(1, finished);
         Assert.Null(vm.ResultText);
         Assert.False(session.Mapping.CanUndo);
-        Assert.DoesNotContain(_log.Events, e => e.Source == AugramImportViewModel.LogSource);
+        Assert.DoesNotContain(_log.Events, e => e.Source == LogSources.Import);
     }
 
     private AugramImportViewModel Review(ConfigSession session, TransferFile file, string name = "theirs.augram.json")

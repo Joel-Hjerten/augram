@@ -42,6 +42,13 @@ public sealed class LogViewTests
         Assert.Equal("lost", ((LogEvent)Assert.Single(list.Rows)).Message);
     }
 
+    [Fact]
+    public void SourceFilter_OffersAllThenEverySourceTheSolutionEmits()
+    {
+        Assert.Equal([LogViewModel.All, .. LogSources.All], LogViewModel.Sources);
+        Assert.DoesNotContain("activate", LogViewModel.Sources);
+    }
+
     [AvaloniaFact]
     public void CopiesTheLastLinesInFileFormat()
     {

@@ -45,7 +45,7 @@ public sealed class UnknownStepType : IStepType
     {
         ArgumentNullException.ThrowIfNull(context);
         var unknown = StepParameters.Expect<UnknownStep>(step, this);
-        context.Log.Info("steps", "Unknown step skipped", ("type", unknown.StoredTypeKey), ("reason", unknown.Reason));
+        context.Log.Info(LogSources.Steps, "Unknown step skipped", ("type", unknown.StoredTypeKey), ("reason", unknown.Reason));
         return StepResult.Skipped($"this Augram cannot run it ({unknown.Reason}); update Augram");
     }
 

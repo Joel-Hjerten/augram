@@ -20,7 +20,6 @@ namespace Augram.App.Hosting;
 /// </summary>
 public sealed class AppState : ObservableObject, IDisposable
 {
-    public const string LogSource = "startup";
     public const string FailedNote = "Could not change it; Diagnostics › Log says why.";
 
     private readonly SettingsStore _settings;
@@ -100,7 +99,7 @@ public sealed class AppState : ObservableObject, IDisposable
     {
         if (!CanChangeStartAtLogin)
         {
-            _log.Info(LogSource, "Start at login left to the installed Augram", ("channel", App.Channel));
+            _log.Info(LogSources.Startup, "Start at login left to the installed Augram", ("channel", App.Channel));
             return;
         }
 
@@ -110,7 +109,7 @@ public sealed class AppState : ObservableObject, IDisposable
         }
 
         var wanted = StartAtLogin;
-        _log.Info(LogSource, "Start at login checked", ("setting", wanted), ("status", status));
+        _log.Info(LogSources.Startup, "Start at login checked", ("setting", wanted), ("status", status));
         var action = StartupPolicy.AtStartup(wanted, status);
         if (action != StartupAction.FollowTheSystem)
         {
@@ -118,7 +117,7 @@ public sealed class AppState : ObservableObject, IDisposable
             return;
         }
 
-        _log.Warning(LogSource, "Start at login was turned off outside Augram; the setting follows", ("status", status));
+        _log.Warning(LogSources.Startup, "Start at login was turned off outside Augram; the setting follows", ("status", status));
         // The change brings the OS in step like any other (OnChange: whatever is left is removed), then says why it is off.
         Change(general => general with { StartAtLogin = false });
         StartAtLoginNote = StartupPolicy.FollowedNote(status, RunningPlatform.Current);
@@ -182,14 +181,14 @@ public sealed class AppState : ObservableObject, IDisposable
                 var register = action == StartupAction.Register;
                 _startup.Set(register);
                 now = _startup.Status;
-                _log.Info(LogSource, register ? "Start at login registered" : "Start at login removed", ("was", was), ("now", now));
+                _log.Info(LogSources.Startup, register ? "Start at login registered" : "Start at login removed", ("was", was), ("now", now));
             }
 
             StartAtLoginNote = StartupPolicy.StatusNote(wanted, now);
         }
         catch (Exception exception) when (IsOsFailure(exception))
         {
-            _log.Error(LogSource, "Could not change start at login", exception, ("enabled", wanted), ("was", was));
+            _log.Error(LogSources.Startup, "Could not change start at login", exception, ("enabled", wanted), ("was", was));
             StartAtLoginNote = FailedNote;
         }
     }
@@ -202,7 +201,7 @@ public sealed class AppState : ObservableObject, IDisposable
         }
         catch (Exception exception) when (IsOsFailure(exception))
         {
-            _log.Error(LogSource, "Could not read start at login", exception);
+            _log.Error(LogSources.Startup, "Could not read start at login", exception);
             StartAtLoginNote = FailedNote;
             return null;
         }

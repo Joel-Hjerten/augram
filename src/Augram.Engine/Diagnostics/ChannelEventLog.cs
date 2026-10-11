@@ -18,7 +18,6 @@ public sealed class ChannelEventLog : IEventLog, IDisposable
 {
     public const int DefaultCapacity = 4096;
     public const int DropReportInterval = 1000;
-    public const string Source = "log";
     private static readonly TimeSpan DisposeTimeout = TimeSpan.FromSeconds(10);
 
     private readonly Channel<LogEvent> _channel;
@@ -136,7 +135,7 @@ public sealed class ChannelEventLog : IEventLog, IDisposable
         Deliver(new LogEvent(
             DateTimeOffset.Now,
             EventLevel.Warning,
-            Source,
+            LogSources.Log,
             "Events dropped: log queue full",
             [new("dropped", unreported), new("total", dropped)]));
     }

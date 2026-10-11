@@ -26,7 +26,6 @@ public sealed class MacWindowOperations : IWindowOperations
 
     // Frames from before a maximize, by window id; only the command executor thread touches it.
     private readonly Dictionary<uint, MacRect> _restore = [];
-    private const string Source = "window";
 
     /// <summary>macOS's Fill (fn-Control-F) and Return to Previous Size (fn-Control-R), by key: their titles are localised.</summary>
     private const string FillKey = "F";
@@ -160,7 +159,7 @@ public sealed class MacWindowOperations : IWindowOperations
             }
 
             var fallback = MacMaximize.DefaultRestore(visible);
-            _log.Info(Source, "Restored a window Augram did not maximize", ("frame", Describe(frame)), ("visible", Describe(visible)), ("restoredTo", Describe(fallback)));
+            _log.Info(LogSources.Window, "Restored a window Augram did not maximize", ("frame", Describe(frame)), ("visible", Describe(visible)), ("restoredTo", Describe(fallback)));
             return Result(Ax.SetFrame(element, fallback));
         }
 
@@ -197,7 +196,7 @@ public sealed class MacWindowOperations : IWindowOperations
         {
             if (item == 0)
             {
-                _log.Info(Source, "No such Window menu item", ("item", what), ("windowMenu", seen.Count == 0 ? "not read" : string.Join("; ", seen)));
+                _log.Info(LogSources.Window, "No such Window menu item", ("item", what), ("windowMenu", seen.Count == 0 ? "not read" : string.Join("; ", seen)));
                 return null;
             }
 
@@ -206,7 +205,7 @@ public sealed class MacWindowOperations : IWindowOperations
             Ax.Perform(window, Ax.RaiseAction);
             var pressed = Ax.Perform(item, Ax.PressAction);
             var moved = pressed == MacNative.AXErrorSuccess && FrameChanged(window, before);
-            _log.Info(Source, "Pressed a Window menu item", ("item", what), ("result", Ax.Describe(pressed)), ("windowChanged", moved));
+            _log.Info(LogSources.Window, "Pressed a Window menu item", ("item", what), ("result", Ax.Describe(pressed)), ("windowChanged", moved));
             return moved ? WindowOperationResult.Ok : null;
         }
         finally

@@ -22,7 +22,6 @@ namespace Augram.App.ViewModels;
 /// </summary>
 public sealed partial class ImportViewModel : ObservableObject
 {
-    public const string LogSource = "import";
     public const string LogMessage = "Imported from StrokesPlus.net";
     private const string SourceFileName = "StrokesPlus.net.json";
 
@@ -168,7 +167,7 @@ public sealed partial class ImportViewModel : ObservableObject
         }
 
         _log.Info(
-            LogSource,
+            LogSources.Import,
             LogMessage,
             ("source", SourcePath),
             ("found", _result.Stats.GestureCount),

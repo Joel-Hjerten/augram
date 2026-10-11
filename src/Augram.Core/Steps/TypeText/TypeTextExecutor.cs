@@ -23,7 +23,7 @@ internal static class TypeTextExecutor
         var lines = step.Lines();
         var result = step.HasText ? Run(step.Method, lines, context) : StepResult.Skipped(NoTextReason);
         context.Log.Debug(
-            "steps",
+            LogSources.Steps,
             "Type text",
             ("method", step.Method),
             ("length", step.Text?.Length ?? 0),

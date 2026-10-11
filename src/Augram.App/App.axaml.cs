@@ -15,7 +15,6 @@ namespace Augram.App;
 
 public sealed partial class App : Application
 {
-    private const string LogSource = "app";
     private readonly IServiceProvider _services;
     private readonly InstanceStartup? _startup;
     private AppTray? _tray;
@@ -96,7 +95,7 @@ public sealed partial class App : Application
         var args = desktop.Args ?? [];
         // Windows: known now. macOS: --hidden is; a login-item launch only once launching has finished (LaunchVisibility.AtStart).
         var launch = LaunchVisibility.AtStart(args, waitsForLaunchEvent: _launchEvent is not null);
-        log.Info(LogSource, "App started",
+        log.Info(LogSources.App, "App started",
         [
             ("version", app.Version),
             ("commit", app.Commit),
@@ -153,7 +152,7 @@ public sealed partial class App : Application
         ShowOnReopen(log);
         desktop.Exit += (_, _) =>
         {
-            log.Info(LogSource, "App stopping");
+            log.Info(LogSources.App, "App stopping");
             _tray?.Dispose();
             _health?.Dispose();
             _launchEvent?.Dispose();
@@ -176,15 +175,15 @@ public sealed partial class App : Application
     /// </summary>
     private void ListenToOtherLaunches(SingleInstanceGuard guard, IClassicDesktopStyleApplicationLifetime desktop, IEventLog log)
     {
-        guard.Introduced += (_, e) => log.Info(LogSource, "Another Augram is starting", Who(e));
+        guard.Introduced += (_, e) => log.Info(LogSources.App, "Another Augram is starting", Who(e));
         guard.ShowRequested += (_, e) =>
         {
-            log.Info(LogSource, "Asked to show the window by another launch", Who(e));
+            log.Info(LogSources.App, "Asked to show the window by another launch", Who(e));
             Dispatcher.UIThread.Post(ShowMainWindow);
         };
         guard.QuitRequested += (_, e) =>
         {
-            log.Info(LogSource, "Asked to quit by another Augram", Who(e));
+            log.Info(LogSources.App, "Asked to quit by another Augram", Who(e));
             Dispatcher.UIThread.Post(() => desktop.Shutdown());
         };
     }

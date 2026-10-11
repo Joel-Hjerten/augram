@@ -21,7 +21,6 @@ namespace Augram.App.Overlay;
 /// </summary>
 public sealed class NativeTrailOverlay : IStrokeTrail, IDisposable
 {
-    public const string LogSource = TrailOverlayWindow.LogSource;
     private static readonly TimeSpan WatchdogInterval = TimeSpan.FromSeconds(1);
 
     private readonly Func<TrailSettings> _trail;
@@ -115,7 +114,7 @@ public sealed class NativeTrailOverlay : IStrokeTrail, IDisposable
         if (_state == SurfaceState.Shown && !_buffer.IsActive && now - _visibleSince > TrailOverlayWindow.IdleVisibleLimit)
         {
             HideNow();
-            _log.Error(LogSource, "Overlay visible without a stroke, hidden", ("visibleForMs", (now - _visibleSince).TotalMilliseconds));
+            _log.Error(LogSources.Overlay, "Overlay visible without a stroke, hidden", ("visibleForMs", (now - _visibleSince).TotalMilliseconds));
         }
     }
 
@@ -168,7 +167,7 @@ public sealed class NativeTrailOverlay : IStrokeTrail, IDisposable
         if (area != _loggedArea)
         {
             _loggedArea = area;
-            _log.Info(LogSource, "Overlay area", ("bounds", area), ("surface", "native"));
+            _log.Info(LogSources.Overlay, "Overlay area", ("bounds", area), ("surface", "native"));
         }
 
         Draw(frame.Points);
@@ -189,7 +188,7 @@ public sealed class NativeTrailOverlay : IStrokeTrail, IDisposable
         _firstFramePending = false;
         var ms = (Stopwatch.GetTimestamp() - _strokeStartedTicks) * 1000.0 / Stopwatch.Frequency;
         Volatile.Write(ref _lastFirstFrameMs, ms);
-        _log.Info(LogSource, "Trail first frame", ("firstFrameMs", Math.Round(ms, 2)), ("points", points.Count));
+        _log.Info(LogSources.Overlay, "Trail first frame", ("firstFrameMs", Math.Round(ms, 2)), ("points", points.Count));
     }
 
     /// <summary>
@@ -227,11 +226,11 @@ public sealed class NativeTrailOverlay : IStrokeTrail, IDisposable
                 _loggedStyle = report.Raw;
                 if (OverlayStylePolicy.HasCosmeticFault(report))
                 {
-                    _log.Warning(LogSource, "Overlay style incomplete", ("style", report.Raw), ("noActivate", report.NoActivate), ("toolWindow", report.ToolWindow));
+                    _log.Warning(LogSources.Overlay, "Overlay style incomplete", ("style", report.Raw), ("noActivate", report.NoActivate), ("toolWindow", report.ToolWindow));
                 }
                 else
                 {
-                    _log.Info(LogSource, "Overlay style verified", ("style", report.Raw));
+                    _log.Info(LogSources.Overlay, "Overlay style verified", ("style", report.Raw));
                 }
             }
 
@@ -241,7 +240,7 @@ public sealed class NativeTrailOverlay : IStrokeTrail, IDisposable
         Volatile.Write(ref _usable, 0);
         _buffer.End();
         HideNow();
-        _log.Error(LogSource, "Overlay not click-through, hidden", ("style", report.Raw));
+        _log.Error(LogSources.Overlay, "Overlay not click-through, hidden", ("style", report.Raw));
         return false;
     }
 }
