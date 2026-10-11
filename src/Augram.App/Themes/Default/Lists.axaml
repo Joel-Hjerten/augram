@@ -1141,8 +1141,9 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
   </Style>
+  <!-- The dragged step floats above the others under the pointer (StepDragReorder): solid, with the accent's tint, so it reads as picked up (Joel, 0.11.12: half see-through, it seemed to vanish). -->
   <Style Selector="steps|StepRow:dragging /template/ Border.row">
-    <Setter Property="Opacity" Value="{StaticResource Opacity.Dragging}" />
+    <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
   </Style>
   <Style Selector="tree|SectionRow:elsewhere, tree|CommandRow:elsewhere">
     <Setter Property="Opacity" Value="0.55" />

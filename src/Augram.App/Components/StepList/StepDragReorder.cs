@@ -141,7 +141,7 @@ internal sealed class StepDragReorder
         }
 
         var tops = rows.Select(row => RestTop(row, surface)).ToArray();
-        var heights = rows.Select(row => row.Bounds.Height).ToArray();
+        var heights = rows.Select(row => Host(row).Bounds.Height).ToArray();
         var height = heights[from];
         var lowest = tops[^1] + heights[^1] - height;
         var top = Math.Clamp(pointerY - Math.Clamp(_grab, 0, height), tops[0], Math.Max(tops[0], lowest));
@@ -169,26 +169,33 @@ internal sealed class StepDragReorder
         _to = to;
     }
 
-    /// <summary>Where the row sits without the offset this drag gave it.</summary>
+    /// <summary>
+    /// What a drag moves for <paramref name="row"/>: its list item, not the row itself. The item clips what it holds, so a row
+    /// offset inside it vanished as soon as it left the item's bounds (Joel, 0.11.12); the items panel clips nothing.
+    /// </summary>
+    private static Control Host(StepRow row) => row.FindAncestorOfType<ListBoxItem>() ?? (Control)row;
+
+    /// <summary>Where the row's item sits without the offset this drag gave it.</summary>
     private static double RestTop(StepRow row, Visual surface)
-        => (row.TranslatePoint(new Point(0, 0), surface)?.Y ?? 0) - ((row.RenderTransform as TranslateTransform)?.Y ?? 0);
+    {
+        var host = Host(row);
+        return (host.TranslatePoint(new Point(0, 0), surface)?.Y ?? 0) - ((host.RenderTransform as TranslateTransform)?.Y ?? 0);
+    }
 
     private void Shift(StepRow row, double offset, bool lifted)
     {
-        if (row.RenderTransform is not TranslateTransform transform)
+        var host = Host(row);
+        if (host.RenderTransform is not TranslateTransform transform)
         {
             transform = new TranslateTransform();
-            row.RenderTransform = transform;
+            host.RenderTransform = transform;
         }
 
         // The dragged row is under the pointer, so it moves at once; the others slide.
         transform.Transitions = lifted ? null : [new DoubleTransition { Property = TranslateTransform.YProperty, Duration = Slide, Easing = new CubicEaseOut() }];
         transform.Y = offset;
         row.DragOffset = offset;
-        if (row.FindAncestorOfType<ListBoxItem>() is { } container)
-        {
-            container.ZIndex = lifted ? 1 : 0;
-        }
+        host.ZIndex = lifted ? 1 : 0;
 
         if (!_shifted.Contains(row))
         {
@@ -213,12 +220,10 @@ internal sealed class StepDragReorder
     {
         foreach (var row in _shifted)
         {
-            row.RenderTransform = null;
+            var host = Host(row);
+            host.RenderTransform = null;
+            host.ZIndex = 0;
             row.DragOffset = 0;
-            if (row.FindAncestorOfType<ListBoxItem>() is { } container)
-            {
-                container.ZIndex = 0;
-            }
         }
 
         _shifted.Clear();

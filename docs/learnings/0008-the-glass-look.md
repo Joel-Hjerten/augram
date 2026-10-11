@@ -48,6 +48,7 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
   - A headless check can't see this unless it renders a frame first: hit testing uses the last rendered frame, so call `Dispatcher.UIThread.RunJobs()` and `AvaloniaHeadlessPlatform.ForceRenderTimerTick()` before `window.MouseDown`.
 - **A drag area must leave its children's presses alone.** A TabControl selects in its own handler, which sits above the title bar in the bubble route. So `WindowDragArea` skips presses that land on a tab, button, text box or list item.
 - **A test that sets `SelectedKey` from code proves nothing about clicking.** `ShellTitleBarTests` now clicks a real tab through the headless input.
+- **Move a list row by its `ListBoxItem`, not by the row inside it** (0.11.12, the live step drag). The item clips its content, so a `RenderTransform` on the row made it vanish as soon as it left the item's bounds; the items panel clips nothing. The tests checked the offsets and passed while Joel saw rows disappear. The app tests draw nothing (`UseHeadlessDrawing`), so judge anything visual in a UiShots frame; a mid-drag frame needs a few lines of temporary input code there (`window.MouseDown`/`MouseMove`, then render with short sleeps so transitions run).
 
 ## Running the dev build while working
 
