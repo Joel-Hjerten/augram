@@ -108,8 +108,8 @@ Behaviour or ADR, so Joel's call. Everything else above is the lead's call and i
 7. **Eng 5, "Window activated" logged twice.** Keep the executor's line (`exec`, carries `focusMoved`, both platforms) and drop the Windows adapter's two final Info lines, or the other way round? *Recommend keep the executor's.* Which line do you read when you debug?
 8. **VM 7, deleting a used gesture or merging duplicates.** Today each affected command is its own undo step; as a Core store method it would be one undo step for the whole action. *Recommend one step:* one action, one undo.
 9. **VM 8, one command label everywhere.** "Used by" would show a hold remap in the path ("Blender › Space › Orbit") and the sync conflict text would show a Global command's category. Both change visible text. *Recommend yes.*
-10. **VM 15, "the Global group cannot be renamed".** The rule exists only as an unreachable branch in the view model; Core only trims Global's name. Keep it as a Core rule, or drop it? *Recommend keep in `MappingRules`:* Global's name is an identity on both machines.
-11. **Comp 3, one keymap.** Today Enter renames a selected command on Windows but not a selected gesture (F2 only). Folding the keymaps makes Enter rename gestures too. *Recommend yes:* same keys everywhere.
+10. **VM 15, "the Global group cannot be renamed".** **Answered (Joel, 2026-10-11):** the categories under Global must stay renameable (they are groupings of Global commands); "Global" itself is a tab title and is never renamed. The refusal moves to `MappingRules`; the unreachable view-model branches go.
+11. **Comp 3, one keymap.** **Answered (Joel, 2026-10-11):** F2 on Windows and Return on macOS everywhere, each platform's convention; on Windows, Enter stays as a second rename key wherever the Mac renames with Return, so it now works on the Gestures tab too ("we can at least try it").
 
 ### Order and who
 
