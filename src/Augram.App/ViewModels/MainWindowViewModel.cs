@@ -1,4 +1,4 @@
-using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
 using Augram.App.Navigation;
 using CommunityToolkit.Mvvm.ComponentModel;
 

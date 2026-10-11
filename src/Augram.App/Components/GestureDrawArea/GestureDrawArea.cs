@@ -1,5 +1,6 @@
 using Augram.App.Components.GestureGlyph;
 using Augram.Core.Gestures;
+using Augram.Core.Training;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;

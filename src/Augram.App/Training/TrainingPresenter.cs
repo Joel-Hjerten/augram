@@ -1,5 +1,6 @@
 using Augram.App.Dialogs;
 using Augram.App.ViewModels;
+using Augram.Core.Training;
 
 namespace Augram.App.Training;
 

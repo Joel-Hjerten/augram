@@ -1,4 +1,4 @@
-using Augram.App.Hosting;
+using Augram.App.Hosting.Startup;
 using Augram.Core.Abstractions;
 using Xunit;
 

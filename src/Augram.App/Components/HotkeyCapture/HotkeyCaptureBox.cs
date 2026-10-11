@@ -15,7 +15,7 @@ namespace Augram.App.Components.HotkeyCapture;
 /// ("Press a combination…" until then). Parts: <c>PART_Field</c> (clicking it captures),
 /// <c>PART_Capture</c>, <c>PART_Accept</c>, <c>PART_Clear</c>; <c>:capturing</c> while capturing.
 /// Capturing arms <see cref="IKeyCapture"/> (from <see cref="KeyCapture"/>, else the resource
-/// <see cref="KeyCaptureResourceKey"/> the composition root publishes), so every key goes here and none to
+/// <see cref="ComponentPorts.KeyCapture"/> the composition root publishes), so every key goes here and none to
 /// the OS; without one it falls back to this window's key events and <see cref="StatusText"/> says what that
 /// cannot record. Commit is mouse-only, since Escape is a key like any other: Accept, a press anywhere
 /// outside the field, or the window losing activation keep the latest combination and raise
@@ -25,7 +25,6 @@ namespace Augram.App.Components.HotkeyCapture;
 /// </summary>
 public sealed partial class HotkeyCaptureBox : TemplatedControl
 {
-    public const string KeyCaptureResourceKey = "Augram.KeyCapture";
     public const string PromptText = "Press a combination…";
     public const string EmptyText = "No key set";
     public const string EngineHelpText = "Every key comes here, Win+L and Alt+Tab included. Accept, or click anywhere else, to keep it; the mouse works as usual.";
@@ -64,7 +63,7 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
 
     public KeyCode Key { get => GetValue(KeyProperty); set => SetValue(KeyProperty, value); }
 
-    /// <summary>Explicit capture service (tests, gallery); null looks up <see cref="KeyCaptureResourceKey"/>.</summary>
+    /// <summary>Explicit capture service (tests, gallery); null looks up <see cref="ComponentPorts.KeyCapture"/>.</summary>
     public IKeyCapture? KeyCapture { get => GetValue(KeyCaptureProperty); set => SetValue(KeyCaptureProperty, value); }
 
     /// <summary>F5's watchdog: with no key event for this long the engine releases the keyboard. Default 10 s.</summary>
@@ -92,7 +91,7 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
 
         _recorder.Reset();
         var session = ++_session;
-        var service = KeyCapture ?? (this.TryFindResource(KeyCaptureResourceKey, out var found) ? found as IKeyCapture : null);
+        var service = KeyCapture ?? ComponentPorts.Near(this)?.KeyCapture;
         _engineCapture = service?.Begin(captured => OnCaptured(session, captured), IdleTimeout);
         IsWindowOnly = _engineCapture is null;
         _watch = new CaptureWindowWatch(topLevel, this, IsWindowOnly, captured => OnCaptured(session, captured), Accept);

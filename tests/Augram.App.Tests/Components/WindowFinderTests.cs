@@ -1,3 +1,4 @@
+using Augram.App.Components;
 using Augram.App.Components.WindowFinder;
 using Augram.App.Tests.Support;
 using Augram.Core.Abstractions;
@@ -113,7 +114,7 @@ public sealed class WindowFinderTests
     public void WithoutAnExplicitWindowSystem_TheResourceIsUsed_AndLeavingTheWindowEndsTheFind()
     {
         var (window, finder, windows, picks) = Show(explicitSystem: false);
-        window.Resources[WindowFinder.WindowSystemResourceKey] = windows;
+        window.Resources[ComponentPorts.ResourceKey] = new ComponentPorts { WindowSystem = windows };
 
         Press(window, finder);
         window.MouseMove(OverChrome);

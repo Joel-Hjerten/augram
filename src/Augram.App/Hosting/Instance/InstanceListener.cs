@@ -1,0 +1,212 @@
+using System.IO.Pipes;
+
+namespace Augram.App.Hosting.Instance;
+
+/// <summary>
+/// The running side of one Augram per user (A10), whichever build: never the installed and a development one at once (Joel,
+/// 2026-10-08), so both use the same name. The running Augram owns a named mutex (held by a thread of its own,
+/// <see cref="NamedMutexOwner"/>, so a take-over can wait for it from any thread) and listens on a named pipe. A second
+/// launch finds the mutex taken and asks through <see cref="InstanceClient"/> (wire format: <see cref="InstanceProtocol"/>):
+/// Hello is answered with this instance's identity (<see cref="Introduced"/>), Show raises <see cref="ShowRequested"/>, Quit
+/// <see cref="QuitRequested"/>. Every connection that is not a readable request (Augram 0.1's one byte, a dropped connection)
+/// is a show request. The events are raised on the listener thread, so subscribers marshal to the UI. BCL only; pipes work on
+/// Windows and Unix alike (on Windows the pipe accepts and reaches only the same user: the pipe name is machine-wide there).
+/// </summary>
+public sealed class InstanceListener : IDisposable
+{
+    /// <summary>How long the listener waits for a request's bytes and for the asker to take the answer.</summary>
+    public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
+
+    private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(100);
+    private readonly NamedMutexOwner _mutex;
+    private readonly string _pipeName;
+    private readonly CancellationTokenSource _stopping = new();
+    private readonly Thread _listener;
+    private int _disposed;
+
+    private InstanceListener(string name, InstanceIdentity identity, NamedMutexOwner mutex)
+    {
+        Identity = identity;
+        _mutex = mutex;
+        _pipeName = InstancePipe.PipeNameFor(name);
+        _listener = new Thread(Listen) { IsBackground = true, Name = "augram-single-instance" };
+        _listener.Start();
+    }
+
+    /// <summary>Another launch asked who is running (it may ask the user next); nothing visible should happen.</summary>
+    public event EventHandler<InstanceRequestEventArgs>? Introduced;
+
+    /// <summary>Show the main window: a second launch of the same install, a cancelled take-over, or an older Augram.</summary>
+    public event EventHandler<InstanceRequestEventArgs>? ShowRequested;
+
+    /// <summary>Another build was chosen to run instead: shut down as Quit in the tray does, so the mutex is released.</summary>
+    public event EventHandler<InstanceRequestEventArgs>? QuitRequested;
+
+    /// <summary>The identity this listener answers with.</summary>
+    public InstanceIdentity Identity { get; }
+
+    /// <summary>
+    /// Off Windows a pipe is a domain socket that exists only while a server stream for it does. A client that connects while
+    /// the listener still serves the previous one waits in the socket's queue, and letting go of the last server stream closes
+    /// the socket and drops it: a Show or Quit right after a Hello was lost on macOS (2026-10-08). There the listener makes the
+    /// next server stream before it lets go of the served one, so the socket stays open. On Windows a client waits for a
+    /// listening instance instead, so one instance stays the rule there.
+    /// </summary>
+    private static bool KeepsNextListening => !OperatingSystem.IsWindows();
+
+    /// <summary>Null when another instance already owns <paramref name="name"/>.</summary>
+    public static InstanceListener? TryAcquire(string name, InstanceIdentity identity) =>
+        AcquireAsync(name, identity, TimeSpan.Zero).GetAwaiter().GetResult();
+
+    /// <summary>Waits up to <paramref name="wait"/> for <paramref name="name"/> (a take-over waits for the running one to quit); null when it stayed taken.</summary>
+    public static async Task<InstanceListener?> AcquireAsync(string name, InstanceIdentity identity, TimeSpan wait)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(identity);
+        var mutex = await NamedMutexOwner.AcquireAsync(InstancePipe.MutexNameFor(name), InstancePipe.MutexScope, wait).ConfigureAwait(false);
+        return mutex is null ? null : new InstanceListener(name, identity, mutex);
+    }
+
+    /// <summary>Stops listening, then releases the mutex, so whoever takes the name next can open the pipe.</summary>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        _stopping.Cancel();
+        var onListener = Thread.CurrentThread == _listener;
+        var stopped = !onListener && _listener.Join(StopTimeout);
+        _mutex.Dispose();
+        if (stopped)
+        {
+            _stopping.Dispose();
+        }
+    }
+
+    private void Listen()
+    {
+        NamedPipeServerStream? next = null;
+        try
+        {
+            while (!_stopping.IsCancellationRequested)
+            {
+                try
+                {
+                    using var server = next ?? CreateServer();
+                    next = null;
+                    server.WaitForConnectionAsync(_stopping.Token).GetAwaiter().GetResult();
+                    ServeAsync(server).GetAwaiter().GetResult();
+                    if (KeepsNextListening)
+                    {
+                        next = CreateServer();
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (IOException)
+                {
+                    // A client dropped mid-handshake, or the previous owner's pipe is still closing: listen again after a breath.
+                    if (_stopping.Token.WaitHandle.WaitOne(RetryDelay))
+                    {
+                        return;
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    return;
+                }
+                catch (Exception e) when (e is ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException)
+                {
+                    // The pipe cannot exist here. A second launch then cannot reach this one, but an exception escaping this thread would end the app.
+                    return;
+                }
+            }
+        }
+        finally
+        {
+            next?.Dispose();
+        }
+    }
+
+    private NamedPipeServerStream CreateServer() =>
+        new(_pipeName, PipeDirection.InOut, KeepsNextListening ? 2 : 1, PipeTransmissionMode.Byte, InstancePipe.Flags);
+
+    private async Task ServeAsync(NamedPipeServerStream server)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_stopping.Token);
+        timeout.CancelAfter(RequestTimeout);
+        var request = await ReadRequestAsync(server, timeout.Token).ConfigureAwait(false);
+        if (request is null)
+        {
+            // Augram 0.1's one byte, or a connection that closed or broke before a full request: the connection is the request.
+            // Reading after a 0.1 launch closed can fail as a broken pipe, which must not lose it (a Windows CI run did, 2026-10-07).
+            ShowRequested?.Invoke(this, new InstanceRequestEventArgs(null, null));
+            return;
+        }
+
+        var args = new InstanceRequestEventArgs(request.From, request.Reason);
+        switch (request.Kind)
+        {
+            case InstanceRequestKind.Hello:
+                Introduced?.Invoke(this, args);
+                await AnswerAsync(server, timeout.Token).ConfigureAwait(false);
+                break;
+            case InstanceRequestKind.Quit:
+                // Answer first: the asker then waits for the mutex, which this instance releases last when it has shut down.
+                await AnswerAsync(server, timeout.Token).ConfigureAwait(false);
+                QuitRequested?.Invoke(this, args);
+                break;
+            default:
+                ShowRequested?.Invoke(this, args);
+                await AnswerAsync(server, timeout.Token).ConfigureAwait(false);
+                break;
+        }
+    }
+
+    /// <summary>The request, or null when the connection did not carry a readable one in time.</summary>
+    private async Task<InstanceRequest?> ReadRequestAsync(Stream server, CancellationToken cancellation)
+    {
+        try
+        {
+            if (await InstanceProtocol.ReadByteAsync(server, cancellation).ConfigureAwait(false) != InstanceProtocol.Marker)
+            {
+                return null;
+            }
+
+            var line = await InstanceProtocol.ReadLineAsync(server, cancellation).ConfigureAwait(false);
+            return line is null ? null : InstanceProtocol.DecodeRequest(line);
+        }
+        catch (OperationCanceledException) when (!_stopping.IsCancellationRequested)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Writes this instance's identity and waits for the asker to close, so the answer is read before the pipe goes.</summary>
+    private async Task AnswerAsync(Stream server, CancellationToken cancellation)
+    {
+        try
+        {
+            await server.WriteAsync(InstanceProtocol.EncodeIdentity(Identity), cancellation).ConfigureAwait(false);
+            await server.FlushAsync(cancellation).ConfigureAwait(false);
+            await InstanceProtocol.WaitForCloseAsync(server, cancellation).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!_stopping.IsCancellationRequested)
+        {
+            // The asker kept the pipe open past the timeout; it had its answer.
+        }
+        catch (IOException)
+        {
+            // The asker closed (a broken pipe on the last read is its normal goodbye on Windows).
+        }
+    }
+}

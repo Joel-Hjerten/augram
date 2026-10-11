@@ -1,5 +1,7 @@
 using Augram.App.Declarations;
 using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
+using Augram.App.Hosting.Startup;
 using Augram.App.Navigation;
 using Augram.App.Screens;
 using Augram.App.Tests.Support;
@@ -114,7 +116,8 @@ public sealed class BuildLabelTests
 
     private static AppSettingsViewModel Create(EngineFixture engine, AppInfo app)
     {
-        var state = new AppState(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, app);
+        var link = new StartAtLoginLink(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, app);
+        var state = new AppState(engine.Settings, link);
         var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         return new AppSettingsViewModel(engine.Settings, state, detection);
     }

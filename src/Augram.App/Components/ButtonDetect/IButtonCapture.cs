@@ -1,3 +1,4 @@
+using Augram.App.Hosting;
 using Augram.Core.Capture;
 
 namespace Augram.App.Components.ButtonDetect;

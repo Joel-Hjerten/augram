@@ -1,7 +1,7 @@
-using Augram.App.Training;
 using Augram.App.ViewModels;
 using Augram.Core.Gestures;
 using Augram.Core.Recognition;
+using Augram.Core.Training;
 using Xunit;
 
 namespace Augram.App.Tests.Training;

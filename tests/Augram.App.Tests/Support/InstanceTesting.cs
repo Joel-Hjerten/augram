@@ -1,5 +1,5 @@
 using System.IO.Pipes;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Instance;
 
 namespace Augram.App.Tests.Support;
 
@@ -26,13 +26,13 @@ internal static class InstanceTesting
 
     /// <summary>Holds <paramref name="name"/>'s mutex the way a running Augram does, with no pipe: a silent or an old Augram.</summary>
     public static NamedMutexOwner HoldName(string name) =>
-        NamedMutexOwner.AcquireAsync(SingleInstanceGuard.MutexNameFor(name), SingleInstanceGuard.MutexScope, TimeSpan.Zero).GetAwaiter().GetResult()
+        NamedMutexOwner.AcquireAsync(InstancePipe.MutexNameFor(name), InstancePipe.MutexScope, TimeSpan.Zero).GetAwaiter().GetResult()
         ?? throw new InvalidOperationException("the test name was taken");
 
     /// <summary>Augram 0.1's second launch, byte for byte: an outbound pipe with no options, the byte 1, close.</summary>
     public static void SignalLikeAugram01(string name)
     {
-        using var client = new NamedPipeClientStream(".", SingleInstanceGuard.PipeNameFor(name), PipeDirection.Out);
+        using var client = new NamedPipeClientStream(".", InstancePipe.PipeNameFor(name), PipeDirection.Out);
         client.Connect(5000);
         client.WriteByte(1);
         client.Flush();
@@ -44,7 +44,7 @@ internal static class InstanceTesting
     /// </summary>
     public static Task<bool> ListenLikeAugram01(string name, CancellationToken cancellation) => Task.Run(async () =>
     {
-        using var server = new NamedPipeServerStream(SingleInstanceGuard.PipeNameFor(name), PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        using var server = new NamedPipeServerStream(InstancePipe.PipeNameFor(name), PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
         await server.WaitForConnectionAsync(cancellation).ConfigureAwait(false);
         try
         {

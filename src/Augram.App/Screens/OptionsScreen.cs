@@ -89,7 +89,7 @@ public static class OptionsScreen
     private static FormScreen SubTab(string title, IReadOnlyList<Section> sections, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) =>
         new($"Options › {title}", sections, file, line);
 
-    /// <summary>Which build this is, read-only: version, commit and channel (<see cref="Hosting.AppInfo"/>).</summary>
+    /// <summary>Which build this is, read-only: version, commit and channel (<see cref="Hosting.Launch.AppInfo"/>).</summary>
     private static Section AboutSection(AppSettingsViewModel vm) => new(AboutTitle,
     [
         new NoteField("Version", vm.App.Version),
@@ -112,8 +112,8 @@ public static class OptionsScreen
             Visible = new DelegateBinding<bool>(() => vm.HasStartAtLoginNote, owner: vm),
         };
 
-    /// <summary>macOS only (<see cref="Hosting.AppState.CanChooseMenuBarIcon"/>): the colour icon or the tinted template, as in Eyeris.</summary>
-    private static Field[] MenuBarIcon(AppSettingsViewModel vm) => Hosting.AppState.CanChooseMenuBarIcon
+    /// <summary>macOS only (<see cref="Hosting.Startup.AppState.CanChooseMenuBarIcon"/>): the colour icon or the tinted template, as in Eyeris.</summary>
+    private static Field[] MenuBarIcon(AppSettingsViewModel vm) => Hosting.Startup.AppState.CanChooseMenuBarIcon
         ? [new ToggleField("Colour menu-bar icon", new DelegateBinding<bool>(() => vm.ColourMenuBarIcon, v => vm.ColourMenuBarIcon = v, vm), MenuBarIconHelp)]
         : [];
 

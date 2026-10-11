@@ -1,4 +1,4 @@
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Hosting;
 using Augram.App.Tests.Support;
 using Augram.Core.Abstractions;
 using Augram.Engine.Hosting;

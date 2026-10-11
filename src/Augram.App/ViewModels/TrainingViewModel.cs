@@ -1,7 +1,6 @@
 using System.Globalization;
-using Augram.App.Components.GestureDrawArea;
-using Augram.App.Training;
 using Augram.Core.Gestures;
+using Augram.Core.Training;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 

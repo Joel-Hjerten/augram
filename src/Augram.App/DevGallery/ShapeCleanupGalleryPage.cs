@@ -2,7 +2,7 @@
 using Augram.App.Components.GestureDrawArea;
 using Augram.App.Components.GestureGlyph;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
 using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.Gestures.Cleanup;

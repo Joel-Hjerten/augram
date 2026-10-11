@@ -2,7 +2,6 @@ using Augram.App.Declarations;
 using Augram.Core.Abstractions;
 using Augram.Core.Steps;
 using Augram.Core.Steps.DisplayMode;
-using Avalonia;
 using Avalonia.Controls;
 
 namespace Augram.App.Components.Steps.DisplayMode;
@@ -12,13 +11,11 @@ namespace Augram.App.Components.Steps.DisplayMode;
 /// (<see cref="DisplayModeChoices"/>, read once when the form is built), each with "Auto (keep current)" first, and the
 /// target display. Choosing a resolution re-declares the form so Refresh lists that resolution's rates; a chosen rate
 /// stays chosen even when the new resolution lacks it (the step resolves it when it runs). The displays come from the
-/// application resource <see cref="DisplayModesResourceKey"/>, which <c>EngineModule</c> publishes because forms are
+/// application's <see cref="ComponentPorts.DisplayModes"/>, which the composition root publishes because forms are
 /// built by scan without services; without it (tests, the gallery) only Auto and the step's own values are listed.
 /// </summary>
 public sealed class DisplayModeStepForm : IStepForm
 {
-    public const string DisplayModesResourceKey = "Augram.DisplayModes";
-
     private readonly IDisplayModes? _displays;
 
     public DisplayModeStepForm()
@@ -83,7 +80,7 @@ public sealed class DisplayModeStepForm : IStepForm
     private IReadOnlyList<DisplayInfo> Displays()
     {
         var displays = _displays
-            ?? (Application.Current?.Resources.TryGetValue(DisplayModesResourceKey, out var found) == true ? found as IDisplayModes : null);
+            ?? ComponentPorts.OfApplication()?.DisplayModes;
         return displays?.Displays() ?? [];
     }
 }

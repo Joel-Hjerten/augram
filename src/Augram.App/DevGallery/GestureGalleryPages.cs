@@ -8,6 +8,7 @@ using Augram.App.ViewModels;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Recognition;
+using Augram.Core.Training;
 using Augram.Import.StrokesPlus;
 
 namespace Augram.App.DevGallery;

@@ -1,3 +1,4 @@
+using Augram.App.Hosting;
 using Augram.Engine.Hosting;
 
 namespace Augram.App.Components.HotkeyCapture;

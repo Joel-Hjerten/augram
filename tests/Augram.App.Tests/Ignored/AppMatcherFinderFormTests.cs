@@ -1,3 +1,4 @@
+using Augram.App.Components;
 using Augram.App.Components.MasterDetail;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.WindowFinder;
@@ -159,7 +160,7 @@ public sealed class AppMatcherFinderFormTests
         var window = new Window { Width = 900, Height = 3200, Content = form };
         window.Show();
         var at = window.PointToScreen(OverChrome);
-        window.Resources[WindowFinder.WindowSystemResourceKey] = new FakeWindowSystem().Around(at.X, at.Y, AppMatcherFinderTests.Chrome);
+        window.Resources[ComponentPorts.ResourceKey] = new ComponentPorts { WindowSystem = new FakeWindowSystem().Around(at.X, at.Y, AppMatcherFinderTests.Chrome) };
         return (window, form.GetVisualDescendants().OfType<FieldRow>().ToList());
     }
 

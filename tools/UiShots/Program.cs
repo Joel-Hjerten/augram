@@ -1,10 +1,7 @@
 using Augram.App;
 using Augram.App.Components.Shell;
-using Augram.App.Navigation;
-using Augram.App.Themes;
+using Augram.App.Hosting;
 using Augram.App.ViewModels;
-using Augram.App.Views;
-using Augram.Core.Config;
 using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Styling;
@@ -34,17 +31,14 @@ AppBuilder.Configure(() => new App(services))
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
     .SetupWithoutStarting();
 
-// What App.StartDesktop would link up (it does not run without a desktop lifetime).
+// The main window as App.StartDesktop makes it (that does not run without a desktop lifetime).
 var app = Application.Current!;
-var appearance = AppearanceLink.Follow(services.GetRequiredService<SettingsStore>(), app);
-
-var window = services.GetRequiredService<MainWindow>();
+var (window, _) = MainWindowFactory.Create(services, app);
 window.Width = options.Width;
 window.Height = options.Height;
-appearance.Attach(window);
 window.Show();
 var shell = window.GetVisualDescendants().OfType<Shell>().Single();
-var keys = options.Keys.Count > 0 ? options.Keys : LeafKeys(services.GetRequiredService<MainWindowViewModel>().Registry, options.Gallery);
+var keys = options.Keys.Count > 0 ? options.Keys : services.GetRequiredService<MainWindowViewModel>().Registry.LeafKeys(entry => options.Gallery || entry.Title != "Gallery");
 
 foreach (var (name, variant) in options.Themes)
 {
@@ -70,30 +64,6 @@ static void Settle()
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     }
-}
-
-static List<string> LeafKeys(NavigationRegistry registry, bool gallery)
-{
-    var keys = new List<string>();
-    foreach (var entry in registry.Entries)
-    {
-        var isGallery = entry.Title == "Gallery";
-        if (isGallery && !gallery)
-        {
-            continue;
-        }
-
-        if (entry.HasSubEntries)
-        {
-            keys.AddRange(entry.SubEntries!.Select(sub => sub.Key));
-        }
-        else
-        {
-            keys.Add(entry.Key);
-        }
-    }
-
-    return keys;
 }
 
 internal sealed record Options(string Out, string? ConfigFrom, IReadOnlyList<(string Name, ThemeVariant Variant)> Themes, double Width, double Height, bool Gallery, IReadOnlyList<string> Keys)

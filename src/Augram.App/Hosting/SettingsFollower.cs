@@ -1,3 +1,4 @@
+using Augram.App.Hosting.Startup;
 using Augram.Core.Config;
 
 namespace Augram.App.Hosting;

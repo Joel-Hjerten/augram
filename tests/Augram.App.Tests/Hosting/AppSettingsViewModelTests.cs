@@ -1,5 +1,7 @@
 using Augram.App.Declarations;
 using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
+using Augram.App.Hosting.Startup;
 using Augram.App.Screens;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
@@ -122,7 +124,8 @@ public sealed class AppSettingsViewModelTests
     public void TheThemeSection_DisablesTintUnderSolid_AndShowsTheAccentColourOnlyWhenItDoesNotFollowTheTrail()
     {
         using var engine = new EngineFixture(start: false);
-        using var state = new AppState(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Release);
+        using var link = new StartAtLoginLink(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Release);
+        using var state = new AppState(engine.Settings, link);
         using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         using var vm = new AppSettingsViewModel(engine.Settings, state, detection);
         var fields = Assert.IsType<FormScreen>(OptionsScreen.DeclareAppearance(vm)).Sections.Single(section => section.Title == OptionsScreen.ThemeTitle).Fields;
@@ -145,7 +148,8 @@ public sealed class AppSettingsViewModelTests
     {
         using var engine = new EngineFixture(start: false);
         var registration = new NullStartupRegistration();
-        using var state = new AppState(engine.Settings, registration, NullEventLog.Instance, TestBuilds.Release);
+        using var link = new StartAtLoginLink(engine.Settings, registration, NullEventLog.Instance, TestBuilds.Release);
+        using var state = new AppState(engine.Settings, link);
         using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         using var vm = new AppSettingsViewModel(engine.Settings, state, detection);
         var raised = new List<string?>();
@@ -164,7 +168,8 @@ public sealed class AppSettingsViewModelTests
         using var engine = new EngineFixture(start: false);
         engine.Settings.SetGeneral(engine.Settings.Current.General with { StartAtLogin = true });
         var registration = new RecordingStartupRegistration(StartupStatus.DisabledByUser);
-        using var state = new AppState(engine.Settings, registration, NullEventLog.Instance, TestBuilds.Release);
+        using var link = new StartAtLoginLink(engine.Settings, registration, NullEventLog.Instance, TestBuilds.Release);
+        using var state = new AppState(engine.Settings, link);
         using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         using var vm = new AppSettingsViewModel(engine.Settings, state, detection);
         var fields = Assert.IsType<FormScreen>(OptionsScreen.DeclareGeneral(vm)).Sections.Single(section => section.Title == "General").Fields.ToList();
@@ -176,7 +181,7 @@ public sealed class AppSettingsViewModelTests
         Assert.Equal(OptionsScreen.StartAtLoginNoteLabel, note.Label);
         Assert.False(note.Visible!.Get());
 
-        state.SyncStartupRegistration();
+        link.SyncStartupRegistration();
 
         Assert.True(note.Visible.Get());
         Assert.Equal(state.StartAtLoginNote, note.Text.Get());
@@ -218,7 +223,8 @@ public sealed class AppSettingsViewModelTests
 
     private static AppSettingsViewModel Create(EngineFixture engine)
     {
-        var state = new AppState(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Release);
+        var link = new StartAtLoginLink(engine.Settings, new NullStartupRegistration(), NullEventLog.Instance, TestBuilds.Release);
+        var state = new AppState(engine.Settings, link);
         var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         return new AppSettingsViewModel(engine.Settings, state, detection);
     }

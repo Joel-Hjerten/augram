@@ -1,4 +1,4 @@
-using Augram.App.Hosting;
+using Augram.App.Hosting.Instance;
 using Augram.App.Tests.Support;
 using Xunit;
 using static Augram.App.Tests.Support.InstanceTesting;
@@ -19,7 +19,7 @@ public sealed class InstanceStartupTests
         using var startup = new InstanceStartup(UniqueName(), Dev);
 
         Assert.Equal(InstanceStartupStep.Run, startup.Begin());
-        Assert.NotNull(startup.Guard);
+        Assert.NotNull(startup.Listener);
         Assert.False(startup.NeedsChoice);
     }
 
@@ -27,7 +27,7 @@ public sealed class InstanceStartupTests
     public void TheSameInstall_ShowsTheRunningOne_AndExits()
     {
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Dev);
+        using var running = InstanceListener.TryAcquire(name, Dev);
         Assert.NotNull(running);
         using var shown = new ManualResetEventSlim();
         InstanceRequestEventArgs? asked = null;
@@ -47,7 +47,7 @@ public sealed class InstanceStartupTests
         Assert.True(shown.Wait(Wait), "the running Augram was not shown");
         Assert.Equal(InstanceStartup.SameInstallReason, asked?.Reason);
         Assert.Equal(rebuilt, asked?.From);
-        Assert.Null(startup.Guard);
+        Assert.Null(startup.Listener);
         Assert.Equal(0, Volatile.Read(ref quits));
     }
 
@@ -56,7 +56,7 @@ public sealed class InstanceStartupTests
     {
         // The Windows Run entry (--hidden) fires some seconds after sign-in, maybe after the user started Augram and closed its window.
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Dev);
+        using var running = InstanceListener.TryAcquire(name, Dev);
         Assert.NotNull(running);
         using var introduced = new ManualResetEventSlim();
         var shows = 0;
@@ -68,14 +68,14 @@ public sealed class InstanceStartupTests
 
         Assert.True(introduced.Wait(Wait));
         Assert.Equal(0, Volatile.Read(ref shows));
-        Assert.Null(startup.Guard);
+        Assert.Null(startup.Listener);
     }
 
     [Fact]
     public void AHiddenLaunch_WithADifferentBuildRunning_ExitsWithoutAsking()
     {
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Dev);
+        using var running = InstanceListener.TryAcquire(name, Dev);
         Assert.NotNull(running);
         var shows = 0;
         running.ShowRequested += (_, _) => Interlocked.Increment(ref shows);
@@ -84,7 +84,7 @@ public sealed class InstanceStartupTests
         Assert.Equal(InstanceStartupStep.Exit, startup.Begin());
 
         Assert.False(startup.NeedsChoice);
-        Assert.Null(startup.Guard);
+        Assert.Null(startup.Listener);
         Assert.Equal(0, Volatile.Read(ref shows));
     }
 
@@ -92,7 +92,7 @@ public sealed class InstanceStartupTests
     public void ADifferentChannel_IsAskedAbout_AndNothingIsShownYet()
     {
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Installed);
+        using var running = InstanceListener.TryAcquire(name, Installed);
         Assert.NotNull(running);
         using var introduced = new ManualResetEventSlim();
         var shows = 0;
@@ -104,7 +104,7 @@ public sealed class InstanceStartupTests
 
         Assert.True(startup.NeedsChoice);
         Assert.Equal(Installed, startup.Running);
-        Assert.Null(startup.Guard);
+        Assert.Null(startup.Listener);
         Assert.True(introduced.Wait(Wait));
         Assert.Equal(0, Volatile.Read(ref shows));
         Assert.Equal("Augram 0.2.0 (installed) is already running. Quit it and start Augram (Dev) instead?", InstanceStartup.Question(Installed, Dev));
@@ -115,7 +115,7 @@ public sealed class InstanceStartupTests
     public void AnotherExecutableOfTheSameChannel_IsAskedAbout_WithBothPaths()
     {
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Dev);
+        using var running = InstanceListener.TryAcquire(name, Dev);
         Assert.NotNull(running);
         using var startup = new InstanceStartup(name, OtherDev);
 
@@ -131,7 +131,7 @@ public sealed class InstanceStartupTests
     public async Task Confirm_AsksTheRunningOneToQuit_WaitsForTheName_AndContinues()
     {
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Installed);
+        using var running = InstanceListener.TryAcquire(name, Installed);
         Assert.NotNull(running);
         InstanceRequestEventArgs? asked = null;
         running.QuitRequested += (_, e) =>
@@ -155,12 +155,12 @@ public sealed class InstanceStartupTests
         Assert.Equal(InstanceStartup.Question(Installed, Dev), message);
         Assert.Equal("Quit it and start this one", confirm);
         Assert.Empty(presenter.Messages);
-        Assert.NotNull(startup.Guard);
+        Assert.NotNull(startup.Listener);
         Assert.False(startup.NeedsChoice);
         Assert.Equal(Dev, asked?.From);
 
         // This launch now owns the name and answers the next one.
-        var third = SingleInstanceGuard.Send(name, new InstanceRequest(InstanceRequestKind.Hello, OtherDev), TimeSpan.FromSeconds(5));
+        var third = InstanceClient.Send(name, new InstanceRequest(InstanceRequestKind.Hello, OtherDev), TimeSpan.FromSeconds(5));
         Assert.Equal(Dev, third.Running);
         var log = new ListEventLog();
         startup.LogNotes(log);
@@ -173,7 +173,7 @@ public sealed class InstanceStartupTests
     public async Task Cancel_ShowsTheRunningOne_AndExits()
     {
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Installed);
+        using var running = InstanceListener.TryAcquire(name, Installed);
         Assert.NotNull(running);
         using var shown = new ManualResetEventSlim();
         InstanceRequestEventArgs? asked = null;
@@ -193,8 +193,8 @@ public sealed class InstanceStartupTests
         Assert.True(shown.Wait(Wait), "the running Augram was not shown after Cancel");
         Assert.Equal(InstanceStartup.CancelledReason, asked?.Reason);
         Assert.Equal(0, Volatile.Read(ref quits));
-        Assert.Null(startup.Guard);
-        using var still = SingleInstanceGuard.TryAcquire(name, OtherDev);
+        Assert.Null(startup.Listener);
+        using var still = InstanceListener.TryAcquire(name, OtherDev);
         Assert.Null(still);
     }
 
@@ -202,7 +202,7 @@ public sealed class InstanceStartupTests
     public async Task ARunningOneThatDoesNotQuitInTime_IsReported_AndThisLaunchExits()
     {
         var name = UniqueName();
-        using var running = SingleInstanceGuard.TryAcquire(name, Installed);
+        using var running = InstanceListener.TryAcquire(name, Installed);
         Assert.NotNull(running);
         using var quitAsked = new ManualResetEventSlim();
         running.QuitRequested += (_, _) => quitAsked.Set();
@@ -216,8 +216,8 @@ public sealed class InstanceStartupTests
         var (title, message) = Assert.Single(presenter.Messages);
         Assert.Equal("Augram (Dev)", title);
         Assert.Equal(InstanceStartup.TimeoutMessage(Installed, Dev, startup.QuitTimeout), message);
-        Assert.Null(startup.Guard);
-        using var still = SingleInstanceGuard.TryAcquire(name, OtherDev);
+        Assert.Null(startup.Listener);
+        using var still = InstanceListener.TryAcquire(name, OtherDev);
         Assert.Null(still);
         Assert.Equal(
             "Augram 0.2.0 (installed) did not quit within 10 seconds. Quit it from its tray icon, then start Augram (Dev) again.",
@@ -237,7 +237,7 @@ public sealed class InstanceStartupTests
 
         Assert.True(await connected, "the old Augram was not reached");
         Assert.Null(startup.Running);
-        Assert.Null(startup.Guard);
+        Assert.Null(startup.Listener);
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public sealed class InstanceStartupTests
         Assert.Equal(InstanceStartupStep.Run, startup.Begin());
 
         await release;
-        Assert.NotNull(startup.Guard);
+        Assert.NotNull(startup.Listener);
     }
 
     [Fact]
@@ -266,6 +266,6 @@ public sealed class InstanceStartupTests
         using var startup = new InstanceStartup(name, Dev, silentWait: TimeSpan.FromMilliseconds(200));
 
         Assert.Equal(InstanceStartupStep.Exit, startup.Begin());
-        Assert.Null(startup.Guard);
+        Assert.Null(startup.Listener);
     }
 }

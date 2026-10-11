@@ -1,7 +1,8 @@
 using Augram.App.Components.MasterDetail;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Modules;
 using Augram.App.Navigation;
+using Augram.App.Tests.Support;
 using Augram.App.ViewModels.Ignored;
 using Augram.Core.Mapping;
 using Avalonia.Headless.XUnit;
@@ -21,6 +22,7 @@ public sealed class IgnoredModuleTests
         var zoom = new Command(CommandId.New(), "Zoom in", Trigger.None, IsActive: true, []) { NotIn = [spine.Id] };
         var services = new ServiceCollection();
         services.AddSingleton(new MappingStore(new MappingDocument([AppGroup.EmptyGlobal with { Commands = [zoom] }], [spine, vmware])));
+        services.AddSiblings();
         CommandsModule.Register(services);
         IgnoredModule.Register(services);
         using var provider = services.BuildServiceProvider();

@@ -1,6 +1,6 @@
 # App/Sync
 
-The App's part of machine-to-machine sync (requirements F8 sync): when a run happens, on which thread, and what the user sees of it. The merge, the base state and the run itself are Core's (`../../Augram.Core/Sync/README.md`); the git side is `Augram.Sync.Git`; the registration is `../Hosting/SyncModule.cs`. Options › Sync, the tray item and the dialogs' view models live with their kind (below) and read this folder.
+The App's part of machine-to-machine sync (requirements F8 sync): when a run happens, on which thread, and what the user sees of it. The merge, the base state and the run itself are Core's (`../../Augram.Core/Sync/README.md`); the git side is `Augram.Sync.Git`; the registration is `../Hosting/Modules/SyncModule.cs`. Options › Sync, the tray item and the dialogs' view models live with their kind (below) and read this folder.
 
 ## Types
 
@@ -19,7 +19,7 @@ The App's part of machine-to-machine sync (requirements F8 sync): when a run hap
 | `ISyncConflictPresenter` / `SyncConflictPresenter`, `SyncConflictWindow` | Resolve…: the conflict list over `SyncConflictsViewModel`, Cancel / Apply |
 | `SyncConflictSideText` | One version of a conflicting item in words ("Chrome › Close tab: gesture Zig → Wait 30 ms", "deleted"); `SyncConflictsViewModel` builds its entries with it, for sync and for the Augram file import |
 
-Elsewhere: `Hosting/SyncModule` + `SyncModuleOptions` (composition: what is registered and the test seams), `ViewModels/SyncViewModel` (Options › Sync; its two text fields are `ViewModels/DraftText`s), `ViewModels/SyncConflictsViewModel` (the choices; shared with the import), `ViewModels/SyncJoinViewModel`, `Screens/OptionsSyncSection`, `Tray/SyncTrayItem`, `Components/SyncConflictList`.
+Elsewhere: `Hosting/Modules/SyncModule` + `SyncModuleOptions` (composition: what is registered and the test seams), `ViewModels/SyncViewModel` (Options › Sync; its two text fields are `ViewModels/DraftText`s), `ViewModels/SyncConflictsViewModel` (the choices; shared with the import), `ViewModels/SyncJoinViewModel`, `Screens/OptionsSyncSection`, `Tray/SyncTrayItem`, `Components/SyncConflictList`.
 
 ## When a run happens
 
@@ -70,7 +70,7 @@ Diagnostics › Health reads the last report alone (`SyncStatusText.Outcome`): i
 
 - Merge rules, repairs, which choice is allowed, the URL-change reset: Core (`Core/Sync`). The App passes jobs through and never re-decides.
 - Git or process starts: `Augram.Sync.Git`.
-- Registration and the test seams: `Hosting/SyncModule`, `SyncModuleOptions`.
+- Registration and the test seams: `Hosting/Modules/SyncModule`, `SyncModuleOptions`.
 - View models and screens: `ViewModels/`, `Screens/` (they read this folder).
 - Store writes outside `SyncStoreThread`, and anything that touches input: sync runs under `--no-engine` too.
 - New status words outside `SyncStatusText`.

@@ -1,4 +1,5 @@
 using Augram.App.Training;
+using Augram.Core.Training;
 
 namespace Augram.App.Tests.Support;
 

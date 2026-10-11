@@ -9,7 +9,7 @@ namespace Augram.App.Components.ButtonDetect;
 /// <summary>
 /// One detect-to-assign at a time for a form or header (F1; a hold remap command's buttons, plan 0002 step 4): <see cref="Start"/>
 /// listens for the next mouse button press and reports it once to <c>detected</c>, then stops. It asks the engine
-/// (<see cref="IButtonCapture"/>: <see cref="Capture"/>, else the application resource <see cref="ButtonCaptureResourceKey"/>),
+/// (<see cref="IButtonCapture"/>: <see cref="Capture"/>, else <see cref="ComponentPorts.ButtonCapture"/>),
 /// which sees a press anywhere, the stroke button included, and also takes a press on the owner's own window (the only
 /// source under <c>--no-engine</c>); that press is marked handled, so answering never also clicks what is under the pointer.
 /// It gives up after <see cref="Timeout"/> and says so. <see cref="Status"/> is the line to show; <see cref="Changed"/> says
@@ -17,7 +17,6 @@ namespace Augram.App.Components.ButtonDetect;
 /// </summary>
 public sealed class ButtonDetector : IDisposable
 {
-    public const string ButtonCaptureResourceKey = "Augram.ButtonCapture";
     public const string ListeningText = "Press the mouse button to add (anywhere)…";
     public const string WindowOnlyText = "Press the mouse button over this window: the engine is off, so presses elsewhere are not seen…";
     public const string TimedOutText = "No button seen in 5 seconds. If you pressed one, its vendor software may consume it before Augram can see it.";
@@ -41,7 +40,7 @@ public sealed class ButtonDetector : IDisposable
     /// <summary>Raised when <see cref="IsListening"/> or <see cref="Status"/> changed.</summary>
     public event EventHandler? Changed;
 
-    /// <summary>Explicit capture service (tests, gallery); null looks up <see cref="ButtonCaptureResourceKey"/>.</summary>
+    /// <summary>Explicit capture service (tests, gallery); null looks up <see cref="ComponentPorts.ButtonCapture"/>.</summary>
     public IButtonCapture? Capture { get; set; }
 
     public TimeSpan Timeout { get; set; } = DefaultTimeout;
@@ -61,7 +60,7 @@ public sealed class ButtonDetector : IDisposable
         }
 
         var session = ++_session;
-        var service = Capture ?? (_owner.TryFindResource(ButtonCaptureResourceKey, out var found) ? found as IButtonCapture : null);
+        var service = Capture ?? ComponentPorts.Near(_owner)?.ButtonCapture;
         _engine = service?.Begin(button => Detected(session, button));
         _topLevel = topLevel;
         topLevel.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);

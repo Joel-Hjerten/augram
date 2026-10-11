@@ -1,31 +1,35 @@
-using Augram.App.Components.ButtonDetect;
 using Augram.App.Dialogs;
 using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
+using Augram.App.Hosting.Modules;
+using Augram.App.Hosting.Startup;
 using Augram.App.Navigation;
+using Augram.App.Sync;
+using Augram.App.Tray;
 using Augram.App.ViewModels;
 using Augram.App.Views;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Engine.Diagnostics;
-using Augram.Engine.Hosting;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Augram.App;
 
 /// <summary>
-/// The single place where services are registered (ADR-0002 §2). Core stores, Engine services and
-/// Platform adapters are added here as they land; nothing else in the app calls <c>new</c> on a service.
+/// The single place where services are registered (ADR-0002 §2): the diagnostics, the launch's state, then one module per
+/// slice (<c>Hosting/Modules/</c>), then the tray and the window. Nothing else in the app calls <c>new</c> on a service. The
+/// order things are built, started and disposed in is in <c>Hosting/README.md</c>.
 /// </summary>
 internal static class CompositionRoot
 {
-    public static readonly TimeSpan HealthRefreshInterval = TimeSpan.FromSeconds(1);
-
     /// <param name="app">This build (version, commit, channel); <see cref="AppInfo.Current"/> when null.</param>
     /// <param name="logsFolder">Overrides <see cref="AppPaths.LogsFolder"/>; tests point it at a temp folder.</param>
     /// <param name="configFolder">Overrides <see cref="AppPaths.ConfigFolder"/>; tests point it at a temp folder so they never touch the real config.</param>
     /// <remarks>
     /// Building creates nothing: services come to life when first resolved. A launch that must first settle with another
-    /// running Augram (<see cref="InstanceStartup"/>) resolves only the take-over's <see cref="IConfirmPresenter"/> (keyed <see cref="ConfirmPresenter.AloneKey"/>) until it may start.
+    /// running Augram (<see cref="Hosting.Instance.InstanceStartup"/>) resolves only the take-over's <see cref="IConfirmPresenter"/> (keyed <see cref="ConfirmPresenter.AloneKey"/>) until it may start.
     /// </remarks>
     public static ServiceProvider Build(AppInfo? app = null, string? logsFolder = null, string? configFolder = null)
     {
@@ -43,32 +47,40 @@ internal static class CompositionRoot
         services.AddSingleton<RecognitionLog>();
         services.AddSingleton<AppHealthContributor>();
 
-        // App-level state and host services. The single-instance guard is not a service: Program owns it through InstanceStartup.
+        // The launch and app-level state. The single-instance listener is not a service: Program owns it through InstanceStartup.
         services.AddSingleton(app ?? AppInfo.Current);
+        services.AddSingleton(_ => LaunchArguments.Current);
+        services.AddSingleton<StartAtLoginLink>();
         services.AddSingleton<AppState>();
         services.AddSingleton<IClipboardText, AppClipboard>();
-        services.AddKeyedSingleton<IConfirmPresenter>(ConfirmPresenter.AloneKey, (_, _) => ConfirmPresenter.Alone());
 
-        // Engine slice: config session and stores, Platform adapters, overlay, EngineHost (started in App.StartDesktop).
-        EngineModule.Register(services, new EngineModuleOptions { ConfigFolder = configFolder, Marshal = ui });
-        // Gestures tab slice: training session, presenters ("Used by…", delete confirmation), view model.
+        // The dialogs every slice shares, the take-over's confirmation among them.
+        DialogsModule.Register(services);
+        // The config session and its stores, the Platform adapters, then the engine over both (started in App.StartDesktop).
+        ConfigModule.Register(services, new ConfigModuleOptions { ConfigFolder = configFolder, Marshal = ui });
+        PlatformModule.Register(services);
+        EngineModule.Register(services, new EngineModuleOptions { Marshal = ui });
+        // The tabs: Gestures (training, "Used by…"), Commands (pickers, navigator, the locator the "Used by…" popup jumps through), Exclusions.
         GesturesModule.Register(services);
-        // Commands tab slice, after the Gestures one: pickers, navigator, view model and the ICommandLocator the "Used by…" popup jumps through.
         CommandsModule.Register(services);
-        // Detect-to-assign for a hold remap command's buttons (plan 0002 step 4); App.StartDesktop publishes it once the engine runs.
-        services.AddSingleton<IButtonCapture>(sp => new EngineButtonCapture(sp.GetRequiredService<EngineHost>(), ui));
-        // Exclusions tab slice (F5 ignore list), after the Commands one: its view model over the mapping store and the tab entry.
         IgnoredModule.Register(services);
-        // Export and import of Augram files (plan 0003), after the Gestures and Commands slices: presenters, file picker, Options › Sync › Export and import.
+        // Export and import of Augram files (plan 0003): presenters, file picker, Options › Sync › Export and import.
         TransferModule.Register(services);
-        // Sync slice (F8), after the engine's stores: git adapter, coordinator, the sync worker, dialogs, Options › Sync (started in App.StartDesktop).
+        // Sync (F8): git adapter, coordinator, the sync worker, dialogs, Options › Sync (started in App.StartDesktop).
         SyncModule.Register(services, new SyncModuleOptions { ConfigFolder = configFolder, Marshal = ui });
+        OptionsModule.Register(services);
+        DiagnosticsModule.Register(services, logs);
 
-        // View models: projections over the stores above (ADR-0002 §5a).
-        services.AddSingleton<AppSettingsViewModel>();
-        services.AddSingleton(sp => new HealthViewModel(sp.GetRequiredService<IHealthSource>(), HealthRefreshInterval));
-        services.AddSingleton(sp => new LogViewModel(sp.GetRequiredService<InMemorySink>(), logs, sp.GetRequiredService<IClipboardText>()));
-        services.AddSingleton<RecognitionViewModel>();
+        // The tray (resolved in App.StartDesktop once the engine and sync started): Open shows the window, Quit ends the lifetime.
+        services.AddSingleton(sp => new AppTray(
+            sp.GetRequiredService<AppState>(),
+            sp.GetRequiredService<MainWindowOpener>().ShowNow,
+            () => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown(),
+            sp.GetRequiredService<IEventLog>(),
+            sp.GetService<SyncService>(),
+            sp.GetService<EnginePauseState>()));
+
+        // The window: the tabs (each from its module's NavEntry) and the shell's view model.
         services.AddSingleton(AppNavigation.Build);
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

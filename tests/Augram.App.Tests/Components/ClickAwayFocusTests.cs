@@ -1,4 +1,4 @@
-using Augram.App.Views;
+using Augram.App.Hosting;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;

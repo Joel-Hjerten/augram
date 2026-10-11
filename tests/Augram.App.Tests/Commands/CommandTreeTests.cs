@@ -1,6 +1,7 @@
 using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
 using Augram.App.Declarations;
+using Augram.App.Hosting;
 using Augram.App.Screens;
 using Augram.App.ViewModels.Commands;
 using Avalonia;
@@ -143,7 +144,7 @@ public sealed class CommandTreeTests
         var editor = tree.Rows.OfType<CommandRow>().Single(row => row.NameText == "Close tab").GetVisualDescendants().OfType<TextBox>().Single();
         editor.Text = "Close it";
 
-        Views.ClickAwayFocus.Register();
+        ClickAwayFocus.Register();
         var heading = tree.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == vm.Heading);
         ClickAt(window, heading);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();

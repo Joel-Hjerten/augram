@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 using Augram.App.Dialogs;
-using Augram.App.Hosting;
+using Augram.App.Hosting.Launch;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Platform.MacOS;
@@ -72,7 +72,7 @@ public sealed partial class App
     /// loop cannot use it up before the launch event had its chance.
     /// </summary>
     [SupportedOSPlatform("macos")]
-    private void WaitForLaunchEvent(IReadOnlyList<string> args, IEventLog log)
+    private void WaitForLaunchEvent(bool hiddenArgument, IEventLog log)
     {
         var decided = false;
         void Decide(bool loginItem, string launchEvent)
@@ -83,7 +83,7 @@ public sealed partial class App
             }
 
             decided = true;
-            var launch = LaunchVisibility.Decide(args, loginItem);
+            var launch = LaunchVisibility.Decide(hiddenArgument, loginItem);
             log.Info(LogSources.App, "Launch window decided", [.. launch.LogProperties, ("event", launchEvent)]);
             OpenAsLaunched(launch, showsItself: true);
         }
@@ -103,7 +103,7 @@ public sealed partial class App
 
     /// <summary>
     /// macOS: opening Augram again from Finder, Launchpad, Spotlight or the Dock reaches the running Augram as a reopen, not as a
-    /// second launch (the single-instance guard never hears of it): show the window, as a second launch does. Never raised elsewhere.
+    /// second launch (the single-instance listener never hears of it): show the window, as a second launch does. Never raised elsewhere.
     /// </summary>
     private void ShowOnReopen(IEventLog log)
     {
