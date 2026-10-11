@@ -4,10 +4,10 @@ using Augram.Core.Recognition;
 namespace Augram.Import.StrokesPlus;
 
 /// <summary>
-/// Pure merge policy for imported gestures (requirements F8): names clash case-insensitively, a
-/// shape that scores as a duplicate of an existing gesture is offered the same choices (A7: a
-/// re-import reuses the existing gesture rather than adding a copy), conflicts are resolved per entry,
-/// and existing ids never change. No UI, no store.
+/// Pure merge policy for imported gestures (requirements F8): names clash as the rules compare them
+/// (<see cref="GestureRules.NameComparer"/>, case-insensitive), a shape that scores as a duplicate of an
+/// existing gesture is offered the same choices (A7: a re-import reuses the existing gesture rather than
+/// adding a copy), conflicts are resolved per entry, and existing ids never change. No UI, no store.
 /// </summary>
 public static class GestureMerge
 {
@@ -18,7 +18,7 @@ public static class GestureMerge
     {
         ArgumentNullException.ThrowIfNull(existing);
         ArgumentNullException.ThrowIfNull(imported);
-        var byName = existing.ToDictionary(gesture => gesture.Name, StringComparer.OrdinalIgnoreCase);
+        var byName = existing.ToDictionary(gesture => gesture.Name, GestureRules.NameComparer);
         var entries = imported
             .Select(gesture => byName.TryGetValue(gesture.Name, out var clash)
                 ? new MergeEntry(gesture, MergeKind.Conflict, clash)
@@ -67,7 +67,7 @@ public static class GestureMerge
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(choices);
         var result = plan.Existing.ToList();
-        var names = new HashSet<string>(result.Select(gesture => gesture.Name), StringComparer.OrdinalIgnoreCase);
+        var names = new HashSet<string>(result.Select(gesture => gesture.Name), GestureRules.NameComparer);
         var map = new Dictionary<GestureId, GestureId>();
 
         foreach (var entry in plan.Entries)
