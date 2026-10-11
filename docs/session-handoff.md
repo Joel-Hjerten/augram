@@ -4,6 +4,19 @@ You are picking up a project whose first runnable milestone is built and accepte
 
 ## 0. Right now
 
+### ALSO NOW: plan 0006, the glass look (D2), decided, nothing built (written 2026-10-11, PC session)
+
+Joel decided the app's look on an interactive mockup: **[plan 0006](plans/0006-glass-look.md)**. In short:
+- frosted glass, with depth from translucent layers instead of white outlines
+- folder tabs in the title bar, with sub-tab pills inside the page
+- dark by default, plus Light and Follow system
+- corner rounding as a setting, 12 px by default
+- the accent follows the trail colour, with a switch to set it separately; colours come from swatches or Custom…
+- a fresh install's trail is yellow `#F5C542`
+- Options gets sub-tabs: General · Strokes · Appearance · Sync · About
+
+Open [design/mockups/augram-glass-theme.html](../design/mockups/augram-glass-theme.html) in a browser before touching a theme file. The first step is the glass test in the real window. Joel runs it on each machine; per CLAUDE.md, the lead tells him first. Plan 0005's Mac check is independent of this and can go first on the Mac.
+
 ### NOW: plan 0005 (button triggers, Also in, Exclusions) as 0.10.0 on the PC, Joel's check (written 2026-10-11, PC session)
 
 **[Plan 0005](plans/0005-button-triggers.md)** moves Eyeris's loupe chord into Augram (read its decisions first). Built and merged on main as **0.10.0**, CI green, nothing run on a desktop yet:

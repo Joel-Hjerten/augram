@@ -5,6 +5,7 @@ Human-authored design source: editable working files and clean master exports. *
 
 ```
 app-icon/            THE app mark: app-icon.psd (Photoshop working file) and exports/app-icon.png (1024 px master)
+mockups/             interactive HTML mockups; open in a browser. augram-glass-theme.html is plan 0006's visual reference
 ```
 
 ## Source vs. generated

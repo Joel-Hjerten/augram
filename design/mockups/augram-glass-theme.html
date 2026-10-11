@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Plan 0006 mockup. Open in a browser. Published for Joel at https://claude.ai/artifact/FMAG9FhhMRnHqHB3zmf8rH (private). -->
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Augram Glass Theme</title>
+<style>
+/* Layout: a control strip, then a pretend desktop holding one Augram settings window (the subject), then two note panels. */
+:root{
+  --page-bg:#E7E7EB; --page-panel:#F5F5F7; --page-fg:#18181D; --page-muted:#5A5A66; --page-line:rgba(20,20,30,.12);
+  --page-accent:#8E6300; --page-on:#18181D; --page-on-fg:#F5F5F7;
+  --ui:"Segoe UI Variable Text","Segoe UI",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --ui-display:"Segoe UI Variable Display","Segoe UI",-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;
+  --mono:"Cascadia Mono","SF Mono",Menlo,Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --page-bg:#0D0D10; --page-panel:#16161B; --page-fg:#ECECF1; --page-muted:#9A9AA7; --page-line:rgba(255,255,255,.1);
+    --page-accent:#E8B848; --page-on:#ECECF1; --page-on-fg:#16161B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --page-bg:#0D0D10; --page-panel:#16161B; --page-fg:#ECECF1; --page-muted:#9A9AA7; --page-line:rgba(255,255,255,.1);
+  --page-accent:#E8B848; --page-on:#ECECF1; --page-on-fg:#16161B; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--page-bg); color:var(--page-fg); font-family:var(--ui); font-size:14px; line-height:1.45; padding-inline:16px; padding-block:24px 48px}
+.wrap{max-width:1180px; margin:0 auto; display:grid; gap:16px}
+.intro h1{font-family:var(--ui-display); font-size:26px; font-weight:650; letter-spacing:-.01em; margin:0 0 4px; text-wrap:balance}
+.intro p{margin:0; color:var(--page-muted); max-width:72ch}
+:focus-visible{outline:2px solid var(--page-accent); outline-offset:2px}
+
+/* Control strip (page chrome, follows the viewer's theme) */
+.controls{display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:12px 14px; background:var(--page-panel); border:1px solid var(--page-line); border-radius:12px}
+.ctl{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.ctl-label{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--page-muted); font-weight:600}
+.seg{display:inline-flex; flex-wrap:wrap; border:1px solid var(--page-line); border-radius:8px; padding:2px; gap:2px}
+.seg button{font:inherit; font-size:12.5px; border:0; background:transparent; color:var(--page-fg); padding:5px 10px; border-radius:6px; cursor:pointer}
+.seg button:hover{background:var(--page-line)}
+.seg button[aria-pressed="true"]{background:var(--page-on); color:var(--page-on-fg)}
+.range{display:flex; align-items:center; gap:8px}
+.range input{width:118px; accent-color:var(--page-accent)}
+.range output{font-size:12.5px; min-width:44px; color:var(--page-muted); font-variant-numeric:tabular-nums}
+
+/* The pretend desktop */
+.scene{position:relative; border-radius:16px; overflow:hidden; padding:48px clamp(12px,5%,64px); display:flex; justify-content:center; background:var(--wall); background-repeat:no-repeat}
+.scene[data-wall="dusk"]{--wall:
+  radial-gradient(42% 48% at 16% 24%, rgba(140,62,150,.92), rgba(140,62,150,0) 70%),
+  radial-gradient(40% 50% at 86% 20%, rgba(232,140,48,.88), rgba(232,140,48,0) 70%),
+  radial-gradient(50% 55% at 62% 92%, rgba(28,120,132,.9), rgba(28,120,132,0) 72%),
+  radial-gradient(30% 35% at 42% 50%, rgba(200,70,90,.5), rgba(200,70,90,0) 70%),
+  linear-gradient(160deg,#120D1C 0%,#0A0C14 100%)}
+.scene[data-wall="day"]{--wall:
+  radial-gradient(45% 50% at 20% 20%, rgba(255,255,255,1), rgba(255,255,255,0) 70%),
+  radial-gradient(40% 45% at 85% 25%, rgba(255,214,176,.95), rgba(255,214,176,0) 70%),
+  radial-gradient(55% 50% at 60% 90%, rgba(196,236,220,.95), rgba(196,236,220,0) 70%),
+  linear-gradient(180deg,#CFE2F6 0%,#EEF3F8 100%)}
+.scene[data-wall="bloom"]{--wall:
+  radial-gradient(60% 70% at 70% 60%, rgba(70,140,255,.95), rgba(70,140,255,0) 65%),
+  radial-gradient(35% 45% at 58% 48%, rgba(170,210,255,.9), rgba(170,210,255,0) 70%),
+  radial-gradient(50% 60% at 20% 30%, rgba(20,60,190,.9), rgba(20,60,190,0) 70%),
+  linear-gradient(135deg,#031033 0%,#06205F 55%,#0B2E86 100%)}
+.bg-app{position:absolute; border-radius:10px; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.bg-browser{left:3%; top:5%; width:36%; height:52%; background:#FBFBFC}
+.bg-browser .bar{height:28px; background:#ECECEF; display:flex; gap:6px; align-items:center; padding:0 10px}
+.bg-browser .bar i{width:9px; height:9px; border-radius:50%; background:#C9C9D1; display:block}
+.bg-browser .hero{height:42%; background:linear-gradient(120deg,#FF6A3D,#FFB938 60%,#FFE07A)}
+.bg-browser .txt{padding:14px 16px; display:grid; gap:8px}
+.bg-browser .ln{height:9px; border-radius:5px; background:#D5D5DC}
+.bg-browser .ln.h{height:14px; width:60%; background:#2A2A33}
+.bg-browser .ln.s{width:78%}
+.bg-browser .cta{width:110px; height:26px; border-radius:6px; background:#2F6BFF; margin-top:4px}
+.bg-term{right:3%; bottom:5%; width:34%; height:38%; background:#0B0C0F; font:11px/1.6 var(--mono); color:#C9D1D9; padding:12px 14px; white-space:nowrap}
+.bg-term b{color:#7EE787; font-weight:400} .bg-term em{color:#79C0FF; font-style:normal}
+.footnote{font-size:12.5px; color:var(--page-muted); margin:-6px 4px 0; max-width:100ch}
+
+/* ===== The Augram window. Its tokens follow its own mode, not the page's. ===== */
+[data-mode="dark"]{
+  --m-tint:24,23,28;
+  --m-fg:#F2F1F5; --m-muted:rgba(242,241,245,.64); --m-faint:rgba(242,241,245,.38);
+  --m-l1:rgba(255,255,255,.045); --m-l2:rgba(255,255,255,.055); --m-tile:rgba(255,255,255,.05);
+  --m-ctl:rgba(255,255,255,.08); --m-ctl-hover:rgba(255,255,255,.13); --m-hover:rgba(255,255,255,.055);
+  --m-input:rgba(0,0,0,.24); --m-seg-on:rgba(255,255,255,.14);
+  --m-edge:rgba(255,255,255,.07); --m-edge-top:rgba(255,255,255,.12); --m-divider:rgba(255,255,255,.065);
+  --m-accent:#ECB740; --m-accent-fg:#1D1606; --m-accent-soft:rgba(236,183,64,.15); --m-accent-line:rgba(236,183,64,.45); --m-accent-text:#F3C860;
+  --m-danger:#FF7A70; --m-ok:#5BD18B; --m-warn:#F5B84A;
+  --glyph-start:#B06E1A; --glyph-end:#F7D25E; --glyph-start-muted:rgba(255,255,255,.16);
+  --m-shadow:0 24px 70px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35); --m-outline:rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+[data-mode="light"]{
+  --m-tint:236,235,240;
+  --m-fg:#1D1C22; --m-muted:rgba(29,28,34,.64); --m-faint:rgba(29,28,34,.4);
+  --m-l1:rgba(255,255,255,.42); --m-l2:rgba(255,255,255,.62); --m-tile:rgba(20,20,40,.04);
+  --m-ctl:rgba(255,255,255,.78); --m-ctl-hover:rgba(255,255,255,1); --m-hover:rgba(20,20,40,.05);
+  --m-input:rgba(255,255,255,.72); --m-seg-on:rgba(255,255,255,1);
+  --m-edge:rgba(20,20,40,.09); --m-edge-top:rgba(255,255,255,.8); --m-divider:rgba(20,20,40,.07);
+  --m-accent:#B98109; --m-accent-fg:#FFFFFF; --m-accent-soft:rgba(205,148,20,.14); --m-accent-line:rgba(185,129,9,.45); --m-accent-text:#8C6105;
+  --m-danger:#D93B30; --m-ok:#1E9E57; --m-warn:#A86A00;
+  --glyph-start:#7C4A0E; --glyph-end:#D69C14; --glyph-start-muted:rgba(20,20,40,.16);
+  --m-shadow:0 24px 70px rgba(30,30,60,.28), 0 2px 8px rgba(30,30,60,.12); --m-outline:rgba(20,20,40,.18);
+  color-scheme:light;
+}
+.win{position:relative; width:min(1000px,100%); height:660px; border-radius:var(--win-r); overflow:hidden; display:flex; flex-direction:column;
+  color:var(--m-fg); font-family:var(--ui); font-size:13px; line-height:1.35; container-type:inline-size;
+  --r:12px; --rc:calc(var(--r) * .5); --alpha:.68; --mica-alpha:.75;
+  box-shadow:var(--m-shadow), 0 0 0 1px var(--m-outline)}
+.win::after{content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:5;
+  box-shadow:inset 0 0 0 1px var(--m-edge), inset 0 1px 0 var(--m-edge-top)}
+.win[data-os="win"]{--win-r:8px}
+.win[data-os="mac"]{--win-r:14px}
+.win[data-material="acrylic"]{background:rgba(var(--m-tint),var(--alpha)); -webkit-backdrop-filter:blur(30px) saturate(170%); backdrop-filter:blur(30px) saturate(170%)}
+.win[data-material="mica"], .win[data-material="solid"]{background:rgb(var(--m-tint))}
+.mica{display:none; position:absolute; inset:0; overflow:hidden; pointer-events:none}
+.win[data-material="mica"] .mica{display:block}
+.mica::before{content:""; position:absolute; inset:-80px; background:var(--wall); background-repeat:no-repeat;
+  background-size:var(--sw,100%) var(--sh,100%); background-position:calc(80px - var(--wx,0px)) calc(80px - var(--wy,0px)); filter:blur(60px) saturate(150%)}
+.mica::after{content:""; position:absolute; inset:0; background:rgba(var(--m-tint),var(--mica-alpha))}
+.win button{font:inherit; color:inherit}
+
+/* Title bar with the top-level tabs in it */
+.titlebar{position:relative; display:flex; align-items:flex-end; height:46px; flex:none; padding-left:14px; gap:4px}
+.traffic{display:none; gap:8px; align-self:center; margin-right:12px}
+.traffic i{width:12px; height:12px; border-radius:50%; display:block}
+.traffic i:nth-child(1){background:#FF5F57} .traffic i:nth-child(2){background:#FEBC2E} .traffic i:nth-child(3){background:#28C840}
+.appname{display:flex; align-items:center; gap:8px; align-self:center; font-size:12px; color:var(--m-muted); white-space:nowrap; margin-right:6px}
+.maclabel{display:none; align-self:center; font-size:12px; color:var(--m-muted); padding-right:16px; white-space:nowrap}
+.win[data-os="mac"] .traffic{display:flex}
+.win[data-os="mac"] .appname{display:none}
+.win[data-os="mac"] .maclabel{display:block}
+.win[data-os="mac"] .caps{display:none}
+.tabs{display:flex; align-items:flex-end; gap:2px; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; min-width:0;
+  --flare:calc(var(--r) * .75); --tab-r:calc(var(--r) * .85); padding:0 var(--flare)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{position:relative; flex:none; height:36px; padding:0 4px; border:0; background:transparent; color:var(--m-muted); font-size:13px; border-radius:var(--tab-r) var(--tab-r) 0 0; cursor:pointer}
+.tab > span{display:block; padding:6px 12px; margin-bottom:4px; border-radius:calc(var(--tab-r) * .8)}
+.tab:hover > span{background:var(--m-hover); color:var(--m-fg)}
+.tab[aria-selected="true"]{background:var(--m-l1); color:var(--m-fg)}
+.tab[aria-selected="true"] > span{background:none}
+.tab[aria-selected="true"]::before, .tab[aria-selected="true"]::after{content:""; position:absolute; bottom:0; width:var(--flare); height:var(--flare); pointer-events:none}
+.tab[aria-selected="true"]::before{left:calc(var(--flare) * -1); background:radial-gradient(circle at 0 0, transparent calc(var(--flare) - .5px), var(--m-l1) var(--flare))}
+.tab[aria-selected="true"]::after{right:calc(var(--flare) * -1); background:radial-gradient(circle at 100% 0, transparent calc(var(--flare) - .5px), var(--m-l1) var(--flare))}
+.spacer{flex:1}
+.caps{display:flex; align-self:flex-start; height:32px; flex:none}
+.caps span{width:46px; height:32px; display:grid; place-items:center; color:var(--m-fg)}
+.caps span:hover{background:var(--m-hover)}
+.caps span.x:hover{background:#C42B1C; color:#FFFFFF}
+
+/* The tab's page (layer 1), sub-tab pills, content */
+.page{position:relative; flex:1; min-height:0; margin:0 8px 8px; background:var(--m-l1); border-radius:calc(var(--r) + 2px); display:flex; flex-direction:column}
+.subtabs{display:flex; gap:4px; padding:10px 12px 2px; overflow-x:auto; scrollbar-width:thin; flex:none}
+.subtabs:empty{display:none}
+.pill{flex:none; border:0; background:transparent; color:var(--m-muted); font-size:12.5px; padding:6px 13px; border-radius:var(--rc); cursor:pointer; white-space:nowrap}
+.pill:hover{background:var(--m-hover); color:var(--m-fg)}
+.pill[aria-selected="true"]{background:var(--m-accent-soft); color:var(--m-fg); box-shadow:inset 0 0 0 1px var(--m-accent-line)}
+.content{flex:1; min-height:0; padding:10px 12px 12px; display:flex; flex-direction:column; gap:10px; overflow:auto}
+
+/* Panels (layer 2) and their parts */
+.island{background:var(--m-l2); border-radius:var(--r); box-shadow:inset 0 0 0 1px var(--m-edge), inset 0 1px 0 var(--m-edge-top); min-width:0; min-height:0; display:flex; flex-direction:column}
+.scroll{overflow:auto; min-height:0; flex:1}
+.ihead{display:flex; align-items:center; gap:8px; padding:10px 12px 8px; flex:none; flex-wrap:wrap}
+.ihead.sub{box-shadow:inset 0 1px 0 var(--m-divider); margin-top:4px; padding-top:12px}
+.ititle{font-weight:600; font-size:13px}
+.grow{flex:1}
+.info{display:inline-grid; place-items:center; width:15px; height:15px; border-radius:50%; font-size:10px; font-weight:700; font-style:normal; color:var(--m-faint); box-shadow:inset 0 0 0 1.2px var(--m-faint); cursor:help; flex:none}
+.btn{font-size:12.5px; line-height:1; border:0; padding:7px 11px; border-radius:var(--rc); background:var(--m-ctl); cursor:pointer; box-shadow:inset 0 0 0 1px var(--m-edge); white-space:nowrap}
+.btn:hover{background:var(--m-ctl-hover)}
+.btn.primary{background:var(--m-accent); color:var(--m-accent-fg); box-shadow:none; font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent; box-shadow:none; color:var(--m-accent-text); padding-inline:8px}
+.btn.ghost:hover{background:var(--m-hover)}
+.btn.icon{padding:5px 7px; display:inline-grid; place-items:center}
+.muted{color:var(--m-muted)} .small{font-size:12px}
+.tag{font-size:10.5px; font-weight:600; padding:2px 6px; border-radius:5px; background:var(--m-ctl); color:var(--m-muted); white-space:nowrap}
+.link{color:var(--m-accent-text); font-weight:600; cursor:pointer; text-decoration:none}
+.link:hover{text-decoration:underline}
+
+/* Lists */
+.list{padding:0 6px 8px}
+.row{display:flex; align-items:center; gap:10px; padding:5px 8px; border-radius:calc(var(--r) * .65); cursor:default; outline-offset:-2px}
+.row:hover{background:var(--m-hover)}
+.row:focus-visible{outline:2px solid var(--m-accent-line)}
+.row.sec{padding:8px 8px 5px; color:var(--m-muted); font-size:12px; font-weight:600; gap:7px}
+.row.sec .sec-name{color:var(--m-fg)}
+.row.sec.nested{padding-left:28px}
+.row.cmd.l1{padding-left:22px}
+.row.cmd.l2{padding-left:44px}
+.row.sel{background:var(--m-accent-soft); box-shadow:inset 0 0 0 1px var(--m-accent-line)}
+.row.off .cmd-name{color:var(--m-muted)}
+.row.dim{opacity:.55}
+.chev{flex:none; color:var(--m-muted); transition:transform .15s}
+.chev.open{transform:rotate(90deg)}
+.count{font-size:11px; font-weight:600; color:var(--m-faint); font-variant-numeric:tabular-nums}
+.gt{position:relative; flex:none; width:40px; height:40px; border-radius:calc(var(--r) * .55); background:var(--m-tile); display:grid; place-items:center}
+.gt.badge{display:flex; flex-direction:column; justify-content:center; align-items:center; font-size:10px; line-height:1.15; font-weight:600; color:var(--m-muted); text-align:center; padding:2px}
+.gt .hold{position:absolute; right:-5px; bottom:-4px; font-size:9px; font-weight:700; padding:1px 4px; border-radius:4px; background:var(--m-accent); color:var(--m-accent-fg)}
+.cmd-text{flex:1; min-width:0}
+.cmd-name{display:flex; align-items:center; gap:6px; font-size:13px}
+.cmd-sum{font-size:11.5px; color:var(--m-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.glyph .gs{stop-color:var(--glyph-start)} .glyph .ge{stop-color:var(--glyph-end)}
+.glyph.inactive .gs{stop-color:var(--glyph-start-muted)} .glyph.inactive .ge{stop-color:var(--m-faint)}
+
+/* Editors */
+.box{position:relative; display:inline-block; flex:none; width:16px; height:16px; border-radius:4px; background:var(--m-input); box-shadow:inset 0 0 0 1.2px var(--m-faint); cursor:pointer}
+.box.on{background:var(--m-accent); box-shadow:none}
+.box.on::after{content:""; position:absolute; left:5px; top:2px; width:4px; height:8px; border:solid var(--m-accent-fg); border-width:0 2px 2px 0; transform:rotate(45deg)}
+.ck{display:inline-flex; align-items:center; gap:6px; margin-right:12px; cursor:pointer; white-space:nowrap}
+.switch{position:relative; display:inline-block; width:34px; height:20px; border-radius:10px; background:var(--m-input); box-shadow:inset 0 0 0 1.2px var(--m-faint); cursor:pointer; flex:none; transition:background .15s}
+.switch::after{content:""; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:var(--m-muted); transition:transform .15s}
+.switch.on{background:var(--m-accent); box-shadow:none}
+.switch.on::after{transform:translateX(14px); background:var(--m-accent-fg)}
+.switch.dis{opacity:.45; cursor:not-allowed}
+.input{display:inline-flex; align-items:center; min-height:28px; padding:4px 10px; border:0; border-radius:var(--rc); background:var(--m-input); box-shadow:inset 0 0 0 1px var(--m-edge); color:var(--m-fg); font:inherit; min-width:min(180px,100%)}
+.input.ro{color:var(--m-muted)}
+.input.wide{min-width:min(320px,100%)}
+input.input:focus{outline:none; box-shadow:inset 0 0 0 1px var(--m-accent-line), 0 0 0 3px var(--m-accent-soft)}
+.name-input{font-size:16px; font-weight:600; width:100%; min-height:36px}
+.select{display:inline-flex; align-items:center; gap:8px; min-height:28px; padding:4px 9px 4px 10px; border-radius:var(--rc); background:var(--m-ctl); box-shadow:inset 0 0 0 1px var(--m-edge); cursor:pointer; white-space:nowrap}
+.select svg{color:var(--m-muted)}
+.num{display:inline-flex; align-items:center; border-radius:var(--rc); background:var(--m-input); box-shadow:inset 0 0 0 1px var(--m-edge); overflow:hidden}
+.num .v{min-width:64px; padding:5px 10px; font-variant-numeric:tabular-nums}
+.num button{width:26px; height:28px; border:0; background:transparent; color:var(--m-muted); cursor:pointer}
+.num button:hover{background:var(--m-hover); color:var(--m-fg)}
+.segm{display:inline-flex; flex-wrap:wrap; padding:2px; gap:2px; border-radius:var(--rc); background:var(--m-input); box-shadow:inset 0 0 0 1px var(--m-edge)}
+.segm button{font-size:12.5px; border:0; background:transparent; color:var(--m-muted); padding:5px 11px; border-radius:calc(var(--rc) - 2px); cursor:pointer}
+.segm button:hover{color:var(--m-fg)}
+.segm button[aria-checked="true"]{background:var(--m-seg-on); color:var(--m-fg); box-shadow:0 1px 2px rgba(0,0,0,.18), inset 0 0 0 1px var(--m-edge)}
+.hotkey{display:inline-block; padding:2px 7px; border-radius:5px; background:var(--m-ctl); box-shadow:inset 0 -1px 0 var(--m-edge), inset 0 0 0 1px var(--m-edge); font-size:12px; font-weight:600}
+.plus{color:var(--m-faint); margin:0 3px}
+.swatch-row{display:inline-flex; align-items:center; gap:8px}
+.swatch{width:22px; height:22px; border-radius:6px; background:var(--glyph-end); box-shadow:inset 0 0 0 1px var(--m-edge)}
+.mono{font-family:var(--mono); font-size:12px}
+.dots{display:inline-flex; align-items:center; gap:7px; flex-wrap:wrap}
+.sw-dot{width:20px; height:20px; padding:0; border:0; border-radius:50%; background:var(--c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.28); cursor:pointer; flex:none}
+.sw-dot.on{box-shadow:0 0 0 2px rgb(var(--m-tint)), 0 0 0 4px var(--m-fg)}
+.dots .mono{margin-left:4px}
+.btn.custom{position:relative; overflow:hidden; margin-left:4px}
+.btn.custom input{position:absolute; inset:0; width:100%; height:100%; padding:0; border:0; opacity:0; cursor:pointer}
+.opts.inside{display:grid; gap:14px}
+.opts.inside .ihead + .frow{box-shadow:inset 0 1px 0 var(--m-divider)}
+.slider-field{display:inline-flex; align-items:center; gap:10px; min-width:0; max-width:100%}
+.slider-field input{width:min(240px,100%); accent-color:var(--m-accent)}
+.slider-field input:disabled{opacity:.4}
+.slider-field output{min-width:44px; font-size:12.5px; color:var(--m-muted); font-variant-numeric:tabular-nums}
+
+/* Commands workbench */
+.bench{display:grid; grid-template-columns:minmax(250px,350px) minmax(0,1fr); gap:10px; flex:1; min-height:0}
+.dbody{padding:2px 14px 10px; display:grid; gap:12px}
+.fgrid{display:grid; grid-template-columns:90px minmax(0,1fr); gap:10px 12px; align-items:center}
+.flabel{color:var(--m-muted); font-size:12.5px}
+.fed{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0}
+.steps{list-style:none; margin:0; padding:0 10px 10px; display:grid; gap:6px}
+.step{border-radius:calc(var(--r) * .65); background:var(--m-tile); box-shadow:inset 0 0 0 1px var(--m-edge)}
+.step-line{display:flex; align-items:center; gap:10px; padding:8px 10px}
+.grip{color:var(--m-faint); font-size:12px; letter-spacing:-2px; cursor:grab}
+.idx{display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:var(--m-ctl); font-size:11px; font-weight:700; color:var(--m-muted); font-variant-numeric:tabular-nums}
+.stype{font-weight:600}
+.sval{color:var(--m-muted)}
+.sform{display:grid; grid-template-columns:90px minmax(0,1fr); gap:10px 12px; align-items:center; padding:2px 12px 12px 40px}
+.msg{padding:0 14px 12px; font-size:12px; color:var(--m-muted)}
+
+/* Options */
+.opts{width:100%; max-width:800px; margin:0 auto; padding:0 4px 8px}
+.opt-title{display:flex; align-items:center; gap:8px; margin:18px 4px 8px; font-size:12.5px; font-weight:600; color:var(--m-muted)}
+.opt-title:first-child{margin-top:4px}
+.new{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:2px 6px; border-radius:5px; background:var(--m-accent-soft); color:var(--m-accent-text)}
+.opt-note{font-size:12px; color:var(--m-muted); margin:6px 6px 0}
+.frow{display:grid; grid-template-columns:220px minmax(0,1fr); gap:12px; align-items:center; padding:9px 14px; min-height:44px}
+.frow + .frow{box-shadow:inset 0 1px 0 var(--m-divider)}
+.flab{display:flex; align-items:center; gap:6px}
+
+/* Exclusions, Gestures, Diagnostics, Gallery */
+.md{display:grid; grid-template-columns:minmax(240px,320px) minmax(0,1fr); gap:10px; flex:1; min-height:0}
+.av{flex:none; width:32px; height:32px; border-radius:calc(var(--r) * .5); display:grid; place-items:center; font-weight:700; color:#FFFFFF; font-size:13px}
+.ggrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:8px; padding:2px 12px 12px}
+.gtile{position:relative; display:grid; justify-items:center; gap:6px; padding:12px 8px 10px; border:0; border-radius:var(--r); background:var(--m-tile); cursor:default}
+.gtile:hover{background:var(--m-hover)}
+.gtile.sel{background:var(--m-accent-soft); box-shadow:inset 0 0 0 1px var(--m-accent-line)}
+.gtile.dup{box-shadow:inset 0 0 0 1.5px var(--m-danger)}
+.gtile .gname{font-size:12px}
+.gtile.unused .gname{color:var(--m-muted)}
+.gtile .score{position:absolute; top:6px; right:8px; font-size:10px; font-weight:700; color:var(--m-danger); font-variant-numeric:tabular-nums}
+.tiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px}
+.tile{padding:12px 14px; display:grid; gap:2px}
+.tile .k{font-size:12px; color:var(--m-muted)}
+.tile .v{font-family:var(--ui-display); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:8px}
+.tile .d{font-size:11.5px; color:var(--m-faint)}
+.dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--m-ok)}
+.log{font:12px/1.55 var(--mono); padding:2px 0 8px}
+.lrow{display:grid; grid-template-columns:96px 62px 92px minmax(0,1fr); gap:10px; padding:3px 14px}
+.lrow:hover{background:var(--m-hover)}
+.lrow .lt{color:var(--m-faint)} .lrow .ls{color:var(--m-muted)}
+.lrow.Warning .ll{color:var(--m-warn)}
+.tablewrap{overflow-x:auto}
+table.rt{width:100%; border-collapse:collapse; font-size:12.5px}
+.rt th{text-align:left; font-weight:600; color:var(--m-muted); padding:6px 14px 8px; font-size:12px; white-space:nowrap}
+.rt td{padding:8px 14px; box-shadow:inset 0 1px 0 var(--m-divider); font-variant-numeric:tabular-nums; white-space:nowrap}
+.rt td.miss{color:var(--m-muted)}
+.states{display:flex; gap:14px; flex-wrap:wrap; padding:2px 12px 12px}
+.st{display:grid; justify-items:center; gap:6px; font-size:11.5px; color:var(--m-muted)}
+.st .gtile{width:96px}
+.pair{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; padding:0 12px 12px}
+.mini{border-radius:var(--r); background:rgb(var(--m-tint)); color:var(--m-fg); padding:10px; display:grid; gap:8px; box-shadow:inset 0 0 0 1px var(--m-edge)}
+.mini-l{font-size:11px; font-weight:600; color:var(--m-muted); text-transform:uppercase; letter-spacing:.06em}
+.mini .island{padding:4px}
+
+@container (max-width: 720px){
+  .bench, .md{grid-template-columns:1fr; flex:none}
+  .scroll{overflow:visible; flex:none}
+  .frow{grid-template-columns:1fr; gap:6px}
+  .appname .ver{display:none}
+  .lrow{grid-template-columns:auto auto 1fr}
+  .lrow .lm{grid-column:1 / -1}
+}
+
+/* Notes under the scene */
+.notes{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px}
+.notes section{background:var(--page-panel); border:1px solid var(--page-line); border-radius:12px; padding:14px 18px; min-width:0}
+.notes h2{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--page-muted); margin:0 0 8px; font-weight:600}
+.notes ul{margin:0; padding-left:18px; display:grid; gap:6px}
+.notes li{max-width:65ch}
+
+@media (max-width: 720px){ .bg-app{display:none} }
+@media (max-width: 560px){ .scene{padding:20px 10px} .win{height:720px} }
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Augram glass theme</h1>
+    <p>A first pass at the new look for Augram's settings window: frosted glass, layers that get lighter as they come forward, and rounded tabs. Click around inside the window; the switches change what the real app would offer, or what it would meet on each system.</p>
+  </header>
+
+  <div class="controls" id="controls">
+    <div class="ctl"><span class="ctl-label">Augram theme</span>
+      <div class="seg" data-ctl="mode"><button data-val="dark">Dark</button><button data-val="light">Light</button><button data-val="auto">Follow system</button></div></div>
+    <div class="ctl"><span class="ctl-label">Window background</span>
+      <div class="seg" data-ctl="material"><button data-val="acrylic">Frosted glass</button><button data-val="mica">Wallpaper tint</button><button data-val="solid">Solid</button></div></div>
+    <div class="ctl range"><label class="ctl-label" for="tint">Tint</label><input type="range" id="tint" min="0" max="100" step="1"><output id="tint-val" for="tint"></output></div>
+    <div class="ctl range"><label class="ctl-label" for="radius">Corners</label><input type="range" id="radius" min="4" max="18" step="1"><output id="radius-val" for="radius"></output></div>
+    <div class="ctl"><span class="ctl-label">Wallpaper</span>
+      <div class="seg" data-ctl="wall"><button data-val="dusk">Dusk</button><button data-val="day">Daylight</button><button data-val="bloom">Bloom</button></div></div>
+    <div class="ctl"><span class="ctl-label">System</span>
+      <div class="seg" data-ctl="os"><button data-val="win">Windows 11</button><button data-val="mac">macOS</button></div></div>
+    <div class="ctl"><span class="ctl-label">Options titles</span>
+      <div class="seg" data-ctl="titles"><button data-val="above">Above cards</button><button data-val="inside">Inside cards</button></div></div>
+  </div>
+
+  <div class="scene" id="scene" data-wall="dusk">
+    <div class="bg-app bg-browser" aria-hidden="true">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="hero"></div>
+      <div class="txt"><div class="ln h"></div><div class="ln"></div><div class="ln s"></div><div class="ln"></div><div class="cta"></div></div>
+    </div>
+    <div class="bg-app bg-term" aria-hidden="true">
+      <div>PS C:\_myProjects\augram&gt; <em>dotnet</em> test</div>
+      <div><b>Passed!</b> - Failed: 0, Passed: 1214, Skipped: 0</div>
+      <div>PS C:\_myProjects\augram&gt; <em>git</em> push</div>
+      <div>To github.com:Joel-Hjerten/augram.git</div>
+      <div>&nbsp;&nbsp; 15c573b..9d2e41a&nbsp; main -&gt; main</div>
+      <div>PS C:\_myProjects\augram&gt; _</div>
+    </div>
+
+    <div class="win" id="win" data-mode="dark" data-material="acrylic" data-os="win" role="application" aria-label="Augram settings window mockup">
+      <div class="mica" aria-hidden="true"></div>
+      <div class="titlebar">
+        <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="appname">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.2" fill="#D6A21E"/><circle cx="8" cy="8" r="5.4" fill="#F0CC55"/><path d="M8 2.6L10.9 12.2 3.2 6.4H12.8L5.1 12.2Z" fill="none" stroke="#FFFFFF" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          <span>Augram <span class="ver">(Dev) 0.10.3</span></span>
+        </div>
+        <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+        <div class="spacer"></div>
+        <div class="maclabel">Augram (Dev) 0.10.3</div>
+        <div class="caps" aria-hidden="true">
+          <span><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor"/></svg></span>
+          <span><svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor"/></svg></span>
+          <span class="x"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor"/></svg></span>
+        </div>
+      </div>
+      <div class="page">
+        <div class="subtabs" id="subtabs" role="tablist" aria-label="Sub-sections"></div>
+        <div class="content" id="content"></div>
+      </div>
+    </div>
+  </div>
+  <p class="footnote">Mockup only: the controls respond, nothing is saved. Window corners follow the system (8 px on Windows 11); the Corners slider sets the panels inside. Wallpaper tint stands in for Windows 11's Mica, which picks up only the wallpaper's colour; frosted glass blurs whatever is behind the window, as Acrylic and the macOS blur do.</p>
+
+  <div class="notes">
+    <section>
+      <h2>What to look at</h2>
+      <ul>
+        <li>Four layers, each a step lighter: the window glass, the tab's page, the panels, the controls. No outlines; panels have a faint light edge instead.</li>
+        <li>The top tab is joined to its page. Sub-tabs are pills inside the page, so the two levels never look alike.</li>
+        <li>The accent follows the trail colour (Options › Appearance › Trail) unless Accent colour is switched off. Each theme gets a lighter or darker shade of it so text stays readable; try Green in Light.</li>
+        <li>Switches for a single on/off on its own row (Start at login, an excluded app's Active). Check boxes in list rows and where you tick several side by side (Ignore keys, Use on).</li>
+        <li>Daylight with Dark and a low tint shows where the text stops being readable. Solid is what Windows falls back to when transparency is off.</li>
+        <li>Options › Appearance holds the user's own controls for all of this: theme, window background, tint and corner rounding (12 px by default). The switches above the window are the same settings.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Questions for you</h2>
+      <ul>
+        <li>With the accent following the trail, a fresh install would be green, the StrokesPlus default. Make the icon's gold the fresh-install trail colour instead?</li>
+        <li>Section titles: flip Options titles above the window. Panels on the other tabs keep their title inside, next to their buttons; Options has no buttons in its headers, so either works there.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var win = $("#win"), scene = $("#scene");
+
+  /* ---------- look state (remembered per viewer) ---------- */
+  var look = { mode:"dark", material:"acrylic", tint:62, radius:12, wall:"dusk", os:"win", titles:"above", trail:"#F5C542", accentLinked:true, accent:"#5B9BFF" };
+  var COLOURS = [["Yellow","#F5C542"],["Green","#00FF40"],["Cyan","#36D6E7"],["Blue","#5B9BFF"],["Red","#FF5A4F"],["Orange","#FF8A3D"],["Purple","#A78BFA"]];
+  try { var saved = JSON.parse(localStorage.getItem("augram-look-4") || "null"); if (saved) Object.assign(look, saved); } catch (e) {}
+  function save(){ try { localStorage.setItem("augram-look-4", JSON.stringify(look)); } catch (e) {} }
+
+  /* ---------- accent and picture colours, derived from one colour per theme ---------- */
+  function hexRgb(h){ h = h.replace("#", ""); return [0, 2, 4].map(function(i){ return parseInt(h.substr(i, 2), 16); }); }
+  function rgbHex(c){ return "#" + c.map(function(v){ var x = Math.round(Math.max(0, Math.min(255, v))).toString(16); return x.length < 2 ? "0" + x : x; }).join(""); }
+  function rgbHsl(c){
+    var r = c[0] / 255, g = c[1] / 255, b = c[2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), h = 0, s = 0, l = (mx + mn) / 2;
+    if (mx !== mn){ var d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+    return [h, s, l];
+  }
+  function hslRgb(x){
+    var h = (((x[0] % 360) + 360) % 360) / 360, s = x[1], l = x[2];
+    if (s === 0) return [l * 255, l * 255, l * 255];
+    var q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    return [h + 1 / 3, h, h - 1 / 3].map(function(t){ t = (t + 1) % 1; return 255 * (t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p); });
+  }
+  function lum(c){ var v = c.map(function(x){ x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }); return .2126 * v[0] + .7152 * v[1] + .0722 * v[2]; }
+  function contrast(a, b){ var la = lum(a), lb = lum(b); return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05); }
+  function shift(hex, ok, step){ var h = rgbHsl(hexRgb(hex)), rgb = hslRgb(h), i = 0; while (!ok(rgb) && i++ < 60){ h[2] = Math.max(0, Math.min(1, h[2] + step)); rgb = hslRgb(h); } return rgbHex(rgb); }
+  function rgba(hex, a){ var c = hexRgb(hex); return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; }
+  /* Same maths as Components/GestureGlyph/GlyphColours.StartFor: HSV, up to 12° towards blue-violet scaled by saturation, 80 % value, +0.1 saturation. */
+  function startFor(hex){
+    var c = hexRgb(hex).map(function(v){ return v / 255; }), mx = Math.max.apply(null, c), mn = Math.min.apply(null, c), d = mx - mn, h = 0;
+    if (d > 0) h = mx === c[0] ? 60 * (((c[1] - c[2]) / d) % 6) : mx === c[1] ? 60 * ((c[2] - c[0]) / d + 2) : 60 * ((c[0] - c[1]) / d + 4);
+    h = ((h % 360) + 360) % 360;
+    var s = mx > 0 ? d / mx : 0, v = mx, dist = ((250 - h) % 360 + 360) % 360; if (dist >= 180) dist -= 360;
+    var hue = (((h + Math.max(-12, Math.min(12, dist)) * s) % 360) + 360) % 360, sat = s > 0 ? Math.min(1, s + .1) : 0, val = v * .8;
+    var ch = val * sat, sec = hue / 60, x = ch * (1 - Math.abs((sec % 2) - 1)), m = val - ch;
+    var rgb = [[ch, x, 0], [x, ch, 0], [0, ch, x], [0, x, ch], [x, 0, ch], [ch, 0, x]][Math.min(5, Math.floor(sec))];
+    return rgbHex(rgb.map(function(q){ return (q + m) * 255; }));
+  }
+  function themeVars(mode, accent, trail){
+    var dark = mode === "dark", bg = dark ? [42, 41, 47] : [255, 255, 255], step = dark ? .02 : -.02;
+    var a = shift(accent, function(c){ return contrast(c, bg) >= 3; }, step);
+    var text = shift(accent, function(c){ return contrast(c, bg) >= (dark ? 5 : 4.5); }, step);
+    var end = shift(trail, function(c){ return contrast(c, dark ? [46, 45, 51] : [244, 244, 247]) >= (dark ? 3 : 2.6); }, step);
+    var fg = contrast(hexRgb(a), [23, 20, 10]) >= contrast(hexRgb(a), [255, 255, 255]) ? "#17140A" : "#FFFFFF";
+    return "--m-accent:" + a + ";--m-accent-fg:" + fg + ";--m-accent-soft:" + rgba(a, dark ? .16 : .14) +
+      ";--m-accent-line:" + rgba(a, .48) + ";--m-accent-text:" + text + ";--glyph-end:" + end + ";--glyph-start:" + startFor(end) + ";";
+  }
+  var dyn = document.createElement("style");
+  document.head.appendChild(dyn);
+  function applyColours(){
+    var accent = look.accentLinked ? look.trail : look.accent;
+    dyn.textContent = '#win[data-mode="dark"],#win [data-mode="dark"]{' + themeVars("dark", accent, look.trail) + '}' +
+      '#win[data-mode="light"],#win [data-mode="light"]{' + themeVars("light", accent, look.trail) + '}';
+  }
+
+  /* ---------- UI state ---------- */
+  var ui = {
+    tab:"commands",
+    sub:{ commands:"global", ignored:"global", options:"appearance", diagnostics:"health", gallery:"GestureGlyph" },
+    sel:{ global:"close", apps:"closetab" },
+    selEx:{ global:"blender", percommand:"spine" },
+    selG:"Up",
+    collapsed:{}
+  };
+
+  /* ---------- gesture shapes (0..1, y down) ---------- */
+  function circle(){ var p = []; for (var i = 0; i <= 22; i++){ var a = (-90 + i * (330 / 22)) * Math.PI / 180; p.push([.5 + .42 * Math.cos(a), .5 + .42 * Math.sin(a)]); } return p; }
+  var G = {
+    "Up":[[.5,.92],[.5,.08]], "Down":[[.5,.08],[.5,.92]], "Left":[[.92,.5],[.08,.5]], "Right":[[.08,.5],[.92,.5]],
+    "Down Right":[[.22,.08],[.22,.88],[.9,.88]], "Right Down":[[.1,.18],[.82,.18],[.82,.92]],
+    "Up Left":[[.8,.92],[.8,.16],[.1,.16]], "Left Up":[[.9,.82],[.18,.82],[.18,.08]],
+    "V":[[.12,.12],[.5,.9],[.88,.12]], "Z":[[.12,.14],[.88,.14],[.12,.86],[.88,.86]], "Circle":circle(),
+    "N":[[.16,.9],[.16,.1],[.84,.9],[.84,.1]], "Check":[[.1,.52],[.38,.84],[.9,.14]],
+    "S":[[.82,.16],[.55,.08],[.26,.16],[.24,.38],[.5,.5],[.76,.62],[.74,.84],[.45,.92],[.18,.84]]
+  };
+  var gid = 0;
+  function f(n){ return n.toFixed(1); }
+  function glyph(name, size, inactive){
+    var pts = G[name], pad = size * .17, s = size - pad * 2;
+    var P = pts.map(function(p){ return [pad + p[0] * s, pad + p[1] * s]; });
+    var d = "M" + P.map(function(p){ return f(p[0]) + " " + f(p[1]); }).join(" L");
+    var a = P[0], b = P[P.length - 1], c = P[P.length - 2];
+    var x1 = a[0], y1 = a[1], x2 = b[0], y2 = b[1];
+    if (Math.hypot(x2 - x1, y2 - y1) < size * .25){ x1 = pad; y1 = size - pad; x2 = size - pad; y2 = pad; }
+    var ang = Math.atan2(b[1] - c[1], b[0] - c[0]), L = Math.max(4, size * .16);
+    var h1 = [b[0] - L * Math.cos(ang - .55), b[1] - L * Math.sin(ang - .55)], h2 = [b[0] - L * Math.cos(ang + .55), b[1] - L * Math.sin(ang + .55)];
+    var id = "gg" + (gid++), w = Math.max(2.2, size * .07);
+    return '<svg class="glyph' + (inactive ? ' inactive' : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">' +
+      '<defs><linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="' + f(x1) + '" y1="' + f(y1) + '" x2="' + f(x2) + '" y2="' + f(y2) + '"><stop offset="0" class="gs"/><stop offset="1" class="ge"/></linearGradient></defs>' +
+      '<g fill="none" stroke="url(#' + id + ')" stroke-width="' + f(w) + '" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/>' +
+      '<path d="M' + f(h1[0]) + ' ' + f(h1[1]) + ' L' + f(b[0]) + ' ' + f(b[1]) + ' L' + f(h2[0]) + ' ' + f(h2[1]) + '"/></g></svg>';
+  }
+
+  /* ---------- sample data (from the dev gallery's fake configuration) ---------- */
+  var GLOBAL = [
+    { id:"unc", name:"Uncategorized", cmds:[
+      { id:"unbound", name:"Unbound", kind:"None", badge:["No","trigger"], steps:[["Wait","30 ms"]] } ] },
+    { id:"window", name:"Window", cmds:[
+      { id:"close", name:"Close window", kind:"Gesture", g:"Up", steps:[["Window operation","Close"]] },
+      { id:"min", name:"Minimize", kind:"Gesture", g:"Down", off:true, steps:[["Window operation","Minimize"]] } ] },
+    { id:"media", name:"Media", cmds:[
+      { id:"volup", name:"Volume up", kind:"Wheel", badge:["Wheel","up"], steps:[["Media key","Volume up"]] },
+      { id:"voldn", name:"Volume down", kind:"Wheel", badge:["Wheel","down"], steps:[["Media key","Volume down"]] },
+      { id:"zoomin", name:"Zoom in", kind:"Wheel", badge:["Right +","wheel ↑"], steps:[["Send keys","Ctrl+Plus"]], notIn:"Spine, Eyeris" },
+      { id:"magnifier", name:"Magnifier", kind:"Button", badge:["Right +","Left"], steps:[["Remap","Win+Shift+X"]], alsoIn:"Blender" },
+      { id:"back", name:"Back", kind:"Button", badge:["Right +","Middle"], steps:[["Send keys","Alt+Left"]] } ] },
+    { id:"pc", name:"PC tools", cmds:[
+      { id:"desk", name:"Show desktop", kind:"Gesture", g:"Left", steps:[["Send keys","Win+D"]] } ] },
+    { id:"mac", name:"Mac tools", elsewhere:"macOS only", cmds:[
+      { id:"mission", name:"Mission Control", kind:"Gesture", g:"Right", macOnly:true, steps:[["Send keys","Ctrl+Up"]] } ] }
+  ];
+  var APPS = [
+    { id:"chrome", name:"Chrome", active:true, cmds:[
+      { id:"closetab", name:"Close tab", kind:"Gesture", g:"Up", steps:[["Send keys","Ctrl+W"]] },
+      { id:"czoom", name:"Zoom in", kind:"Wheel", badge:["Right +","wheel ↑"], steps:[["Send keys","Ctrl+Plus"]] },
+      { id:"reopen", name:"Reopen tab", kind:"Gesture", g:"Up", hold:"Shift", steps:[["Send keys","Ctrl+Shift+T"]] },
+      { id:"bgopen", name:"Open in background", kind:"Click", badge:["Ctrl +","Left"], steps:[["Send keys","Ctrl+Click"]] } ] },
+    { id:"blender", name:"Blender", active:true, cmds:[
+      { id:"bundo", name:"Undo", kind:"Gesture", g:"Left", steps:[["Send keys","Ctrl+Z"]] } ],
+      nested:[ { id:"space", name:"Hold Space", label:"Hold remap", cmds:[
+        { id:"orbit", name:"Orbit", kind:"Hold", badge:["Hold","Left"], steps:[["Remap","Middle button"]] },
+        { id:"pan", name:"Pan", kind:"Hold", badge:["Hold","Right"], steps:[["Remap","Shift+Middle button"]] },
+        { id:"zboth", name:"Zoom both", kind:"Hold", badge:["Hold","L + R"], steps:[["Remap","Ctrl+Middle button"]] },
+        { id:"grab", name:"Grab", kind:"Hold", badge:["Hold","W"], steps:[["Remap","G"]] } ] } ] },
+    { id:"ps", name:"Photoshop", active:true, cmds:[
+      { id:"psundo", name:"Undo", kind:"Gesture", g:"Left", tag:"General", steps:[["Send keys","Ctrl+Alt+Z"]] },
+      { id:"mult", name:"Multiply", kind:"Gesture", g:"Right", tag:"Blend", steps:[["Send keys","Shift+Alt+M"]] },
+      { id:"brush", name:"Brush size", kind:"Wheel", badge:["Wheel","up"], steps:[["Send keys","]"]] } ] }
+  ];
+  var EXCL = {
+    global:[
+      { id:"blender", name:"Blender", exe:"blender.exe", on:true, mode:"over", allowed:"Magnifier" },
+      { id:"resolve", name:"DaVinci Resolve", exe:"Resolve.exe", on:true, mode:"over" },
+      { id:"plague", name:"A Plague Tale", exe:"APlagueTaleRequiem_x64.exe", on:false, mode:"focus" },
+      { id:"vmware", name:"VMware Workstation", exe:"vmware.exe", on:true, mode:"focus" } ],
+    percommand:[
+      { id:"spine", name:"Spine", exe:"Spine.exe", on:true, usedBy:"Zoom in" },
+      { id:"eyeris", name:"Eyeris", exe:"Eyeris.exe", on:true, usedBy:"Zoom in" },
+      { id:"krita", name:"Krita", exe:"krita.exe", on:false } ]
+  };
+  var GESTURES = ["Up","Down","Left","Right","Down Right","Right Down","Up Left","Left Up","V","Z","Circle","N","Check","S"];
+  var GALLERY = ["Shell","SectionForm","ItemList","GestureGlyph","GestureGrid","GestureDrawArea","CommandTree","StepList","StepTypePicker","GesturePicker","FormDialog","MasterDetail","WindowFinder","SyncConflictList"];
+  var TABS = [
+    { id:"commands", name:"Commands", subs:[["global","Global"],["apps","Apps"]] },
+    { id:"ignored", name:"Exclusions", subs:[["global","Global"],["percommand","Per command"]] },
+    { id:"gestures", name:"Gestures" },
+    { id:"options", name:"Options", subs:[["general","General"],["strokes","Strokes"],["appearance","Appearance"],["sync","Sync"],["about","About"]] },
+    { id:"diagnostics", name:"Diagnostics", subs:[["health","Health"],["log","Log"],["recognition","Recognition"]] },
+    { id:"gallery", name:"Gallery", subs:GALLERY.map(function(n){ return [n, n]; }) }
+  ];
+
+  /* ---------- small builders ---------- */
+  var CHEV = '<svg class="chev{o}" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var DOWN = '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var FINDER = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9.2 9.2L13 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  function info(text){ return '<i class="info" title="' + text + '">i</i>'; }
+  function box(on, act, id){ return '<span class="box' + (on ? ' on' : '') + '" role="checkbox" tabindex="0" aria-checked="' + !!on + '"' + (act ? ' data-act="' + act + '" data-id="' + id + '"' : '') + '></span>'; }
+  function ck(label, on){ return '<span class="ck" role="checkbox" tabindex="0" aria-checked="' + !!on + '"><span class="box' + (on ? ' on' : '') + '"></span>' + label + '</span>'; }
+  function sw(on, dis, act){ return '<span class="switch' + (on ? ' on' : '') + (dis ? ' dis' : '') + '" role="switch" tabindex="0" aria-checked="' + !!on + '"' + (dis ? ' aria-disabled="true"' : '') + (act ? ' data-act="' + act + '"' : '') + '></span>'; }
+  function dots(kind, current){
+    var cur = String(current).toLowerCase(), known = false;
+    var html = COLOURS.map(function(c){
+      var on = c[1].toLowerCase() === cur; if (on) known = true;
+      return '<button class="sw-dot' + (on ? ' on' : '') + '" data-' + kind + '="' + c[1] + '" style="--c:' + c[1] + '" title="' + c[0] + '" aria-label="' + c[0] + '" aria-pressed="' + on + '"></button>';
+    }).join("");
+    if (!known) html += '<button class="sw-dot on" data-' + kind + '="' + current + '" style="--c:' + current + '" title="Custom" aria-label="Custom colour" aria-pressed="true"></button>';
+    return html + '<label class="btn custom">Custom…<input type="color" data-custom="' + kind + '" value="' + cur + '" aria-label="Pick a custom colour"></label>';
+  }
+  function select(text){ return '<span class="select" role="button" tabindex="0">' + text + DOWN + '</span>'; }
+  function num(v){ return '<span class="num"><span class="v">' + v + '</span><button aria-label="Decrease">−</button><button aria-label="Increase">+</button></span>'; }
+  function segm(name, opts, val){
+    return '<div class="segm" role="radiogroup">' + opts.map(function(o){
+      return '<button role="radio" aria-checked="' + (o[0] === val) + '"' + (name ? ' data-set="' + name + '" data-val="' + o[0] + '"' : '') + '>' + o[1] + '</button>';
+    }).join("") + '</div>';
+  }
+  function keys(v){ return v.split("+").map(function(k){ return '<span class="hotkey">' + k + '</span>'; }).join('<span class="plus">+</span>'); }
+  function avatar(name){ var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360; return '<span class="av" style="background:hsl(' + h + ' 42% 42%)">' + name.charAt(0) + '</span>'; }
+  function tile(c, size){
+    size = size || 40;
+    if (c.g) return '<span class="gt">' + glyph(c.g, size, c.off) + (c.hold ? '<span class="hold">' + c.hold + '</span>' : '') + '</span>';
+    return '<span class="gt badge"><span>' + c.badge[0] + '</span><span>' + c.badge[1] + '</span></span>';
+  }
+  function summary(c){ return c.steps.map(function(s){ return s[0] + " · " + s[1]; }).join(", ") + (c.hold ? " · " + c.hold + " held" : ""); }
+  function findCmd(secs, id){
+    for (var i = 0; i < secs.length; i++){
+      var s = secs[i];
+      for (var j = 0; j < s.cmds.length; j++) if (s.cmds[j].id === id) return { cmd:s.cmds[j], sec:s };
+      var n = s.nested || [];
+      for (var k = 0; k < n.length; k++) for (var m = 0; m < n[k].cmds.length; m++) if (n[k].cmds[m].id === id) return { cmd:n[k].cmds[m], sec:n[k], parent:s };
+    }
+    return null;
+  }
+
+  /* ---------- Commands ---------- */
+  function secRow(s, scope, nested, dim){
+    var n = s.cmds.length + (s.nested || []).reduce(function(t, x){ return t + x.cmds.length; }, 0);
+    var open = !ui.collapsed[s.id];
+    return '<div class="row sec' + (nested ? ' nested' : '') + (dim ? ' dim' : '') + '" data-sec="' + s.id + '" role="button" tabindex="0" aria-expanded="' + open + '">' +
+      CHEV.replace("{o}", open ? " open" : "") + '<span class="sec-name">' + s.name + '</span>' +
+      (s.label ? '<span class="tag">' + s.label + '</span>' : '') + (s.elsewhere ? '<span class="tag">' + s.elsewhere + '</span>' : '') +
+      '<span class="count">' + n + '</span><span class="grow"></span>' +
+      (scope === "apps" && !nested ? box(s.active !== false, "toggle-sec", s.id) : '') + '</div>';
+  }
+  function cmdRow(c, lvl, dim, scope){
+    var sel = ui.sel[scope] === c.id;
+    return '<div class="row cmd l' + lvl + (sel ? ' sel' : '') + (c.off ? ' off' : '') + (dim ? ' dim' : '') + '" data-cmd="' + c.id + '" role="button" tabindex="0" aria-pressed="' + sel + '">' +
+      tile(c) + '<div class="cmd-text"><div class="cmd-name">' + c.name + (c.tag ? ' <span class="tag">' + c.tag + '</span>' : '') + '</div>' +
+      '<div class="cmd-sum">' + summary(c) + '</div></div>' + box(!c.off, "toggle-cmd", c.id) + '</div>';
+  }
+  function treeIsland(secs, scope){
+    var rows = "";
+    secs.forEach(function(s){
+      var dim = !!s.elsewhere;
+      rows += secRow(s, scope, false, dim);
+      if (ui.collapsed[s.id]) return;
+      s.cmds.forEach(function(c){ rows += cmdRow(c, 1, dim, scope); });
+      (s.nested || []).forEach(function(n){
+        rows += secRow(n, scope, true, dim);
+        if (!ui.collapsed[n.id]) n.cmds.forEach(function(c){ rows += cmdRow(c, 2, dim, scope); });
+      });
+    });
+    var apps = scope === "apps";
+    return '<section class="island">' +
+      '<div class="ihead"><span class="ititle">' + (apps ? "App commands" : "Global commands") + '</span>' +
+      info(apps ? "One section per app group. A command here fires only over its app." : "Commands that fire everywhere, grouped by category.") +
+      '<span class="grow"></span><button class="btn">' + (apps ? "New group" : "New category") + '</button><button class="btn primary">New command</button></div>' +
+      '<div class="list scroll" role="list">' + rows + '</div></section>';
+  }
+  function stepForm(st){
+    var t = st[0], v = st[1];
+    if (t === "Send keys") return ["Keys", keys(v)];
+    if (t === "Remap") return ["Output", keys(v)];
+    if (t === "Window operation") return ["Operation", select(v) + ' <span class="muted small">on the window under the cursor</span>'];
+    if (t === "Media key") return ["Key", select(v)];
+    if (t === "Wait") return ["Delay", num(v)];
+    return ["Value", '<span class="input">' + v + '</span>'];
+  }
+  function detailIsland(found, scope){
+    if (!found) return '<section class="island"><div class="ihead"><span class="ititle">Nothing selected</span></div></section>';
+    var c = found.cmd, sec = found.sec, parent = found.parent;
+    var trig = select(c.kind) + tile(c) + '<span>' + (c.g ? c.g : c.badge.join(" ")) + '</span>' + (c.g ? '<button class="btn">Change…</button>' : '');
+    var rows =
+      '<div class="flabel">Trigger</div><div class="fed">' + trig + '</div>' +
+      '<div class="flabel">' + (scope === "apps" ? "Group" : "Category") + '</div><div class="fed">' + select(parent ? parent.name + " › " + sec.name : sec.name) + '</div>' +
+      '<div class="flabel">Use on</div><div class="fed">' + ck("Windows", !c.macOnly) + ck("macOS", true) + '</div>' +
+      '<div class="flabel">Not in</div><div class="fed">' + (c.notIn ? '<span>' + c.notIn + '</span>' : '<span class="muted">No exceptions</span>') + '<button class="btn ghost">Edit…</button></div>' +
+      (c.kind === "Button" ? '<div class="flabel">Also in</div><div class="fed">' + (c.alsoIn ? '<span class="link">' + c.alsoIn + '</span>' : '<span class="muted">No excluded apps</span>') + '<button class="btn ghost">Edit…</button></div>' : '');
+    var steps = c.steps.map(function(st, i){
+      var fm = stepForm(st);
+      return '<li class="step"><div class="step-line"><span class="grip" aria-hidden="true">⋮⋮</span><span class="idx">' + (i + 1) + '</span>' +
+        '<span class="stype">' + st[0] + '</span><span class="sval">' + st[1] + '</span></div>' +
+        (i === 0 ? '<div class="sform"><div class="flabel">' + fm[0] + '</div><div class="fed">' + fm[1] + '</div></div>' : '') + '</li>';
+    }).join("");
+    return '<section class="island">' +
+      '<div class="ihead"><span class="ititle">Command</span><span class="grow"></span><button class="btn">Duplicate</button></div>' +
+      '<div class="scroll"><div class="dbody"><input class="input name-input" id="cmd-name" value="' + c.name + '" aria-label="Command name">' +
+      '<div class="fgrid">' + rows + '</div></div>' +
+      '<div class="ihead sub"><span class="ititle">Steps</span>' + info("Steps run top to bottom when the trigger fires. Drag to reorder.") +
+      '<span class="grow"></span><button class="btn">Add step</button></div>' +
+      '<ol class="steps">' + steps + '</ol>' +
+      '<div class="msg">Changes save as you go. Ctrl+Z undoes.</div></div></section>';
+  }
+  function commands(sub){
+    var secs = sub === "apps" ? APPS : GLOBAL;
+    return '<div class="bench">' + treeIsland(secs, sub) + detailIsland(findCmd(secs, ui.sel[sub]), sub) + '</div>';
+  }
+
+  /* ---------- Exclusions ---------- */
+  function exclusions(sub){
+    var list = EXCL[sub], cur = list.filter(function(x){ return x.id === ui.selEx[sub]; })[0] || list[0];
+    var rows = list.map(function(x){
+      return '<div class="row cmd' + (x.id === cur.id ? ' sel' : '') + (x.on ? '' : ' off') + '" data-ex="' + x.id + '" role="button" tabindex="0">' + avatar(x.name) +
+        '<div class="cmd-text"><div class="cmd-name">' + x.name + '</div><div class="cmd-sum">' + x.exe + '</div></div>' + box(x.on, "toggle-ex", x.id) + '</div>';
+    }).join("");
+    var g = sub === "global";
+    var form =
+      '<div class="frow"><div class="flab">Name</div><div><input class="input" id="ex-name" value="' + cur.name + '" aria-label="App name"></div></div>' +
+      '<div class="frow"><div class="flab">Identify by' + info("Drag the magnifier onto a window to fill these in.") + '</div><div class="fed">' + select("Process name") + '<span class="input">' + cur.exe + '</span><button class="btn icon" title="Drag onto a window to identify it" aria-label="Window finder">' + FINDER + '</button></div></div>' +
+      (g ? '<div class="frow"><div class="flab">When it is under the cursor or focused</div><div>' + segm(null, [["over","Ignore strokes over it"],["focus","Disable while focused"]], cur.mode) + '</div></div>' +
+           '<div class="frow"><div class="flab">Allowed for' + info("Button triggers that still fire over this app.") + '</div><div class="fed">' + (cur.allowed ? '<span class="link">' + cur.allowed + '</span>' : '<span class="muted">No commands</span>') + '</div></div>'
+         : '<div class="frow"><div class="flab">Used by</div><div class="fed">' + (cur.usedBy ? '<span class="link">' + cur.usedBy + '</span>' : '<span class="muted">No command uses it yet</span>') + '</div></div>');
+    return '<div class="md">' +
+      '<section class="island"><div class="ihead"><span class="ititle">' + (g ? "Excluded apps" : "Apps for Not in") + '</span>' +
+      info(g ? "Augram stays out of the way over these apps." : "Apps a single command can leave out, under Not in.") +
+      '<span class="grow"></span><button class="btn primary">Add app…</button></div><div class="list scroll">' + rows + '</div></section>' +
+      '<section class="island"><div class="ihead">' + avatar(cur.name) + '<span class="ititle">' + cur.name + '</span><span class="grow"></span><span class="muted small">Active</span>' + sw(cur.on) + '</div>' +
+      '<div class="scroll">' + form + '</div></section></div>';
+  }
+
+  /* ---------- Gestures ---------- */
+  function gestures(){
+    var dups = { "V":91, "Check":91 }, unused = { "N":1, "S":1 };
+    var tiles = GESTURES.map(function(n){
+      return '<button class="gtile' + (ui.selG === n ? ' sel' : '') + (dups[n] ? ' dup' : '') + (unused[n] ? ' unused' : '') + '" data-gest="' + n + '"' +
+        (dups[n] ? ' title="Too close to another gesture"' : unused[n] ? ' title="No command uses it"' : '') + '>' +
+        (dups[n] ? '<span class="score">' + dups[n] + '</span>' : '') + glyph(n, 64, !!unused[n]) + '<span class="gname">' + n + '</span></button>';
+    }).join("");
+    return '<section class="island"><div class="ihead"><span class="ititle">Gestures</span>' + info("Double-click a gesture to redraw it. A red frame means two gestures are close enough to be confused.") +
+      '<span class="grow"></span><button class="btn primary">Add new gesture…</button><button class="btn">Import from StrokesPlus.net…</button><button class="btn">Export…</button></div>' +
+      '<div class="ggrid">' + tiles + '</div></section>';
+  }
+
+  /* ---------- Options ---------- */
+  function slider(key, min, max, unit, disabled){
+    return '<span class="slider-field"><input type="range" data-look="' + key + '" min="' + min + '" max="' + max + '" step="1" value="' + look[key] + '" aria-label="' + key + '"' + (disabled ? ' disabled' : '') + '>' +
+      '<output>' + look[key] + unit + '</output></span>';
+  }
+  function options(sub){
+    var solid = look.material === "solid";
+    var S = [
+      { tab:"appearance", t:"Theme", fresh:true, rows:[
+        ["Theme", segm("mode", [["dark","Dark"],["light","Light"],["auto","Follow system"]], look.mode), "Dark is the default. Follow system switches with Windows or macOS."],
+        ["Window background", segm("material", [["acrylic","Frosted glass"],["mica","Wallpaper tint"],["solid","Solid"]], look.material), "Frosted glass blurs what is behind the window; wallpaper tint picks up only the wallpaper's colour. Windows shows either one solid when transparency effects are off or in battery saver."],
+        ["Tint", slider("tint", 0, 100, "%", solid) + (solid ? ' <span class="muted small">Solid has no tint.</span>' : ''), "More tint keeps text readable over a bright or busy desktop; less shows more of what is behind the window."],
+        ["Corner rounding", slider("radius", 4, 18, " px"), "Panels, tabs, buttons and fields. The window's own corners follow the system. Default 12 px."],
+        ["Accent colour", '<span class="fed">' + sw(look.accentLinked, false, "accent-link") + '<span>Same as the trail colour</span>' +
+          (look.accentLinked ? '' : '<span class="dots">' + dots("accent", look.accent) + '</span>') + '</span>',
+          "Buttons, selections and tabs use the trail colour unless you turn this off and pick another. Each theme gets a lighter or darker shade of it so text stays readable."] ] },
+      { tab:"general", t:"General", rows:[
+        ["Stroke button", segm(null, [["l","Left"],["r","Right"],["m","Middle"],["x1","X1"],["x2","X2"]], "r"), "Hold this button and draw."],
+        ["Detect button", '<button class="btn">Detect…</button>', "Press the button you want within 5 seconds."],
+        ["Ignore keys", ck("Ctrl", true) + ck("Alt", false) + ck("Shift", false) + ck("Win", false), "Hold any ticked key when you press the stroke button to use the button normally, with no gesture."],
+        ["Start at login", '<span class="fed">' + sw(false, true) + '<span class="muted small">Applies to the installed Augram; this is a development build.</span></span>'],
+        ["Config folder", '<span class="input ro">%APPDATA%\\Augram</span>', "Settings, gestures and logs live here; change it with --config-folder."] ] },
+      { tab:"strokes", t:"Capture", rows:[
+        ["Start distance (px)", num(30), "Movement before a press counts as a stroke rather than a click."],
+        ["Button drag distance (px)", num(10), "For a button a trigger holds (Right in Right + wheel): movement before its press goes to the app as a drag."],
+        ["Cancel delay (ms)", num(1000), "Holding still this long cancels the stroke and replays the click."],
+        ["When nothing matches", select("Replay the click")] ] },
+      { tab:"appearance", t:"Trail", note:"Scales with the DPI of the monitor the stroke starts on.", rows:[
+        ["Colour", '<span class="dots">' + dots("trail", look.trail) + '<span class="mono muted">' + look.trail + '</span></span>', "Also colours the gesture pictures, and the accent while Theme › Accent colour follows it. Yellow is the fresh-install default; Custom… opens the colour picker."],
+        ["Width (px)", num(5)], ["Opacity", num("0.50")] ] },
+      { tab:"strokes", t:"Recognition", rows:[
+        ["Threshold", num(80), "Minimum score (0–100) for a match to fire."],
+        ["Precision", num(100), "Resample count; templates stay raw so this can change any time."],
+        ["Scoring mode", select("Corrected")] ] },
+      { tab:"sync", t:"Sync", rows:[
+        ["Repository", '<span class="input ro wide">github.com/you/augram-settings</span>'],
+        ["Last sync", '<span class="fed"><span>Today 14:32 · no conflicts</span><button class="btn">Sync now</button></span>'] ] },
+      { tab:"sync", t:"Export and import", rows:[
+        ["Augram files", '<span class="fed"><button class="btn">Export…</button><button class="btn">Import…</button></span>', "Export commands, gestures or settings to a file, or import one."] ] },
+      { tab:"about", t:"About", rows:[ ["Version", "0.10.3"], ["Commit", '<span class="mono">15c573b</span>'], ["Channel", "Dev"] ] }
+    ];
+    var inside = look.titles === "inside";
+    return '<div class="opts' + (inside ? ' inside' : '') + '">' + S.filter(function(s){ return s.tab === sub; }).map(function(s){
+      var title = s.t + (s.fresh ? '<span class="new">New</span>' : '');
+      var rows = s.rows.map(function(r){ return '<div class="frow"><div class="flab">' + r[0] + (r[2] ? info(r[2]) : '') + '</div><div>' + r[1] + '</div></div>'; }).join("");
+      var note = s.note ? '<p class="opt-note">' + s.note + '</p>' : '';
+      return inside
+        ? '<div class="optsec"><section class="island"><div class="ihead"><span class="ititle">' + title + '</span></div>' + rows + '</section>' + note + '</div>'
+        : '<h3 class="opt-title">' + title + '</h3><section class="island">' + rows + '</section>' + note;
+    }).join("") + '</div>';
+  }
+
+  /* ---------- Diagnostics ---------- */
+  function diagnostics(sub){
+    if (sub === "health"){
+      var T = [["Engine", '<span class="dot"></span>Running', "Hook installed 2 h 14 min ago"], ["Strokes this run", "214", "197 matched · 17 no match"],
+        ["Recognition", "0.4 ms", "median per stroke"], ["Trail first frame", "6 ms", "last stroke"],
+        ["Hook callback", "0.03 ms", "p99"], ["Sync", "Up to date", "last run 14:32"]];
+      return '<div class="tiles">' + T.map(function(t){ return '<section class="island tile"><span class="k">' + t[0] + '</span><span class="v">' + t[1] + '</span><span class="d">' + t[2] + '</span></section>'; }).join("") + '</div>';
+    }
+    if (sub === "log"){
+      var L = [["14:32:07.114","Info","app","App started {version=0.10.3 commit=15c573b channel=Dev theme=Default os=Windows 11}"],
+        ["14:32:07.260","Info","engine","Hook started"], ["14:32:07.301","Info","startup","Start at login left to the installed Augram"],
+        ["14:32:09.882","Info","sync","Sync finished {pulled=0 pushed=1 conflicts=0}"], ["14:33:12.540","Info","overlay","Overlay style verified {clickThrough=true}"],
+        ["14:33:12.546","Info","overlay","Trail first frame {ms=6}"], ["14:33:12.910","Info","recognition","Matched Up → Close window {score=94}"],
+        ["14:35:40.002","Warning","capture","Right released by another program {app=Spine.exe}"], ["14:36:02.771","Info","recognition","No match {best=Left score=61}"]];
+      return '<section class="island" style="flex:1"><div class="ihead"><span class="ititle">Log</span><span class="grow"></span>' + select("All sources") + '<button class="btn">Copy</button></div>' +
+        '<div class="log scroll">' + L.map(function(l){ return '<div class="lrow ' + l[1] + '"><span class="lt">' + l[0] + '</span><span class="ll">' + l[1] + '</span><span class="ls">' + l[2] + '</span><span class="lm">' + l[3] + '</span></div>'; }).join("") + '</div></section>';
+    }
+    var R = [["14:36:02","Left","61","Down Right","48","No match"], ["14:33:12","Up","94","Up Left","52","Close window"], ["14:31:55","Right","88","Right Down","57","Show desktop"], ["14:30:41","Circle","79","S","44","No match"]];
+    return '<section class="island"><div class="ihead"><span class="ititle">Recognition</span>' + info("The last strokes with their best and second-best match.") + '</div>' +
+      '<div class="tablewrap"><table class="rt"><thead><tr><th>Time</th><th>Best match</th><th>Score</th><th>Runner-up</th><th>Score</th><th>Fired</th></tr></thead><tbody>' +
+      R.map(function(r){ return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td class="' + (r[5] === "No match" ? "miss" : "") + '">' + r[5] + '</td></tr>'; }).join("") +
+      '</tbody></table></div></section>';
+  }
+
+  /* ---------- Gallery ---------- */
+  function gallery(sub){
+    if (sub !== "GestureGlyph"){
+      return '<section class="island"><div class="ihead"><span class="ititle">' + sub + '</span></div><p class="msg">In the new theme every gallery page shows its component in each state and in dark and light side by side. The GestureGlyph page shows how.</p></section>';
+    }
+    function sample(mode){
+      return '<div class="mini" data-mode="' + mode + '"><span class="mini-l">' + (mode === "dark" ? "Dark" : "Light") + '</span><div class="island">' +
+        cmdRow({ id:"_s" + mode, name:"Close window", g:"Up", steps:[["Window operation","Close"]] }, 1, false, "none") + '</div></div>';
+    }
+    return '<section class="island"><div class="ihead"><span class="ititle">GestureGlyph</span>' + info("Every state of the component, with fake data.") + '</div>' +
+      '<div class="states">' +
+      '<div class="st"><span class="gtile">' + glyph("Down Right", 64) + '</span>Active</div>' +
+      '<div class="st"><span class="gtile unused">' + glyph("Down Right", 64, true) + '</span>Inactive</div>' +
+      '<div class="st"><span class="gtile sel">' + glyph("Down Right", 64) + '</span>Selected</div>' +
+      '<div class="st"><span class="gtile dup"><span class="score">91</span>' + glyph("Down Right", 64) + '</span>Duplicate</div>' +
+      '</div><div class="ihead sub"><span class="ititle">Both themes</span></div><div class="pair">' + sample("dark") + sample("light") + '</div></section>';
+  }
+
+  /* ---------- rendering ---------- */
+  function renderTabs(){
+    $("#tabs").innerHTML = TABS.map(function(t){ return '<button class="tab" role="tab" aria-selected="' + (ui.tab === t.id) + '" data-tab="' + t.id + '"><span>' + t.name + '</span></button>'; }).join("");
+  }
+  function renderSubtabs(){
+    var t = TABS.filter(function(x){ return x.id === ui.tab; })[0];
+    $("#subtabs").innerHTML = t.subs ? t.subs.map(function(s){ return '<button class="pill" role="tab" aria-selected="' + (ui.sub[t.id] === s[0]) + '" data-sub="' + s[0] + '">' + s[1] + '</button>'; }).join("") : "";
+  }
+  function renderContent(){
+    var sub = ui.sub[ui.tab], h = "";
+    if (ui.tab === "commands") h = commands(sub);
+    else if (ui.tab === "ignored") h = exclusions(sub);
+    else if (ui.tab === "gestures") h = gestures();
+    else if (ui.tab === "options") h = options(sub);
+    else if (ui.tab === "diagnostics") h = diagnostics(sub);
+    else h = gallery(sub);
+    $("#content").innerHTML = h;
+  }
+  function keepFocus(fn){
+    var a = document.activeElement, attrs = ["data-cmd","data-sec","data-ex","data-gest","data-sub","data-tab","data-set","data-trail","data-accent","data-act"], key = null, val = null;
+    if (a && win.contains(a)) for (var i = 0; i < attrs.length; i++) if (a.hasAttribute(attrs[i])){ key = attrs[i]; val = a.getAttribute(key); break; }
+    fn();
+    if (key){
+      var esc = function(v){ return window.CSS && CSS.escape ? CSS.escape(v) : v; };
+      var sel = "[" + key + '="' + esc(val) + '"]' + (a.hasAttribute("data-id") ? '[data-id="' + esc(a.getAttribute("data-id")) + '"]' : "");
+      var n = win.querySelector(sel); if (n) n.focus();
+    }
+  }
+  function renderAll(){ keepFocus(function(){ renderTabs(); renderSubtabs(); renderContent(); }); }
+
+  /* ---------- the look ---------- */
+  var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  function resolvedMode(){
+    if (look.mode !== "auto") return look.mode;
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t === "dark" || t === "light") return t;
+    return mq && mq.matches ? "dark" : "light";
+  }
+  function placeMica(){
+    var sr = scene.getBoundingClientRect(), wr = win.getBoundingClientRect();
+    win.style.setProperty("--wx", (wr.left - sr.left) + "px");
+    win.style.setProperty("--wy", (wr.top - sr.top) + "px");
+    win.style.setProperty("--sw", sr.width + "px");
+    win.style.setProperty("--sh", sr.height + "px");
+  }
+  function applyLook(){
+    win.setAttribute("data-mode", resolvedMode());
+    win.setAttribute("data-material", look.material);
+    win.setAttribute("data-os", look.os);
+    scene.setAttribute("data-wall", look.wall);
+    var t = look.tint / 100;
+    win.style.setProperty("--alpha", (0.22 + t * 0.73).toFixed(3));
+    win.style.setProperty("--mica-alpha", (0.5 + t * 0.45).toFixed(3));
+    win.style.setProperty("--r", look.radius + "px");
+    applyColours();
+    document.querySelectorAll("#controls .seg").forEach(function(seg){
+      var key = seg.getAttribute("data-ctl");
+      seg.querySelectorAll("button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.getAttribute("data-val") === look[key])); });
+    });
+    $("#tint").value = look.tint; $("#tint-val").textContent = look.tint + "%";
+    $("#radius").value = look.radius; $("#radius-val").textContent = look.radius + " px";
+    win.querySelectorAll("[data-look]").forEach(function(input){
+      var key = input.getAttribute("data-look");
+      if (document.activeElement !== input) input.value = look[key];
+      input.nextElementSibling.textContent = look[key] + (key === "tint" ? "%" : " px");
+    });
+    placeMica();
+    save();
+  }
+
+  /* ---------- events ---------- */
+  $("#controls").addEventListener("click", function(e){
+    var b = e.target.closest(".seg button"); if (!b) return;
+    look[b.parentElement.getAttribute("data-ctl")] = b.getAttribute("data-val");
+    applyLook();
+    if (ui.tab === "options") keepFocus(renderContent);
+  });
+  $("#tint").addEventListener("input", function(e){ look.tint = +e.target.value; applyLook(); });
+  $("#radius").addEventListener("input", function(e){ look.radius = +e.target.value; applyLook(); });
+
+  win.addEventListener("click", function(e){
+    var el = e.target.closest("[data-act],[data-set],[data-trail],[data-accent],[data-tab],[data-sub],[data-cmd],[data-sec],[data-ex],[data-gest],.segm button,.ck,.switch,.box");
+    if (!el || !win.contains(el)) return;
+    var a = el.getAttribute.bind(el);
+    if (a("data-act") === "accent-link"){ look.accentLinked = !look.accentLinked; applyLook(); keepFocus(renderContent); return; }
+    if (a("data-trail")){ look.trail = a("data-trail"); applyLook(); keepFocus(renderContent); return; }
+    if (a("data-accent")){ look.accent = a("data-accent"); applyLook(); keepFocus(renderContent); return; }
+    if (a("data-act") === "toggle-cmd"){ var fc = findCmd(GLOBAL, a("data-id")) || findCmd(APPS, a("data-id")); if (fc) fc.cmd.off = !fc.cmd.off; keepFocus(renderContent); return; }
+    if (a("data-act") === "toggle-sec"){ APPS.forEach(function(s){ if (s.id === a("data-id")) s.active = !s.active; }); keepFocus(renderContent); return; }
+    if (a("data-act") === "toggle-ex"){ Object.keys(EXCL).forEach(function(k){ EXCL[k].forEach(function(x){ if (x.id === a("data-id")) x.on = !x.on; }); }); keepFocus(renderContent); return; }
+    if (a("data-set")){ look[a("data-set")] = a("data-val"); applyLook(); keepFocus(renderContent); return; }
+    if (a("data-tab")){ ui.tab = a("data-tab"); renderAll(); return; }
+    if (a("data-sub")){ ui.sub[ui.tab] = a("data-sub"); keepFocus(function(){ renderSubtabs(); renderContent(); }); return; }
+    if (a("data-cmd")){ if (ui.sub.commands && ui.tab === "commands") ui.sel[ui.sub.commands] = a("data-cmd"); keepFocus(renderContent); return; }
+    if (a("data-sec")){ ui.collapsed[a("data-sec")] = !ui.collapsed[a("data-sec")]; keepFocus(renderContent); return; }
+    if (a("data-ex")){ ui.selEx[ui.sub.ignored] = a("data-ex"); keepFocus(renderContent); return; }
+    if (a("data-gest")){ ui.selG = a("data-gest"); keepFocus(renderContent); return; }
+    if (el.matches(".segm button")){ el.parentElement.querySelectorAll("button").forEach(function(b){ b.setAttribute("aria-checked", String(b === el)); }); return; }
+    if (el.matches(".ck")){ var bx = el.querySelector(".box"); bx.classList.toggle("on"); el.setAttribute("aria-checked", String(bx.classList.contains("on"))); return; }
+    if (el.matches(".switch")){ if (el.classList.contains("dis")) return; el.classList.toggle("on"); el.setAttribute("aria-checked", String(el.classList.contains("on"))); return; }
+    if (el.matches(".box")){ el.classList.toggle("on"); el.setAttribute("aria-checked", String(el.classList.contains("on"))); }
+  });
+  win.addEventListener("input", function(e){
+    var custom = e.target.getAttribute && e.target.getAttribute("data-custom");
+    if (custom){ look[custom] = e.target.value.toUpperCase(); applyLook(); return; }
+    var key = e.target.getAttribute && e.target.getAttribute("data-look");
+    if (!key) return;
+    look[key] = +e.target.value;
+    applyLook();
+  });
+  win.addEventListener("change", function(e){
+    if (e.target.getAttribute && e.target.getAttribute("data-custom")) keepFocus(renderContent);
+  });
+  win.addEventListener("keydown", function(e){
+    if (e.key !== "Enter" && e.key !== " ") return;
+    var t = e.target;
+    if (t.tagName === "BUTTON" || t.tagName === "INPUT") return;
+    if (t.matches('[role="button"],[role="checkbox"],[role="switch"]')){ e.preventDefault(); t.click(); }
+  });
+
+  if (mq){ var onScheme = function(){ if (look.mode === "auto") applyLook(); }; if (mq.addEventListener) mq.addEventListener("change", onScheme); else if (mq.addListener) mq.addListener(onScheme); }
+  new MutationObserver(function(){ if (look.mode === "auto") applyLook(); }).observe(document.documentElement, { attributes:true, attributeFilter:["data-theme"] });
+  if (window.ResizeObserver) new ResizeObserver(placeMica).observe(scene);
+  window.addEventListener("resize", placeMica);
+
+  applyLook();
+  renderAll();
+})();
+</script>
