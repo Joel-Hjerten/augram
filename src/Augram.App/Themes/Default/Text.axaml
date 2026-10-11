@@ -15,9 +15,9 @@
     Title      Font.M   SemiBold   Text.Primary   a panel's title; every name in a row (command, section, app group,
                                                   hold remap, excluded app, step, gesture tile)
     Group      Font.M   SemiBold   Text.Muted     a form section's title above its card
-    Label      Font.S   SemiBold   Text.Muted     a small label over a group of choices or a column: the step type
+    Label      Font.S   SemiBold   Text.Faint     a small label over a group of choices or a column: the step type
                                                   picker's categories, a list's column titles (Joel, 2026-10-11: the
-                                                  picker's categories looked like its choices)
+                                                  picker's categories looked like its choices; then fainter still)
     Body       Font.M   Normal     Text.Primary   labels, values, notes, cells; every TextBlock without a role class; the
                                                   text of every standard control (buttons, tabs, pills, boxes, menus)
     Secondary  Font.S   Normal     Text.Faint     the line under a name, counts, help and captions, empty placeholders,
@@ -93,7 +93,7 @@
   <Style Selector="TextBlock.group-label, TextBlock.picker-category, TextBlock.column-header">
     <Setter Property="FontSize" Value="{StaticResource Font.S}" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
   </Style>
   <!-- Body: field labels, notes, messages, cells, values (the default above, again for the classes Wireframe styles otherwise). -->
   <Style Selector="TextBlock.body, TextBlock.field-label, TextBlock.note, TextBlock.error, TextBlock.dialog-message, TextBlock.cell, TextBlock.slider-value, TextBlock.bench-label, TextBlock.bench-value, TextBlock.bench-error">

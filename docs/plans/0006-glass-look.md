@@ -58,7 +58,7 @@ On the PC and on the Mac (Joel):
     - **Heading:** 16 px semibold, a command's name and dialog titles.
     - **Title:** 13 px semibold, panel titles and every name in a row.
     - **Group:** 13 px semibold muted, a section title above its card.
-    - **Label:** 11 px semibold muted, a small label over a group of choices or a column (the step type picker's categories, column titles; added after 0.11.1 when the picker's categories looked like its choices).
+    - **Label:** 11 px semibold faint, a small label over a group of choices or a column (the step type picker's categories, column titles; added after 0.11.1 when the picker's categories looked like its choices).
     - **Body:** 13 px.
     - **Secondary:** 11 px faint, a row's second line, counts and help lines.
     - **Badge:** 10 px semibold.

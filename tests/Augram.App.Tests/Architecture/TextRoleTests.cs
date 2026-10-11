@@ -16,7 +16,7 @@ public sealed partial class TextRoleTests
     private const string UseARole =
         "Give the text a role class from Themes/Default/Text.axaml instead: heading (16 semibold: the command header's name, a dialog's title), "
         + "title (13 semibold: a panel's title, a name in a row), group (13 semibold muted: a form section's title above its card), "
-        + "group-label (11 semibold muted: a small label over a group of choices or a column), "
+        + "group-label (11 semibold faint: a small label over a group of choices or a column), "
         + "body (13: labels, values, notes; also every TextBlock without a class and every control's text), "
         + "secondary (11 faint: the line under a name, counts, help, placeholders), badge (10 semibold muted: tags), mono (the log); "
         + "a colour modifier (muted, faint, danger, warn, ok, accent) may follow the role.";
