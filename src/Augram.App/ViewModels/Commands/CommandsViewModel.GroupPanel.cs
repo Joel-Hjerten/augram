@@ -6,8 +6,8 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// The side panel's form for a selected section header (<see cref="GroupForm"/>): an app group's on the Apps tab (Joel,
 /// 2026-10-07: selecting a group shows it, as selecting a command shows its trigger and steps), a hold remap's there too
-/// (<c>.HoldRemapPanel</c>, plan 0002) and a category's on the Global tab (<c>.CategoryPanel</c>, Joel 2026-10-08);
-/// Uncategorized has none. Shown while a section row, not a command, is selected. Each edit applies at once, one undo step
+/// (<c>.HoldRemapPanel</c>, plan 0002) and a category's on the Global tab (<c>.CategoryPanel</c>, Joel 2026-10-08;
+/// Uncategorized's too, an ordinary category since Joel's 2026-10-11). Shown while a section row, not a command, is selected. Each edit applies at once, one undo step
 /// each like a step edit; a rule the store refuses (an empty or taken name) shows on the message line and the field keeps
 /// what was typed. The form is rebuilt only when another section is selected, so typing never loses focus; a change from
 /// elsewhere (undo, a rename or the active box in the tree) is synced into it, but the panel's own edits are not echoed back.

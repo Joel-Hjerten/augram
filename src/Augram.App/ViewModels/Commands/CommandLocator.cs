@@ -5,7 +5,7 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The Commands tab's <see cref="ICommandLocator"/>: a Global command is selected by the Global sub-tab's
-/// view model (its category, or Uncategorized, expanded) and the shell goes to <c>commands.global</c>;
+/// view model (its category expanded) and the shell goes to <c>commands.global</c>;
 /// any other by the Apps sub-tab's (its group expanded) and the shell goes to <c>commands.apps</c>,
 /// through <see cref="TabNavigator"/>.
 /// </summary>

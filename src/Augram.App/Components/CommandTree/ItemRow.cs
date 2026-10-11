@@ -105,7 +105,7 @@ public abstract class ItemRow : TemplatedControl
     /// <summary>Where on the row a double click renames it: anywhere on a command row; a section header narrows it to its name.</summary>
     protected virtual bool RenamesAt(PointerEventArgs e) => true;
 
-    /// <summary>False for a section that cannot be renamed (Uncategorized) and for steps.</summary>
+    /// <summary>False for steps (and a section row before it has its item).</summary>
     public bool CanRename
     {
         get => GetValue(CanRenameProperty);

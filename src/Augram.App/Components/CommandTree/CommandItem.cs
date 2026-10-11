@@ -32,10 +32,10 @@ public sealed partial record CommandItem(
     /// <summary>The header's Not in (or Also in) row for a command that names no Exclusions › Per command (or Global) entry.</summary>
     public const string NoneNotIn = "none";
 
-    /// <summary>The section the row sits in: its group on the Apps tab, its category (or Uncategorized) on the Global tab.</summary>
+    /// <summary>The section the row sits in: its group on the Apps tab, its category on the Global tab.</summary>
     public SectionId Section { get; init; }
 
-    /// <summary>The command's category in its group; null is Uncategorized.</summary>
+    /// <summary>The command's category in its group; null is none (an app group's command only).</summary>
     public CategoryId? CategoryId { get; init; }
 
     /// <summary>
@@ -65,7 +65,7 @@ public sealed partial record CommandItem(
     /// <summary>The small tag on the row (an app group with categories, e.g. Photoshop); null shows none.</summary>
     public string? CategoryLabel { get; init; }
 
-    /// <summary>What the header's Category dropdown offers, Uncategorized first; empty hides the dropdown.</summary>
+    /// <summary>What the header's Category dropdown offers (an app group's led by "No category"); empty hides the dropdown.</summary>
     public IReadOnlyList<CategoryChoice> Categories { get; init; } = [];
 
     /// <summary>Where the command itself takes part (F8 "Use on"; its own stored value), for the header's check boxes.</summary>

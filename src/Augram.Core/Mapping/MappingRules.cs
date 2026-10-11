@@ -57,7 +57,8 @@ public static class MappingRules
 
     /// <summary>
     /// Trims the name, normalises and sorts the commands, categories and hold remaps (a command in a category the group lacks
-    /// becomes Uncategorized, one under a hold remap it lacks ordinary); Global never has a matcher, suppresses or stays off a platform.
+    /// has none, which on Global puts it in Uncategorized, <see cref="CategoryRules.Normalised"/>; one under a hold remap it
+    /// lacks becomes ordinary); Global never has a matcher, suppresses or stays off a platform.
     /// </summary>
     public static AppGroup Normalised(AppGroup group)
     {

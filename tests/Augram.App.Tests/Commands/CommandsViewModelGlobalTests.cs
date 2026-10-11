@@ -8,20 +8,22 @@ using static Augram.App.Tests.Commands.CommandsTestData;
 
 namespace Augram.App.Tests.Commands;
 
-/// <summary>The Global tab's view model: the Global group's categories as sections (Joel, 2026-10-07), Uncategorized first while it has commands.</summary>
+/// <summary>
+/// The Global tab's view model: the Global group's categories as sections (Joel, 2026-10-07), every Global command in one;
+/// Uncategorized is an ordinary category the store makes for a command left without one (Joel, 2026-10-11).
+/// </summary>
 public sealed class CommandsViewModelGlobalTests
 {
     [AvaloniaFact]
-    public void SectionsAreTheCategoriesByNameAfterUncategorizedOnlyWhileItHasCommands()
+    public void SectionsAreTheCategoriesByName_UncategorizedAnOrdinaryOneThatStaysWhenEmptied()
     {
         var (vm, store, _, _) = Create(CommandsScope.Global);
 
         Assert.Equal(("Global commands", "New category"), (vm.Heading, vm.NewSectionLabel));
-        Assert.Equal(["Uncategorized", "Media", "Window"], Names(vm));
-        var uncategorized = vm.Sections[0];
-        Assert.Equal(SectionId.Uncategorized, uncategorized.Id);
-        Assert.True(uncategorized is { CanRename: false, CanDelete: true, CanEditDefinition: false, CanToggleActive: false });
-        Assert.All(vm.Sections.Skip(1), section => Assert.True(section is { CanRename: true, CanDelete: true, CanEditDefinition: false, CanToggleActive: false }));
+        Assert.Equal(["Media", "Uncategorized", "Window"], Names(vm));
+        var uncategorized = Section(vm, "Uncategorized");
+        Assert.Equal(SectionId.ForCategory(GroupId.Global, CategoryRules.UncategorizedId), uncategorized.Id);
+        Assert.All(vm.Sections, section => Assert.True(section is { CanEditDefinition: false, CanToggleActive: false, CanCopy: false, CanExport: true }));
         Assert.Equal(["Three steps"], uncategorized.Commands.Select(command => command.Name));
         Assert.Equal(["Close window", "Minimize"], Section(vm, "Window").Commands.Select(command => command.Name));
         Assert.Equal(SectionId.ForCategory(GroupId.Global, Category(store, "Window").Id), Section(vm, "Window").Id);
@@ -33,15 +35,18 @@ public sealed class CommandsViewModelGlobalTests
         Assert.Equal("3 steps", Item(vm, "Three steps").StepSummary);
         Assert.All(vm.Sections.SelectMany(section => section.Commands), command =>
         {
+            // No empty choice on Global: every command is in a category.
             Assert.Null(command.CategoryLabel);
-            Assert.Equal(["Uncategorized", "Media", "Window"], command.Categories.Select(choice => choice.Name));
+            Assert.Equal(["Media", "Uncategorized", "Window"], command.Categories.Select(choice => choice.Name));
+            Assert.DoesNotContain(command.Categories, choice => choice.Id is null);
         });
 
         var three = Item(vm, "Three steps");
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetCategory, command: three, category: three.Categories.Single(choice => choice.Name == "Media")));
 
-        Assert.Equal(["Media", "Window"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized", "Window"], Names(vm));
         Assert.Equal(["Three steps", "Volume up"], Section(vm, "Media").Commands.Select(command => command.Name));
+        Assert.Equal("no commands", Section(vm, "Uncategorized").CountText);
     }
 
     [AvaloniaFact]
@@ -58,31 +63,41 @@ public sealed class CommandsViewModelGlobalTests
         Assert.Null(vm.SelectedCommandId);
         Assert.True(Section(vm, "New category 1").IsExpanded);
         Assert.Equal([created], renames);
-        Assert.Equal(["Uncategorized", "Media", "New category 1", "Window"], Names(vm));
+        Assert.Equal(["Media", "New category 1", "Uncategorized", "Window"], Names(vm));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewSection));
-        Assert.Equal(["Media", "New category 1", "New category 2", "Window"], store.Global.Categories.Select(category => category.Name).Order(StringComparer.Ordinal));
+        Assert.Equal(["Media", "New category 1", "New category 2", "Uncategorized", "Window"], store.Global.Categories.Select(category => category.Name).Order(StringComparer.Ordinal));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
-        Assert.Equal(["Uncategorized", "Media", "New category 1", "Window"], Names(vm));
+        Assert.Equal(["Media", "New category 1", "Uncategorized", "Window"], Names(vm));
     }
 
     [AvaloniaFact]
-    public void RenameCategoryGoesThroughTheStoreAndUncategorizedIsNeverRenamed()
+    public void RenameCategoryGoesThroughTheStore_UncategorizedIncluded_AndTheNextCommandWithoutOneMakesANewUncategorized()
     {
         var (vm, store, _, _) = Create(CommandsScope.Global);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, Section(vm, "Media"), null, "Sound"));
 
-        Assert.Equal(["Uncategorized", "Sound", "Window"], Names(vm));
+        Assert.Equal(["Sound", "Uncategorized", "Window"], Names(vm));
         Assert.Equal(Category(store, "Sound").Id, Find(store, "Volume up").CategoryId);
         Assert.Equal(["Volume up"], Section(vm, "Sound").Commands.Select(command => command.Name));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, Section(vm, "Uncategorized"), null, "Misc"));
 
-        Assert.Equal("'Uncategorized' cannot be renamed.", vm.Message);
-        Assert.Equal(2, store.Global.Categories.Count);
-        Assert.Equal(["Uncategorized", "Sound", "Window"], Names(vm));
+        Assert.Equal(["Misc", "Sound", "Window"], Names(vm));
+        Assert.Equal(CategoryRules.UncategorizedId, Category(store, "Misc").Id);
+        Assert.Equal(["Three steps"], Section(vm, "Misc").Commands.Select(command => command.Name));
+
+        // Pasted with nothing selected, a copy has no category: the store makes a new Uncategorized for it.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, Section(vm, "Misc"), Item(vm, "Three steps")));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste));
+
+        Assert.Equal(["Misc", "Sound", "Uncategorized", "Window"], Names(vm));
+        Assert.NotEqual(CategoryRules.UncategorizedId, Category(store, "Uncategorized").Id);
+        Assert.Equal(["Three steps (2)"], Section(vm, "Uncategorized").Commands.Select(command => command.Name));
+        Assert.Equal(Section(vm, "Uncategorized").Id, vm.SelectedSectionId);
     }
 
     [AvaloniaFact]
@@ -94,21 +109,21 @@ public sealed class CommandsViewModelGlobalTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Window")));
 
         Assert.Equal(("Delete category", "Delete category 'Window'? Its 2 commands move to Uncategorized.", "Delete"), confirm.Requests[^1]);
-        Assert.Equal(2, store.Global.Categories.Count);
+        Assert.Equal(3, store.Global.Categories.Count);
 
         confirm.Answer = true;
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Window")));
 
-        Assert.Equal(["Media"], store.Global.Categories.Select(category => category.Name));
-        Assert.Null(Find(store, "Close window").CategoryId);
-        Assert.Null(Find(store, "Minimize").CategoryId);
-        Assert.Equal(["Uncategorized", "Media"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized"], store.Global.Categories.Select(category => category.Name));
+        Assert.Equal(CategoryRules.UncategorizedId, Find(store, "Close window").CategoryId);
+        Assert.Equal(CategoryRules.UncategorizedId, Find(store, "Minimize").CategoryId);
+        Assert.Equal(["Media", "Uncategorized"], Names(vm));
         Assert.Equal(["Close window", "Minimize", "Three steps"], Section(vm, "Uncategorized").Commands.Select(command => command.Name));
         Assert.Equal($"Deleted 'Window'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
 
-        Assert.Equal(["Uncategorized", "Media", "Window"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized", "Window"], Names(vm));
         Assert.Equal(["Close window", "Minimize"], Section(vm, "Window").Commands.Select(command => command.Name));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Media")));
@@ -116,17 +131,17 @@ public sealed class CommandsViewModelGlobalTests
     }
 
     [AvaloniaFact]
-    public void DeleteUncategorizedAsksThenDeletesItsCommandsInOneUndoStep()
+    public void DeleteUncategorizedAsksThenDeletesItWithItsCommandsInOneUndoStep_AndItHasAFormLikeAnyCategory()
     {
         var confirm = new FakeConfirmPresenter { Answer = false };
         var (vm, store, _, _) = Create(CommandsScope.Global, confirm);
 
-        // One command: named in the question.
+        // One command: counted in the question.
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Uncategorized")));
 
-        Assert.Equal(("Delete command", "Delete the uncategorized command 'Three steps'?", "Delete"), confirm.Requests[^1]);
+        Assert.Equal(("Delete category", "Delete category 'Uncategorized' and its command?", "Delete"), confirm.Requests[^1]);
         Assert.Contains(store.Global.Commands, command => command.Name == "Three steps");
-        Assert.Equal(["Uncategorized", "Media", "Window"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized", "Window"], Names(vm));
 
         // Several (Window's two moved there): counted, and cancelling leaves them all.
         confirm.Answer = true;
@@ -134,31 +149,42 @@ public sealed class CommandsViewModelGlobalTests
         confirm.Answer = false;
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Uncategorized")));
 
-        Assert.Equal(("Delete commands", "Delete the 3 uncategorized commands?", "Delete"), confirm.Requests[^1]);
+        Assert.Equal(("Delete category", "Delete category 'Uncategorized' and its 3 commands?", "Delete"), confirm.Requests[^1]);
         Assert.Equal(["Close window", "Minimize", "Three steps"], Section(vm, "Uncategorized").Commands.Select(command => command.Name));
 
         confirm.Answer = true;
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized")));
+        Assert.NotNull(vm.GroupForm);
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Uncategorized")));
 
         Assert.Equal(["Volume up"], store.Global.Commands.Select(command => command.Name));
         Assert.Equal(["Media"], store.Global.Categories.Select(category => category.Name));
         Assert.Equal(["Media"], Names(vm));
         Assert.Null(vm.SelectedSectionId);
-        Assert.Equal($"Deleted 3 uncategorized commands. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Deleted 'Uncategorized'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
 
-        // One undo brings all three back, still uncategorized; the next brings Window back.
+        // One undo brings it back with all three; the next brings Window back.
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
 
-        Assert.Equal(["Uncategorized", "Media"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized"], Names(vm));
         Assert.Equal(["Close window", "Minimize", "Three steps"], Section(vm, "Uncategorized").Commands.Select(command => command.Name));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
-        Assert.Equal(["Uncategorized", "Media", "Window"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized", "Window"], Names(vm));
+    }
 
-        // It still has no form (and is never renamed: RenameCategoryGoesThroughTheStoreAndUncategorizedIsNeverRenamed).
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized")));
-        Assert.Null(vm.GroupForm);
+    [AvaloniaFact]
+    public void DeletingACategoryWithoutAnUncategorized_MakesOneForItsCommands()
+    {
+        var (vm, store, _, _) = Create(CommandsScope.Global, new FakeConfirmPresenter());
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Uncategorized")));
+        Assert.Equal(["Media", "Window"], Names(vm));
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Media")));
+
+        Assert.Equal(["Uncategorized", "Window"], Names(vm));
+        Assert.Equal(["Volume up"], Section(vm, "Uncategorized").Commands.Select(command => command.Name));
+        Assert.Equal(CategoryRules.UncategorizedId, Find(store, "Volume up").CategoryId);
     }
 
     [AvaloniaFact]
@@ -193,20 +219,23 @@ public sealed class CommandsViewModelGlobalTests
         Assert.Equal("Select a category first, or make one with New category.", vm.Message);
         Assert.Null(vm.SelectedSectionId);
 
-        // Uncategorized selected: there.
+        // Uncategorized selected: there, like any category.
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized")));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand));
 
-        Assert.Null(Find(store, "New command 2").CategoryId);
-        Assert.Equal(SectionId.Uncategorized, vm.SelectedSectionId);
+        Assert.Equal(CategoryRules.UncategorizedId, Find(store, "New command 2").CategoryId);
+        Assert.Equal(Section(vm, "Uncategorized").Id, vm.SelectedSectionId);
         Assert.True(Section(vm, "Uncategorized").IsExpanded);
 
-        // Paste with nothing selected still lands in Uncategorized.
+        // Paste with nothing selected lands in Uncategorized, which opens and holds the selection.
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, Section(vm, "Uncategorized")));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste));
 
-        Assert.Null(Find(store, "Three steps (3)").CategoryId);
-        Assert.Equal(SectionId.Uncategorized, vm.SelectedSectionId);
+        Assert.Equal(CategoryRules.UncategorizedId, Find(store, "Three steps (3)").CategoryId);
+        Assert.Equal(Find(store, "Three steps (3)").Id, vm.SelectedCommandId);
+        Assert.Equal(Section(vm, "Uncategorized").Id, vm.SelectedSectionId);
+        Assert.True(Section(vm, "Uncategorized").IsExpanded);
     }
 
     [AvaloniaFact]
@@ -224,21 +253,28 @@ public sealed class CommandsViewModelGlobalTests
         Assert.Equal(close.Id, vm.SelectedCommandId);
         Assert.Equal(Category(store, "Media").Id, vm.SelectedCommand!.CategoryId);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetCategory, command: vm.SelectedCommand, category: CategoryChoice.Uncategorized));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetCategory, command: vm.SelectedCommand, category: vm.SelectedCommand.Categories.Single(choice => choice.Name == "Uncategorized")));
 
-        Assert.Null(Find(store, "Close window").CategoryId);
-        Assert.Equal(SectionId.Uncategorized, vm.SelectedSectionId);
+        Assert.Equal(CategoryRules.UncategorizedId, Find(store, "Close window").CategoryId);
+        Assert.Equal(Section(vm, "Uncategorized").Id, vm.SelectedSectionId);
         Assert.True(Section(vm, "Uncategorized").IsExpanded);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         Assert.Equal(Category(store, "Media").Id, Find(store, "Close window").CategoryId);
 
-        // On the Apps tab the tag follows.
+        // On the Apps tab the tag follows, and "No category" (not Uncategorized) clears it.
         var (apps, appStore, _, _) = Create();
         var brush = Item(apps, "Brush");
+        Assert.Equal([CategoryChoice.NoneName, "Blend Mode Normal", "General"], brush.Categories.Select(choice => choice.Name));
         apps.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetCategory, command: brush, category: brush.Categories.Single(choice => choice.Name == "Blend Mode Normal")));
 
         Assert.Equal("Blend Mode Normal", Item(apps, "Brush").CategoryLabel);
         Assert.Equal("Blend Mode Normal", appStore.FindGroup(brush.GroupId)!.FindCategory(Find(appStore, "Brush").CategoryId!.Value)!.Name);
+
+        apps.Handle(new CommandTreeActionEventArgs(CommandTreeAction.SetCategory, command: Item(apps, "Brush"), category: CategoryChoice.None));
+
+        Assert.Null(Find(appStore, "Brush").CategoryId);
+        Assert.Null(Item(apps, "Brush").CategoryLabel);
+        Assert.DoesNotContain(appStore.FindGroup(brush.GroupId)!.Categories, category => category.Name == "Uncategorized");
     }
 }

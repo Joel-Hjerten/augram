@@ -58,7 +58,7 @@ public sealed class NotInAndDragDistanceSerializationTests
 
         Assert.Contains("\"hold\": {\n                \"buttons\": \"Right\",\n                \"dragDistancePx\": 3\n              }", json, StringComparison.Ordinal);
         Assert.Contains(
-            $"\"isActive\": true,\n            \"notIn\": [\n              \"{notIn[0]}\",\n              \"{notIn[1]}\"\n            ],\n            \"steps\": [",
+            $"\"isActive\": true,\n            \"notIn\": [\n              \"{notIn[0]}\",\n              \"{notIn[1]}\"\n            ],\n            \"category\": \"{CategoryRules.UncategorizedId}\",\n            \"steps\": [",
             json,
             StringComparison.Ordinal);
         Assert.Contains($"\"id\": \"{spine.Id}\",\n        \"name\": \"Spine\",\n        \"scope\": \"PerCommand\",\n        \"isActive\": true,", json, StringComparison.Ordinal);

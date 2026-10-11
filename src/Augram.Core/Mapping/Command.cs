@@ -11,7 +11,8 @@ namespace Augram.Core.Mapping;
 /// config (F5: Steam games ignore the global Close). Inactive commands stay in the list and are
 /// invisible to the resolver. <paramref name="Note"/> is free text shown read-only; the importer keeps
 /// a script-only SP.net action's script there. <paramref name="CategoryId"/> is the section of its group
-/// it is sorted into (<see cref="AppGroup.Categories"/>); null is "Uncategorized". <see cref="HoldRemapId"/> puts it under a hold
+/// it is sorted into (<see cref="AppGroup.Categories"/>); null is none, which only an app group's command keeps (on Global the
+/// rules put it in Uncategorized, <see cref="CategoryRules.Normalised"/>). <see cref="HoldRemapId"/> puts it under a hold
 /// remap instead (F9). Immutable: a change is a new record committed through <see cref="MappingStore"/>.
 /// </summary>
 public sealed partial record Command(

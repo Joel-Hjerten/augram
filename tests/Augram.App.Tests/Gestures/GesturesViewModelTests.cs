@@ -145,7 +145,7 @@ public sealed class GesturesViewModelTests
         var asked = Assert.Single(f.Confirm.Requests);
         Assert.Equal("Delete gesture", asked.Title);
         Assert.Equal("Delete", asked.ConfirmLabel);
-        Assert.Equal("Delete 'Down'? It is used by Global › Minimize, Chrome › Close tab. Those commands lose their gesture.", asked.Message);
+        Assert.Equal("Delete 'Down'? It is used by Global › Uncategorized › Minimize, Chrome › Close tab. Those commands lose their gesture.", asked.Message);
         Assert.Null(f.Library.Find(down.Id));
         Assert.Equal(Trigger.None, f.Mapping.FindCommand(minimize.Id)!.Value.Command.Trigger);
         Assert.Equal(Trigger.None, f.Mapping.FindCommand(closeTab.Id)!.Value.Command.Trigger);

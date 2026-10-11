@@ -83,7 +83,8 @@ public sealed class SyncJoinTests : TwoMachineTest
         Assert.Equal(["Up", "Down", "Left", "Up (2)", "Down (2)", "Left (2)"], home.Gestures.All.Select(gesture => gesture.Name));
         Assert.Equal(["Global", "Chrome", "Chrome (2)"], home.Mapping.Current.Groups.Select(group => group.Name));
         Assert.Equal(["Close", "Close (2)", "Minimize", "Minimize (2)"], home.Mapping.Current.Global.Commands.Select(command => command.Name));
-        Assert.Equal(["Window", "Window (2)"], home.Mapping.Current.Global.Categories.Select(category => category.Name));
+        // Each machine made its Uncategorized (for Close) with the same fixed id, so it is one category; each Window has its own id.
+        Assert.Equal(["Uncategorized", "Window", "Window (2)"], home.Mapping.Current.Global.Categories.Select(category => category.Name));
         Assert.Equal(2, home.Mapping.Current.Ignored.Count);
         Assert.Contains(report.Repairs, repair => repair.Key == SyncItemKey.ForGesture(workUp) && repair.Kind == SyncRepairKind.Renamed);
         Assert.Empty(report.Conflicts);

@@ -36,6 +36,8 @@ A document splits into items keyed by kind + id. Each item's `Content` is its JS
 
 Moving a category or a hold remap to another group is a delete in one group and an add in the other. Gesture order is not synced (it is not an item property).
 
+**Uncategorized on two machines** (Joel, 2026-10-11): every Global command is in a category, and the rules make "Uncategorized" for one left without (`../Mapping/README.md`, rule 8) with a fixed id (`…c00000000001`, or the next fixed one when a renamed one holds it). So two machines that each make it, migrating on load or after deleting different categories, publish the same item, which merges as added once; a renamed one keeps its id and the next one each machine makes is again the same. A file from a build without the rule (Global commands with no category) is normalised as it is read, so it carries the same Uncategorized and its commands read as already in it: no conflict, no format bump. Tests: `SyncUncategorizedTests`.
+
 ## The merge table (`ThreeWayMerge`)
 
 Per key, comparing contents with the base (absent = no content):
@@ -66,9 +68,9 @@ The merged items are rebuilt into a document (`SyncDocumentBuilder`) and repaire
 - name clash among gestures, among groups, among ignored apps, among one group's categories, among the commands of one parent (one hold remap's commands, or one group's ordinary commands: `Mapping/CommandNames`, Joel 2026-10-10; an "Orbit" under Space and one under S, or one under Space and an ordinary one, do not clash) → the incoming one takes the first free " (2)", " (3)"… (Global is never renamed); the repair line says where ("Incoming command 'Orbit' under 'Space' in 'Blender' renamed 'Orbit (2)': the name is taken.");
 - a trigger bound twice in one group (A7: triggers that overlap on Windows or macOS, combinations and conversions included, `MappingRules.Overlap`) → the incoming command is unbound (`Trigger.None`);
 - an own version's trigger (format 6) naming a gesture that is gone, or overlapping another command of its group → that platform's trigger is unbound (`TriggerCleared`);
-- a command whose group is gone → into Global, uncategorized;
+- a command whose group is gone → into Global, in Uncategorized;
 - a command whose gesture is gone → unbound, when the merge removed that gesture or the command is incoming (a reference that was already dangling here is left alone);
-- a command whose category is gone → uncategorized;
+- a command whose category is gone → in Uncategorized on Global ("is in Uncategorized now"), none in an app group;
 - a command's "Not in" (format 13) naming an Ignored › Per command entry that is gone or now on Ignored › Global (deleted or moved on one machine while the other ticked it) → that id is dropped, silently and without a conflict, by `MappingRules.ValidDocument` below; both machines end without it;
 - a command's "Also in" (format 14) naming an Exclusions › Global entry that is gone, now disables Augram while focused, or moved to Per command (changed on one machine while the other ticked it) → that id is dropped the same way, silently and without a conflict; so is the whole list when the rebuilt command has no bound trigger without the stroke button on either platform (an incoming command unbound by A7, say) or sits under a hold remap;
 - a category whose group is gone → dropped;

@@ -4,7 +4,7 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The section half of <see cref="CommandsViewModel"/>: a section's intents go to what it is (an app
-/// group or one of its hold remaps on the Apps tab; a category, or Uncategorized, on the Global tab), and the expanded set is
+/// group or one of its hold remaps on the Apps tab; a category on the Global tab), and the expanded set is
 /// kept here. What a section allows comes from its <see cref="SectionItem"/>, which <see cref="CommandSections"/> built.
 /// </summary>
 public sealed partial class CommandsViewModel
@@ -54,23 +54,14 @@ public sealed partial class CommandsViewModel
         {
             RenameCategory(category, name);
         }
-        else if (section.CanRename)
-        {
-            RenameGroup(section.Id.GroupId, name);
-        }
         else
         {
-            Message = $"'{section.Name}' cannot be renamed.";
+            RenameGroup(section.Id.GroupId, name);
         }
     }
 
     private Task DeleteSectionAsync(SectionItem section)
     {
-        if (Scope == CommandsScope.Global && section.Id == SectionId.Uncategorized)
-        {
-            return DeleteUncategorizedAsync();
-        }
-
         if (section.Id.HoldRemapId is { } holdRemap)
         {
             return DeleteHoldRemapAsync(section.Id.GroupId, holdRemap);
@@ -81,13 +72,7 @@ public sealed partial class CommandsViewModel
             return DeleteCategoryAsync(category);
         }
 
-        if (section.CanDelete)
-        {
-            return DeleteGroupAsync(section);
-        }
-
-        Message = $"'{section.Name}' cannot be deleted.";
-        return Task.CompletedTask;
+        return DeleteGroupAsync(section);
     }
 
     /// <summary>An app group and a hold remap have an active flag on their header; a category has none.</summary>

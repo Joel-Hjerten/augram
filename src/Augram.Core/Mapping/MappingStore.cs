@@ -173,7 +173,7 @@ public sealed partial class MappingStore
     /// <summary>
     /// Moves the command into another group (paste), keeping its id. Its category goes with it only when
     /// the target group has a category of the same name (case-insensitive), whose id it takes; otherwise
-    /// it lands Uncategorized. Its hold remap goes with it only when the target group has one on the same hold key; otherwise
+    /// it has none (into Global: it lands in Uncategorized). Its hold remap goes with it only when the target group has one on the same hold key; otherwise
     /// it lands an ordinary command without its input (<see cref="HoldRemapRules.Moved"/>). One undo step.
     /// </summary>
     public Command MoveCommand(CommandId id, GroupId toGroupId)

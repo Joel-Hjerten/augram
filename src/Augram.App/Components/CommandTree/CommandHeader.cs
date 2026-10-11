@@ -280,11 +280,6 @@ public sealed partial class CommandHeader : TemplatedControl
         _category?.Show([.. choices.Select(choice => choice.Name)], item is null ? -1 : IndexOfCategory(item));
     }
 
-    /// <summary>The command's category, or Uncategorized when it names none the group still has.</summary>
-    private static int IndexOfCategory(CommandItem item)
-    {
-        var choices = item.Categories.ToList();
-        var index = choices.FindIndex(choice => choice.Id == item.CategoryId);
-        return index >= 0 ? index : choices.FindIndex(choice => choice.Id is null);
-    }
+    /// <summary>The command's category; an app group's "No category" when it has none.</summary>
+    private static int IndexOfCategory(CommandItem item) => item.Categories.ToList().FindIndex(choice => choice.Id == item.CategoryId);
 }

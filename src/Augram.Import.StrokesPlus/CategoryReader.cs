@@ -10,7 +10,8 @@ namespace Augram.Import.StrokesPlus;
 /// actions all sit in the default "General" category gets no categories at all, and a listed category
 /// no imported action uses is left out without a warning. An action naming a category the list lacks
 /// gets one created for it, reported once per group as Info. Names match trimmed and case-insensitively
-/// and keep the list's spelling; an action without a category imports Uncategorized.
+/// and keep the list's spelling; an action without a category imports without one, which on Global puts it in the
+/// Uncategorized category (<see cref="CategoryRules.Normalised"/>, when the document is assembled).
 /// </summary>
 internal static class CategoryReader
 {

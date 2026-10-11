@@ -19,7 +19,7 @@ namespace Augram.App.Tests.Commands;
 public sealed class CommandsViewModelCategoryUseOnTests
 {
     [AvaloniaFact]
-    public void SelectingACategoryShowsItsForm_UncategorizedAndCommandsShowNone()
+    public void SelectingACategoryShowsItsForm_UncategorizedToo_CommandsShowNone()
     {
         var (vm, _, _, _) = Create(CommandsScope.Global);
 
@@ -32,8 +32,8 @@ public sealed class CommandsViewModelCategoryUseOnTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Window"), Item(vm, "Minimize")));
         Assert.Null(vm.GroupForm);
 
-        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, CategoryChoice.UncategorizedName)));
-        Assert.Null(vm.GroupForm);
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized")));
+        Assert.Equal("Uncategorized", Text("Name", vm.GroupForm!).Get());
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Media")));
         Assert.Equal("Media", Text("Name", vm.GroupForm!).Get());
@@ -104,7 +104,7 @@ public sealed class CommandsViewModelCategoryUseOnTests
         var (vm, store, _, _) = Create(CommandsScope.Global, platform: HostPlatform.MacOS);
         SetCategoryUseOn(store, "Window", PlatformSet.Windows);
 
-        Assert.Equal([CategoryChoice.UncategorizedName, "Media"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized"], Names(vm));
         Assert.DoesNotContain(vm.Sections.SelectMany(section => section.Commands), command => command.Name is "Minimize" or "Close window");
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleOtherPlatforms));
@@ -123,7 +123,7 @@ public sealed class CommandsViewModelCategoryUseOnTests
         var (vm, store, _, _) = Create(CommandsScope.Global);
         SetCategoryUseOn(store, "Window", PlatformSet.Windows);
 
-        Assert.Equal([CategoryChoice.UncategorizedName, "Media", "Window"], Names(vm));
+        Assert.Equal(["Media", "Uncategorized", "Window"], Names(vm));
         var window = Section(vm, "Window");
         Assert.False(window.IsElsewhere);
         Assert.Equal("2 commands", window.CountText);

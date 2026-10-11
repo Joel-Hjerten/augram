@@ -17,9 +17,12 @@ public sealed partial class CommandsViewModel
     /// </summary>
     private SectionId? TargetOf(SectionItem? section) => section?.Id ?? SelectedSectionId;
 
-    /// <summary>Where Paste goes: as <see cref="TargetOf"/>, but Uncategorized on the Global tab when there is no section.</summary>
+    /// <summary>
+    /// Where Paste goes: as <see cref="TargetOf"/>, but the Global group itself on the Global tab when there is no section: the
+    /// copy arrives without a category, which the store files in Uncategorized (Joel, 2026-10-11).
+    /// </summary>
     private SectionId? PasteTargetOf(SectionItem? section)
-        => TargetOf(section) ?? (Scope == CommandsScope.Global ? SectionId.Uncategorized : null);
+        => TargetOf(section) ?? (Scope == CommandsScope.Global ? SectionId.ForGroup(GroupId.Global) : null);
 
     /// <summary>"New command N" in the section (N free among the commands of its parent: <see cref="CommandNames"/>), unbound and empty, selected and handed to the tree for renaming.</summary>
     private void NewCommand(SectionId? target)
@@ -75,7 +78,6 @@ public sealed partial class CommandsViewModel
         }
 
         var group = RequireGroup(section.GroupId);
-        Expand(section);
         var name = NameScope.Free(source.Name, CommandNames.SiblingNames(group.Commands, section.HoldRemapId));
         var copy = Placed(source with { Id = CommandId.New(), Name = name, CategoryId = PastedCategory(section, group, source), HoldRemapId = section.HoldRemapId }, section);
         Command stored;
@@ -92,8 +94,17 @@ public sealed partial class CommandsViewModel
                 : $"Pasted '{stored.Name}' into '{group.Name}' without its trigger: that trigger is already used there.";
         }
 
-        Select(section, stored.Id);
-        ProjectSelection();
+        // The section the store put it in: the target, or Uncategorized for a copy pasted into Global with no category.
+        var landed = CommandSections.SectionOf(Scope, RequireGroup(group.Id), stored);
+        Select(landed, stored.Id);
+        if (Expand(landed))
+        {
+            Project();
+        }
+        else
+        {
+            ProjectSelection();
+        }
     }
 
     /// <summary>
@@ -118,8 +129,9 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// A Global section decides the category (Uncategorized included); an app group keeps the copied
-    /// command's category when it has one of the same name, else the copy is uncategorized there; under a hold remap it has none.
+    /// A Global section decides the category (none for the Global group itself: the store files it in Uncategorized); an app
+    /// group keeps the copied command's category when it has one of the same name, else the copy has none there; under a hold
+    /// remap it has none.
     /// </summary>
     private CategoryId? PastedCategory(SectionId target, AppGroup group, Command source)
     {

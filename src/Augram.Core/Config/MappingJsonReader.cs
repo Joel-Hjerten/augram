@@ -192,7 +192,10 @@ internal sealed partial class MappingJsonReader
         };
     }
 
-    /// <summary>Missing or null: Uncategorized. Not a Guid string: Uncategorized, with a notice.</summary>
+    /// <summary>
+    /// Missing or null: none. Not a Guid string: none, with a notice. On Global the rules then put the command in Uncategorized
+    /// (<see cref="CategoryRules.Normalised"/>), so a file from before every Global command had a category loads migrated.
+    /// </summary>
     private CategoryId? ReadCategoryReference(JsonObject command, string where)
     {
         if (command["category"] is null)
@@ -205,7 +208,7 @@ internal sealed partial class MappingJsonReader
             return new CategoryId(id);
         }
 
-        _notice?.Invoke($"The category of {where} dropped: 'category' must be a Guid string; the command is uncategorized.");
+        _notice?.Invoke($"The category of {where} dropped: 'category' must be a Guid string.");
         return null;
     }
 

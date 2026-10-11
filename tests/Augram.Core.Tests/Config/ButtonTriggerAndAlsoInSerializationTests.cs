@@ -62,7 +62,7 @@ public sealed class ButtonTriggerAndAlsoInSerializationTests
         var json = ConfigSerializer.Write(new ConfigDocument { Mapping = mapping }).Replace("\r\n", "\n", StringComparison.Ordinal);
 
         Assert.Contains("\"trigger\": {\n              \"button\": \"Left\",\n              \"hold\": {\n                \"buttons\": \"Right\"\n              }\n            },", json, StringComparison.Ordinal);
-        Assert.Contains($"\"isActive\": true,\n            \"alsoIn\": [\n              \"{blender.Id}\"\n            ],\n            \"steps\": [", json, StringComparison.Ordinal);
+        Assert.Contains($"\"isActive\": true,\n            \"alsoIn\": [\n              \"{blender.Id}\"\n            ],\n            \"category\": \"{CategoryRules.UncategorizedId}\",\n            \"steps\": [", json, StringComparison.Ordinal);
         Assert.Contains("\"params\": {\n                  \"output\": \"Key\",\n                  \"key\": \"X\",\n                  \"modifiers\": \"Shift, Meta\"\n                }", json, StringComparison.Ordinal);
     }
 

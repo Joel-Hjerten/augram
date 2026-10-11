@@ -43,7 +43,7 @@ public sealed class SyncItemTests
 
         var items = SyncItemSet.From(gestures, mapping);
 
-        Assert.Equal((3, 2, 1, 3, 1), (
+        Assert.Equal((3, 2, 2, 3, 1), (
             items.CountOf(SyncItemKind.Gesture),
             items.CountOf(SyncItemKind.Group),
             items.CountOf(SyncItemKind.Category),

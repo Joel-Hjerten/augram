@@ -23,18 +23,18 @@ public sealed class CommandTreeTests
         var (tree, _, _) = Show(CommandsScope.Global, collapse: "Window");
 
         var rows = tree.Rows;
-        Assert.Equal(["Uncategorized", "Media", "Window"], rows.OfType<SectionRow>().Select(row => row.NameText));
-        Assert.Equal(["Three steps", "Volume up"], rows.OfType<CommandRow>().Select(row => row.NameText));
+        Assert.Equal(["Media", "Uncategorized", "Window"], rows.OfType<SectionRow>().Select(row => row.NameText));
+        Assert.Equal(["Volume up", "Three steps"], rows.OfType<CommandRow>().Select(row => row.NameText));
         Assert.Equal("2 commands", rows.OfType<SectionRow>().Last().CountText);
-        var uncategorized = rows.OfType<SectionRow>().First();
-        Assert.Contains(":pinned", uncategorized.Classes);
-        Assert.False(uncategorized.CanRename);
-        Assert.False(uncategorized.CanToggleActive);
+
+        // Uncategorized is an ordinary category (Joel, 2026-10-11): renamed in place like the others, no active box.
+        Assert.All(rows.OfType<SectionRow>(), row => Assert.True(row is { CanRename: true, CanToggleActive: false }));
+        var uncategorized = rows.OfType<SectionRow>().Single(row => row.NameText == "Uncategorized");
         Assert.False(uncategorized.GetVisualDescendants().OfType<CheckBox>().Single().IsVisible);
-        Assert.DoesNotContain(":pinned", rows.OfType<SectionRow>().Last().Classes);
+        Assert.Equal(uncategorized.Classes.Where(name => name.StartsWith(':')), rows.OfType<SectionRow>().First().Classes.Where(name => name.StartsWith(':')));
         Assert.Contains(":collapsed", rows.OfType<SectionRow>().Last().Classes);
 
-        var volume = rows.OfType<CommandRow>().Last();
+        var volume = rows.OfType<CommandRow>().First();
         Assert.False(volume.HasGlyph);
         Assert.Equal("Wheel up", volume.TriggerText);
         Assert.False(volume.HasCategory);
@@ -213,13 +213,13 @@ public sealed class CommandTreeTests
         Assert.Equal(CommandTreeAction.ToggleActive, toggle.Action);
         Assert.Equal("Close tab", toggle.Command!.Name);
 
-        // Uncategorized deletes too since Joel's 2026-10-11 report (its commands; the host asks first).
+        // Uncategorized deletes like any category (with its commands; the host asks first).
         var (global, globalActions, globalVm) = Show(CommandsScope.Global);
         var globalWindow = (Window)TopLevel.GetTopLevel(global)!;
-        global.SelectedSectionId = SectionId.Uncategorized;
+        global.SelectedSectionId = Section(globalVm, "Uncategorized").Id;
         FocusSelectedRow(global);
         globalWindow.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
-        Assert.Equal(SectionId.Uncategorized, Assert.Single(globalActions).Section!.Id);
+        Assert.Equal(Section(globalVm, "Uncategorized").Id, Assert.Single(globalActions).Section!.Id);
 
         globalActions.Clear();
         global.SelectedSectionId = Section(globalVm, "Media").Id;
@@ -394,7 +394,7 @@ public sealed class CommandTreeTests
     }
 
     [AvaloniaFact]
-    public void DoubleClickingUncategorizedTogglesItOnEachClick_EvenOnItsName()
+    public void DoubleClickingUncategorizedsName_RenamesItLikeAnyCategory()
     {
         var (tree, actions, _) = Show(CommandsScope.Global);
         var window = (Window)TopLevel.GetTopLevel(tree)!;
@@ -403,9 +403,9 @@ public sealed class CommandTreeTests
         DoubleClickAt(window, NamePart(uncategorized));
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
+        // Joel, 2026-10-11: an ordinary category, so the double click on its name renames it, as on Chrome's.
         Assert.Equal(2, Toggles(actions, "Uncategorized"));
-        Assert.False(uncategorized.IsEditing);
-        Assert.DoesNotContain(tree.Rows, row => row is ItemRow { IsEditing: true });
+        Assert.True(uncategorized.IsEditing);
     }
 
     [AvaloniaFact]

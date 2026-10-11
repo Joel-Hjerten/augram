@@ -463,7 +463,7 @@
         </Setter>
       </ControlTheme>
 
-      <!-- A section header: an app group (Apps tab) or a category / Uncategorized (Global tab). New command shows only on the
+      <!-- A section header: an app group (Apps tab) or a category (Global tab). New command shows only on the
            section it targets (the selected one or the selected command's); the active box only when the item allows it. -->
       <ControlTheme x:Key="{x:Type tree:SectionRow}" TargetType="tree:SectionRow">
         <Setter Property="Template">
@@ -506,9 +506,6 @@
         </Style>
         <Style Selector="^:inactive /template/ TextBlock#PART_Name">
           <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
-        </Style>
-        <Style Selector="^:pinned /template/ TextBlock#PART_Name">
-          <Setter Property="FontStyle" Value="Italic" />
         </Style>
         <Style Selector="^:elsewhere">
           <Setter Property="Opacity" Value="0.55" />

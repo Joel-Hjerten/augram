@@ -6,7 +6,9 @@ namespace Augram.Core.Mapping;
 /// A named section a group's commands are sorted into (Joel, 2026-10-07; SP.net's per-application
 /// "Categories"). The Global group uses them as its organizing principle, the way app groups organize
 /// app commands: the Commands › Global tab shows one collapsible section per category. A command
-/// points at one by <see cref="Command.CategoryId"/>; none means "Uncategorized". Names are unique
+/// points at one by <see cref="Command.CategoryId"/>. Every Global command is in one: a command left without one goes into
+/// the one named "Uncategorized", an ordinary category the rules make when it is missing (Joel, 2026-10-11,
+/// <see cref="CategoryRules.Normalised"/>); an app group's command may have none. Names are unique
 /// within a group and sorted by name like everything else in F5a.
 /// </summary>
 public sealed record CommandCategory(CategoryId Id, string Name)

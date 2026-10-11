@@ -187,7 +187,7 @@ public sealed class ConfigSessionTests
     }
 
     [Fact]
-    public void ADuplicateSavedCategoryCostsOnlyItselfAndItsCommandsLoadUncategorized()
+    public void ADuplicateSavedCategoryCostsOnlyItselfAndItsCommandsLoadInUncategorized()
     {
         var media = MappingFixtures.NewCategory("Media");
         var twin = MappingFixtures.NewCategory("media");
@@ -198,9 +198,26 @@ public sealed class ConfigSessionTests
 
         using var session = Open(new InMemoryConfigStore(new ConfigDocument { Mapping = new MappingDocument([global], []) }));
 
-        Assert.Equal(media, Assert.Single(session.Mapping.Global.Categories));
-        Assert.Equal([null, media.Id], session.Mapping.Global.Commands.Select(command => command.CategoryId));
+        Assert.Equal([media, MappingFixtures.Uncategorized], session.Mapping.Global.Categories);
+        Assert.Equal([MappingFixtures.Uncategorized.Id, media.Id], session.Mapping.Global.Commands.Select(command => command.CategoryId));
         Assert.Equal($"Category 'media' ({twin.Id}) in 'Global' skipped: A category named 'Media' already exists in 'Global'.", Assert.Single(_notices));
+        Assert.False(session.Mapping.CanUndo);
+    }
+
+    [Fact]
+    public void AConfigFromBeforeEveryGlobalCommandHadACategory_LoadsWithThemInUncategorized_WithoutANoticeOrAnUndoStep()
+    {
+        var media = MappingFixtures.NewCategory("Media");
+        var chrome = MappingFixtures.NewGroup("Chrome", null, MappingFixtures.NewCommand("Close tab"));
+        var global = MappingFixtures.NewGlobal(MappingFixtures.NewCommand("Play").In(media), MappingFixtures.NewCommand("Close")) with { Categories = [media] };
+
+        using var session = Open(new InMemoryConfigStore(new ConfigDocument { Mapping = new MappingDocument([global, chrome], []) }));
+
+        Assert.Equal([media, MappingFixtures.Uncategorized], session.Mapping.Global.Categories);
+        Assert.Equal([MappingFixtures.Uncategorized.Id, media.Id], session.Mapping.Global.Commands.Select(command => command.CategoryId));
+        Assert.Null(Assert.Single(session.Mapping.Current.Groups[1].Commands).CategoryId);
+        Assert.Empty(session.Mapping.Current.Groups[1].Categories);
+        Assert.Empty(_notices);
         Assert.False(session.Mapping.CanUndo);
     }
 

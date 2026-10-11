@@ -14,10 +14,10 @@ namespace Augram.App.Tests.Commands;
 
 /// <summary>
 /// A small mapping over the starter gestures. Global has the categories Window (Close window on Up,
-/// Minimize on Down) and Media (Volume up on wheel up), given out of name order, plus an uncategorized
-/// three-step command. "Chrome" has an override to nothing on Up and Close tab on Down with a macOS
-/// override on its step; "Apple" is empty; "Photoshop" has the categories General and Blend Mode Normal,
-/// Brush on Left in General and an uncategorized Plain. So sorting, sections, tags, summaries and
+/// Minimize on Down) and Media (Volume up on wheel up), given out of name order, plus a three-step command given no
+/// category, which the store puts in Uncategorized (Joel, 2026-10-11). "Chrome" has an override to nothing on Up and Close
+/// tab on Down with a macOS override on its step; "Apple" is empty; "Photoshop" has the categories General and Blend Mode
+/// Normal, Brush on Left in General and Plain with no category. So sorting, sections, tags, summaries and
 /// markers all have a case.
 /// </summary>
 internal static class CommandsTestData
