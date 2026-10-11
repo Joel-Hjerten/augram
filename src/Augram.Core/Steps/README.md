@@ -9,11 +9,11 @@ A **step** is one executable unit of a command (F5a: app group › command › s
 | `IStep` | an immutable record holding one step's parameters: `Type` (its `IStepType`), `Summary` (one line for the command row: "Minimize window", "Wait 30 ms"), `SummaryOn(platform)` (the same in that platform's words; only platform-bound types differ) |
 | `IStepType` | what the rest of Augram knows about a kind of step: `Key` (stable, written to the config, never renamed), `DisplayName` and `Category` (the picker), `HoldRemapsOnly` (plan 0002, plan 0005 decision 8, default false: a command takes the type only under a hold remap or with a button trigger, elsewhere the picker greys it and a paste is refused, `../Mapping/StepOffer`; loading never checks it; the Remap step), `MayHoldPrivateText` (plan 0003, default false; true for Type text, Run and Imported: an export counts such steps and warns that they travel as written), `IsPlatformNeutral` (F8: no conversion or override needed), `Convert(step, from, to)` (F8: the step on the other platform, a `StepConversion`: unchanged, converted, or none with the reason), `CreateDefault()`, `Read(JsonObject)` / `Write(IStep)` (the parameters only), `Execute(IStep, StepExecutionContext)` |
 | `StepCategory` | `System`, `Display`, `Keyboard`, `Mouse` (pointer input into the window under the gesture start: Scroll, later clicks), `Text`, `Run`, `Timing`, and `Other` (never offered by the picker; placeholders only). The picker shows them in this order |
-| `StepRegistry` | `BuiltIn`: the static registration list, one line per type; `All`, `Find(key)` (null when unknown), `Require(key)` (`StepFormatException` when unknown); duplicate keys are refused at construction |
-| `StepExecutionContext` | what a step may touch while running: `Target` (window under the gesture start, already activated per A20, null when nothing was there), `Start`, `Windows` (`IWindowOperations`), `Input` (`IInputSimulator`), `Log`, `Cancellation`, `FocusMoved`, `Processes` (`IProcessLauncher`, init-only, the null object by default), `Displays` (`IDisplayModes`, init-only, the null object by default), `Clipboard` (`IClipboard`, init-only, the null object by default) |
+| `StepRegistry` | `BuiltIn`: the static registration list, one line per type; `All`, `Find(key)` (null when unknown: the config reader then keeps the step as an Unknown one, `Unknown/`); duplicate keys are refused at construction |
+| `StepExecutionContext` | what a step may touch while running: `Target` (window under the gesture start, already activated per A20, null when nothing was there), `Start`, `Windows` (`IWindowOperations`), `Input` (`IInputSimulator`), `Log`, `Cancellation`, `FocusMoved`, `Processes` (`IProcessLauncher`, init-only, the null object by default), `Displays` (`IDisplayModes`, init-only, the null object by default), `Clipboard` (`IClipboard`, init-only, the null object by default), `Apps` (`IAppActivator`) and `AppWindow` (`IAppWindow`) for the Open app step (init-only, the null objects by default) |
 | `StepResult` / `StepOutcome` | `Done`, `Skipped(reason)`, `Failed(reason)` |
 | `StepFormatException` | a stored parameter cannot be read; the message names the member and is fit for the config notice |
-| `StepParameters` | the shared reader every `Read` uses: `ReadEnum`, `ReadInt32(min, max)`, `ReadString`, `ReadBoolean` return null when the member is absent and throw a `StepFormatException` naming the member otherwise; `Required(name, when)`; `Expect<TStep>` for `Write`/`Execute` handed a foreign step |
+| `StepParameters` | the reader every `Read` uses, a thin front for `../Json/JsonMember` (the one JSON member reader, shared with the mapping's `Config/JsonMembers`): `ReadEnum` (one of the enum's names, case-insensitive; a number, even as a string such as `"3"`, is refused), `ReadFlags` (names separated by commas, "None" or an empty string for none: the modifiers of Hotkey, Scroll and Remap), `ReadInt32(min, max)`, `ReadString`, `ReadBoolean` return null (`ReadFlags` none) when the member is absent and throw a `StepFormatException` naming the member otherwise; `Required(name, when)`; `Expect<TStep>` for `Write`/`Execute` handed a foreign step |
 
 ## Shipped types
 
@@ -36,7 +36,9 @@ Picker order within a category is `BuiltIn` order.
 | `imported` | `Imported/` | Imported (not supported yet) | Other | yes (nothing to convert) | "SendAltDown (not supported yet)" |
 | `unknown` | `Unknown/` | Needs a newer Augram | Other | yes (nothing to convert) | "'scroll' step (needs a newer Augram)"; never written under this key: the file keeps the original type key and `params` (`IStep.StoredKey`) |
 
-Still to land in M2 (plan 0001 step 2): later `MouseClick`.
+Not built yet: `MouseClick` (plan 0001: M3 if not needed sooner).
+
+**Naming a type.** Nothing outside a type's folder names its step record: the rest of Augram asks `IStepType` (`HoldRemapsOnly`, `MayHoldPrivateText`, …). One documented exception (plan 0007, Joel 2026-10-11): the Remap step exists only for hold remaps and button triggers, so `../HoldRemaps/HoldRemapRules.Commands.cs` names it (its output fitted to a trigger, the output a command plays, the step the rules check) and `HoldRemapPlan` asks whether a command has one; Mapping and the App go through those, never `is RemapStep`.
 
 ## Adding a type (the recipe)
 
@@ -69,6 +71,6 @@ These belong to the Engine's command executor (M2 step 3); every step is written
 { "type": "windowOp", "authoredOn": "Windows", "isActive": true, "params": { "operation": "Minimize" } }
 ```
 
-`type` is the registry key, `authoredOn` a `HostPlatform`, `params` what `Write` produced. On the other platform the step runs as its type's `Convert` says; a platform that needs different steps gets the command's own version (`Mapping/CommandVersion`), not a per-step override. Mapping calls `StepRegistry.Require(type).Read(params)` on load; this folder never sees the envelope.
+`type` is the registry key, `authoredOn` a `HostPlatform`, `params` what `Write` produced. On the other platform the step runs as its type's `Convert` says; a platform that needs different steps gets the command's own version (`Mapping/CommandVersion`), not a per-step override. `Config/CommandStepJsonReader` calls `StepRegistry.Find(type)` and then its `Read(params)` on load (an unknown type or refused parameters keep the step as an Unknown one); this folder never sees the envelope.
 
 **May reference:** `Abstractions`, `Capture` (the start point), `Diagnostics`. **Referenced by:** `Mapping`, the Engine executor, the importer, the App's step list and picker.

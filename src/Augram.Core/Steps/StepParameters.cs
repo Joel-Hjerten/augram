@@ -1,13 +1,15 @@
 using System.Text.Json.Nodes;
+using Augram.Core.Json;
 
 namespace Augram.Core.Steps;
 
 /// <summary>
 /// Reads one member of a step's parameter object the way every <see cref="IStepType.Read"/> does
-/// (F8): a missing or null member yields null so the caller applies its default or demands it, a
-/// present member must have the right shape, and every refusal is a <see cref="StepFormatException"/>
-/// whose message names the member. Enum names are matched case-insensitively (as the config's
-/// enum strings are) and numeric strings are refused, so a hand edit cannot smuggle in an unnamed value.
+/// (F8): the steps' front for <see cref="JsonMember"/>, the one member reader the config file's mapping reader shares. A
+/// missing or null member yields null so the caller applies its default or demands it, a present member must have the right
+/// shape, and every refusal is a <see cref="StepFormatException"/> whose message names the member. Enum names are matched
+/// case-insensitively (as the config's enum strings are) and numeric strings are refused, so a hand edit cannot smuggle in
+/// an unnamed value.
 /// </summary>
 public static class StepParameters
 {
@@ -16,41 +18,38 @@ public static class StepParameters
         where TEnum : struct, Enum
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        var text = ReadString(parameters, name);
-        if (text is null)
-        {
-            return null;
-        }
+        return JsonMember.ReadEnum<TEnum>(
+            parameters,
+            name,
+            NotAString(name),
+            text => new StepFormatException($"'{name}' must be one of {string.Join(", ", Enum.GetNames<TEnum>())}; got '{text}'."));
+    }
 
-        foreach (var member in Enum.GetNames<TEnum>())
-        {
-            if (string.Equals(member, text, StringComparison.OrdinalIgnoreCase))
-            {
-                return Enum.Parse<TEnum>(member);
-            }
-        }
-
-        throw new StepFormatException($"'{name}' must be one of {string.Join(", ", Enum.GetNames<TEnum>())}; got '{text}'.");
+    /// <summary>
+    /// The member as a set of <typeparamref name="TEnum"/>'s names separated by commas ("Control, Shift"), case-insensitive;
+    /// "None", an empty string and an absent member mean none. Every step's modifier set reads through this (Hotkey, Scroll,
+    /// Remap), so a set reads the same in each.
+    /// </summary>
+    public static TEnum ReadFlags<TEnum>(JsonObject parameters, string name)
+        where TEnum : struct, Enum
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        var names = string.Join(", ", Enum.GetNames<TEnum>().Where(member => member != "None"));
+        return JsonMember.ReadFlags<TEnum>(
+            parameters,
+            name,
+            NotAString(name),
+            text => new StepFormatException($"'{name}' must list {names} separated by commas, or None; got '{text}'.")) ?? default;
     }
 
     /// <summary>The member as an integer within <paramref name="min"/>..<paramref name="max"/> inclusive, or null when absent.</summary>
     public static int? ReadInt32(JsonObject parameters, string name, int min, int max)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        var node = parameters[name];
-        if (node is null)
+        var number = JsonMember.ReadInt32(parameters, name, () => new StepFormatException($"'{name}' must be an integer."));
+        if (number is { } value && (value < min || value > max))
         {
-            return null;
-        }
-
-        if (node is not JsonValue value || !value.TryGetValue(out int number))
-        {
-            throw new StepFormatException($"'{name}' must be an integer.");
-        }
-
-        if (number < min || number > max)
-        {
-            throw new StepFormatException($"'{name}' must be between {min} and {max}; got {number}.");
+            throw new StepFormatException($"'{name}' must be between {min} and {max}; got {value}.");
         }
 
         return number;
@@ -60,36 +59,14 @@ public static class StepParameters
     public static string? ReadString(JsonObject parameters, string name)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        var node = parameters[name];
-        if (node is null)
-        {
-            return null;
-        }
-
-        if (node is not JsonValue value || !value.TryGetValue(out string? text))
-        {
-            throw new StepFormatException($"'{name}' must be a string.");
-        }
-
-        return text;
+        return JsonMember.ReadString(parameters, name, NotAString(name));
     }
 
     /// <summary>The member as a JSON <c>true</c> or <c>false</c>, or null when absent; a string such as "true" is refused.</summary>
     public static bool? ReadBoolean(JsonObject parameters, string name)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        var node = parameters[name];
-        if (node is null)
-        {
-            return null;
-        }
-
-        if (node is not JsonValue value || !value.TryGetValue(out bool flag))
-        {
-            throw new StepFormatException($"'{name}' must be true or false.");
-        }
-
-        return flag;
+        return JsonMember.ReadBoolean(parameters, name, () => new StepFormatException($"'{name}' must be true or false."));
     }
 
     /// <summary>The exception <see cref="IStepType.Read"/> throws for a member the shape demands and the object lacks: "'width' is required when 'operation' is SetSize."</summary>
@@ -105,4 +82,6 @@ public static class StepParameters
         return step as TStep
             ?? throw new ArgumentException($"The '{type.Key}' step type was handed a '{step.Type.Key}' step.", nameof(step));
     }
+
+    private static Func<Exception> NotAString(string name) => () => new StepFormatException($"'{name}' must be a string.");
 }

@@ -16,7 +16,7 @@ The **Scroll** step (key `scroll`, category Mouse, platform-neutral): turn the m
 
 - `direction`: a `ScrollDirection` name, case-insensitive; absent = `Down`. Any other name is a `StepFormatException` naming `direction`.
 - `notches`: an integer 1..20; absent = 1. Outside the range, or not an integer, names `notches`.
-- `keys`: `KeyModifiers` flag names (`Control`, `Alt`, `Shift`, `Meta`), comma-separated, read by the Hotkey step's reader (`HotkeyStepType.ReadModifiers`); absent, `""` or `"None"` = none. Written only when there are any, so a plain scroll's JSON is `{ "direction": "Up", "notches": 1 }`.
+- `keys`: `KeyModifiers` flag names (`Control`, `Alt`, `Shift`, `Meta`), comma-separated, read as every step's modifier set is (`StepParameters.ReadFlags`); absent, `""` or `"None"` = none. Written only when there are any, so a plain scroll's JSON is `{ "direction": "Up", "notches": 1 }`.
 
 ## Execution
 

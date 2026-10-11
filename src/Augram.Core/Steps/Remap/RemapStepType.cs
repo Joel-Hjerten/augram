@@ -60,13 +60,13 @@ public sealed class RemapStepType : IStepType
     public IStep Read(JsonObject parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        var modifiers = HotkeyStepType.ReadModifiers(parameters, ModifiersMember) & HotkeyKeys.AllModifiers;
+        var modifiers = StepParameters.ReadFlags<KeyModifiers>(parameters, ModifiersMember) & HotkeyKeys.AllModifiers;
         RemapOutput output = (StepParameters.ReadEnum<RemapOutputKind>(parameters, OutputMember) ?? RemapOutputKind.Button) switch
         {
             RemapOutputKind.Key => new RemapOutput.Key(
                 StepParameters.ReadEnum<KeyCode>(parameters, KeyMember) ?? KeyCode.None,
                 modifiers,
-                HotkeyStepType.ReadModifiers(parameters, RightHandMember) & modifiers),
+                StepParameters.ReadFlags<KeyModifiers>(parameters, RightHandMember) & modifiers),
             RemapOutputKind.Wheel => new RemapOutput.Wheel(StepParameters.ReadEnum<ScrollDirection>(parameters, DirectionMember) ?? ScrollDirection.Up, modifiers),
             _ => new RemapOutput.Button(StepParameters.ReadEnum<MouseButton>(parameters, ButtonMember) ?? MouseButton.Middle, modifiers),
         };

@@ -28,7 +28,7 @@ As Joel's AutoHotkey script has it (`+{MButton Down}`):
 
 - `output`: `Button`, `Key` or `Wheel` (`RemapOutputKind`), case-insensitive; absent = `Button`.
 - `button`: a `MouseButton` name; absent = `Middle`. `key`: a `KeyCode` name; absent = `None` (no key set). `direction`: a `ScrollDirection` name (`Up`, `Down`, `Left`, `Right`); absent = `Up`. Only the member of the output's kind is written.
-- `modifiers`: `KeyModifiers` names, comma-separated, read by the Hotkey step's reader (`HotkeyStepType.ReadModifiers`); written only when there are any. `rightHand`: the same, for a key output, cut down to `modifiers`; written only when there are any.
+- `modifiers`: `KeyModifiers` names, comma-separated, read as every step's modifier set is (`StepParameters.ReadFlags`); written only when there are any. `rightHand`: the same, for a key output, cut down to `modifiers`; written only when there are any.
 - A bad name or shape is a `StepFormatException` naming the member, like every step type's.
 
 ## Execution
