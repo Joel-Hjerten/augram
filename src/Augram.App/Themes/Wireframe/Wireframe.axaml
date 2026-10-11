@@ -439,7 +439,6 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
                       <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
-                      <Button Name="PART_NewCommand" Classes="toolbar" Content="New command" />
                       <ToggleButton Name="PART_OtherPlatforms"
                                     Classes="toolbar"
                                     Content="{TemplateBinding PlatformFilterLabel}"
@@ -463,23 +462,36 @@
         </Setter>
       </ControlTheme>
 
-      <!-- A section header: an app group (Apps tab) or a category / Uncategorized (Global tab). The active box shows only when the item allows it. -->
+      <!-- A section header: an app group (Apps tab) or a category / Uncategorized (Global tab). New command shows only on the
+           section it targets (the selected one or the selected command's); the active box only when the item allows it. -->
       <ControlTheme x:Key="{x:Type tree:SectionRow}" TargetType="tree:SectionRow">
         <Setter Property="Template">
           <ControlTemplate>
             <Border Name="PART_Frame" Classes="row">
-              <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto">
+              <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto,Auto">
                 <Button Grid.Column="0" Name="PART_Expander" Classes="expander" Content="−" />
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space.M}" VerticalAlignment="Center">
+                <!-- A dock, not a stack: in a narrow header the count, then the name, end in an ellipsis instead of running under the button. -->
+                <DockPanel Grid.Column="1" VerticalAlignment="Center">
                   <TextBlock Name="PART_Name"
+                             DockPanel.Dock="Left"
                              Classes="group-name"
                              Text="{TemplateBinding NameText}"
+                             TextTrimming="CharacterEllipsis"
                              VerticalAlignment="Center"
                              IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
-                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
-                  <TextBlock Classes="help" Text="{TemplateBinding CountText}" VerticalAlignment="Center" />
-                </StackPanel>
-                <CheckBox Grid.Column="2"
+                  <TextBox Name="PART_NameEditor" DockPanel.Dock="Left" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="help"
+                             Margin="8,0,0,0"
+                             Text="{TemplateBinding CountText}"
+                             TextTrimming="CharacterEllipsis"
+                             VerticalAlignment="Center" />
+                </DockPanel>
+                <Button Grid.Column="2"
+                        Name="PART_NewCommand"
+                        Classes="toolbar row-action"
+                        Content="New command"
+                        IsVisible="{TemplateBinding ShowsNewCommand}" />
+                <CheckBox Grid.Column="3"
                           Name="PART_Active"
                           Classes="row-active"
                           VerticalAlignment="Center"
@@ -1280,6 +1292,15 @@
     <Setter Property="Height" Value="{StaticResource Row.ControlSize}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+  <!-- A button inside a row (the targeted section's New command): the row's control height, so the line keeps Row.ControlSize. -->
+  <Style Selector="Button.row-action">
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Height" Value="{StaticResource Row.ControlSize}" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="Margin" Value="8,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.trigger-badge">
     <Setter Property="Width" Value="{StaticResource Row.GlyphSize}" />

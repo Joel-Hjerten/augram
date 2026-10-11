@@ -451,7 +451,8 @@
                     BorderThickness="1"
                     CornerRadius="{DynamicResource Radius.Panel}">
               <DockPanel>
-                <!-- Title on its own line, the buttons under it, wrapping sideways: beside the title they stacked into a column in a narrow tree (Joel, 2026-10-11). -->
+                <!-- Title on its own line, the buttons under it, wrapping sideways: beside the title they stacked into a column in a narrow tree (Joel, 2026-10-11).
+                     New command is not here: it sits on the selected section's header (SectionRow's PART_NewCommand; Joel, 2026-10-11). -->
                 <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" Spacing="8">
                   <StackPanel Orientation="Horizontal" MinHeight="{StaticResource Lists.HeadLineHeight}">
                     <TextBlock Classes="title" Text="{TemplateBinding Heading}" VerticalAlignment="Center" />
@@ -461,7 +462,6 @@
                   </StackPanel>
                   <WrapPanel ItemSpacing="6" LineSpacing="4">
                     <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
-                    <Button Name="PART_NewCommand" Classes="toolbar primary" Content="New command" />
                     <ToggleButton Name="PART_OtherPlatforms"
                                   Classes="toolbar"
                                   Content="{TemplateBinding PlatformFilterLabel}"
@@ -488,25 +488,39 @@
         </Setter>
       </ControlTheme>
 
-      <!-- A section header (.row.sec): chevron, name, muted count; the active box only when the item allows it. -->
+      <!-- A section header (.row.sec): chevron, name, muted count; New command at the right end of the section it targets only
+           (the selected one or the selected command's); the active box only when the item allows it. -->
       <ControlTheme x:Key="{x:Type tree:SectionRow}" TargetType="tree:SectionRow">
         <Setter Property="Template">
           <ControlTemplate>
             <Border Name="PART_Frame" Classes="row">
-              <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto">
+              <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto,Auto">
                 <Button Grid.Column="0" Name="PART_Expander" Classes="expander">
                   <Path Classes="chevron" Data="M 3.5,2 L 6.5,5 L 3.5,8" />
                 </Button>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space.M}" VerticalAlignment="Center">
+                <!-- A dock, not a stack: in a narrow header (a hold remap's, beside New command) the count, then the name, end in
+                     an ellipsis instead of running under the button and the box. -->
+                <DockPanel Grid.Column="1" VerticalAlignment="Center">
                   <TextBlock Name="PART_Name"
+                             DockPanel.Dock="Left"
                              Classes="group-name"
                              Text="{TemplateBinding NameText}"
+                             TextTrimming="CharacterEllipsis"
                              VerticalAlignment="Center"
                              IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
-                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
-                  <TextBlock Classes="row-count" Text="{TemplateBinding CountText}" VerticalAlignment="Center" />
-                </StackPanel>
-                <CheckBox Grid.Column="2"
+                  <TextBox Name="PART_NameEditor" DockPanel.Dock="Left" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="row-count"
+                             Margin="8,0,0,0"
+                             Text="{TemplateBinding CountText}"
+                             TextTrimming="CharacterEllipsis"
+                             VerticalAlignment="Center" />
+                </DockPanel>
+                <Button Grid.Column="2"
+                        Name="PART_NewCommand"
+                        Classes="toolbar primary row-action"
+                        Content="New command"
+                        IsVisible="{TemplateBinding ShowsNewCommand}" />
+                <CheckBox Grid.Column="3"
                           Name="PART_Active"
                           Classes="row-active"
                           VerticalAlignment="Center"
@@ -1145,6 +1159,16 @@
   </Style>
   <Style Selector="tree|SectionRow:collapsed /template/ Path.chevron">
     <Setter Property="RenderTransform" Value="rotate(0deg)" />
+  </Style>
+
+  <!-- A button inside a row (the targeted section's New command): a toolbar button the row's control height, so the line keeps
+       its Row.ControlSize; after Forms.axaml's toolbar padding, which would make it taller than the row. -->
+  <Style Selector="Button.row-action">
+    <Setter Property="Height" Value="{StaticResource Row.ControlSize}" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="Margin" Value="8,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <!-- Row text (.cmd-name, .cmd-sum, .sec-name, .count, .tag): names are Title, the second line and counts Secondary, tags

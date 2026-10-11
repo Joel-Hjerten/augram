@@ -11,9 +11,15 @@ namespace Augram.App.ViewModels.Commands;
 /// </summary>
 public sealed partial class CommandsViewModel
 {
-    /// <summary>Where New command and Paste go: the section acted on, else the selected one; Uncategorized on the Global tab when there is neither.</summary>
-    private SectionId? TargetOf(SectionItem? section)
-        => section?.Id ?? SelectedSectionId ?? (Scope == CommandsScope.Global ? SectionId.Uncategorized : null);
+    /// <summary>
+    /// Where New command goes: the section acted on (its header's New command button), else the selected one; none when there is
+    /// neither, on either tab (Joel, 2026-10-11: a category is chosen first, so nothing selected makes nothing).
+    /// </summary>
+    private SectionId? TargetOf(SectionItem? section) => section?.Id ?? SelectedSectionId;
+
+    /// <summary>Where Paste goes: as <see cref="TargetOf"/>, but Uncategorized on the Global tab when there is no section.</summary>
+    private SectionId? PasteTargetOf(SectionItem? section)
+        => TargetOf(section) ?? (Scope == CommandsScope.Global ? SectionId.Uncategorized : null);
 
     /// <summary>"New command N" in the section (N free among the commands of its parent: <see cref="CommandNames"/>), unbound and empty, selected and handed to the tree for renaming.</summary>
     private void NewCommand(SectionId? target)
@@ -156,12 +162,14 @@ public sealed partial class CommandsViewModel
         }
     }
 
-    /// <summary>The Apps tab has no section to fall back to: without one selected, New command and Paste say so.</summary>
+    /// <summary>Without a section selected, New command (and Paste on the Apps tab, which has none to fall back to) says so and does nothing.</summary>
     private SectionId? RequireTarget(SectionId? target)
     {
         if (target is null)
         {
-            Message = $"Select an app group first, or make one with {NewSectionLabel}";
+            Message = Scope == CommandsScope.Global
+                ? $"Select a category first, or make one with {NewSectionLabel}."
+                : $"Select an app group first, or make one with {NewSectionLabel}";
         }
 
         return target;
