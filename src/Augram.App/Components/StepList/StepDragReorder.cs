@@ -129,7 +129,7 @@ internal sealed class StepDragReorder
     /// <summary>
     /// Shows the order a release at <paramref name="pointerY"/> gives: the dragged row's top follows the pointer (kept within the
     /// list), its target is the number of other rows whose middle is above its own, and the rows it passed slide one slot (its
-    /// height plus the gap between rows) the other way.
+    /// height plus the gap between rows) the other way. A tie with a row's middle counts as passing it, toward either end.
     /// </summary>
     private void Arrange(StepRow pressed, double pointerY, Visual surface)
     {
@@ -149,7 +149,11 @@ internal sealed class StepDragReorder
         var to = 0;
         for (var i = 0; i < rows.Count; i++)
         {
-            if (i != from && tops[i] + (heights[i] / 2) <= middle)
+            // A row stays above the dragged one while its middle is above the dragged middle; a tie gives way in the direction of the
+            // drag, so a step pushed against either end of the list (where its top is held) passes the end step (Joel, 0.11.13: the
+            // top step never made way).
+            var rowMiddle = tops[i] + (heights[i] / 2);
+            if (i < from ? rowMiddle < middle : i > from && rowMiddle <= middle)
             {
                 to++;
             }

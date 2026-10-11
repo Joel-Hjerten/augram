@@ -196,6 +196,29 @@ public sealed class StepListTests
         Assert.All(list.Rows, row => Assert.Equal(0, row.DragOffset));
     }
 
+    /// <summary>Joel, 0.11.13: the middle step dragged to the top did not move the top step aside, while dragged to the bottom it did.</summary>
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TheMiddleStepDraggedPastEitherEndMovesTheEndStepAside(bool up)
+    {
+        var (list, actions, _) = Show(echoSelect: true);
+        var window = WindowOf(list);
+        Render();
+        var from = Centre(Part(list.Rows[1], "PART_Grip"), window);
+        var end = up ? 0 : 2;
+        var past = Centre(list.Rows[end], window) + new Point(0, up ? -200 : 200);
+
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(past);
+
+        Assert.Equal(up, list.Rows[end].DragOffset > 0);
+        Assert.Equal(!up, list.Rows[end].DragOffset < 0);
+        window.MouseUp(past, MouseButton.Left);
+        var reorder = Assert.Single(actions);
+        Assert.Equal((1, end), (reorder.Step!.Index, reorder.TargetIndex));
+    }
+
     [AvaloniaFact]
     public void ADragBroughtBackToItsPlaceMovesNothing_TheRowsGoBack()
     {
