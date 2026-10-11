@@ -35,7 +35,7 @@ Why a folder of its own: it sits on `Config` (the format: reader, writer, migrat
 
 | Kind | By, in order | Within |
 |---|---|---|
-| gesture | id, name, shape (first sample ≥ `ConfusionCheck.DuplicateCutOff`, only with `ImportOptions.MatchShapes`) | the library |
+| gesture | id, name, shape (`ConfusionCheck.Duplicate`: the first sample scoring ≥ `DuplicateCutOff` against a gesture not yet matched, inactive ones too; only with `ImportOptions.MatchShapes`) | the library |
 | app group | id (Global is always Global), name | the mapping |
 | category | id, name (Global's Uncategorized has a fixed id on every install, so it matches by id; a file from before 2026-10-11 gets it as it is read, its Global commands in it: Joel, 2026-10-11, `../Mapping/README.md` rule 8) | the matched group |
 | hold remap | id, hold key, name | the matched group |
