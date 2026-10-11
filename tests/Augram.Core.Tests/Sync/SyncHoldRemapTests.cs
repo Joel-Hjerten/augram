@@ -5,6 +5,7 @@ using Augram.Core.Gestures;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
+using Augram.Core.Sync.Files;
 using Augram.Core.Tests.Mapping.Support;
 using Augram.Core.Tests.Sync.Support;
 using Xunit;

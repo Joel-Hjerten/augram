@@ -10,8 +10,6 @@ The on-disk configuration (requirements F8, checklist A3/A17) and the session th
 | `Settings` | one record per subsystem: `General` (`GeneralSettings`), `Capture` (`CaptureThresholds`, reused), `Trail` (`TrailSettings`), `Recognition` (`RecognitionOptions`, reused), `NoMatch` (`NoMatchBehaviour`), `Sync` (`SyncSettings`), `Appearance` (`AppearanceSettings`). All of it stays on this machine: sync carries gestures and the mapping only, and an export (`../Transfer/`) the options without `sync` and `appearance` |
 | `AppearanceSettings`, `AppTheme`, `WindowBackground` | plan 0006, Options › Appearance › Theme: `Theme` Dark (or Light, System = follow the OS), `WindowBackground` FrostedGlass (or WallpaperTint, Solid), `TintPercent` 62 (0–100), `CornerRadiusPx` 12 (4–18), `AccentFollowsTrail` true, `Accent` `#F5C542` (used only when the accent does not follow the trail). `SettingsStore.SetAppearance` |
 | `SyncSettings`, `SyncSettingsRules` | F8 sync, local: `RepositoryUrl` (null = off), `MachineId` (empty until `SettingsStore.EnsureMachineId` generates it once; that clears the settings undo history so no undo can bring the empty id back), `MachineName` (default `Environment.MachineName`), `AutoSync` (default true). Rules: the name is not blank; the URL is `https://…`, `git@host:path`, a full local path or `file://`, never with a user name or token (`UserInfoProblem` says why: git's credential helper signs in). `Host(url)` is all the log may show. `SettingsStore.SetSync` trims, turns a blank URL into null and keeps the machine id |
-| `SyncFile`, `SyncAcknowledgement`, `SyncFileHeader`, `SyncFileSerializer` | one machine's file in the sync repo, see "Sync file" below. `TryRead` never throws: a broken file is an error line |
-| `SyncItemJson` (internal) | the canonical text of one sync item (`../Sync/README.md`), written and read back by the writers and readers above |
 | `GeneralSettings` | stroke button (`Capture.MouseButton`, default Right), `IgnoreKeys` flags, start at login, enabled |
 | `TrailSettings`, `RgbColor` | width px 5, opacity 0.5, colour `#F5C542` (plan 0006 decision 7, 2026-10-11; StrokesPlus.net's `#00FF40` before, and a file with a colour keeps it) |
 | `ConfigSerializer` | `Write(document)` (indented, always the current schema version) and `Read(json)` / `Read(json, stepRegistry, notice)` (version check, migrate, deserialize, validate); every failure is a `ConfigFormatException` with a message fit for the log. The top-level envelope is written by hand so the `mapping` member can go through the two classes below. The internal `Read(root, steps, notice, what)` takes a tree already parsed by `ParseObject` and the subject of its messages: the export file reader (`../Transfer/TransferSerializer`) comes in there to see which members a file has and to say "The file was written by a newer Augram" |
@@ -94,24 +92,9 @@ The `sync` section (schema version 1, additive): missing, null or partial takes 
 
 The `appearance` section (plan 0006, 2026-10-11) is additive the same way, under schema 7 without a bump: missing, null or partial takes the defaults above; a name its enums lack, or a member of the wrong shape, is a format error naming it (`'theme' must be one of Dark, Light, System.`); out of range is the rules' (reset on load with a notice, like any setting). No bump, because an older build only passes the section over and, at its next save, writes the file back without it: that machine's look returns to the defaults, nothing else is lost, whereas a bump would make it refuse the whole file.
 
-## Sync file (`SyncFileSerializer`)
+## Sync file
 
-`machines/<machineId>.json` in the sync repo (F8 sync; the merge is `../Sync/README.md`): the config file's `gestures` and `mapping` members, written and read by exactly the same code, under a machine header. Settings never travel.
-
-```json
-{
-  "schemaVersion": 7,
-  "formatVersion": 14,
-  "machine": { "id": "<machine id>", "name": "PC-HOME", "writtenAt": "2026-10-07T18:30:00+00:00", "revision": "<new Guid per publish>" },
-  "merged": [
-    { "machineId": "<other machine>", "revision": "<its revision merged here>", "except": ["command:<id>"], "pending": ["command:<id>"] }
-  ],
-  "gestures": [ … ],
-  "mapping": { "groups": [ … ], "ignored": [ … ] }
-}
-```
-
-`merged` has one entry per other machine this one has merged: the revision of its file, the item keys of that revision not taken (`except`: pending conflicts on either side) and the keys this machine has a conflict on with it, waiting for the user (`pending`; the other machine leaves those alone). The schema version is the config file's: newer is refused, older is migrated by `ConfigMigrations` (same members, same steps). `formatVersion` is the sync's own (`SyncFile.CurrentFormatVersion`; missing = 1): newer is refused, older reads with defaults. `ReadHeader` reads both and the machine name alone, so the sync can pause on a file a newer Augram wrote without reading the rest (`../Sync/README.md`, Format version; `SyncFileHeader`: `IsNewer` for this build, `IsNewerThan(schema, format)` for what an older build answers). Reading validates with `GestureRules` and `MappingRules`; a file that breaks a rule is an error like a malformed one. Steps of an unknown type are kept as is with a notice, as on load (`../Steps/Unknown/`); the sync then skips such a file rather than merge what it cannot read.
+The sync repo's machine file (`SyncFile`, `SyncFileSerializer`) and a sync item's text (`SyncItemJson`) live in `../Sync/` (`Files/` and beside `SyncItem`) since plan 0007; they write and read through the writers and readers here, so the two formats never drift (`../Sync/README.md`, Sync file).
 
 ## Store contract (`FileConfigStore`)
 
@@ -136,4 +119,4 @@ A **new step type** has so far gone without a schema change (Type text, Run and 
 
 Single-writer. The stores and `ConfigSession` are mutated from one thread (the UI thread in the app) and are not synchronised. The host's scheduler must run the save on that same thread (a `DispatcherTimer`). Other threads read `Current` / `All` as immutable snapshots after `DocumentChanged` (the engine resolves commands against `Mapping.Current` this way); they never call a mutator. Core has no timer of its own: the delay is the host's job.
 
-**May reference:** `Gestures`, `Mapping`, `Steps`, `Capture`, `Recognition`, `State`. **Referenced by:** the composition root, view models, the engine (read-only snapshots), the importer (`ConfigDocument` for export), `Sync` (settings, the sync file, the item JSON), `Transfer` (an export file is this file with members left out: the same writers, `ConfigSerializer`'s reader and migrations).
+**May reference:** `Gestures`, `Mapping`, `Steps`, `Capture`, `Recognition`, `State`. **Referenced by:** the composition root, view models, the engine (read-only snapshots), the importer (`ConfigDocument` for export), `Sync` (settings; its machine file and item JSON go through the writers, readers and migrations here), `Transfer` (an export file is this file with members left out: the same writers, `ConfigSerializer`'s reader and migrations).

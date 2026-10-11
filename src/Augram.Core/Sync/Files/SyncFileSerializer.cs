@@ -4,11 +4,12 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 
-namespace Augram.Core.Config;
+namespace Augram.Core.Sync.Files;
 
 /// <summary>
 /// Text in, <see cref="SyncFile"/> out, and back (README: sync file). The <c>gestures</c> and <c>mapping</c>

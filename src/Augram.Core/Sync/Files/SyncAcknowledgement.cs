@@ -1,4 +1,4 @@
-namespace Augram.Core.Config;
+namespace Augram.Core.Sync.Files;
 
 /// <summary>
 /// One entry of a sync file's <c>merged</c> list: "this machine has merged revision <see cref="Revision"/> of

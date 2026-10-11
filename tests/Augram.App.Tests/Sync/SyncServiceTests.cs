@@ -2,9 +2,9 @@ using Augram.App.Hosting;
 using Augram.App.Tests.Support;
 using Augram.App.Tests.Sync.Support;
 using Augram.App.ViewModels;
-using Augram.Core.Config;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
+using Augram.Core.Sync.Files;
 using Xunit;
 
 namespace Augram.App.Tests.Sync;

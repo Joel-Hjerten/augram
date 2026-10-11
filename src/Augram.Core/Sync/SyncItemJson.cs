@@ -2,15 +2,16 @@ using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 
-namespace Augram.Core.Config;
+namespace Augram.Core.Sync;
 
 /// <summary>
-/// The canonical text of one sync item (<c>Sync/SyncItem</c>), written by the same writers as the config
+/// The canonical text of one sync item (<see cref="SyncItem"/>), written by the same writers as the config
 /// file (the gesture serializer of <see cref="ConfigJsonContext"/>, <see cref="MappingJsonWriter"/>) so two
 /// items are equal exactly when their text is, and read back by the same readers when a stored text has to
 /// become an item again (resolving a conflict). One line of compact JSON, except that a gesture's samples keep

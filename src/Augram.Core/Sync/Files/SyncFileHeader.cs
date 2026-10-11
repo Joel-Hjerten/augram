@@ -1,4 +1,6 @@
-namespace Augram.Core.Config;
+using Augram.Core.Config;
+
+namespace Augram.Core.Sync.Files;
 
 /// <summary>
 /// The versions at the top of a sync file and its machine's name, read before anything else (README: format

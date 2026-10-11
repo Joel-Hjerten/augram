@@ -5,6 +5,7 @@ using Augram.App.Tray;
 using Augram.App.ViewModels;
 using Augram.Core.Config;
 using Augram.Core.Sync;
+using Augram.Core.Sync.Files;
 using Xunit;
 
 namespace Augram.App.Tests.Sync;
