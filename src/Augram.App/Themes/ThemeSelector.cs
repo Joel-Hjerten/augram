@@ -12,8 +12,14 @@ public static class ThemeSelector
     public const string Wireframe = "Wireframe";
     public const string Default = "Default";
 
-    /// <summary>The theme the app runs on. Wireframe until D2 is decided.</summary>
-    public static string Active { get; } = Wireframe;
+    /// <summary>
+    /// The theme the app runs on: Default, the glass look, since D2 was decided (plan 0006). Wireframe stays loadable as a
+    /// gallery option (ADR-0002 §5b).
+    /// </summary>
+    public static string Active { get; } = Default;
+
+    /// <summary>Whether the active theme draws the window's title bar itself, with the top-level tabs in it (plan 0006 decision 5).</summary>
+    public static bool DrawsTitleBar => Active == Default;
 
     public static IReadOnlyList<string> Names { get; } = [Wireframe, Default];
 

@@ -1,9 +1,185 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:Augram.App.Components.Shell">
   <!--
-    The real design (ADR-0002 §5b) lands here when D2 is decided. Until then it is the Wireframe look,
-    included rather than copied so the two cannot drift; replacing the include with this theme's own
-    ControlThemes and token overrides is the whole job of skinning.
+    The glass look (plan 0006, D2; visual reference design/mockups/augram-glass-theme.html). It grows on top of the
+    Wireframe theme: Wireframe supplies every ControlTheme this file does not replace yet, and this file's own Resources
+    win over the included ones (a Styles object looks in its own Resources before its children's). Colours come from the
+    per-variant tokens in Tokens.axaml (Layer.*, Text.*, Accent.*), always as DynamicResource, so Light, Dark and Follow
+    system switch while the window is open.
   -->
+  <Styles.Resources>
+    <ResourceDictionary>
+      <!-- The tokens again, here: this file's setters are resolved while it loads, before the Wireframe include below exists. -->
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <!-- Top-level tabs in the title bar, the selected tab's page below (decision 5). TitleBar.Padding is the window's:
+           room for the system's caption buttons on Windows and its traffic lights on macOS (Views/MainWindow). -->
+      <ControlTheme x:Key="ShellTabControl" TargetType="TabControl">
+        <Setter Property="ItemsPanel">
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="2" />
+          </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="Template">
+          <ControlTemplate>
+            <DockPanel>
+              <Grid Name="PART_TitleBar"
+                    DockPanel.Dock="Top"
+                    Height="{StaticResource TitleBar.Height}"
+                    Margin="{DynamicResource TitleBar.Padding}"
+                    ColumnDefinitions="Auto,*"
+                    Background="Transparent"
+                    shell:WindowDragArea.IsEnabled="True">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,6,0">
+                  <Image Source="avares://Augram/Assets/Icons/augram-256.png" Width="16" Height="16" />
+                  <TextBlock Classes="titlebar-title" Text="{Binding $parent[Window].Title}" VerticalAlignment="Center" />
+                </StackPanel>
+                <ScrollViewer Name="PART_TabScroller"
+                              Grid.Column="1"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Bottom"
+                              HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Disabled">
+                  <!-- The margin keeps the selected tab's flares inside the scroller, which clips. -->
+                  <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" Margin="12,0" />
+                </ScrollViewer>
+              </Grid>
+              <Border Name="PART_Page" Background="{DynamicResource Layer.Page}" CornerRadius="{StaticResource Radius.Page}" Margin="8,0,8,8">
+                <ContentPresenter Name="PART_SelectedContentHost"
+                                  Content="{TemplateBinding SelectedContent}"
+                                  ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+              </Border>
+            </DockPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- A top-level tab: a folder tab in the page's colour when selected, joined to the page by two flares (decision 5). -->
+      <ControlTheme x:Key="ShellTab" TargetType="TabItem">
+        <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Panel Height="{StaticResource Tab.Height}" VerticalAlignment="Bottom">
+              <Path Name="PART_FlareLeft"
+                    Data="M 10,0 L 10,10 L 0,10 A 10,10 0 0 0 10,0 Z"
+                    Fill="{DynamicResource Layer.Page}"
+                    Width="10" Height="10"
+                    HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                    Margin="-10,0,0,0"
+                    IsVisible="False" />
+              <Path Name="PART_FlareRight"
+                    Data="M 0,0 L 0,10 L 10,10 A 10,10 0 0 1 0,0 Z"
+                    Fill="{DynamicResource Layer.Page}"
+                    Width="10" Height="10"
+                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Margin="0,0,-10,0"
+                    IsVisible="False" />
+              <Border Name="PART_Tab" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Tab}" Padding="4,0">
+                <Border Name="PART_Hover" CornerRadius="{StaticResource Radius.Control}" Padding="12,5" Margin="0,4" VerticalAlignment="Center">
+                  <ContentPresenter Name="PART_HeaderPresenter" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                </Border>
+              </Border>
+            </Panel>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+          <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+        </Style>
+        <Style Selector="^:pointerover /template/ Border#PART_Hover">
+          <Setter Property="Background" Value="{DynamicResource Layer.Hover}" />
+        </Style>
+        <Style Selector="^:selected">
+          <Setter Property="Background" Value="{DynamicResource Layer.Page}" />
+          <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Hover">
+          <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="^:selected /template/ Path">
+          <Setter Property="IsVisible" Value="True" />
+        </Style>
+      </ControlTheme>
+
+      <!-- Sub-tabs: pills inside the page, wrapping onto more rows rather than hiding any (decision 5). -->
+      <ControlTheme x:Key="SubTabControl" TargetType="TabControl">
+        <Setter Property="ItemsPanel">
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="Template">
+          <ControlTemplate>
+            <DockPanel>
+              <ItemsPresenter Name="PART_ItemsPresenter" DockPanel.Dock="Top" ItemsPanel="{TemplateBinding ItemsPanel}" Margin="12,10,12,2" />
+              <ContentPresenter Name="PART_SelectedContentHost"
+                                Content="{TemplateBinding SelectedContent}"
+                                ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+            </DockPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="SubTabPill" TargetType="TabItem">
+        <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+        <Setter Property="Margin" Value="0,0,4,4" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource Radius.Control}"
+                    Padding="12,4">
+              <ContentPresenter Name="PART_HeaderPresenter" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+          <Setter Property="Background" Value="{DynamicResource Layer.Hover}" />
+          <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+        </Style>
+        <Style Selector="^:selected">
+          <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
+          <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+        </Style>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type shell:Shell}" TargetType="shell:Shell">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <TabControl Name="PART_Tabs" Classes="shell" ItemsSource="{TemplateBinding Tabs}" Theme="{StaticResource ShellTabControl}" />
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+    </ResourceDictionary>
+  </Styles.Resources>
+
   <StyleInclude Source="avares://Augram/Themes/Wireframe/Wireframe.axaml" />
+
+  <Style Selector="TabControl.shell > TabItem">
+    <Setter Property="Theme" Value="{StaticResource ShellTab}" />
+  </Style>
+  <Style Selector="TabControl.sub">
+    <Setter Property="Theme" Value="{StaticResource SubTabControl}" />
+  </Style>
+  <!-- Wireframe's TabItem rule sets a 32 px minimum and its padding; pills size to their text. -->
+  <Style Selector="TabControl.sub > TabItem">
+    <Setter Property="Theme" Value="{StaticResource SubTabPill}" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <!-- Wireframe paints the sub-tab strip opaque; here the page shows through. -->
+  <Style Selector="TabControl.sub /template/ WrapPanel">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="TextBlock.titlebar-title">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
 </Styles>

@@ -5,6 +5,64 @@
     architecture test fails any literal colour under Components/. A theme may override any key.
   -->
 
+  <!--
+    The glass look's layers (plan 0006 decision 1), per theme variant; only the Default theme uses them, always as
+    DynamicResource so a theme switch applies at once. Each layer is a translucent fill over the window background, so the
+    same values work over glass and over solid. Layer.Window is the tint colour: Themes/WindowBackdrop paints it at the
+    user's tint over the system backdrop, and opaque when there is none. Values come from the mockup's [data-mode] blocks
+    (design/mockups/augram-glass-theme.html).
+  -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="Layer.Window">#18171C</Color>
+      <SolidColorBrush x:Key="Layer.Page" Color="#0BFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Panel" Color="#0EFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Control" Color="#14FFFFFF" />
+      <SolidColorBrush x:Key="Layer.Hover" Color="#0EFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Input" Color="#3D000000" />
+      <SolidColorBrush x:Key="Layer.Edge" Color="#12FFFFFF" />
+      <SolidColorBrush x:Key="Layer.EdgeTop" Color="#1FFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Divider" Color="#11FFFFFF" />
+      <SolidColorBrush x:Key="Text.Primary" Color="#F2F1F5" />
+      <SolidColorBrush x:Key="Text.Muted" Color="#A3F2F1F5" />
+      <SolidColorBrush x:Key="Text.Faint" Color="#61F2F1F5" />
+      <!-- Accent: what a root without Themes/AccentLink shows (tests, the previewer); the running app derives these from the trail colour. -->
+      <SolidColorBrush x:Key="Accent.Fill" Color="#F5C542" />
+      <SolidColorBrush x:Key="Accent.Soft" Color="#29F5C542" />
+      <SolidColorBrush x:Key="Accent.Line" Color="#7AF5C542" />
+      <SolidColorBrush x:Key="Accent.Edge" Color="#00000000" />
+      <SolidColorBrush x:Key="Accent.Text" Color="#F5C542" />
+      <SolidColorBrush x:Key="Accent.OnFill" Color="#17140A" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="Layer.Window">#ECEBF0</Color>
+      <SolidColorBrush x:Key="Layer.Page" Color="#6BFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Panel" Color="#9EFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Control" Color="#C7FFFFFF" />
+      <SolidColorBrush x:Key="Layer.Hover" Color="#0D141428" />
+      <SolidColorBrush x:Key="Layer.Input" Color="#B8FFFFFF" />
+      <SolidColorBrush x:Key="Layer.Edge" Color="#17141428" />
+      <SolidColorBrush x:Key="Layer.EdgeTop" Color="#CCFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Divider" Color="#12141428" />
+      <SolidColorBrush x:Key="Text.Primary" Color="#1D1C22" />
+      <SolidColorBrush x:Key="Text.Muted" Color="#A31D1C22" />
+      <SolidColorBrush x:Key="Text.Faint" Color="#661D1C22" />
+      <SolidColorBrush x:Key="Accent.Fill" Color="#F5C542" />
+      <SolidColorBrush x:Key="Accent.Soft" Color="#3DF5C542" />
+      <SolidColorBrush x:Key="Accent.Line" Color="#99D09B0B" />
+      <SolidColorBrush x:Key="Accent.Edge" Color="#99D09B0B" />
+      <SolidColorBrush x:Key="Accent.Text" Color="#967008" />
+      <SolidColorBrush x:Key="Accent.OnFill" Color="#17140A" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+  <!-- The glass look's shapes (plan 0006 decisions 4 and 5): the title bar holding the top-level tabs, and a tab's flare. -->
+  <x:Double x:Key="TitleBar.Height">46</x:Double>
+  <x:Double x:Key="Tab.Height">36</x:Double>
+  <CornerRadius x:Key="Radius.Panel">12</CornerRadius>
+  <CornerRadius x:Key="Radius.Page">14</CornerRadius>
+  <CornerRadius x:Key="Radius.Tab">10,10,0,0</CornerRadius>
+  <CornerRadius x:Key="Radius.Control">6</CornerRadius>
+
   <!-- Colours -->
   <Color x:Key="Color.Background">#1E1E1E</Color>
   <Color x:Key="Color.Surface">#2A2A2A</Color>
