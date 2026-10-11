@@ -1,6 +1,5 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
-using Augram.Core.Steps.Remap;
 
 namespace Augram.Core.HoldRemaps;
 
@@ -97,26 +96,23 @@ public sealed class HoldRemapPlan
 
     private static IEnumerable<HoldBinding> Bindings(AppGroup group, HoldRemap holdRemap, HostPlatform platform)
     {
-        foreach (var command in group.Commands)
+        foreach (var command in group.HoldRemapCommandsOn(holdRemap, platform))
         {
-            if (command.HoldRemapId == holdRemap.Id
-                && command.IsActive
-                && group.IsCommandUsedOn(command, platform)
-                && command.TriggerFor(platform) is Trigger.InputTrigger { Input: var input })
+            if (command.IsActive && command.TriggerFor(platform) is Trigger.InputTrigger { Input: var input })
             {
                 yield return Binding(command, input, platform);
             }
         }
     }
 
-    /// <summary>A Remap command (its one active step a Remap whose output is set), a Steps command (any active step), or one that does nothing.</summary>
+    /// <summary>A Remap command (its one active step a Remap whose output is set, <see cref="HoldRemapRules.RemapOutputOn"/>), a Steps command (any active step), or one that does nothing.</summary>
     private static HoldBinding Binding(Command command, HoldInput input, HostPlatform platform)
     {
-        var active = command.PlanFor(platform).Where(step => step.Stored.IsActive).ToArray();
+        var active = command.PlanFor(platform).Where(step => step.Stored.IsActive).Select(step => step.Stored).ToArray();
         var binding = new HoldBinding(command.Id, command.Name, input);
-        if (active.Any(step => step.Stored.Step is RemapStep))
+        if (HoldRemapRules.RemapStepAmong(active) is not null)
         {
-            return active is [{ Run.Step: RemapStep { Output.IsSet: true } remap }] ? binding with { Output = remap.Output } : binding;
+            return binding with { Output = command.RemapOutputOn(platform) };
         }
 
         return binding with { RunsSteps = active.Length > 0 };

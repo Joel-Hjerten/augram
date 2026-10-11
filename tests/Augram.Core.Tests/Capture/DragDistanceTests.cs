@@ -64,11 +64,11 @@ public sealed class DragDistanceTests
         var spineOnly = NewGroup("Spine", null, NewCommand("Pan less", Trigger.ForWheel(WheelDirection.Up, new TriggerHold(HeldButtons.X1)), NewStep("x")));
         var mapping = MappingRules.ValidDocument(Document(NewGlobal(zoomIn, zoomOut), spineOnly));
 
-        var (plan, drags) = AnchorPlanner.AnswerForGroup(mapping, null, HostPlatform.Windows, Stroke);
-        Assert.True(plan.IsAnchor(MouseButton.Right));
-        Assert.Equal(6, drags.For(MouseButton.Right, 10));
+        var answer = AnchorPlanner.Answer(mapping, null, HostPlatform.Windows, Stroke);
+        Assert.True(answer.Plan.IsAnchor(MouseButton.Right));
+        Assert.Equal(6, answer.Drags.For(MouseButton.Right, 10));
 
-        var overSpine = AnchorPlanner.AnswerForGroup(mapping, mapping.Groups.Single(group => group.Name == "Spine"), HostPlatform.Windows, Stroke).Drags;
+        var overSpine = AnchorPlanner.Answer(mapping, mapping.Groups.Single(group => group.Name == "Spine"), HostPlatform.Windows, Stroke).Drags;
         Assert.Equal(6, overSpine.For(MouseButton.Right, 10));
         Assert.Equal(25, overSpine.For(MouseButton.X1, 25));
     }
@@ -78,7 +78,7 @@ public sealed class DragDistanceTests
     {
         var zoomIn = NewCommand("Zoom In", RightWheel(WheelDirection.Down, 4), NewStep("in"));
         var zoomOut = NewCommand("Zoom Out", RightWheel(WheelDirection.Up), NewStep("out"));
-        var drags = AnchorPlanner.AnswerForGroup(MappingRules.ValidDocument(Document(NewGlobal(zoomIn, zoomOut))), null, HostPlatform.Windows, Stroke).Drags;
+        var drags = AnchorPlanner.Answer(MappingRules.ValidDocument(Document(NewGlobal(zoomIn, zoomOut))), null, HostPlatform.Windows, Stroke).Drags;
 
         Assert.Equal(10, drags.For(MouseButton.Right, 10));
         Assert.Equal(4, drags.For(MouseButton.Right, 2));

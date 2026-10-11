@@ -151,20 +151,13 @@ public static class MappingRules
             throw new MappingValidationException("An app group needs a name.");
         }
 
-        foreach (var other in others)
-        {
-            if (other.Id == group.Id)
-            {
-                throw new MappingValidationException(group.IsGlobal
-                    ? "Only one Global group is allowed."
-                    : $"An app group with id {group.Id} already exists.");
-            }
-
-            if (NameComparer.Equals(other.Name, group.Name))
-            {
-                throw new MappingValidationException($"An app group named '{other.Name}' already exists.");
-            }
-        }
+        Unique.Ensure(
+            others,
+            other => other.Id == group.Id,
+            other => other.Name,
+            group.Name,
+            group.IsGlobal ? "Only one Global group is allowed." : $"An app group with id {group.Id} already exists.",
+            taken => $"An app group named '{taken}' already exists.");
 
         if (group.UseOn == PlatformSet.None)
         {
@@ -218,28 +211,21 @@ public static class MappingRules
         HoldRemapRules.EnsureValid(command, group);
 
         var mine = TriggersOf(command);
-        foreach (var other in others)
-        {
-            if (other.Id == command.Id)
+        Unique.Ensure(
+            others,
+            other => other.Id == command.Id,
+            other => other.Name,
+            command.Name,
+            $"A command with id {command.Id} already exists.",
+            taken => $"A command named '{taken}' already exists {CommandNames.Where(group, command)}.",
+            other => CommandNames.AreSiblings(command, other),
+            other =>
             {
-                throw new MappingValidationException($"A command with id {command.Id} already exists.");
-            }
-
-            if (!CommandNames.AreSiblings(command, other))
-            {
-                continue;
-            }
-
-            if (NameComparer.Equals(other.Name, command.Name))
-            {
-                throw new MappingValidationException($"A command named '{other.Name}' already exists {CommandNames.Where(group, command)}.");
-            }
-
-            if (OverlapOf(mine, other) is { } clash)
-            {
-                throw new MappingValidationException($"'{other.Name}' {CommandNames.Where(group, command)} already uses {clash}.");
-            }
-        }
+                if (OverlapOf(mine, other) is { } clash)
+                {
+                    throw new MappingValidationException($"'{other.Name}' {CommandNames.Where(group, command)} already uses {clash}.");
+                }
+            });
     }
 
     /// <summary>
@@ -307,19 +293,14 @@ public static class MappingRules
             throw new MappingValidationException("An excluded app needs a name.");
         }
 
-        foreach (var other in others)
-        {
-            if (other.Id == app.Id)
-            {
-                throw new MappingValidationException($"An excluded app with id {app.Id} already exists.");
-            }
-
-            // Unique like group names (Joel, 2026-10-09).
-            if (NameComparer.Equals(other.Name, app.Name))
-            {
-                throw new MappingValidationException($"An excluded app named '{other.Name}' already exists.");
-            }
-        }
+        // Names unique like group names (Joel, 2026-10-09).
+        Unique.Ensure(
+            others,
+            other => other.Id == app.Id,
+            other => other.Name,
+            app.Name,
+            $"An excluded app with id {app.Id} already exists.",
+            taken => $"An excluded app named '{taken}' already exists.");
 
         EnsureValid(app.Matcher);
     }

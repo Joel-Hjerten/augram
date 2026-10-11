@@ -28,28 +28,23 @@ public static class IgnoreList
         return mapping.Ignored.Any(app => app.IsActive && !app.IsPerCommand && app.DisableEntirely && CanMatchOn(app.Matcher, platform));
     }
 
-    /// <summary>The first active ignored app (either mode) that claims the window under the pointer, or null: its stroke button passes through.</summary>
+    /// <summary>
+    /// The first active ignored app on Ignored › Global (either mode) that claims the window under the pointer, or null: its
+    /// stroke button passes through. The engine's ignore-list watch asks it as the pointer moves, so the stroke button passes
+    /// through over the app before any stroke; <see cref="CommandResolver"/> asks it again as the backstop for a stroke captured
+    /// on a stale answer. A Per command entry stops only the commands that name it (plan 0004, <see cref="PerCommandUnder"/>).
+    /// </summary>
     public static IgnoredApp? Under(MappingDocument mapping, WindowIdentity? window, HostPlatform platform)
-        => CommandResolver.FindIgnored(mapping, window, platform);
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        return Claiming(mapping, window, platform, static app => !app.IsPerCommand).FirstOrDefault();
+    }
 
     /// <summary>The first active "disable while focused" app that claims the focused window, or null: while it has focus Augram behaves as if disabled.</summary>
     public static IgnoredApp? PausedBy(MappingDocument mapping, WindowIdentity? focused, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
-        if (focused is null)
-        {
-            return null;
-        }
-
-        foreach (var app in mapping.Ignored)
-        {
-            if (app.IsActive && !app.IsPerCommand && app.DisableEntirely && app.Matcher.Matches(focused, platform))
-            {
-                return app;
-            }
-        }
-
-        return null;
+        return Claiming(mapping, focused, platform, static app => !app.IsPerCommand && app.DisableEntirely).FirstOrDefault();
     }
 
     /// <summary>
@@ -70,21 +65,30 @@ public static class IgnoreList
     public static IReadOnlyList<GroupId> PerCommandUnder(MappingDocument mapping, WindowIdentity? window, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
-        if (window is null)
-        {
-            return [];
-        }
-
         List<GroupId>? under = null;
-        foreach (var app in mapping.Ignored)
+        foreach (var app in Claiming(mapping, window, platform, static app => app.IsPerCommand))
         {
-            if (app.IsActive && app.IsPerCommand && app.Matcher.Matches(window, platform))
-            {
-                (under ??= []).Add(app.Id);
-            }
+            (under ??= []).Add(app.Id);
         }
 
         return under ?? (IReadOnlyList<GroupId>)[];
+    }
+
+    /// <summary>The one loop behind the three lookups above: the active entries of <paramref name="kind"/> whose matcher claims <paramref name="window"/>, in list order; none for no window.</summary>
+    private static IEnumerable<IgnoredApp> Claiming(MappingDocument mapping, WindowIdentity? window, HostPlatform platform, Func<IgnoredApp, bool> kind)
+    {
+        if (window is null)
+        {
+            yield break;
+        }
+
+        foreach (var app in mapping.Ignored)
+        {
+            if (app.IsActive && kind(app) && app.Matcher.Matches(window, platform))
+            {
+                yield return app;
+            }
+        }
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Steps.Remap;
 
 namespace Augram.Core.Mapping;
@@ -17,7 +18,7 @@ public sealed record AnchorAnswer(AnchorPlan Plan, AnchorDragDistances Drags, Bu
 /// Global's unless the group suppresses globals, each with its trigger for this platform. A Global command whose trigger an
 /// app command overlaps is shadowed, and a command that does nothing here (an override to nothing) holds nothing back, so
 /// "Right + wheel up → nothing" in an app gives Right back to it, as does a command whose "Not in" names an Ignored › Per command
-/// entry claiming the window (plan 0004; such a command shadows nothing either). It also says how far each anchor's press may move before it is handed back as a drag (<see cref="AnswerForGroup"/>).
+/// entry claiming the window (plan 0004; such a command shadows nothing either). It also says how far each anchor's press may move before it is handed back as a drag (<see cref="Answer"/>).
 /// A button trigger (plan 0005, "Right + Left") holds its anchors back, takes its pressed button into their presses and marks it
 /// firing for them; <see cref="Answer"/> also lists the button trigger commands whose Remap key output the engine worker holds.
 /// Pure; the engine's ignore-list watch asks it off the hook thread when the window under the pointer or the mapping changes.
@@ -35,44 +36,28 @@ public static class AnchorPlanner
                 continue;
             }
 
-            foreach (var command in group.Commands)
+            if (group.ActiveCommandsOn(platform).Any(pair => pair.Trigger is { IsBound: true } trigger && trigger.Hold.Physical != HeldButtons.None))
             {
-                if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && command.TriggerFor(platform) is { IsBound: true } trigger && trigger.Hold.Physical != HeldButtons.None)
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
         return false;
     }
 
-    /// <summary>The plan over <paramref name="window"/> (null: nothing under the pointer, Global alone) on a machine whose stroke button is <paramref name="strokeButton"/>.</summary>
-    public static AnchorPlan For(MappingDocument mapping, WindowIdentity? window, HostPlatform platform, MouseButton strokeButton)
-        => AnswerForGroup(mapping, CommandResolver.FindGroup(mapping, window, platform), platform, strokeButton, IgnoreList.PerCommandUnder(mapping, window, platform)).Plan;
-
-    /// <summary>The plan over a window of <paramref name="group"/> (null: a window no app group claims).</summary>
-    public static AnchorPlan ForGroup(MappingDocument mapping, AppGroup? group, HostPlatform platform, MouseButton strokeButton)
-        => AnswerForGroup(mapping, group, platform, strokeButton).Plan;
+    /// <summary>The plan over <paramref name="window"/> (null: nothing under the pointer, Global alone) on a machine whose stroke button is <paramref name="strokeButton"/>: a test's shorthand for <see cref="Answer"/>.</summary>
+    internal static AnchorPlan For(MappingDocument mapping, WindowIdentity? window, HostPlatform platform, MouseButton strokeButton)
+        => Answer(mapping, CommandResolver.FindGroup(mapping, window, platform), platform, strokeButton, IgnoreList.PerCommandUnder(mapping, window, platform)).Plan;
 
     /// <summary>
-    /// The plan over a window of <paramref name="group"/> and, for each anchor in it, the drag distance its commands set (plan
-    /// 0004): the largest own distance, with the Options value counted for a command that sets none. One pass over the same
-    /// commands, so the two always agree. <paramref name="perCommand"/> are the Ignored › Per command entries claiming the window
-    /// (<see cref="IgnoreList.PerCommandUnder"/>; none when null): a command naming one in its "Not in" counts as absent.
-    /// </summary>
-    public static (AnchorPlan Plan, AnchorDragDistances Drags) AnswerForGroup(
-        MappingDocument mapping, AppGroup? group, HostPlatform platform, MouseButton strokeButton, IReadOnlyList<GroupId>? perCommand = null)
-    {
-        var answer = Answer(mapping, group, platform, strokeButton, perCommand);
-        return (answer.Plan, answer.Drags);
-    }
-
-    /// <summary>
-    /// <see cref="AnswerForGroup"/> with the button trigger outputs the engine worker holds itself over the same window (plan 0005
-    /// decision 9), from the same commands in the same order, so the three always agree. Over a window an Exclusions › Global entry
-    /// claims, <paramref name="excludedBy"/> is that entry: only the commands whose "Also in" names it apply there (plan 0005
-    /// decision 7), so the plan holds back their anchors alone, and none of the stroke button's extras.
+    /// The plan over a window of <paramref name="group"/> (null: a window no app group claims); for each anchor in it, the drag
+    /// distance its commands set (plan 0004: the largest own distance, with the Options value counted for a command that sets
+    /// none); and the button trigger outputs the engine worker holds itself there (plan 0005 decision 9). One pass over the same
+    /// commands in the same order, so the three always agree. <paramref name="perCommand"/> are the Ignored › Per command entries
+    /// claiming the window (<see cref="IgnoreList.PerCommandUnder"/>; none when null): a command naming one in its "Not in" counts
+    /// as absent. Over a window an Exclusions › Global entry claims, <paramref name="excludedBy"/> is that entry: only the commands
+    /// whose "Also in" names it apply there (plan 0005 decision 7), so the plan holds back their anchors alone, and none of the
+    /// stroke button's extras.
     /// </summary>
     public static AnchorAnswer Answer(
         MappingDocument mapping, AppGroup? group, HostPlatform platform, MouseButton strokeButton, IReadOnlyList<GroupId>? perCommand = null, GroupId? excludedBy = null)
@@ -134,15 +119,7 @@ public static class AnchorPlanner
 
     /// <summary>The commands that hold buttons back here; a command under a hold remap never does (F9: its hold remap owns its input).</summary>
     private static IEnumerable<(Command Command, Trigger Trigger)> Applying(AppGroup group, HostPlatform platform)
-    {
-        foreach (var command in group.Commands)
-        {
-            if (command.IsActive && command.HoldRemapId is null && group.IsCommandUsedOn(command, platform) && command.TriggerFor(platform) is { IsBound: true } trigger)
-            {
-                yield return (command, trigger);
-            }
-        }
-    }
+        => group.ActiveCommandsOn(platform).Where(pair => pair.Trigger.IsBound);
 
     private static (AnchorPlan, AnchorDragDistances) Add(AnchorPlan plan, AnchorDragDistances drags, Command command, Trigger trigger, HostPlatform platform, MouseButton strokeButton)
     {
@@ -182,9 +159,6 @@ public static class AnchorPlanner
             return null;
         }
 
-        var active = command.PlanFor(platform).Where(step => step.Stored.IsActive).ToArray();
-        return active is [{ Run.Step: RemapStep { Output: RemapOutput.Key { IsSet: true } key } }]
-            ? new ButtonOutput(command.Id, command.Name, trigger, key)
-            : null;
+        return command.RemapOutputOn(platform) is RemapOutput.Key key ? new ButtonOutput(command.Id, command.Name, trigger, key) : null;
     }
 }

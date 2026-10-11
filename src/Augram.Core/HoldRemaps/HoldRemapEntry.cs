@@ -1,5 +1,6 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.Mapping;
 using Augram.Core.Steps.Remap;
 
 namespace Augram.Core.HoldRemaps;
@@ -102,6 +103,20 @@ public sealed class HoldRemapEntry
         foreach (var binding in _bindings)
         {
             if (binding.Input is HoldInput.Wheel wheel && wheel.Direction == direction)
+            {
+                return binding;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The binding of the command <paramref name="id"/>; null when this hold remap has none (the mapping changed meanwhile).</summary>
+    public HoldBinding? FindBinding(CommandId id)
+    {
+        foreach (var binding in _bindings)
+        {
+            if (binding.CommandId == id)
             {
                 return binding;
             }

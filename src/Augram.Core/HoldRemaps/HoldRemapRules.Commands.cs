@@ -1,6 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
+using Augram.Core.Steps;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Remap;
 using Augram.Core.Text;
@@ -13,7 +14,10 @@ namespace Augram.Core.HoldRemaps;
 /// there (or no trigger yet); a button input names at least one button; a key input is a key, not a modifier (they pass
 /// through a hold, decision 4) and not the hold key; a Remap step is a command's only step; a wheel input takes a key or a
 /// wheel output, and a wheel output needs a wheel input. Inputs unique per hold remap is A7, in
-/// <see cref="MappingRules.Overlap"/>. The step rules also answer, without throwing, <see cref="StepsProblem"/>.
+/// <see cref="MappingRules.Overlap"/>. The step rules also answer, without throwing, <see cref="StepsProblem"/>. This file is
+/// the one place outside <c>Steps/Remap/</c> that names the Remap step (plan 0007, Joel: the documented exception, since the
+/// Remap step exists only for hold remaps and button triggers): its output fitted to a trigger (<see cref="FittedTo(IStep, Trigger)"/>),
+/// the output a command plays (<see cref="RemapOutputOn"/>) and the step the rules check (<see cref="RemapStepAmong"/>).
 /// </summary>
 public static partial class HoldRemapRules
 {
@@ -94,6 +98,42 @@ public static partial class HoldRemapRules
         };
     }
 
+    /// <summary>
+    /// <paramref name="step"/> as a command with <paramref name="trigger"/> may have it: a Remap step's output fitted to an input
+    /// (<see cref="FittedTo(RemapOutput, HoldInput?)"/>), or on a button trigger (plan 0005 decision 8: it holds a key) a button
+    /// or wheel output made a key output with no key yet, its modifiers kept; any other step, and any step under another trigger,
+    /// as it is. The editor applies it to the step "New step…" adds (<see cref="StepOffer.NewStep"/>) and to every step when a
+    /// command's trigger or input changes, so neither is refused for its output.
+    /// </summary>
+    public static IStep FittedTo(IStep step, Trigger trigger)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        ArgumentNullException.ThrowIfNull(trigger);
+        return step is not RemapStep remap ? step : trigger switch
+        {
+            Trigger.InputTrigger { Input: var input } => new RemapStep(FittedTo(remap.Output, input)),
+            Trigger.ButtonTrigger => new RemapStep(remap.Output is RemapOutput.Key ? remap.Output : new RemapOutput.Key(KeyCode.None, remap.Output.Modifiers)),
+            _ => step,
+        };
+    }
+
+    /// <summary>
+    /// The output of the command's Remap step as <paramref name="platform"/> runs it (<see cref="Command.PlanFor"/>, so an own
+    /// version's output is used there): set only when that step is the command's one active step and its output is set (a key
+    /// output has a key); null for anything else. What a Remap command under a hold remap plays (<see cref="HoldRemapPlan"/>) and
+    /// what a button trigger command holds while its buttons are down (<see cref="AnchorPlanner"/>, plan 0005 decision 9).
+    /// </summary>
+    public static RemapOutput? RemapOutputOn(this Command command, HostPlatform platform)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var active = command.PlanFor(platform).Where(step => step.Stored.IsActive).ToArray();
+        return active is [{ Run.Step: RemapStep { Output.IsSet: true } remap }] ? remap.Output : null;
+    }
+
+    /// <summary>The first Remap step among <paramref name="steps"/> (active or not), or null: the step the rules below are about.</summary>
+    internal static RemapStep? RemapStepAmong(IEnumerable<CommandStep> steps)
+        => steps.FirstOrDefault(step => step.Step is RemapStep)?.Step as RemapStep;
+
     private static string? InputKeyReason(KeyCode key, HoldRemap holdRemap, HostPlatform? names = null)
         => HotkeyKeys.IsModifier(key) ? $"{HotkeyText.ModifierList("and", names)} pass through while a hold key is held"
             : key != KeyCode.None && key == holdRemap.HoldKey ? $"it is the hold key of '{holdRemap.Name}'"
@@ -131,7 +171,7 @@ public static partial class HoldRemapRules
     /// <summary>The first step rule (rule 7) <paramref name="steps"/> break under <paramref name="trigger"/>; null for none.</summary>
     private static StepsRule? BrokenStepsRule(Trigger trigger, IReadOnlyList<CommandStep> steps)
     {
-        var remap = steps.FirstOrDefault(step => step.Step is RemapStep)?.Step as RemapStep;
+        var remap = RemapStepAmong(steps);
         if (remap is null)
         {
             return null;

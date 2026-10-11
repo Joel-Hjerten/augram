@@ -99,22 +99,17 @@ public static class CategoryRules
             throw new MappingValidationException($"Use '{category.Name}' on at least one platform.");
         }
 
-        foreach (var other in others)
-        {
-            if (other.Id == category.Id)
-            {
-                throw new MappingValidationException($"A category with id {category.Id} already exists in '{group.Name}'.");
-            }
-
-            if (MappingRules.NameComparer.Equals(other.Name, category.Name))
-            {
-                throw new MappingValidationException($"A category named '{other.Name}' already exists in '{group.Name}'.");
-            }
-        }
+        Unique.Ensure(
+            others,
+            other => other.Id == category.Id,
+            other => other.Name,
+            category.Name,
+            $"A category with id {category.Id} already exists in '{group.Name}'.",
+            taken => $"A category named '{taken}' already exists in '{group.Name}'.");
     }
 
     /// <summary>The group's category with this name, compared trimmed and case-insensitively; null when it has none.</summary>
-    public static CommandCategory? FindByName(AppGroup group, string name)
+    internal static CommandCategory? FindByName(AppGroup group, string name)
     {
         ArgumentNullException.ThrowIfNull(group);
         return FindByName(group.Categories, name);

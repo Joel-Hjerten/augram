@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using Augram.Core.Abstractions;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Steps;
-using Augram.Core.Steps.Remap;
 
 namespace Augram.Core.Mapping;
 
@@ -10,7 +9,7 @@ namespace Augram.Core.Mapping;
 /// What a command's step editor may add (F5a "New step…", a paste, a duplicate) or change a step into (the step menu's "Change
 /// to…", Joel 2026-10-11): whether a step can go into a command's steps on a platform now, and if not, why, as one short sentence
 /// the App shows unchanged (the picker's greyed type, the "New step…" tooltip, the message line). Generic over step types: no type
-/// is named but through <see cref="IStepType.HoldRemapsOnly"/> and the Remap step's default. Two parts, in this order:
+/// is named; the Remap step is reached through <see cref="IStepType.HoldRemapsOnly"/> and <see cref="HoldRemapRules"/>. Two parts, in this order:
 /// <list type="number">
 /// <item>Where a type may appear at all: a <see cref="IStepType.HoldRemapsOnly"/> type (the Remap step) only for a command under a
 /// hold remap (plan 0002) or with a button trigger here (plan 0005 decision 8), <see cref="NotHere"/>. This is the offer's own
@@ -122,23 +121,19 @@ public static class StepOffer
     }
 
     /// <summary>
-    /// The step "New step…" adds of <paramref name="type"/> to the command on <paramref name="platform"/>: the type's default; a
-    /// Remap step's output fitted to the command's stored input there (<see cref="HoldRemapRules.FittedTo"/>: a wheel input starts
-    /// with a wheel notch the same way), or, on a button trigger (<paramref name="drafted"/>, the header's, a draft included; plan
-    /// 0005), a key output with no key set; so it is never refused for its output.
+    /// The step "New step…" adds of <paramref name="type"/> to the command on <paramref name="platform"/>: the type's default,
+    /// fitted (<see cref="HoldRemapRules.FittedTo(IStep, Trigger)"/>) to the command's stored input there (a Remap step on a wheel
+    /// input starts with a wheel notch the same way), or else to a button trigger (<paramref name="drafted"/>, the header's, a
+    /// draft included; plan 0005: a key output with no key set); so it is never refused for its output.
     /// </summary>
     public static IStep NewStep(IStepType type, Command command, HostPlatform platform, Trigger? drafted = null)
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(command);
         var step = type.CreateDefault();
-        if (step is not RemapStep remap)
-        {
-            return step;
-        }
-
-        return command.TriggerFor(platform) is Trigger.InputTrigger { Input: var input } ? new RemapStep(HoldRemapRules.FittedTo(remap.Output, input))
-            : (drafted ?? command.TriggerFor(platform)) is Trigger.ButtonTrigger ? new RemapStep(new RemapOutput.Key(KeyCode.None))
+        var stored = command.TriggerFor(platform);
+        return stored is Trigger.InputTrigger ? HoldRemapRules.FittedTo(step, stored)
+            : (drafted ?? stored) is Trigger.ButtonTrigger button ? HoldRemapRules.FittedTo(step, button)
             : step;
     }
 

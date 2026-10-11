@@ -107,4 +107,39 @@ public sealed record AppGroup(
 
         return null;
     }
+
+    /// <summary>
+    /// The group's ordinary commands (none under a hold remap) used on <paramref name="platform"/> (<see cref="IsCommandUsedOn"/>),
+    /// in order, active or not; every ordinary command when <paramref name="platform"/> is null (a list showing other platforms).
+    /// </summary>
+    public IEnumerable<Command> OrdinaryCommandsOn(Abstractions.HostPlatform? platform) => CommandsUnder(null, platform);
+
+    /// <summary>The commands under <paramref name="holdRemap"/> used on <paramref name="platform"/>, in order, active or not; every one of them when <paramref name="platform"/> is null.</summary>
+    public IEnumerable<Command> HoldRemapCommandsOn(HoldRemap holdRemap, Abstractions.HostPlatform? platform)
+    {
+        ArgumentNullException.ThrowIfNull(holdRemap);
+        return CommandsUnder(holdRemap.Id, platform);
+    }
+
+    /// <summary>
+    /// The commands that can fire here: the active ordinary commands used on <paramref name="platform"/>, in order, each with its
+    /// trigger there (<see cref="Command.TriggerFor"/>; unbound included). What the resolver and the anchor planner look through.
+    /// </summary>
+    public IEnumerable<(Command Command, Trigger Trigger)> ActiveCommandsOn(Abstractions.HostPlatform platform)
+    {
+        foreach (var command in Commands)
+        {
+            if (command.IsActive && IsUnder(command, null, platform))
+            {
+                yield return (command, command.TriggerFor(platform));
+            }
+        }
+    }
+
+    private IEnumerable<Command> CommandsUnder(HoldRemapId? holdRemap, Abstractions.HostPlatform? platform)
+        => Commands.Where(command => IsUnder(command, holdRemap, platform));
+
+    /// <summary>The one predicate behind the lists above: the command's parent is <paramref name="holdRemap"/> (null: none) and it is used on <paramref name="platform"/> (null: anywhere).</summary>
+    private bool IsUnder(Command command, HoldRemapId? holdRemap, Abstractions.HostPlatform? platform)
+        => command.HoldRemapId == holdRemap && (platform is not { } here || IsCommandUsedOn(command, here));
 }

@@ -91,9 +91,9 @@ public sealed class RefreshRateTests
     }
 
     [Fact]
-    public void HertzAndTextDropTrailingZeros()
+    public void FromHertzKeepsThreeDecimals_AndTextDropsTrailingZeros()
     {
-        Assert.Equal(119.88m, RefreshRate.FromHertz(119.88).Hertz);
+        Assert.Equal(119_880, RefreshRate.FromHertz(119.88).Millihertz);
         Assert.Equal("120", RefreshRate.FromHertz(120.0).Text);
         Assert.Equal("23.976", RefreshRate.FromLegacyHertz(23).Text);
     }

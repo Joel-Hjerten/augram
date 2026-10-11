@@ -22,8 +22,8 @@ public sealed class SettingsStore
 
     public Settings Current { get; private set; }
 
-    /// <summary>Increments on every change, undo and redo included.</summary>
-    public int Version { get; private set; }
+    /// <summary>Increments on every change, undo and redo included: what tests count (the app listens to <see cref="Changed"/>).</summary>
+    internal int Version { get; private set; }
 
     public bool CanUndo => _history.CanUndo;
 

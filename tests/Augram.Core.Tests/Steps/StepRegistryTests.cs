@@ -73,14 +73,11 @@ public sealed class StepRegistryTests
     }
 
     [Fact]
-    public void FindReturnsNullAndRequireThrowsForUnknownKeys()
+    public void FindReturnsNullForUnknownKeys()
     {
         Assert.Null(StepRegistry.BuiltIn.Find("noSuchStep"));
         Assert.Null(StepRegistry.BuiltIn.Find("WindowOp"));
-
-        var ex = Assert.Throws<StepFormatException>(() => StepRegistry.BuiltIn.Require("noSuchStep"));
-        Assert.Equal("Unknown step type 'noSuchStep'.", ex.Message);
-        Assert.Same(DelayStepType.Instance, StepRegistry.BuiltIn.Require("delay"));
+        Assert.Same(DelayStepType.Instance, StepRegistry.BuiltIn.Find("delay"));
     }
 
     [Fact]

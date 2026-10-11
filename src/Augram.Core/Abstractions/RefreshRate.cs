@@ -20,9 +20,6 @@ public readonly record struct RefreshRate(int Millihertz)
 
     public bool IsKnown => Millihertz > 0;
 
-    /// <summary>The rate in hertz (119.880, 120.000, 23.976).</summary>
-    public decimal Hertz => Millihertz / 1000m;
-
     /// <summary>"119.88", "120", "23.976"; "0" when unknown.</summary>
     public string Text => (Millihertz / 1000m).ToString("0.###", CultureInfo.InvariantCulture);
 

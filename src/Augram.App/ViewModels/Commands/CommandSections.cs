@@ -77,8 +77,7 @@ internal static class CommandSections
     {
         var id = SectionId.ForGroup(group.Id);
         var choices = Choices(group);
-        var commands = group.Commands
-            .Where(command => command.HoldRemapId is null && (showOtherPlatforms || group.IsCommandUsedOn(command, here)))
+        var commands = group.OrdinaryCommandsOn(showOtherPlatforms ? null : here)
             .Select(command => Item(group, command, findGesture, here) with
             {
                 Section = id,
@@ -113,8 +112,7 @@ internal static class CommandSections
     private static SectionItem HoldRemapSection(AppGroup group, HoldRemap holdRemap, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms)
     {
         var id = SectionId.ForHoldRemap(group.Id, holdRemap.Id);
-        var commands = group.Commands
-            .Where(command => command.HoldRemapId == holdRemap.Id && (showOtherPlatforms || group.IsCommandUsedOn(command, here)))
+        var commands = group.HoldRemapCommandsOn(holdRemap, showOtherPlatforms ? null : here)
             .Select(command => Item(group, command, findGesture, here) with { Section = id })
             .ToList();
         return new SectionItem(id, holdRemap.Name, holdRemap.IsActive, expanded.Contains(id), commands)
@@ -179,8 +177,7 @@ internal static class CommandSections
     {
         var global = document.Global;
         var choices = Choices(global);
-        var items = global.Commands
-            .Where(command => showOtherPlatforms || global.IsCommandUsedOn(command, here))
+        var items = global.OrdinaryCommandsOn(showOtherPlatforms ? null : here)
             .Select(command => Item(global, command, findGesture, here) with
             {
                 Section = SectionOf(CommandsScope.Global, global, command),
