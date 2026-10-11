@@ -10,8 +10,10 @@ namespace Augram.App.Transfer;
 /// The platform's save and open dialogs over the main window's storage provider (plan 0003, decision 3): save offers
 /// "Augram files (*.augram.json)" with the export's suggested name; open offers that and "JSON (*.json)", so
 /// <c>augram.json</c>, a backup or a sync machine file can be picked too. Each starts in the folder the last pick of this
-/// run was in. A save path typed without <c>.json</c> gets <see cref="TransferFile.Extension"/>. Without a main window there
-/// is nothing to show a dialog over, and the answer is Cancel.
+/// run was in. A save path typed without <c>.json</c> gets <see cref="TransferFile.Extension"/>. The open dialog also serves
+/// the StrokesPlus.net import, whose <see cref="FileOpenRequest"/> brings its own title, filters, file name and start folder
+/// and leaves the remembered folder alone. Without a main window there is nothing to show a dialog over, and the answer is
+/// Cancel.
 /// </summary>
 public sealed class TransferFilePicker : ITransferFilePicker
 {
@@ -23,6 +25,9 @@ public sealed class TransferFilePicker : ITransferFilePicker
     public static FilePickerFileType AugramFiles { get; } = new("Augram files (*" + TransferFile.Extension + ")") { Patterns = ["*" + TransferFile.Extension] };
 
     public static FilePickerFileType JsonFiles { get; } = new("JSON (*.json)") { Patterns = ["*.json"] };
+
+    /// <summary>The Augram import's open dialog: Augram files, JSON, all files; starts in the last folder of this run.</summary>
+    public static FileOpenRequest OpenAugramFile { get; } = new(OpenTitle, [AugramFiles, JsonFiles, FilePickerFileTypes.All]) { FollowsLastFolder = true };
 
     public async Task<string?> PickSaveAsync(string suggestedFileName)
     {
@@ -38,14 +43,15 @@ public sealed class TransferFilePicker : ITransferFilePicker
             SuggestedFileName = suggestedFileName,
             FileTypeChoices = [AugramFiles],
             ShowOverwritePrompt = true,
-            SuggestedStartLocation = await StartAsync(owner.StorageProvider).ConfigureAwait(true),
+            SuggestedStartLocation = await StartAsync(owner.StorageProvider, _lastFolder).ConfigureAwait(true),
         };
         var file = await owner.StorageProvider.SaveFilePickerAsync(options).ConfigureAwait(true);
         return Remember(file?.TryGetLocalPath()) is { } path ? WithExtension(path) : null;
     }
 
-    public async Task<string?> PickOpenAsync()
+    public async Task<string?> PickOpenAsync(FileOpenRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         if (Owner() is not { } owner)
         {
             return null;
@@ -53,13 +59,15 @@ public sealed class TransferFilePicker : ITransferFilePicker
 
         var options = new FilePickerOpenOptions
         {
-            Title = OpenTitle,
+            Title = request.Title,
             AllowMultiple = false,
-            FileTypeFilter = [AugramFiles, JsonFiles, FilePickerFileTypes.All],
-            SuggestedStartLocation = await StartAsync(owner.StorageProvider).ConfigureAwait(true),
+            SuggestedFileName = request.SuggestedFileName,
+            FileTypeFilter = request.Filters,
+            SuggestedStartLocation = await StartAsync(owner.StorageProvider, request.FollowsLastFolder ? _lastFolder : request.StartFolder).ConfigureAwait(true),
         };
         var files = await owner.StorageProvider.OpenFilePickerAsync(options).ConfigureAwait(true);
-        return Remember(files.Count > 0 ? files[0].TryGetLocalPath() : null);
+        var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+        return request.FollowsLastFolder ? Remember(path) : path;
     }
 
     /// <summary>"Blender" → "Blender.augram.json"; a name that already ends in <c>.json</c> is kept as typed.</summary>
@@ -71,8 +79,8 @@ public sealed class TransferFilePicker : ITransferFilePicker
 
     private static Window? Owner() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
-    private async Task<IStorageFolder?> StartAsync(IStorageProvider storage)
-        => _lastFolder is { } folder ? await storage.TryGetFolderFromPathAsync(folder).ConfigureAwait(true) : null;
+    private static async Task<IStorageFolder?> StartAsync(IStorageProvider storage, string? folder)
+        => folder is not null ? await storage.TryGetFolderFromPathAsync(folder).ConfigureAwait(true) : null;
 
     private string? Remember(string? path)
     {

@@ -38,7 +38,7 @@ public sealed class AugramImportPresenter : IAugramImportPresenter
 
     public async Task<string?> OpenAsync()
     {
-        var path = await _picker.PickOpenAsync().ConfigureAwait(true);
+        var path = await _picker.PickOpenAsync(TransferFilePicker.OpenAugramFile).ConfigureAwait(true);
         if (path is null)
         {
             return null;

@@ -1,3 +1,4 @@
+using Augram.App.Import;
 using Augram.App.Tests.Architecture;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
@@ -23,7 +24,7 @@ public sealed class ImportViewModelTests
         var mine = new GestureLibrary([Existing("Synthetic L Shape"), Existing("synthetic circle"), Existing("Keep")]);
         var vm = new ImportViewModel(mine, new MappingStore(), new RecordingEventLog());
 
-        vm.Load(Fixture);
+        ImportPresenter.Read(vm, Fixture);
 
         Assert.Null(vm.Error);
         Assert.Equal("Found 12 gestures, 1 app groups, 3 commands (1 steps as placeholders until their step types exist), 0 excluded apps.", vm.StatsText);
@@ -49,7 +50,7 @@ public sealed class ImportViewModelTests
         var vm = new ImportViewModel(mine, mapping, log);
         var finished = 0;
         vm.Finished += (_, _) => finished++;
-        vm.Load(Fixture);
+        ImportPresenter.Read(vm, Fixture);
         vm.ApplyToAll(MergeChoice.KeepBoth);
         vm.Conflicts.Single(c => c.Name == "Synthetic L Shape").Choice = MergeChoice.TakeTheirs;
 
@@ -93,7 +94,7 @@ public sealed class ImportViewModelTests
         var mapping = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal with { Commands = [existingClose] }], []));
         var vm = new ImportViewModel(mine, mapping, new RecordingEventLog());
 
-        vm.Load(Fixture);
+        ImportPresenter.Read(vm, Fixture);
         Assert.Contains("2 command(s) will be added; 1 command(s) already exist and are skipped", vm.PlanText, StringComparison.Ordinal);
 
         vm.Conflicts.Single(c => c.Name == "Synthetic Up Stock").Choice = MergeChoice.KeepBoth;
@@ -113,7 +114,7 @@ public sealed class ImportViewModelTests
         var log = new RecordingEventLog();
         var vm = new ImportViewModel(mine, mapping, log);
 
-        vm.Load(FullFixture);
+        ImportPresenter.Read(vm, FullFixture);
         Assert.Equal("Found 11 gestures, 4 app groups, 27 commands (6 steps as placeholders until their step types exist), 2 excluded apps.", vm.StatsText);
         Assert.Empty(vm.Conflicts);
         vm.ApplyCommand.Execute(null);
@@ -135,10 +136,22 @@ public sealed class ImportViewModelTests
     {
         var vm = new ImportViewModel(new GestureLibrary(), new MappingStore(), new RecordingEventLog());
 
-        vm.Load(Path.Combine(Path.GetTempPath(), "augram-missing-" + Guid.NewGuid().ToString("N") + ".json"));
+        ImportPresenter.Read(vm, Path.Combine(Path.GetTempPath(), "augram-missing-" + Guid.NewGuid().ToString("N") + ".json"));
 
         Assert.NotNull(vm.Error);
         Assert.False(vm.CanApply);
+    }
+
+    [Fact]
+    public void TheOpenDialogAsksForTheStrokesPlusConfigAndLeavesTheAugramFolderAlone()
+    {
+        var request = ImportPresenter.OpenRequest;
+
+        Assert.Equal("Import from StrokesPlus.net", request.Title);
+        Assert.Equal(["StrokesPlus.net config", "All"], request.Filters.Select(filter => filter.Name));
+        Assert.Equal(["*.json"], request.Filters[0].Patterns!);
+        Assert.Equal("StrokesPlus.net.json", request.SuggestedFileName);
+        Assert.False(request.FollowsLastFolder);
     }
 
     private static Gesture Existing(string name)

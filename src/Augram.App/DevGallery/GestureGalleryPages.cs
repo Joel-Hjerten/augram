@@ -87,7 +87,7 @@ public static class GestureGalleryPages
             Starter[3] with { Id = GestureId.New(), IsActive = false },
             new(GestureId.New(), "Synthetic W", IsActive: true, [Starter[18].Samples[0]]),
         };
-        vm.Load(new ImportResult(theirs, [new ImportWarning(ImportSeverity.Warning, "Synthetic Empty", "no usable sample; skipped")], new SourceStats(4, 5, 212, 19)));
+        vm.Load(new ImportResult(theirs, [new ImportWarning(ImportSeverity.Warning, "Synthetic Empty", "no usable sample; skipped")], new SourceStats(4), Core.Mapping.MappingDocument.Empty));
         return new FormScreen("Import dialog content",
         [
             new Section("ImportView over a plan with two conflicts and one addition",

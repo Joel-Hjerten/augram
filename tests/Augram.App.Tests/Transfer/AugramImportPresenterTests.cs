@@ -47,6 +47,7 @@ public sealed class AugramImportPresenterTests : IDisposable
         var outcome = await Presenter(session).OpenAsync();
 
         Assert.Equal("Imported from Blender.augram.json: 1 app group, 1 hold remap and 2 commands added.", outcome);
+        Assert.Same(TransferFilePicker.OpenAugramFile, Assert.Single(_picker.OpenRequests));
         Assert.Equal("Blender.augram.json", Assert.Single(_windows.Reviews).FileName);
         Assert.Equal((AugramImportViewModel.Title, outcome!), Assert.Single(_windows.Messages));
         Assert.Contains(session.Mapping.Current.Groups, group => group.Name == "Blender");

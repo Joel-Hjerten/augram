@@ -17,7 +17,7 @@ public sealed class GestureMergeTests
     private static readonly Gesture TheirsUp = TestGestures.Create("up", isActive: false, OtherLine);
     private static readonly Gesture TheirsCircle = TestGestures.Create("Circle", OtherLine);
 
-    private static readonly MergePlan Plan = GestureMerge.Plan([MineUp, MineLeft], [TheirsUp, TheirsCircle]);
+    private static readonly MergePlan Plan = GestureMerge.Plan([MineUp, MineLeft], [TheirsUp, TheirsCircle], RecognitionOptions.Default);
 
     [Fact]
     public void PlanClassifiesAddsAndConflictsCaseInsensitively()
@@ -31,7 +31,7 @@ public sealed class GestureMergeTests
     [Fact]
     public void KeepMineLeavesExistingUntouchedAndStillAdds()
     {
-        var merged = GestureMerge.Apply(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = MergeChoice.KeepMine });
+        var merged = GestureMerge.ApplyWithMap(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = MergeChoice.KeepMine }).Gestures;
 
         Assert.Equal([MineUp, MineLeft, TheirsCircle], merged);
     }
@@ -39,7 +39,7 @@ public sealed class GestureMergeTests
     [Fact]
     public void TakeTheirsReplacesContentButKeepsExistingId()
     {
-        var merged = GestureMerge.Apply(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = MergeChoice.TakeTheirs });
+        var merged = GestureMerge.ApplyWithMap(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = MergeChoice.TakeTheirs }).Gestures;
 
         Assert.Equal([MineUp.Id, MineLeft.Id, TheirsCircle.Id], merged.Select(gesture => gesture.Id));
         Assert.Equal("up", merged[0].Name);
@@ -50,7 +50,7 @@ public sealed class GestureMergeTests
     [Fact]
     public void KeepBothRenamesTheImportedOne()
     {
-        var merged = GestureMerge.Apply(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = MergeChoice.KeepBoth });
+        var merged = GestureMerge.ApplyWithMap(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = MergeChoice.KeepBoth }).Gestures;
 
         Assert.Equal(["Up", "Left", "up (2)", "Circle"], merged.Select(gesture => gesture.Name));
         Assert.Equal([MineUp.Id, MineLeft.Id, TheirsUp.Id, TheirsCircle.Id], merged.Select(gesture => gesture.Id));
@@ -60,9 +60,9 @@ public sealed class GestureMergeTests
     public void KeepBothAvoidsASecondClash()
     {
         var taken = TestGestures.Create("Up (2)", Line);
-        var plan = GestureMerge.Plan([MineUp, taken], [TheirsUp]);
+        var plan = GestureMerge.Plan([MineUp, taken], [TheirsUp], RecognitionOptions.Default);
 
-        var merged = GestureMerge.Apply(plan, new Dictionary<GestureId, MergeChoice>(), defaultChoice: MergeChoice.KeepBoth);
+        var merged = GestureMerge.ApplyWithMap(plan, new Dictionary<GestureId, MergeChoice>(), defaultChoice: MergeChoice.KeepBoth).Gestures;
 
         Assert.Equal(["Up", "Up (2)", "up (3)"], merged.Select(gesture => gesture.Name));
     }
@@ -70,7 +70,7 @@ public sealed class GestureMergeTests
     [Fact]
     public void DefaultChoiceAppliesToConflictsWithoutAChoice()
     {
-        var merged = GestureMerge.Apply(Plan, new Dictionary<GestureId, MergeChoice>(), defaultChoice: MergeChoice.TakeTheirs);
+        var merged = GestureMerge.ApplyWithMap(Plan, new Dictionary<GestureId, MergeChoice>(), defaultChoice: MergeChoice.TakeTheirs).Gestures;
 
         Assert.Equal("up", merged[0].Name);
         Assert.Equal(MineUp.Id, merged[0].Id);
@@ -95,7 +95,6 @@ public sealed class GestureMergeTests
         Assert.Equal(resolvesToExisting ? MineUp.Id : TheirsUp.Id, outcome.IdMap[TheirsUp.Id]);
         Assert.Equal(TheirsCircle.Id, outcome.IdMap[TheirsCircle.Id]);
         Assert.Equal(2, outcome.IdMap.Count);
-        Assert.Equal(GestureMerge.Apply(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = choice }), outcome.Gestures);
     }
 
     [Fact]

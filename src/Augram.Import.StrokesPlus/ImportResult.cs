@@ -7,7 +7,7 @@ namespace Augram.Import.StrokesPlus;
 /// <summary>
 /// What an import produced: Core records with fresh ids, the report of what was skipped, dropped or
 /// renamed, the counts found in the source, and the mapping (app groups, commands, ignored apps) whose
-/// gesture triggers reference <see cref="Gestures"/> by id. A gestures-only import carries the empty mapping.
+/// gesture triggers reference <see cref="Gestures"/> by id.
 /// </summary>
 public sealed record ImportResult(
     IReadOnlyList<Gesture> Gestures,
@@ -15,12 +15,6 @@ public sealed record ImportResult(
     SourceStats Stats,
     MappingDocument Mapping)
 {
-    /// <summary>A gestures-only result (<see cref="StrokesPlusImporter.ReadGestures(StrokesPlusDocument)"/>): the mapping is <see cref="MappingDocument.Empty"/>.</summary>
-    public ImportResult(IReadOnlyList<Gesture> gestures, IReadOnlyList<ImportWarning> warnings, SourceStats stats)
-        : this(gestures, warnings, stats, MappingDocument.Empty)
-    {
-    }
-
     /// <summary>App groups other than Global.</summary>
     public int AppGroupCount => Mapping.Groups.Count(group => !group.IsGlobal);
 

@@ -303,7 +303,7 @@ public sealed class FullImportTests
     [Fact]
     public void StatsCountTheSourceAndTheResultCountsTheMapping()
     {
-        Assert.Equal(new SourceStats(11, 11, 27, 4, 28, 2), Result.Stats);
+        Assert.Equal(new SourceStats(11), Result.Stats);
         Assert.Equal(4, Result.AppGroupCount);
         Assert.Equal(27, Result.CommandCount);
         Assert.Equal(6, Result.PlaceholderStepCount); // SendHotKey, the Browser Back SendVKey, SendKeys and Run are real steps now
@@ -319,18 +319,5 @@ public sealed class FullImportTests
         Assert.Equal(groupIds.Count, groupIds.Distinct().Count());
         Assert.Equal(commandIds.Count, commandIds.Distinct().Count());
         Assert.DoesNotContain(default, commandIds);
-    }
-
-    [Fact]
-    public void ReadGesturesStillReadsGesturesOnly()
-    {
-        using var stream = File.OpenRead(FixturePath.StrokesPlusNet("sample-config-full.json"));
-
-        var result = StrokesPlusImporter.ReadGestures(stream);
-
-        Assert.Equal(11, result.Gestures.Count);
-        Assert.Same(MappingDocument.Empty, result.Mapping);
-        Assert.Equal(0, result.CommandCount);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Severity == ImportSeverity.Info && warning.Item == "SendHotKey");
     }
 }
