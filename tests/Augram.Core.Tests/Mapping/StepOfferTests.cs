@@ -4,6 +4,7 @@ using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Remap;
 using Augram.Core.Tests.HoldRemaps.Support;
 using Xunit;
@@ -14,7 +15,7 @@ namespace Augram.Core.Tests.Mapping;
 /// <summary>
 /// What a command's step editor may add (<see cref="StepOffer"/>; Joel, 0.11.3: the magnifier's only step is its Remap step, yet
 /// "New step…" offered everything): Remap only under a hold remap or on a button trigger, and the step rules validation runs, with
-/// the same reason validation gives.
+/// the same reason validation gives. A step changed to another type (Joel, 2026-10-11) is judged in that step's place.
 /// </summary>
 public sealed class StepOfferTests
 {
@@ -146,6 +147,119 @@ public sealed class StepOfferTests
                 : Document(NewGlobal(), NewGroup("Blender", null, withIt) with { HoldRemaps = [space] });
 
             Assert.Equal(reason, StepOffer.Check(pasted, command, Windows));
+            Assert.Equal(reason is null, Refusal(document) is null);
+        }
+    }
+
+    /// <summary>"Change to…" (Joel, 2026-10-11) judges a replacement, not an addition: the only Remap step may become an ordinary step.</summary>
+    [Fact]
+    public void ChangingARemapStepThatIsTheOnlyStep_ToAnOrdinaryType_IsAllowed_ItsOwnTypeIsRefused()
+    {
+        var space = Blender.NewSpace();
+        var orbit = Blender.Remap(space, "Orbit", HoldInput.Of(MouseButton.Left), Blender.Middle);
+
+        Assert.Null(StepOffer.CheckChange(HotkeyStepType.Instance, orbit, 0, Windows));
+        Assert.Equal("It is a Remap step already.", StepOffer.CheckChange(RemapStepType.Instance, orbit, 0, Windows));
+        var refusal = Assert.Single(StepOffer.ChangeRefusals(Types, orbit, 0, Windows));
+        Assert.Same(RemapStepType.Instance, refusal.Key);
+        Assert.Equal(StepOffer.Already(RemapStepType.Instance), refusal.Value);
+
+        // Adding is another question: the same command takes no step more.
+        Assert.Equal(OnlyStep, StepOffer.Check(HotkeyStepType.Instance, orbit, Windows));
+    }
+
+    [Fact]
+    public void TheStepsOwnTypeIsRefused_InItsTypesWords()
+    {
+        var three = NewCommand("Three", Up, new CommandStep(new DelayStep(10), Windows), new CommandStep(HotkeyStepType.Instance.CreateDefault(), Windows));
+
+        Assert.Equal("It is a Delay step already.", StepOffer.CheckChange(DelayStepType.Instance, three, 0, Windows));
+        Assert.Equal("It is a Hotkey step already.", StepOffer.CheckChange(HotkeyStepType.Instance, three, 1, Windows));
+        Assert.Null(StepOffer.CheckChange(HotkeyStepType.Instance, three, 0, Windows));
+        Assert.Equal("It is a Hotkey step already.", StepOffer.Already(HotkeyStepType.Instance));
+    }
+
+    [Fact]
+    public void AStepAmongOthers_CannotBecomeARemapStep_TheOnlyStepOfAHoldRemapsCommandCan()
+    {
+        var space = Blender.NewSpace();
+        var note = Blender.Steps(space, "Note", new HoldInput.Key(KeyCode.Q));
+        var two = note with { Steps = [.. note.Steps, new CommandStep(new DelayStep(10), Windows)] };
+        var chord = NewCommand("Magnifier", RightLeft, new CommandStep(new DelayStep(10), Windows), new CommandStep(new DelayStep(20), Windows));
+        var plain = NewCommand("Close window", Up, NewStep("close"));
+
+        Assert.Equal(OnlyStep, StepOffer.CheckChange(RemapStepType.Instance, two, 1, Windows));
+        Assert.Equal(OnlyStep, StepOffer.CheckChange(RemapStepType.Instance, chord, 0, Windows));
+        Assert.Equal(NotHere, StepOffer.CheckChange(RemapStepType.Instance, plain, 0, Windows));
+
+        // The only step of a command under a hold remap may become a Remap step: "New step…"'s, fitted to the input.
+        Assert.Null(StepOffer.CheckChange(RemapStepType.Instance, note, 0, Windows));
+        Assert.Empty(StepOffer.ChangeRefusals(Types, note, 0, Windows));
+        var nudge = Blender.Steps(space, "Nudge", new HoldInput.Wheel(WheelDirection.Down));
+        Assert.Null(StepOffer.CheckChange(new RemapStep(new RemapOutput.Wheel(ScrollDirection.Down)), nudge, 0, Windows));
+        Assert.Equal("On a wheel input, a Remap step's output is a key or a wheel notch, not a button.", StepOffer.CheckChange(new RemapStep(Blender.Middle), nudge, 0, Windows));
+    }
+
+    [Fact]
+    public void AButtonTriggersRemapStep_MayBecomeAHotkeyStep_AndAnOnlyStepMayBecomeARemapStep()
+    {
+        var magnifier = NewCommand("Magnifier", RightLeft, new CommandStep(WinShiftX, Windows));
+        var delayed = NewCommand("Magnifier", RightLeft, new CommandStep(new DelayStep(10), Windows));
+
+        Assert.Null(StepOffer.CheckChange(HotkeyStepType.Instance, magnifier, 0, Windows));
+        Assert.Equal(StepOffer.Already(RemapStepType.Instance), Assert.Single(StepOffer.ChangeRefusals(Types, magnifier, 0, Windows)).Value);
+        Assert.Null(StepOffer.CheckChange(RemapStepType.Instance, delayed, 0, Windows));
+    }
+
+    [Fact]
+    public void TheDraftedTrigger_DecidesWhetherAStepMayBecomeARemapStep()
+    {
+        var stored = NewCommand("Magnifier", Up, new CommandStep(new DelayStep(10), Windows));
+        var chord = NewCommand("Magnifier", RightLeft, new CommandStep(new DelayStep(10), Windows));
+
+        Assert.Equal(NotHere, StepOffer.CheckChange(RemapStepType.Instance, stored, 0, Windows));
+        Assert.Null(StepOffer.CheckChange(RemapStepType.Instance, stored, 0, Windows, drafted: RightLeft));
+        Assert.Equal(NotHere, StepOffer.CheckChange(RemapStepType.Instance, chord, 0, Windows, drafted: Trigger.ForGesture(Up)));
+    }
+
+    [Fact]
+    public void AChangeOfAStepTheCommandDoesNotHave_Throws()
+    {
+        var close = NewCommand("Close window", Up, NewStep("close"));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => StepOffer.CheckChange(DelayStepType.Instance, close, 1, Windows));
+        Assert.Throws<ArgumentOutOfRangeException>(() => StepOffer.CheckChange(DelayStepType.Instance, close, -1, Windows));
+    }
+
+    /// <summary>A changed step: the offer refuses exactly the replacements the store's validation refuses, each with its rule's sentence.</summary>
+    [Fact]
+    public void AChangedStep_IsRefusedExactlyWhenValidationRefusesTheCommandWithIt()
+    {
+        var space = Blender.NewSpace();
+        var orbit = Blender.Remap(space, "Orbit", HoldInput.Of(MouseButton.Left), Blender.Middle);
+        var two = Blender.Steps(space, "Note", new HoldInput.Key(KeyCode.Q)) with { Steps = [NewStep("a"), NewStep("b")] };
+        var note = Blender.Steps(space, "Note", new HoldInput.Key(KeyCode.Q));
+        var cases = new (Command Command, int Index, IStep Changed, string? Reason)[]
+        {
+            (orbit, 0, new DelayStep(10), null),
+            (note, 0, new RemapStep(new RemapOutput.Wheel(ScrollDirection.Up)), "A wheel notch output is for a wheel input only."),
+            (note, 0, new RemapStep(Blender.G), null),
+            (two, 1, new RemapStep(Blender.Middle), OnlyStep),
+            (two, 1, new DelayStep(10), null),
+            (NewCommand("Magnifier", RightLeft, new CommandStep(new DelayStep(10), Windows)), 0, new RemapStep(new RemapOutput.Button(MouseButton.Middle)), "On a button trigger, a Remap step's output is a key."),
+            (NewCommand("Magnifier", RightLeft, new CommandStep(new DelayStep(10), Windows)), 0, WinShiftX, null),
+        };
+
+        foreach (var (command, index, changed, reason) in cases)
+        {
+            var steps = command.Steps.ToList();
+            steps[index] = steps[index] with { Step = changed };
+            var withIt = command with { Steps = steps };
+            var document = command.HoldRemapId is null
+                ? Document(NewGlobal(withIt))
+                : Document(NewGlobal(), NewGroup("Blender", null, withIt) with { HoldRemaps = [space] });
+
+            Assert.Equal(reason, StepOffer.CheckChange(changed, command, index, Windows));
             Assert.Equal(reason is null, Refusal(document) is null);
         }
     }

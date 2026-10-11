@@ -91,20 +91,29 @@ public sealed partial class CommandsViewModel
     /// The selected row as the header shows it: with the trigger draft over it while one waits (<c>.TriggerDraft</c>) and the
     /// Options value its drag distance falls back to; without the Also in row where the button its stored trigger holds is this
     /// machine's stroke button (it holds nothing back here, as for the drag distance); with the step types "New step…" greys
-    /// and why (<see cref="StepOffer.Refusals"/> over the draft's trigger while one waits).
+    /// and why (<see cref="StepOffer.Refusals"/> over the draft's trigger while one waits), and for each step the types "Change
+    /// to…" greys for it (<see cref="StepOffer.ChangeRefusals"/>, the same way).
     /// </summary>
     private CommandItem? HeaderItem(CommandItem? row)
-        => WithDraft(row) is { } item
-            ? item with
-            {
-                OptionsDragDistancePx = OptionsDragDistancePx,
-                StrokeButton = StrokeButton,
-                CanSetAlsoIn = item.CanSetAlsoIn && (StrokeButton is not { } stroke || row!.Trigger.Hold.ForStrokeButton(stroke).HandsBackDrags),
-                StepRefusals = _store.FindCommand(item.Id) is { } found
-                    ? StepOffer.Refusals(StepTypes, found.Command, _platform, DraftedTrigger(item.Id))
-                    : item.StepRefusals,
-            }
-            : null;
+    {
+        if (WithDraft(row) is not { } item)
+        {
+            return null;
+        }
+
+        var command = _store.FindCommand(item.Id)?.Command;
+        var drafted = command is null ? null : DraftedTrigger(item.Id);
+        return item with
+        {
+            OptionsDragDistancePx = OptionsDragDistancePx,
+            StrokeButton = StrokeButton,
+            CanSetAlsoIn = item.CanSetAlsoIn && (StrokeButton is not { } stroke || row!.Trigger.Hold.ForStrokeButton(stroke).HandsBackDrags),
+            StepRefusals = command is null ? item.StepRefusals : StepOffer.Refusals(StepTypes, command, _platform, drafted),
+            ChangeRefusals = command is null
+                ? item.ChangeRefusals
+                : [.. command.StepsFor(_platform).Select((_, index) => StepOffer.ChangeRefusals(StepTypes, command, index, _platform, drafted))],
+        };
+    }
 
     /// <summary>The selected command's row in the current projection; null without one.</summary>
     private CommandItem? SelectedRow()

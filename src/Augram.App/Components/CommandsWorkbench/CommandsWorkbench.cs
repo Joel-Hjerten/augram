@@ -58,6 +58,9 @@ public sealed class CommandsWorkbench : TemplatedControl
     public static readonly StyledProperty<IReadOnlyDictionary<IStepType, string>> StepRefusalsProperty =
         AvaloniaProperty.Register<CommandsWorkbench, IReadOnlyDictionary<IStepType, string>>(nameof(StepRefusals), ReadOnlyDictionary<IStepType, string>.Empty);
 
+    public static readonly StyledProperty<IReadOnlyList<IReadOnlyDictionary<IStepType, string>>> ChangeRefusalsProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, IReadOnlyList<IReadOnlyDictionary<IStepType, string>>>(nameof(ChangeRefusals), []);
+
     public static readonly StyledProperty<StepFormContext> StepFormContextProperty =
         AvaloniaProperty.Register<CommandsWorkbench, StepFormContext>(nameof(StepFormContext), StepFormContext.None);
 
@@ -159,6 +162,16 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         get => GetValue(StepRefusalsProperty);
         private set => SetValue(StepRefusalsProperty, value);
+    }
+
+    /// <summary>
+    /// By step index, the types each of the selected command's steps cannot be changed to now, with the reasons
+    /// (<see cref="CommandItem.ChangeRefusals"/>): its step list's "Change to…" greys them for the step it changes.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyDictionary<IStepType, string>> ChangeRefusals
+    {
+        get => GetValue(ChangeRefusalsProperty);
+        private set => SetValue(ChangeRefusalsProperty, value);
     }
 
     /// <summary>The selected command as its step forms see it (<see cref="StepList.StepList.FormContext"/>: its trigger here).</summary>
@@ -283,6 +296,7 @@ public sealed class CommandsWorkbench : TemplatedControl
             HasCommand = SelectedCommand is not null;
             IsUnderHoldRemap = SelectedCommand is { IsUnderHoldRemap: true };
             StepRefusals = SelectedCommand?.StepRefusals ?? ReadOnlyDictionary<IStepType, string>.Empty;
+            ChangeRefusals = SelectedCommand?.ChangeRefusals ?? [];
 
             // A new context rebuilds the expanded step form; an equal one (the same trigger) must not.
             var context = StepFormContext.For(SelectedCommand?.Trigger);

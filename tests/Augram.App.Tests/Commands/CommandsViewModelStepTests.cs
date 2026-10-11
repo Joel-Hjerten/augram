@@ -2,8 +2,10 @@ using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.App.Tests.Support;
 using Augram.Core.Abstractions;
+using Augram.Core.Mapping;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.Remap;
 using Augram.Core.Steps.WindowOp;
 using Avalonia.Headless.XUnit;
 using Xunit;
@@ -125,6 +127,57 @@ public sealed class CommandsViewModelStepTests
 
         Assert.Equal(-1, vm.SelectedStepIndex);
         Assert.Equal(3, vm.Steps.Count);
+        Assert.False(vm.CanUndo);
+    }
+
+    /// <summary>"Change to…" (Joel, 2026-10-11): the step's place and on/off state stay, its settings go, and one undo gives it back.</summary>
+    [AvaloniaFact]
+    public void ChangeToPutsADefaultStepOfTheTypeInItsPlace_KeepsItsOnOffState_AndOneUndoGivesTheOldStepBack()
+    {
+        var (vm, store, _, _) = Select("Three steps");
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleActive, vm.Steps[1]));
+        store.ClearHistory();
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[0]));
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[1], type: WindowOpStepType.Instance));
+
+        var steps = CommandsTestData.Find(store, "Three steps").Steps;
+        Assert.Equal(["Wait 10 ms", "Minimize window", "Wait 30 ms"], steps.Select(step => step.Step.Summary));
+        Assert.Equal(WindowOpStepType.Instance.CreateDefault(), steps[1].Step);
+        Assert.False(steps[1].IsActive);
+        Assert.Equal(HostPlatform.Windows, steps[1].AuthoredOn);
+        Assert.Equal(1, vm.SelectedStepIndex);
+        Assert.Equal("Window", vm.Steps[1].TypeName);
+        Assert.Equal($"Changed step 'Wait 20 ms' to Window. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
+
+        var restored = CommandsTestData.Find(store, "Three steps").Steps;
+        Assert.Equal(new DelayStep(20), restored[1].Step);
+        Assert.False(restored[1].IsActive);
+        Assert.Equal(["Wait 10 ms", "Wait 20 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
+        Assert.False(vm.CanUndo);
+    }
+
+    /// <summary>A change Core refuses (judged as a replacement) stores nothing and says why; the header's item greys it for that step.</summary>
+    [AvaloniaFact]
+    public void ARefusedChangeStoresNothing_TheMessageLineSaysWhy_AndTheHeaderGreysItForThatStep()
+    {
+        var (vm, store, _, _) = Select("Three steps");
+        var notHere = StepOffer.NotHere(RemapStepType.Instance);
+
+        var refusals = vm.SelectedCommand!.ChangeRefusals;
+        Assert.Equal(3, refusals.Count);
+        Assert.Equal(2, refusals[1].Count);
+        Assert.Equal("It is a Delay step already.", refusals[1][DelayStepType.Instance]);
+        Assert.Equal(notHere, refusals[1][RemapStepType.Instance]);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[1], type: DelayStepType.Instance));
+        Assert.Equal("It is a Delay step already.", vm.Message);
+        vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[1], type: RemapStepType.Instance));
+        Assert.Equal(notHere, vm.Message);
+
+        Assert.Equal(["Wait 10 ms", "Wait 20 ms", "Wait 30 ms"], CommandsTestData.Find(store, "Three steps").Steps.Select(step => step.Step.Summary));
         Assert.False(vm.CanUndo);
     }
 

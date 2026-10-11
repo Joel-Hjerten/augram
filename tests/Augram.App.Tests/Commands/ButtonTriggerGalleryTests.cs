@@ -42,6 +42,12 @@ public sealed class ButtonTriggerGalleryTests
         Assert.False(steps.CanAddStep);
         Assert.Equal(OnlyStep, steps.NewStepRefusal);
 
+        // "Change to…" judges a replacement (Joel, 2026-10-11): from the view model through the workbench, only Remap is greyed.
+        Assert.Same(bench.ChangeRefusals, steps.ChangeRefusals);
+        steps.OpenChangePicker(steps.Steps[0]);
+        Assert.Equal([RemapStepType.Instance], steps.ChangeTypePicker.Listed.Except(steps.ChangeTypePicker.Offered));
+        Assert.Equal("It is a Remap step already.", Assert.Single(steps.ChangeRefusals)[RemapStepType.Instance]);
+
         var row = Assert.Single(steps.Rows);
         Assert.True(row.IsExpanded);
         var stepForm = row.Form!;

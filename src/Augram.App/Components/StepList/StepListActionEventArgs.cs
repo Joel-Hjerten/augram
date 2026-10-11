@@ -2,7 +2,7 @@ using Augram.Core.Steps;
 
 namespace Augram.App.Components.StepList;
 
-/// <summary>One <see cref="StepListAction"/> with the step it applies to (null for Add, Paste, Undo, Redo and a Select that closes the open step), the type for Add, the new record for Edit and the destination for Reorder.</summary>
+/// <summary>One <see cref="StepListAction"/> with the step it applies to (null for Add, Paste, Undo, Redo and a Select that closes the open step), the type for Add and ChangeType, the new record for Edit and the destination for Reorder.</summary>
 public sealed class StepListActionEventArgs : EventArgs
 {
     public StepListActionEventArgs(StepListAction action, StepItem? step = null, IStepType? type = null, IStep? edited = null, int targetIndex = -1)

@@ -3,6 +3,7 @@ using Augram.App.Components.StepList;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.WindowOp;
 using Avalonia.Headless.XUnit;
 using Xunit;
 using static Augram.App.Tests.Commands.CommandsTestData;
@@ -33,6 +34,24 @@ public sealed class CommandsViewModelVersionTests
         Assert.Contains("now has its own steps here", vm.Message, StringComparison.Ordinal);
         Assert.True(vm.SelectedCommand!.HasOwnVersionHere);
         Assert.Equal("own macOS version", Item(vm, "Three steps").PlatformMarker);
+    }
+
+    /// <summary>"Change to…" edits this platform's steps as Edit does: the first change here makes own steps, the original keeps its step.</summary>
+    [AvaloniaFact]
+    public void ChangingAStepsTypeHere_MakesOwnStepsFromTheConvertedOriginal_TheOriginalKeepsItsStep()
+    {
+        var (vm, store, _, _) = Create(CommandsScope.Global, platform: HostPlatform.MacOS);
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized"), Item(vm, "Three steps")));
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[1], type: WindowOpStepType.Instance));
+
+        var stored = Find(store, "Three steps");
+        Assert.Equal([10, 20, 30], stored.Steps.Select(step => ((DelayStep)step.Step).Milliseconds));
+        Assert.Equal(HostPlatform.MacOS, stored.OwnVersion!.Platform);
+        Assert.Equal(["Wait 10 ms", "Minimize window", "Wait 30 ms"], stored.OwnVersion.Steps.Select(step => step.Step.Summary));
+        Assert.All(stored.OwnVersion.Steps, step => Assert.Equal(HostPlatform.MacOS, step.AuthoredOn));
+        Assert.Contains("now has its own steps here", vm.Message, StringComparison.Ordinal);
+        Assert.Equal(1, vm.SelectedStepIndex);
     }
 
     [AvaloniaFact]

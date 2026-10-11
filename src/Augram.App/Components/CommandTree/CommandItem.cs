@@ -54,6 +54,14 @@ public sealed partial record CommandItem(
     /// </summary>
     public IReadOnlyDictionary<IStepType, string> StepRefusals { get; init; } = ReadOnlyDictionary<IStepType, string>.Empty;
 
+    /// <summary>
+    /// By index of the command's steps here, the step types that step cannot be changed to now (the step menu's "Change to…"), each
+    /// with the reason the picker greys it with ("It is a Hotkey step already.", "A Remap step is a command's only step."). Core's
+    /// answer, judged as a replacement (<see cref="StepOffer.ChangeRefusals"/>, the draft's trigger while one waits); the view
+    /// model sets it on the header's item, rows keep it empty.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyDictionary<IStepType, string>> ChangeRefusals { get; init; } = [];
+
     /// <summary>The small tag on the row (an app group with categories, e.g. Photoshop); null shows none.</summary>
     public string? CategoryLabel { get; init; }
 
