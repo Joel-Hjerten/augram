@@ -50,6 +50,12 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 - **A test that sets `SelectedKey` from code proves nothing about clicking.** `ShellTitleBarTests` now clicks a real tab through the headless input.
 - **Move a list row by its `ListBoxItem`, not by the row inside it** (0.11.12, the live step drag). The item clips its content, so a `RenderTransform` on the row made it vanish as soon as it left the item's bounds; the items panel clips nothing. The tests checked the offsets and passed while Joel saw rows disappear. The app tests draw nothing (`UseHeadlessDrawing`), so judge anything visual in a UiShots frame; a mid-drag frame needs a few lines of temporary input code there (`window.MouseDown`/`MouseMove`, then render with short sleeps so transitions run).
 
+## Pointer and popup behaviour (Joel's rounds after 0.11.0)
+
+- **A flyout opened from a context menu item never light-dismissed.** Shown while the menu was still closing, it ignored clicks elsewhere, and "New step…" opened this way did not even take Escape. Open it a dispatcher turn later (`StepList.AfterMenu`); `StepPickerDismissTests` clicks outside both pickers.
+- **Avalonia raises no `Tapped` for the second click of a double click.** If both presses hit the same element it raises `DoubleTapped`. If the first click rebuilt the rows (a section header toggling), the second press lands on a new element and nothing is raised at all. Take the second click from the press's `ClickCount` (`SectionRow.OnHeaderPressed`, `ItemRow.IsRenameClick`).
+- **Marking a press handled at the row still moves keyboard focus.** The focus manager acts on the tunnelling press, before a bubbling handler marks it handled, so the step list still takes the keys after a click on a step (`StepListFocusTests`).
+
 ## Running the dev build while working
 
 - **Starting it:** the lead may start it with exactly `dotnet run --project src/Augram.App/Augram.App.csproj -- --no-engine`. Joel added that allow rule to `.claude/settings.json` on 2026-10-11; the auto mode classifier blocks any other launch. It asks Joel to take over the installed Augram, and he restarts that one afterwards.
@@ -67,4 +73,5 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 
 - **`GlyphStroke` draws one segment at a time with round caps.** At 3 px, or with a translucent colour, the overlaps show as beads. Keep gesture strokes at 2 px and opaque (inactive glyphs use opaque greys).
 - **Parallel agents share the session's temp and scratch folder.** One agent overwrote the lead's commit message file. Give scratch files names of your own.
+- **A file put back with `cp` or `Copy-Item` keeps the backup's older timestamp.** The incremental build then sees nothing new and reuses the old output, so tests can fail (or pass) on code that is no longer there. `touch` the file after restoring it, and before packaging.
 - **Agents in worktrees start from the base the lead names.** Each restyle agent added one include line to `Default.axaml`, and the lead resolved the one-line conflicts at merge, as planned.
