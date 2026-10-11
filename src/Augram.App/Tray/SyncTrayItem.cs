@@ -1,6 +1,6 @@
+using Augram.App.Hosting;
 using Augram.App.Sync;
 using Avalonia.Controls;
-using Avalonia.Threading;
 
 namespace Augram.App.Tray;
 
@@ -16,12 +16,12 @@ public sealed class SyncTrayItem : IDisposable
     private readonly NativeMenu _menu;
     private readonly Action<Action> _marshal;
 
-    /// <remarks>The item goes in <c>menu</c> just above its first separator. <c>marshal</c> runs the action on the UI thread; null is <c>Dispatcher.UIThread.Post</c>.</remarks>
+    /// <remarks>The item goes in <c>menu</c> just above its first separator. <c>marshal</c> runs the action on the UI thread; null is <see cref="UiThread.Post"/>.</remarks>
     public SyncTrayItem(SyncService service, NativeMenu menu, Action<Action>? marshal = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _menu = menu ?? throw new ArgumentNullException(nameof(menu));
-        _marshal = marshal ?? (action => Dispatcher.UIThread.Post(action));
+        _marshal = marshal ?? UiThread.Post;
         Item = new NativeMenuItem("Sync now");
         Item.Click += (_, _) => _service.SyncNow();
         _service.Changed += OnServiceChanged;

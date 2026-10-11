@@ -71,8 +71,7 @@ public static class CommandsModule
             : new TextScreen(title, "The Commands tab is not registered: CompositionRoot.Build needs CommandsModule.Register(services) after GesturesModule.Register."));
 
     private static CommandsViewModel Create(IServiceProvider sp, CommandsScope scope)
-    {
-        var vm = new CommandsViewModel(
+        => new(
             scope,
             sp.GetRequiredService<MappingStore>(),
             sp.GetRequiredService<GestureLibrary>(),
@@ -81,20 +80,6 @@ public static class CommandsModule
             sp.GetRequiredService<IConfirmPresenter>(),
             sp.GetRequiredService<CommandClipboard>(),
             RunningPlatform.Current,
-            sp.GetService<IExportPresenter>());
-        if (sp.GetService<SettingsStore>() is { } settings)
-        {
-            // This machine's stroke button: a trigger naming it means the stroke button here, which the header says. And the
-            // Options value of the button drag distance, which a trigger without its own uses (the header's Drag distance row).
-            vm.StrokeButton = settings.Current.General.StrokeButton;
-            vm.OptionsDragDistancePx = settings.Current.Capture.ButtonDragDistancePx;
-            settings.Changed += (_, _) =>
-            {
-                vm.StrokeButton = settings.Current.General.StrokeButton;
-                vm.OptionsDragDistancePx = settings.Current.Capture.ButtonDragDistancePx;
-            };
-        }
-
-        return vm;
-    }
+            sp.GetService<IExportPresenter>(),
+            sp.GetService<SettingsStore>());
 }

@@ -8,7 +8,7 @@ namespace Augram.App.Hosting;
 /// <summary>
 /// Detect-to-assign for the stroke button (F1): <see cref="Start"/> asks the engine for the next
 /// physical press, writes it to the settings store, and gives up after <c>timeout</c>. The engine
-/// reports on its worker thread and the timer on a pool thread; both are marshalled to the writer
+/// reports on its worker thread and the timeout (a <see cref="OneShotTimer"/>) on a pool thread; both are marshalled to the writer
 /// thread, where <see cref="IsListening"/> decides which one wins. A press that vendor software
 /// consumes at driver level never reaches the hook, so the timeout is what the user sees then.
 /// </summary>
@@ -22,9 +22,10 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
     private readonly EngineHost _host;
     private readonly SettingsStore _settings;
     private readonly Action<Action> _marshal;
+    private readonly OneShotTimer _timeoutTimer;
     private readonly TimeSpan _timeout;
     private IDisposable? _capture;
-    private Timer? _timer;
+    private IDisposable? _timer;
 
     public StrokeButtonDetection(EngineHost host, SettingsStore settings, Action<Action> marshal, TimeSpan? timeout = null)
     {
@@ -34,6 +35,7 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
         _host = host;
         _settings = settings;
         _marshal = marshal;
+        _timeoutTimer = new OneShotTimer(marshal);
         _timeout = timeout ?? DefaultTimeout;
     }
 
@@ -55,7 +57,7 @@ public sealed class StrokeButtonDetection : ObservableObject, IDisposable
         IsListening = true;
         Status = ListeningText;
         _capture = _host.CaptureNextButtonPress(button => _marshal(() => Assign(button)));
-        _timer = new Timer(_ => _marshal(TimedOut), null, _timeout, Timeout.InfiniteTimeSpan);
+        _timer = _timeoutTimer.Schedule(_timeout, TimedOut);
     }
 
     public void Dispose() => Stop();

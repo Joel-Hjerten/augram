@@ -16,38 +16,31 @@ namespace Augram.App.Hosting;
 /// </summary>
 public sealed class EngineSettingsLink : IDisposable
 {
-    private readonly SettingsStore _settings;
+    private readonly SettingsFollower<Settings> _settings;
     private readonly MappingStore _mapping;
     private readonly EngineHost _host;
-    private Settings _last;
 
     public EngineSettingsLink(SettingsStore settings, MappingStore mapping, EngineHost host)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(host);
-        _settings = settings;
         _mapping = mapping;
         _host = host;
-        _last = settings.Current;
-        settings.Changed += OnChanged;
+        _settings = new SettingsFollower<Settings>(settings, current => current, OnChanged);
         mapping.Changed += OnMappingChanged;
     }
 
     public void Dispose()
     {
-        _settings.Changed -= OnChanged;
+        _settings.Dispose();
         _mapping.Changed -= OnMappingChanged;
     }
 
     private void OnMappingChanged(object? sender, EventArgs e) => _host.MappingChanged();
 
-    private void OnChanged(object? sender, EventArgs e)
+    private void OnChanged(Settings last, Settings next)
     {
-        var next = _settings.Current;
-        var last = _last;
-        _last = next;
-
         if (next.General.Enabled != last.General.Enabled)
         {
             _host.Enabled = next.General.Enabled;

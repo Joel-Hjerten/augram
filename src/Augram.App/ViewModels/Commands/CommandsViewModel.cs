@@ -3,8 +3,11 @@ using Augram.App.Components.GesturePicker;
 using Augram.App.Components.StepList;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
+using Augram.App.Hosting;
 using Augram.App.Transfer;
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
+using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
@@ -29,22 +32,22 @@ namespace Augram.App.ViewModels.Commands;
 /// <c>.Sections</c>, <c>.Groups</c>, <c>.HoldRemaps</c>, <c>.Categories</c>, <c>.Trigger</c> (its draft <c>.TriggerDraft</c>, the
 /// draft's Swap and Take it <c>.TriggerConflict</c>), <c>.Input</c> and <c>.Steps</c> hold the intents of each level.
 /// </summary>
-public sealed partial class CommandsViewModel : ObservableObject, IDisposable
+public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
 {
     private readonly MappingStore _store;
     private readonly GestureLibrary _gestures;
     private readonly IGesturePickerPresenter _picker;
     private readonly IFormDialogPresenter _dialogs;
-    private readonly IConfirmPresenter _confirm;
     private readonly CommandClipboard _clipboard;
     private readonly HostPlatform _platform;
-    private readonly IExportPresenter? _export;
     private readonly HashSet<SectionId> _expanded = [];
+    private readonly SettingsFollower<(MouseButton StrokeButton, int DragDistancePx)>? _settings;
     private CommandId? _stepsOf;
 
     /// <summary>
     /// <paramref name="clipboard"/> is shared by both tabs; <paramref name="platform"/> is what a new step is authored on (F8);
-    /// <paramref name="export"/> runs a section menu's Export… (plan 0003), null where there is none (tests, the gallery).
+    /// <paramref name="export"/> runs a section menu's Export… (plan 0003), null where there is none (tests, the gallery);
+    /// <paramref name="settings"/> is followed for <see cref="StrokeButton"/> and <see cref="OptionsDragDistancePx"/>, null in tests and the gallery.
     /// </summary>
     public CommandsViewModel(
         CommandsScope scope,
@@ -55,26 +58,35 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
         IConfirmPresenter confirm,
         CommandClipboard clipboard,
         HostPlatform platform,
-        IExportPresenter? export = null)
+        IExportPresenter? export = null,
+        SettingsStore? settings = null)
+        : base(confirm, MappingRefusals, export)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(gestures);
         ArgumentNullException.ThrowIfNull(picker);
         ArgumentNullException.ThrowIfNull(dialogs);
-        ArgumentNullException.ThrowIfNull(confirm);
         ArgumentNullException.ThrowIfNull(clipboard);
         Scope = scope;
         _store = store;
         _gestures = gestures;
         _picker = picker;
         _dialogs = dialogs;
-        _confirm = confirm;
         _clipboard = clipboard;
         _platform = platform;
-        _export = export;
         _store.Changed += OnStoreChanged;
         _gestures.Changed += OnStoreChanged;
         Project();
+        if (settings is not null)
+        {
+            // This machine's stroke button: a trigger naming it means the stroke button here, which the header says. And the
+            // Options value of the button drag distance, which a trigger without its own uses (the header's Drag distance row).
+            _settings = new SettingsFollower<(MouseButton StrokeButton, int DragDistancePx)>(
+                settings,
+                current => (current.General.StrokeButton, current.Capture.ButtonDragDistancePx),
+                (_, next) => FollowSettings(next));
+            FollowSettings(_settings.Current);
+        }
     }
 
     /// <summary>The tree should start renaming this command in place (a fresh "New command N").</summary>
@@ -144,10 +156,6 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool CanRedo { get; private set; }
 
-    /// <summary>Feedback for the last action: a rule message, or "Deleted X. Ctrl+Z undoes it."</summary>
-    [ObservableProperty]
-    public partial string? Message { get; private set; }
-
     /// <summary>What "New step…" offers; the picker drops the <c>Other</c> category itself.</summary>
     public IReadOnlyList<IStepType> StepTypes { get; } = StepRegistry.BuiltIn.All;
 
@@ -177,6 +185,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     {
         _store.Changed -= OnStoreChanged;
         _gestures.Changed -= OnStoreChanged;
+        _settings?.Dispose();
     }
 
     private void Dispatch(CommandTreeActionEventArgs e)
@@ -266,25 +275,5 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
                 _store.Redo();
                 break;
         }
-    }
-
-    /// <summary>Runs an intent; a rule the store refuses (or an item gone meanwhile) shows its message. False when it was refused.</summary>
-    private bool Guard(Action action)
-    {
-        try
-        {
-            action();
-            return true;
-        }
-        catch (MappingValidationException exception)
-        {
-            Message = exception.Message;
-        }
-        catch (KeyNotFoundException exception)
-        {
-            Message = exception.Message;
-        }
-
-        return false;
     }
 }

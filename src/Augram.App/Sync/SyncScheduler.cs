@@ -39,7 +39,7 @@ internal sealed class SyncScheduler
     private IDisposable? _changeTimer;
     private IDisposable? _pollTimer;
 
-    /// <remarks><c>schedule</c> runs the action once after the delay on any thread, and disposing its result cancels it; null is a <see cref="TimerSaveScheduler"/> per call, tests pass a manual one.</remarks>
+    /// <remarks><c>schedule</c> runs the action once after the delay on any thread, and disposing its result cancels it; null is a <see cref="OneShotTimer"/> without a marshal, tests pass a manual one.</remarks>
     public SyncScheduler(
         SyncWorker worker,
         SettingsStore settings,
@@ -53,7 +53,7 @@ internal sealed class SyncScheduler
         _gestures = gestures ?? throw new ArgumentNullException(nameof(gestures));
         _mapping = mapping ?? throw new ArgumentNullException(nameof(mapping));
         _storeThread = storeThread ?? throw new ArgumentNullException(nameof(storeThread));
-        _schedule = schedule ?? ((delay, action) => new TimerSaveScheduler(delay).Schedule(action));
+        _schedule = schedule ?? new OneShotTimer().Schedule;
         _seen = settings.Current.Sync;
         _worker.RunTaking += OnRunTaking;
         _worker.RunEnded += OnRunEnded;

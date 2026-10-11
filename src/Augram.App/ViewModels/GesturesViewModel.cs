@@ -24,7 +24,7 @@ namespace Augram.App.ViewModels;
 /// which gesture a command is bound to; those edits are the commands' own undo steps on the Commands
 /// tab, apart from the library's (two stores, two histories: accepted for M2).
 /// </summary>
-public sealed partial class GesturesViewModel : ObservableObject, IDisposable
+public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
 {
     public static readonly TimeSpan DiagnosticDelay = TimeSpan.FromMilliseconds(200);
 
@@ -35,8 +35,6 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     private readonly ITrainingPresenter _training;
     private readonly IImportPresenter _import;
     private readonly IUsedByPresenter _usedBy;
-    private readonly IConfirmPresenter _confirm;
-    private readonly IExportPresenter? _export;
     private readonly DispatcherTimer _diagnosticTimer;
 
     /// <summary>The <c>export</c> presenter runs the toolbar's Export… (plan 0003); null where there is none (tests, the gallery).</summary>
@@ -49,6 +47,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         IUsedByPresenter usedBy,
         IConfirmPresenter confirm,
         IExportPresenter? export = null)
+        : base(confirm, GestureRefusals, export)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(options);
@@ -56,7 +55,6 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(import);
         ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(usedBy);
-        ArgumentNullException.ThrowIfNull(confirm);
         _library = library;
         _mapping = mapping;
         _bindings = new GestureBindings(mapping);
@@ -64,11 +62,9 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         _training = training;
         _import = import;
         _usedBy = usedBy;
-        _confirm = confirm;
-        _export = export;
         _diagnosticTimer = new DispatcherTimer { Interval = DiagnosticDelay };
         _diagnosticTimer.Tick += (_, _) => RefreshDiagnostic();
-        _library.Changed += OnLibraryChanged;
+        _library.Changed += OnStoreChanged;
         Project();
         RefreshDiagnostic();
     }
@@ -82,10 +78,6 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool CanRedo { get; private set; }
 
-    /// <summary>Feedback for the last action: a rule message, or "Deleted X, undo with ...".</summary>
-    [ObservableProperty]
-    public partial string? Message { get; private set; }
-
     [ObservableProperty]
     public partial IReadOnlyList<ConfusionPair> ConfusionPairs { get; private set; } = [];
 
@@ -93,14 +85,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     {
         ArgumentNullException.ThrowIfNull(e);
         Message = null;
-        try
-        {
-            Dispatch(e);
-        }
-        catch (Exception exception) when (exception is GestureValidationException or MappingValidationException)
-        {
-            Message = exception.Message;
-        }
+        Guard(() => Dispatch(e));
     }
 
     /// <summary>Recomputes the confusion pairs now and re-projects the tiles with them (the timer calls this after the debounce).</summary>
@@ -114,7 +99,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _diagnosticTimer.Stop();
-        _library.Changed -= OnLibraryChanged;
+        _library.Changed -= OnStoreChanged;
     }
 
     private void Dispatch(GestureGridActionEventArgs e)
@@ -149,7 +134,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
                 _ = ImportAsync();
                 break;
             case GestureGridAction.Export:
-                _ = ExportAsync();
+                _ = ExportAsync(ExportScope.GesturesOnly);
                 break;
             case GestureGridAction.Undo:
                 _library.Undo();
@@ -186,27 +171,17 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
     private async Task DeleteAsync(GestureTileItem tile)
     {
         var used = UsedByRow.For(_mapping, tile.Id);
-        if (used.Count > 0)
-        {
-            var question = $"Delete '{tile.Name}'? It is used by {string.Join(", ", used.Select(row => row.Label))}. Those commands lose their gesture.";
-            if (!await _confirm.ConfirmAsync("Delete gesture", question, "Delete").ConfigureAwait(true))
-            {
-                return;
-            }
-        }
-
-        try
+        var question = used.Count > 0
+            ? $"Delete '{tile.Name}'? It is used by {string.Join(", ", used.Select(row => row.Label))}. Those commands lose their gesture."
+            : null;
+        await DeleteAsync("Delete gesture", question, () =>
         {
             var unbound = _bindings.Unbind(tile.Id);
             var removed = _library.Remove(tile.Id);
-            Message = unbound == 0
-                ? $"Deleted '{removed.Name}'. {GestureGridKeymap.Undo} undoes it."
+            return unbound == 0
+                ? Deleted(removed.Name, GestureGridKeymap.Undo)
                 : $"Deleted '{removed.Name}' and unbound {Sentence.Count(unbound, "command")}. {GestureGridKeymap.Undo} undoes the delete; the Commands tab undoes the unbinding.";
-        }
-        catch (Exception exception) when (exception is GestureValidationException or MappingValidationException)
-        {
-            Message = exception.Message;
-        }
+        }).ConfigureAwait(true);
     }
 
     /// <summary>
@@ -256,34 +231,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>The export dialog with "gestures only" preselected (plan 0003); its outcome goes to the message line.</summary>
-    private async Task ExportAsync()
-    {
-        if (_export is null)
-        {
-            Message = "Export is not available here.";
-            return;
-        }
-
-        if (await _export.ExportAsync(ExportScope.GesturesOnly).ConfigureAwait(true) is { } outcome)
-        {
-            Message = outcome;
-        }
-    }
-
-    private void OnLibraryChanged(object? sender, EventArgs e)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            OnLibraryChangedOnUi();
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(OnLibraryChangedOnUi);
-        }
-    }
-
-    private void OnLibraryChangedOnUi()
+    protected override void OnStoreChangedOnUi()
     {
         Project();
         _diagnosticTimer.Stop();

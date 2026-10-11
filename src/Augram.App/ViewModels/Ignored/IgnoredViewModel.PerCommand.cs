@@ -21,7 +21,7 @@ public sealed partial class IgnoredViewModel
         var app = Require(item.Id);
         var users = UsersOf(app.Id);
         if (app.IsPerCommand && users.Count > 0
-            && !await _confirm.ConfirmAsync(
+            && !await Confirm.ConfirmAsync(
                 "Move to Global",
                 $"'{app.Name}' is used by {Commands(users.Count)}; on Global it stops all of Augram over {app.Name} and leaves their Not in. Move?",
                 "Move").ConfigureAwait(true))
@@ -30,7 +30,7 @@ public sealed partial class IgnoredViewModel
         }
 
         if (!app.IsPerCommand && AllowedUsersOf(app.Id) is { Count: > 0 } allowed
-            && !await _confirm.ConfirmAsync("Move to Per command", MoveAllowedQuestion(app, allowed.Count), "Move").ConfigureAwait(true))
+            && !await Confirm.ConfirmAsync("Move to Per command", MoveAllowedQuestion(app, allowed.Count), "Move").ConfigureAwait(true))
         {
             return;
         }

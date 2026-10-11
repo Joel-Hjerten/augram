@@ -25,7 +25,7 @@ public sealed class AppState : ObservableObject, IDisposable
     private readonly SettingsStore _settings;
     private readonly IStartupRegistration _startup;
     private readonly IEventLog _log;
-    private GeneralSettings _last;
+    private readonly SettingsFollower<GeneralSettings> _general;
 
     public AppState(SettingsStore settings, IStartupRegistration startup, IEventLog log, AppInfo app)
     {
@@ -37,8 +37,7 @@ public sealed class AppState : ObservableObject, IDisposable
         _startup = startup;
         _log = log;
         App = app;
-        _last = settings.Current.General;
-        settings.Changed += OnSettingsChanged;
+        _general = new SettingsFollower<GeneralSettings>(settings, current => current.General, OnGeneralChanged);
     }
 
     /// <summary>This build: its channel decides whether start at login is this process's to manage.</summary>
@@ -123,7 +122,7 @@ public sealed class AppState : ObservableObject, IDisposable
         StartAtLoginNote = StartupPolicy.FollowedNote(status, RunningPlatform.Current);
     }
 
-    public void Dispose() => _settings.Changed -= OnSettingsChanged;
+    public void Dispose() => _general.Dispose();
 
     private void Change(Func<GeneralSettings, GeneralSettings> change)
     {
@@ -135,11 +134,8 @@ public sealed class AppState : ObservableObject, IDisposable
         }
     }
 
-    private void OnSettingsChanged(object? sender, EventArgs e)
+    private void OnGeneralChanged(GeneralSettings last, GeneralSettings now)
     {
-        var now = _settings.Current.General;
-        var last = _last;
-        _last = now;
         if (now.Enabled != last.Enabled)
         {
             OnPropertyChanged(nameof(Enabled));

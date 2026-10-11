@@ -64,12 +64,7 @@ public sealed partial class CommandsViewModel
             (1, false) => $"Delete category '{category.Name}'? Its command moves to {CategoryRules.UncategorizedName}.",
             _ => $"Delete category '{category.Name}'? Its {count} commands move to {CategoryRules.UncategorizedName}.",
         };
-        if (!await _confirm.ConfirmAsync("Delete category", question, "Delete").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        Guard(() =>
+        await DeleteAsync("Delete category", question, () =>
         {
             var current = _store.Global;
             var commands = takesCommands
@@ -80,7 +75,7 @@ public sealed partial class CommandsViewModel
                 Categories = [.. current.Categories.Where(existing => existing.Id != id)],
                 Commands = [.. commands],
             });
-            Message = $"Deleted '{category.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
-        });
+            return Deleted(category.Name, CommandsKeymap.Current.Undo);
+        }).ConfigureAwait(true);
     }
 }

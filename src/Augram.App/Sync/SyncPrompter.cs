@@ -1,5 +1,5 @@
+using Augram.App.Hosting;
 using Augram.Core.Sync;
-using Avalonia.Threading;
 
 namespace Augram.App.Sync;
 
@@ -17,12 +17,12 @@ public sealed class SyncPrompter : IDisposable
     private SyncReport? _prompted;
     private bool _asking;
 
-    /// <remarks><c>marshal</c> runs the action on the UI thread; null is <c>Dispatcher.UIThread.Post</c>.</remarks>
+    /// <remarks><c>marshal</c> runs the action on the UI thread; null is <see cref="UiThread.Post"/>.</remarks>
     public SyncPrompter(SyncService service, ISyncJoinPresenter presenter, Action<Action>? marshal = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
-        _marshal = marshal ?? (action => Dispatcher.UIThread.Post(action));
+        _marshal = marshal ?? UiThread.Post;
         _service.Changed += OnChanged;
     }
 
