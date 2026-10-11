@@ -1,4 +1,3 @@
-using System.Globalization;
 using Augram.App.Sync;
 using Augram.Core.Config;
 using Augram.Core.Sync;
@@ -19,10 +18,6 @@ namespace Augram.App.ViewModels;
 /// </summary>
 public sealed class SyncViewModel : ObservableObject, IDisposable
 {
-    public const string OffText = "Off: paste a repository address above to sync gestures and commands with your other machines.";
-    public const string RunningText = "Syncing…";
-    public const string PausedText = "Paused: choose how to join (Sync now asks again).";
-    public const string NeverText = "Not synced yet.";
     public const string NameProblemText = "This machine needs a name for sync.";
 
     private readonly SettingsStore _settings;
@@ -124,7 +119,8 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
 
     public bool CanSyncNow => IsConfigured && !IsRunning;
 
-    public string StatusText => Status(IsConfigured, _service.IsRunning, _service.IsPaused, _service.LastReport, _service.OtherMachines);
+    /// <summary>The status line (<see cref="SyncStatusText.Status"/>).</summary>
+    public string StatusText => SyncStatusText.Status(_service.Snapshot);
 
     public IReadOnlyList<SyncConflict> Conflicts => _service.PendingConflicts();
 
@@ -209,57 +205,6 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
         _settings.Changed -= OnSettingsChanged;
         _service.Changed -= OnServiceChanged;
     }
-
-    /// <summary>The status line for the given state (pure, for tests and the tray).</summary>
-    public static string Status(bool configured, bool running, bool paused, SyncReport? report, IReadOnlyList<string> otherMachines)
-    {
-        ArgumentNullException.ThrowIfNull(otherMachines);
-        if (!configured)
-        {
-            return OffText;
-        }
-
-        if (running)
-        {
-            return RunningText;
-        }
-
-        if (report?.Status == SyncStatus.NeedsUpdate)
-        {
-            return NeedsUpdateText(report.NewerMachines);
-        }
-
-        if (paused || report?.Status == SyncStatus.NeedsJoinChoice)
-        {
-            return PausedText;
-        }
-
-        if (report is null || report.Status == SyncStatus.Off)
-        {
-            return NeverText;
-        }
-
-        var at = report.When.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
-        return report.Status switch
-        {
-            SyncStatus.UpToDate => $"Up to date (last synced {at}).",
-            SyncStatus.Applied => $"Last synced {at}: {Changes(report.Counts)}{From(otherMachines)}.",
-            _ => $"Sync failed at {at}: {report.Error ?? "unknown error"}",
-        };
-    }
-
-    /// <summary>"Paused: Mac uses a newer Augram. Update this machine (pull, rebuild, restart) to resume."</summary>
-    public static string NeedsUpdateText(IReadOnlyList<SyncNewerMachine> machines)
-        => $"Paused: {SyncNewerMachine.Summary(machines)}. Update this machine (pull, rebuild, restart) to resume.";
-
-    /// <summary>"3 commands changed", "1 gesture, 2 groups and 3 commands changed".</summary>
-    public static string Changes(SyncCounts counts)
-    {
-        ArgumentNullException.ThrowIfNull(counts);
-        return counts.Phrase(kind => kind.Total) is { Length: > 0 } changed ? changed + " changed" : "nothing changed";
-    }
-
-    private static string From(IReadOnlyList<string> machines) => machines.Count == 0 ? string.Empty : " from " + string.Join(" and ", machines);
 
     private void Apply(SyncSettings sync)
     {

@@ -13,7 +13,8 @@ namespace Augram.App.Sync;
 /// ask it (the start-up run, the 20 s change delay, the 5 minute poll, automatic sync switched on, a new URL) and
 /// pauses automatic runs after a join question or a newer Augram. The user's own triggers (<see cref="SyncNow"/>,
 /// <see cref="Join"/>, <see cref="Resolve"/>) go straight to the worker and always run while a repository is set. Both
-/// parts share the worker's lock. <see cref="Changed"/> is raised on the worker when a run starts and when it ends; consumers marshal.
+/// parts share the worker's lock, and <see cref="Snapshot"/> reads what the status lines need under it at once.
+/// <see cref="Changed"/> is raised on the worker when a run starts and when it ends; consumers marshal.
 /// <see cref="Dispose"/> cancels the timers and stops the worker in one step, then stops the store thread (nothing is
 /// applied after it), stops listening and waits briefly for the worker: a run inside a git call is abandoned on its
 /// background thread, which applies and saves nothing more. Under <c>--no-engine</c> sync works the same: it never
@@ -73,6 +74,18 @@ public sealed class SyncService : IDisposable
 
     /// <summary>How many runs have finished (tests and diagnostics).</summary>
     public int RunCount => _worker.RunCount;
+
+    /// <summary>Everything the status lines read, with its <see cref="SyncPhase"/>, taken under the sync lock at once. Safe from any thread.</summary>
+    public SyncSnapshot Snapshot
+    {
+        get
+        {
+            lock (_worker.Gate)
+            {
+                return SyncSnapshot.Of(IsConfigured, _worker.IsRunning, _scheduler.IsPaused, _worker.LastReport, _worker.OtherMachines);
+            }
+        }
+    }
 
     /// <summary>Every conflict waiting for the user; none while sync is off or once the repository changed (the coordinator forgets them with the state). Safe from any thread.</summary>
     public IReadOnlyList<SyncConflict> PendingConflicts() => IsConfigured ? _coordinator.PendingConflicts() : [];

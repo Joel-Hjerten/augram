@@ -1,7 +1,6 @@
 using Augram.App.Sync;
 using Augram.App.Tests.Support;
 using Augram.App.Tests.Sync.Support;
-using Augram.App.ViewModels;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
 using Augram.Core.Sync.Files;
@@ -221,7 +220,8 @@ public sealed class SyncServiceTests : SyncTestBase
         Assert.Equal(0, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
         Assert.Equal(
             "Paused: PC-WORK uses a newer Augram. Update this machine (pull, rebuild, restart) to resume.",
-            SyncViewModel.Status(true, false, home.Service.IsPaused, home.Service.LastReport, home.Service.OtherMachines));
+            SyncStatusText.Status(home.Service.Snapshot));
+        Assert.Equal(SyncPhase.PausedForUpdate, home.Service.Snapshot.Phase);
 
         home.Service.SyncNow();
         home.WaitForRuns(2);

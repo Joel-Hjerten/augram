@@ -1,7 +1,6 @@
 using System.Globalization;
 using Augram.App.Sync;
 using Augram.App.Tests.Sync.Support;
-using Augram.App.Tray;
 using Augram.App.ViewModels;
 using Augram.Core.Config;
 using Augram.Core.Sync;
@@ -28,7 +27,7 @@ public sealed class SyncViewModelTests : SyncTestBase
         Assert.True(vm.IsConfigured);
         Assert.True(vm.CanSyncNow);
         Assert.Null(vm.UrlProblem);
-        Assert.Equal(SyncViewModel.NeverText, vm.StatusText);
+        Assert.Equal(SyncStatusText.NeverText, vm.StatusText);
     }
 
     [Fact]
@@ -36,7 +35,7 @@ public sealed class SyncViewModelTests : SyncTestBase
     {
         var home = Machine("PC-HOME", url: null);
         using var vm = ViewModel(home);
-        Assert.Equal(SyncViewModel.OffText, vm.StatusText);
+        Assert.Equal(SyncStatusText.OffText, vm.StatusText);
         Assert.False(vm.CanSyncNow);
 
         vm.RepositoryUrlText = "https://joel:ghp_secret@github.com/joel/augram-settings.git";
@@ -128,17 +127,17 @@ public sealed class SyncViewModelTests : SyncTestBase
     }
 
     [Theory]
-    [InlineData(false, false, false, null, SyncViewModel.OffText)]
-    [InlineData(true, true, false, null, SyncViewModel.RunningText)]
-    [InlineData(true, false, true, null, SyncViewModel.PausedText)]
-    [InlineData(true, false, false, null, SyncViewModel.NeverText)]
-    [InlineData(true, false, false, SyncStatus.Off, SyncViewModel.NeverText)]
-    [InlineData(true, false, false, SyncStatus.NeedsJoinChoice, SyncViewModel.PausedText)]
+    [InlineData(false, false, false, null, SyncStatusText.OffText)]
+    [InlineData(true, true, false, null, SyncStatusText.RunningText)]
+    [InlineData(true, false, true, null, SyncStatusText.PausedText)]
+    [InlineData(true, false, false, null, SyncStatusText.NeverText)]
+    [InlineData(true, false, false, SyncStatus.Off, SyncStatusText.NeverText)]
+    [InlineData(true, false, false, SyncStatus.NeedsJoinChoice, SyncStatusText.PausedText)]
     public void TheStatusLineSaysWhatIsGoingOn(bool configured, bool running, bool paused, SyncStatus? status, string expected)
     {
         var report = status is { } s ? new SyncReport(s, At) : null;
 
-        Assert.Equal(expected, SyncViewModel.Status(configured, running, paused, report, []));
+        Assert.Equal(expected, SyncStatusText.Status(SyncSnapshot.Of(configured, running, paused, report, [])));
     }
 
     [Fact]
@@ -151,10 +150,10 @@ public sealed class SyncViewModelTests : SyncTestBase
 
         Assert.Equal(
             "Paused: Mac uses a newer Augram. Update this machine (pull, rebuild, restart) to resume.",
-            SyncViewModel.Status(true, false, true, report, ["Mac"]));
-        Assert.Equal("sync paused: Mac uses a newer Augram", SyncTrayItem.Short(true, false, true, report));
-        Assert.Equal("Paused (Mac uses a newer Augram)", SyncHealthContributor.Outcome(report));
-        Assert.Equal("UpToDate", SyncHealthContributor.Outcome(new SyncReport(SyncStatus.UpToDate, At)));
+            SyncStatusText.Status(SyncSnapshot.Of(true, false, true, report, ["Mac"])));
+        Assert.Equal("sync paused: Mac uses a newer Augram", SyncStatusText.Short(SyncSnapshot.Of(true, false, true, report, [])));
+        Assert.Equal("Paused (Mac uses a newer Augram)", SyncStatusText.Outcome(report));
+        Assert.Equal("UpToDate", SyncStatusText.Outcome(new SyncReport(SyncStatus.UpToDate, At)));
     }
 
     [Fact]
@@ -166,13 +165,13 @@ public sealed class SyncViewModelTests : SyncTestBase
         };
         var both = applied with { Counts = applied.Counts with { Gestures = new SyncKindCounts(0, 1, 0), Groups = new SyncKindCounts(2, 0, 0) } };
 
-        Assert.Equal($"Up to date (last synced {Time}).", SyncViewModel.Status(true, false, false, new SyncReport(SyncStatus.UpToDate, At), ["Mac"]));
-        Assert.Equal($"Last synced {Time}: 3 commands changed from Mac.", SyncViewModel.Status(true, false, false, applied, ["Mac"]));
-        Assert.Equal($"Last synced {Time}: 1 gesture, 2 app groups and 3 commands changed from Mac and PC-WORK.", SyncViewModel.Status(true, false, false, both, ["Mac", "PC-WORK"]));
-        Assert.Equal("1 hold remap and 3 commands changed", SyncViewModel.Changes(applied.Counts with { HoldRemaps = new SyncKindCounts(0, 1, 0) }));
+        Assert.Equal($"Up to date (last synced {Time}).", SyncStatusText.Status(SyncSnapshot.Of(true, false, false, new SyncReport(SyncStatus.UpToDate, At), ["Mac"])));
+        Assert.Equal($"Last synced {Time}: 3 commands changed from Mac.", SyncStatusText.Status(SyncSnapshot.Of(true, false, false, applied, ["Mac"])));
+        Assert.Equal($"Last synced {Time}: 1 gesture, 2 app groups and 3 commands changed from Mac and PC-WORK.", SyncStatusText.Status(SyncSnapshot.Of(true, false, false, both, ["Mac", "PC-WORK"])));
+        Assert.Equal("1 hold remap and 3 commands changed", SyncStatusText.Changes(applied.Counts with { HoldRemaps = new SyncKindCounts(0, 1, 0) }));
         Assert.Equal(
             $"Sync failed at {Time}: sign-in needed: GitHub refused the credentials",
-            SyncViewModel.Status(true, false, false, new SyncReport(SyncStatus.Failed, At) { Error = "sign-in needed: GitHub refused the credentials" }, ["Mac"]));
+            SyncStatusText.Status(SyncSnapshot.Of(true, false, false, new SyncReport(SyncStatus.Failed, At) { Error = "sign-in needed: GitHub refused the credentials" }, ["Mac"])));
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Globalization;
+using Augram.App.Sync;
 using Augram.App.Tests.Sync.Support;
 using Augram.App.Tray;
 using Augram.Core.Sync;
@@ -52,12 +53,12 @@ public sealed class SyncTrayItemTests : SyncTestBase
         var at = new DateTimeOffset(2026, 10, 7, 14, 32, 0, TimeSpan.Zero);
         var time = at.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
-        Assert.Null(SyncTrayItem.Short(false, false, false, null));
-        Assert.Null(SyncTrayItem.Short(true, false, false, null));
-        Assert.Equal("syncing…", SyncTrayItem.Short(true, true, false, null));
-        Assert.Equal("sync paused", SyncTrayItem.Short(true, false, true, null));
-        Assert.Equal($"synced {time}", SyncTrayItem.Short(true, false, false, new SyncReport(SyncStatus.Applied, at)));
-        Assert.Equal($"sync failed {time}", SyncTrayItem.Short(true, false, false, new SyncReport(SyncStatus.Failed, at) { Error = "offline" }));
+        Assert.Null(SyncStatusText.Short(SyncSnapshot.Of(false, false, false, null, [])));
+        Assert.Null(SyncStatusText.Short(SyncSnapshot.Of(true, false, false, null, [])));
+        Assert.Equal("syncing…", SyncStatusText.Short(SyncSnapshot.Of(true, true, false, null, [])));
+        Assert.Equal("sync paused", SyncStatusText.Short(SyncSnapshot.Of(true, false, true, null, [])));
+        Assert.Equal($"synced {time}", SyncStatusText.Short(SyncSnapshot.Of(true, false, false, new SyncReport(SyncStatus.Applied, at), [])));
+        Assert.Equal($"sync failed {time}", SyncStatusText.Short(SyncSnapshot.Of(true, false, false, new SyncReport(SyncStatus.Failed, at) { Error = "offline" }, [])));
     }
 
     private static void Drain(ConcurrentQueue<Action> posted)

@@ -117,7 +117,7 @@ public sealed class SyncModuleTests : IDisposable
         Assert.False(rows.Single(row => row.Label == "Conflicts").IsVisible);
         Assert.False(rows.Single(row => row.Label == "Details").IsVisible);
         var status = rows.Single(row => row.Label == "Status").GetVisualDescendants().OfType<TextBlock>().Single(text => text.Classes.Contains("note"));
-        Assert.Equal(SyncViewModel.OffText, status.Text);
+        Assert.Equal(SyncStatusText.OffText, status.Text);
         Assert.False(rows.Single(row => row.Label == "Status").GetVisualDescendants().OfType<Button>().Single().IsEnabled);
     }
 
