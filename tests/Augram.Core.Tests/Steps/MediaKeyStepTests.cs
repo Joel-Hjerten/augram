@@ -59,6 +59,15 @@ public sealed class MediaKeyStepTests
     }
 
     [Fact]
+    public void FromKeyCodeReadsEveryKindBackAndNothingElse()
+    {
+        Assert.All(Enum.GetValues<MediaKeyKind>(), kind => Assert.Equal(kind, MediaKeyKindExtensions.FromKeyCode(kind.ToKeyCode())));
+        Assert.Equal(7, Enum.GetValues<KeyCode>().Count(key => MediaKeyKindExtensions.FromKeyCode(key) is not null));
+        Assert.Null(MediaKeyKindExtensions.FromKeyCode(KeyCode.None));
+        Assert.Null(MediaKeyKindExtensions.FromKeyCode(KeyCode.BrowserHome));
+    }
+
+    [Fact]
     public void ReadTakesTheDefaultWhenAbsentAndMatchesNamesIgnoringCase()
     {
         Assert.Equal(new MediaKeyStep(MediaKeyKind.VolumeUp), Type.Read(StepJson.Object("{}")));

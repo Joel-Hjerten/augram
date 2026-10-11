@@ -5,11 +5,11 @@ The **Media key** step (key `mediaKey`, category System, platform-neutral): tap 
 | File | Role |
 |---|---|
 | `MediaKeyKind` | `VolumeUp`, `VolumeDown`, `VolumeMute`, `PlayPause`, `NextTrack`, `PreviousTrack`, `Stop` |
-| `MediaKeyKindExtensions` | `ToKeyCode()`: the one mapping to `Abstractions.KeyCode` (`VolumeUp/Down/Mute`, `MediaPlay`, `MediaNext`, `MediaPrevious`, `MediaStop`) |
+| `MediaKeyKindExtensions` | `ToKeyCode()`: the one mapping to `Abstractions.KeyCode` (`VolumeUp/Down/Mute`, `MediaPlay`, `MediaNext`, `MediaPrevious`, `MediaStop`); `FromKeyCode(key)` reads it back, null for any other key (the importer's `SendVKey` codes and SendKeys names such as `{VOLUP}`) |
 | `MediaKeyStep` | record: `Key` · `Summary` "Volume up", "Mute", "Play/pause"… |
 | `MediaKeyStepType` | `{ "key": "VolumeUp" }`; an unknown name is a `StepFormatException` naming `key` |
 | `MediaKeyExecutor` | `KeyPress(code)` then `KeyRelease(code)` on `IInputSimulator`; a non-success `SimulationResult` is Failed with "`<code> press: Unsupported`" (no release after a failed press). One Debug line per run |
 
 Media keys are the same on both platforms, so there is nothing to convert (F8). Whether the OS honours the synthesized key is the simulator's business, reported through `SimulationResult`: `SharpHookInputSimulator` on Windows; on macOS `Platform.MacOS/Input/MacMediaKeySimulator` wraps it and posts the volume and playback keys as the system-defined events the keyboard's media keys send, because macOS ignores them as key codes (Joel, 2026-10-09: Volume Down fired, the volume did not move). Stop has no Mac key and still goes to SharpHook.
 
-**May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn`, the importer (C1: `SendVKey` 166..183 → kind; other keys → Hotkey), the App's `Components/Steps/MediaKey/` form.
+**May reference:** `Abstractions`, `Diagnostics`, `Steps`. **Referenced by:** `StepRegistry.BuiltIn`, the importer (C1: `SendVKey` 173..179 → kind; other keys → Hotkey), the App's `Components/Steps/MediaKey/` form.
