@@ -22,6 +22,30 @@ Joel, 2026-10-11: compartmentalise everything as it should be, and avoid the sam
 4. **Slices** (Opus agents, one per slice, in parallel where they don't share files): fold, split or move; tests green after each slice; the folder's README written or updated in the same commit.
 5. **Close-out:** read-first table in CLAUDE.md updated, this plan moved to `completed/`, and the agent timing measurement repeated against the 2026-10-11 baseline (median agent run, share of time spent thinking).
 
+## Progress (keep this current: a new lead resumes from here)
+
+Updated 2026-10-11, late. Step 1 (Wireframe fold, merged `4a022f1`) and step 2 (inventory) are done; step 3's list is below; step 4 runs slice by slice.
+
+| Slice | State | Merge | What later slices reuse instead of redoing |
+|---|---|---|---|
+| S1 | merged | `a380bbc` | `Core/Abstractions/RunningPlatform.Current` (tests set it, `Reset()` in `finally`, in a non-parallel collection: `RunningPlatformTests`), `HostPlatformExtensions.DisplayName()/Other()`, `EnginePorts.Platform` |
+| S2 | merged | `d32c870` | `Core/Diagnostics/LogSources` (18 sources, `All` alphabetical); never a literal source |
+| S3 | merged | `d883e59` | `Core/Text/Sentence` (`Count`, `List`, `Capitalised`), `Core/Sync/SyncItemNouns`, `SyncCounts.Phrase`, `Core/Mapping/FreeNames` |
+| S4 | merged (Fable-reviewed) | `c0700be` | `AppGroup.ActiveCommandsOn/OrdinaryCommandsOn/HoldRemapCommandsOn`; `IgnoreList.Under`; `HoldRemapRules.RemapOutputOn` and `FittedTo(step, trigger)` (there is no `StepOffer.Fitted`); `MappingDocument.FindCommand`, `HoldRemapEntry.FindBinding`; `Core/Json/JsonMember` (strict: numeric, padded and multi-name values refused); `Unique.Ensure`; `ConfigRecovery`; `GeneralSettings.IgnoreKey` is `KeyModifiers` |
+| S5 | merged (Fable-reviewed) | `8978606` | `ConflictResolution.Apply(list)`, `SyncStoreWriter.StillHolds/Replace`, `SyncChoiceRules`, `ImportApplier`, `AppGroup.HeaderOnly()/IsShell`, `ConfusionCheck.Duplicate`; `SyncFolders` in Core; sync-file types in `Core/Sync/Files/` |
+| S6 | merged (Fable-reviewed after) | `11ef93c` | `GestureMatcher.Best`, `CapturePointExtensions.ToGesturePoints`, `KeySet` on the hook (Engine `KeyBits` gone), `GesturePoint.DistanceTo` |
+| S8 | merged | `e81920b` | `Transfer/FileOpenRequest` + `ITransferFilePicker.PickOpenAsync` for every open dialog; SP.net mapping tables in `docs/reference/strokesplus-net-import-mapping.md` |
+| S9 | in Fable review (branch `worktree-agent-a75e365a0a0fb71b3`, tip `0bc931b`) | | `App/Sync/`: `SyncWorker`, `SyncScheduler`, `SyncService` facade, `SyncPhase`/`SyncSnapshot`/`SyncStatusText`, `SyncConflictSideText`; `ViewModels/DraftText` (does not fit `HoldRemapEditViewModel` or `CommandsViewModel.Steps`); `TimerSaveScheduler` stays in Hosting for S11's `OneShotTimer` |
+| S7 | running (worktree agent) | | Q7 default taken: "Window activated" logged once, by the executor |
+| S10–S15, S14b | not started (wave 4, one at a time, in the order listed) | | |
+| S16, S17 | not started (wave 5) | | S17 also: CLAUDE.md's read-first row for the SP.net import names the new mapping doc |
+
+**Questions** 1, 10, 11 answered by Joel; the rest run on the lead's recommendation unless he overrules (2: yes; 3: settled; 4: exception documented; 5: refuse; 6: moved; 7: executor's line; 8: one undo step; 9: one label).
+
+**How a slice runs (what worked):** one worktree agent per slice, base commit named in the brief, its findings cited from `0007-inventory/` instead of re-verified, effort per CLAUDE.md, scratch commit-message files named `sN-…` (agents share the scratchpad). Slices in Engine, capture, recognition, hold remaps or sync get a Fable review agent (read-only, `model: fable`) before merge. The lead reads the diff's riskiest file, merges with `--no-ff` and a message file, and runs build + full suite + format itself only when main moved under the slice; then pushes, waits for CI in the background, removes the worktree. Keep shell commands simple: a compound merge-and-push line was refused by the permission check; separate calls are not.
+
+**Outside this plan, noted while it ran:** plan 0008 (keys lost after a Minimize, Joel, PROPOSED for after the refactor); the handoff's "one app, defined once" backlog item.
+
 ## The list (step 3, written 2026-10-11 on Fable 5.1)
 
 Seven read-only reviews, one per area, are in [0007-inventory/](0007-inventory/): about 150 findings with file:line for each. This list merges them. A finding is cited as *report finding*, e.g. `Imp 1` = [4-import-sync.md](0007-inventory/4-import-sync.md) finding 1. Report names: **Core-A** (model, steps, config), **Core-B** (capture, recognition, hold remaps, sync, transfer), **Eng** (engine, platforms), **Imp** (importer, git sync, App sync/transfer/import), **Comp** (App components), **VM** (App view models, screens), **Host** (App hosting, tray, overlay, tools).
