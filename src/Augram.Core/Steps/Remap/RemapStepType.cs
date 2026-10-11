@@ -7,8 +7,8 @@ using Augram.Core.Steps.Hotkey;
 namespace Augram.Core.Steps.Remap;
 
 /// <summary>
-/// The "Remap" step type: key <c>remap</c>, category Mouse, offered only for commands under a hold remap
-/// (<see cref="HoldRemapsOnly"/>), the same on both platforms (F9: Blender's Ctrl + Middle zoom is Ctrl on the Mac too; a
+/// The "Remap" step type: key <c>remap</c>, category Mouse, offered only for commands under a hold remap or with a button
+/// trigger (<see cref="HoldRemapsOnly"/>, <c>Mapping/StepOffer</c>), the same on both platforms (F9: Blender's Ctrl + Middle zoom is Ctrl on the Mac too; a
 /// platform version gives another output where one is needed). Parameters, one of:
 /// <c>{ "output": "Button", "button": "Middle", "modifiers": "Control" }</c>,
 /// <c>{ "output": "Key", "key": "R", "modifiers": "Control, Alt, Shift", "rightHand": "Alt" }</c>,
@@ -48,7 +48,7 @@ public sealed class RemapStepType : IStepType
 
     public bool IsPlatformNeutral => true;
 
-    /// <summary>Plan 0002: the picker offers it for a command under a hold remap and nowhere else.</summary>
+    /// <summary>Plan 0002 and plan 0005 decision 8: offered for a command under a hold remap or with a button trigger, greyed elsewhere (<c>Mapping/StepOffer</c>).</summary>
     public bool HoldRemapsOnly => true;
 
     /// <summary>The same on both platforms (F9): outputs are never converted.</summary>

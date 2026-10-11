@@ -12,7 +12,7 @@ namespace Augram.Core.HoldRemaps;
 /// there (or no trigger yet); a button input names at least one button; a key input is a key, not a modifier (they pass
 /// through a hold, decision 4) and not the hold key; a Remap step is a command's only step; a wheel input takes a key or a
 /// wheel output, and a wheel output needs a wheel input. Inputs unique per hold remap is A7, in
-/// <see cref="MappingRules.Overlap"/>.
+/// <see cref="MappingRules.Overlap"/>. The step rules also answer, without throwing, <see cref="StepsProblem"/>.
 /// </summary>
 public static partial class HoldRemapRules
 {
@@ -98,39 +98,84 @@ public static partial class HoldRemapRules
             : key != KeyCode.None && key == holdRemap.HoldKey ? $"it is the hold key of '{holdRemap.Name}'"
             : null;
 
+    /// <summary>
+    /// Why the command's steps break rule 7 on Windows or on macOS (its trigger and steps there, <see cref="Command.TriggerFor"/>
+    /// and <see cref="Command.StepsFor"/>), as one sentence: "A Remap step is a command's only step."; null when they break none.
+    /// The rule <see cref="EnsureValid(Command, AppGroup)"/> refuses such a command with, from the same code and with the same
+    /// reason, there after the command's name ("'Orbit' has a Remap step among other steps: a Remap step is a command's only
+    /// step."). <see cref="StepOffer"/> asks it of the command with a step added, for the step picker and a paste.
+    /// </summary>
+    public static string? StepsProblem(Command command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        foreach (var platform in Platforms)
+        {
+            if (BrokenStepsRule(command.TriggerFor(platform), command.StepsFor(platform)) is { } broken)
+            {
+                return broken.Problem;
+            }
+        }
+
+        return null;
+    }
+
     private static void EnsureSteps(Command command, Trigger trigger, IReadOnlyList<CommandStep> steps)
+    {
+        if (BrokenStepsRule(trigger, steps) is { } broken)
+        {
+            throw new MappingValidationException(broken.Refusal(command));
+        }
+    }
+
+    /// <summary>The first step rule (rule 7) <paramref name="steps"/> break under <paramref name="trigger"/>; null for none.</summary>
+    private static StepsRule? BrokenStepsRule(Trigger trigger, IReadOnlyList<CommandStep> steps)
     {
         var remap = steps.FirstOrDefault(step => step.Step is RemapStep)?.Step as RemapStep;
         if (remap is null)
         {
-            return;
+            return null;
         }
 
         if (steps.Count > 1)
         {
-            throw new MappingValidationException($"'{command.Name}' has a Remap step among other steps: a Remap step is a command's only step.");
+            return new StepsRule("has a Remap step among other steps", "a Remap step is a command's only step");
         }
 
         // Plan 0005 decision 8: a button trigger holds a key output while its buttons are down; a button output would need the
         // drag re-posting only a hold remap does, and a wheel output needs a wheel input.
         if (trigger is Trigger.ButtonTrigger && remap.Output is not RemapOutput.Key)
         {
-            throw new MappingValidationException($"'{command.Name}' has a button trigger: its Remap output must be a key.");
+            return new StepsRule("has a button trigger", "its Remap output must be a key", "On a button trigger, a Remap step's output is a key.");
         }
 
         if (trigger is not Trigger.InputTrigger { Input: var input })
         {
-            return;
+            return null;
         }
 
         if (input is HoldInput.Wheel && remap.Output is RemapOutput.Button)
         {
-            throw new MappingValidationException($"'{command.Name}' turns the wheel: its Remap output must be a key or a wheel notch, not a button.");
+            return new StepsRule("turns the wheel", "its Remap output must be a key or a wheel notch, not a button", "On a wheel input, a Remap step's output is a key or a wheel notch, not a button.");
         }
 
         if (input is not HoldInput.Wheel && remap.Output is RemapOutput.Wheel)
         {
-            throw new MappingValidationException($"'{command.Name}' sends a wheel notch: that output is for a wheel input only.");
+            return new StepsRule("sends a wheel notch", "that output is for a wheel input only", "A wheel notch output is for a wheel input only.");
         }
+
+        return null;
+    }
+
+    /// <summary>
+    /// A broken step rule: what the command does (<paramref name="Situation"/>, after its name) and the rule itself
+    /// (<paramref name="Reason"/>), which a refusal joins: "'Orbit' has a Remap step among other steps: a Remap step is a
+    /// command's only step."; and the rule as a sentence of its own (<see cref="Problem"/>: <paramref name="Alone"/>, else the
+    /// reason capitalised), what the step picker and a refused paste say.
+    /// </summary>
+    private sealed record StepsRule(string Situation, string Reason, string? Alone = null)
+    {
+        public string Problem => Alone ?? $"{char.ToUpperInvariant(Reason[0])}{Reason[1..]}.";
+
+        public string Refusal(Command command) => $"'{command.Name}' {Situation}: {Reason}.";
     }
 }

@@ -180,15 +180,41 @@ public sealed class CommandsViewModelButtonTriggerTests
     {
         var (vm, store) = GlobalWithSteps("Magnifier", RightLeft);
         Select(vm, "Close window");
-        Assert.False(vm.SelectedCommand!.OffersRemapStep);
+        Assert.Equal("Remap is for a command under a hold remap or with a button trigger.", Assert.Single(vm.SelectedCommand!.StepRefusals).Value);
 
         Select(vm, "Magnifier");
-        Assert.True(vm.SelectedCommand!.OffersRemapStep);
+        Assert.Empty(vm.SelectedCommand!.StepRefusals);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Add, type: RemapStepType.Instance));
 
         Assert.Equal(new RemapStep(new RemapOutput.Key(KeyCode.None)), Assert.Single(Find(store, "Magnifier").Steps).Step);
         Assert.Null(vm.Message);
+    }
+
+    /// <summary>
+    /// Joel, 0.11.3: the magnifier (a button trigger whose only step is its Remap step) takes no other step, so every type is
+    /// refused with Core's reason (the picker greys them all, "New step…" is disabled), and a paste says the same and stores nothing.
+    /// </summary>
+    [AvaloniaFact]
+    public void AButtonTriggerWhoseOnlyStepIsARemapStep_TakesNoOtherStep_APasteSaysWhy()
+    {
+        const string OnlyStep = "A Remap step is a command's only step.";
+        var (vm, store) = GlobalWithSteps("Magnifier", RightLeft, new RemapStep(new RemapOutput.Key(KeyCode.X, KeyModifiers.Meta | KeyModifiers.Shift)));
+        Select(vm, "Close window");
+        vm.Handle(new StepListActionEventArgs(StepListAction.Copy, vm.Steps[0]));
+
+        Select(vm, "Magnifier");
+
+        var refusals = vm.SelectedCommand!.StepRefusals;
+        Assert.Equal(vm.StepTypes.Count, refusals.Count);
+        Assert.All(refusals.Values, reason => Assert.Equal(OnlyStep, reason));
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Paste));
+        Assert.Equal(OnlyStep, vm.Message);
+        vm.Handle(new StepListActionEventArgs(StepListAction.Duplicate, vm.Steps[0]));
+        Assert.Equal(OnlyStep, vm.Message);
+        Assert.Single(Find(store, "Magnifier").Steps);
+        Assert.False(store.CanUndo);
     }
 
     [AvaloniaFact]

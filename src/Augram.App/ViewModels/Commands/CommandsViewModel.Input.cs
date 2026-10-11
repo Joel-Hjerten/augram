@@ -74,22 +74,10 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// A new step of <paramref name="type"/> for the command: the type's default; a Remap step's output fitted to the command's
-    /// input here (a wheel input starts with a wheel notch the same way), or, on a button trigger (the header's, a draft
-    /// included; plan 0005), a key output with no key set; so it is never refused for its output.
+    /// A new step of <paramref name="type"/> for the command, as Core makes it (<see cref="StepOffer.NewStep"/>: a Remap step's
+    /// output fitted to the command's input here, or a key output on a button trigger, the header's, a draft included).
     /// </summary>
-    private IStep NewStep(IStepType type, Command command)
-    {
-        var step = type.CreateDefault();
-        if (step is not RemapStep remap)
-        {
-            return step;
-        }
-
-        return command.TriggerFor(_platform) is Trigger.InputTrigger { Input: var input } ? new RemapStep(HoldRemapRules.FittedTo(remap.Output, input))
-            : DraftedTrigger(command.Id) is Trigger.ButtonTrigger ? new RemapStep(new RemapOutput.Key(KeyCode.None))
-            : step;
-    }
+    private IStep NewStep(IStepType type, Command command) => StepOffer.NewStep(type, command, _platform, DraftedTrigger(command.Id));
 
     /// <summary>A Remap output as a button trigger holds it (plan 0005 decision 8: a key): a button or wheel output becomes a key output with no key yet, its modifiers kept.</summary>
     private static RemapOutput KeyOutput(RemapOutput output) => output is RemapOutput.Key ? output : new RemapOutput.Key(KeyCode.None, output.Modifiers);

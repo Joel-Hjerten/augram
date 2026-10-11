@@ -101,7 +101,7 @@ public sealed partial class StepList : TemplatedControl
         if (_list is not null)
         {
             _list.ContextMenu = StepListMenu.Build(Request);
-            _list.ContextMenu.Opening += (_, _) => StepListMenu.Refresh(_list.ContextMenu, SelectedStep);
+            _list.ContextMenu.Opening += (_, _) => StepListMenu.Refresh(_list.ContextMenu, SelectedStep, CanAddStep);
             KeyBindings.Clear();
             StepListMenu.BindKeys(this, CommandsKeymap.Current, Request, () => !IsEditing);
             _list.SelectionChanged += (_, _) =>
@@ -258,7 +258,11 @@ public sealed partial class StepList : TemplatedControl
         switch (action)
         {
             case StepListAction.Add:
-                OpenTypePicker();
+                if (CanAddStep)
+                {
+                    OpenTypePicker();
+                }
+
                 return;
             case StepListAction.Duplicate or StepListAction.Copy or StepListAction.Delete or StepListAction.ToggleActive when step is null:
                 return;

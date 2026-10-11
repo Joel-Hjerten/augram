@@ -18,6 +18,8 @@ namespace Augram.App.Tests.Commands;
 /// <summary>The gallery's Button trigger pages (gallery rule, plan 0005 step 5): Magnifier in the Global workbench with its Remap key, and the trigger's states.</summary>
 public sealed class ButtonTriggerGalleryTests
 {
+    private const string OnlyStep = "A Remap step is a command's only step.";
+
     [AvaloniaFact]
     public void TheWorkbenchShowsMagnifierWithItsPressedButtonAndARemapKeyOnly()
     {
@@ -30,11 +32,17 @@ public sealed class ButtonTriggerGalleryTests
         Assert.True(header.IsButtonKind);
         Assert.Equal(0, header.PressedButtonIndex);
         Assert.True(header.ShowsDragDistance);
-        Assert.True(bench.OffersRemapStep);
         Assert.False(bench.IsUnderHoldRemap);
-        Assert.Contains(RemapStepType.Instance, bench.StepsPart!.TypePicker.Offered);
 
-        var row = Assert.Single(bench.StepsPart.Rows);
+        // Joel, 0.11.3: its only step is its Remap step, so it takes no other; every type is greyed and "New step…" with it.
+        var steps = bench.StepsPart!;
+        Assert.Contains(RemapStepType.Instance, steps.TypePicker.Listed);
+        Assert.Empty(steps.TypePicker.Offered);
+        Assert.All(steps.TypePicker.Listed, type => Assert.Equal(OnlyStep, bench.StepRefusals[type]));
+        Assert.False(steps.CanAddStep);
+        Assert.Equal(OnlyStep, steps.NewStepRefusal);
+
+        var row = Assert.Single(steps.Rows);
         Assert.True(row.IsExpanded);
         var stepForm = row.Form!;
         Assert.Contains(stepForm.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == RemapStepForm.ButtonTriggerNote);

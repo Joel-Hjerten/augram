@@ -1,6 +1,7 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.Core.Mapping;
+using Augram.Core.Steps;
 
 namespace Augram.App.ViewModels.Commands;
 
@@ -8,7 +9,8 @@ namespace Augram.App.ViewModels.Commands;
 /// The step half of <see cref="CommandsViewModel"/> (F5a step editing): every intent of the step list becomes one
 /// <c>UpdateCommand</c> on the selected command, one undo step each. The list edited is this platform's (F8): the
 /// original where it was authored, the own version where it has one, and otherwise the converted original, so the first
-/// edit on the other platform makes its own steps from what was running there (<see cref="Command.WithStepsFor"/>).
+/// edit on the other platform makes its own steps from what was running there (<see cref="Command.WithStepsFor"/>). A step
+/// added (new, duplicated or pasted) is first offered to Core's <see cref="StepOffer"/>, as "New step…" greys a type by.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -51,16 +53,25 @@ public sealed partial class CommandsViewModel
                 SelectedStepIndex = step.Index;
                 break;
             case StepListAction.Add when e.Type is { } type:
-                steps.Add(new CommandStep(NewStep(type, command), _platform));
-                Commit(group, command, steps, steps.Count - 1);
+                var added = NewStep(type, command);
+                if (Offered(command, added))
+                {
+                    steps.Add(new CommandStep(added, _platform));
+                    Commit(group, command, steps, steps.Count - 1);
+                }
+
                 break;
             case StepListAction.Edit when step is not null && e.Edited is { } edited:
                 steps[step.Index] = steps[step.Index] with { Step = edited };
                 Commit(group, command, steps, step.Index);
                 break;
             case StepListAction.Duplicate when step is not null:
-                steps.Insert(step.Index + 1, steps[step.Index]);
-                Commit(group, command, steps, step.Index + 1);
+                if (Offered(command, steps[step.Index].Step))
+                {
+                    steps.Insert(step.Index + 1, steps[step.Index]);
+                    Commit(group, command, steps, step.Index + 1);
+                }
+
                 break;
             case StepListAction.Copy when step is not null:
                 _clipboard.Step = steps[step.Index];
@@ -73,8 +84,12 @@ public sealed partial class CommandsViewModel
                     break;
                 }
 
-                steps.Add(copied);
-                Commit(group, command, steps, steps.Count - 1);
+                if (Offered(command, copied.Step))
+                {
+                    steps.Add(copied);
+                    Commit(group, command, steps, steps.Count - 1);
+                }
+
                 break;
             case StepListAction.Delete when step is not null:
                 steps.RemoveAt(step.Index);
@@ -92,6 +107,22 @@ public sealed partial class CommandsViewModel
                 Commit(group, command, steps, e.TargetIndex);
                 break;
         }
+    }
+
+    /// <summary>
+    /// True when <paramref name="step"/> (a new one, a duplicate, a paste) may join the command's steps here (Core's
+    /// <see cref="StepOffer"/>, the rule "New step…" greys a type by); else the message line says why in the picker's words
+    /// ("A Remap step is a command's only step.") and nothing is stored.
+    /// </summary>
+    private bool Offered(Command command, IStep step)
+    {
+        if (StepOffer.Check(step, command, _platform, DraftedTrigger(command.Id)) is not { } reason)
+        {
+            return true;
+        }
+
+        Message = reason;
+        return false;
     }
 
     /// <summary>One store call per edit, then the step to leave expanded.</summary>

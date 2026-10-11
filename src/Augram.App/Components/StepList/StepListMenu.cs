@@ -19,8 +19,8 @@ internal static class StepListMenu
         return menu;
     }
 
-    /// <summary>Entries that need a selected step are disabled without one.</summary>
-    public static void Refresh(ContextMenu menu, StepItem? selected)
+    /// <summary>Entries that need a selected step are disabled without one, and New step… while no type can be added (<see cref="StepList.CanAddStep"/>).</summary>
+    public static void Refresh(ContextMenu menu, StepItem? selected, bool canAdd)
     {
         ArgumentNullException.ThrowIfNull(menu);
         foreach (var item in menu.Items.OfType<MenuItem>())
@@ -28,6 +28,10 @@ internal static class StepListMenu
             if (item.Tag is StepListAction.Duplicate or StepListAction.Copy or StepListAction.Delete)
             {
                 item.IsEnabled = selected is not null;
+            }
+            else if (item.Tag is StepListAction.Add)
+            {
+                item.IsEnabled = canAdd;
             }
         }
     }

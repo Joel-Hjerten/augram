@@ -90,7 +90,8 @@ public sealed partial class CommandsViewModel
     /// <summary>
     /// The selected row as the header shows it: with the trigger draft over it while one waits (<c>.TriggerDraft</c>) and the
     /// Options value its drag distance falls back to; without the Also in row where the button its stored trigger holds is this
-    /// machine's stroke button (it holds nothing back here, as for the drag distance).
+    /// machine's stroke button (it holds nothing back here, as for the drag distance); with the step types "New step…" greys
+    /// and why (<see cref="StepOffer.Refusals"/> over the draft's trigger while one waits).
     /// </summary>
     private CommandItem? HeaderItem(CommandItem? row)
         => WithDraft(row) is { } item
@@ -99,6 +100,9 @@ public sealed partial class CommandsViewModel
                 OptionsDragDistancePx = OptionsDragDistancePx,
                 StrokeButton = StrokeButton,
                 CanSetAlsoIn = item.CanSetAlsoIn && (StrokeButton is not { } stroke || row!.Trigger.Hold.ForStrokeButton(stroke).HandsBackDrags),
+                StepRefusals = _store.FindCommand(item.Id) is { } found
+                    ? StepOffer.Refusals(StepTypes, found.Command, _platform, DraftedTrigger(item.Id))
+                    : item.StepRefusals,
             }
             : null;
 
