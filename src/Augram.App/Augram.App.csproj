@@ -34,6 +34,8 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Augram.App.Tests" />
+    <!-- tools/UiShots builds the app headless from the composition root to render screenshots. -->
+    <InternalsVisibleTo Include="UiShots" />
   </ItemGroup>
   <!-- The build channel (Directory.Build.props, AugramChannel) as [AssemblyMetadata("AugramChannel", …)]; Hosting/AppInfo reads it. -->
   <ItemGroup>
