@@ -134,8 +134,8 @@ A script-only action becomes steps when its script is one of the shapes below; a
 |---|---|
 | `GlobalApplication.Categories[]`, `Applications[].Categories[]` (strings) | the group's `Categories`, fresh `CategoryId`s, the list's spelling (trimmed; empty and repeated names ignored, the first spelling wins) |
 | `Action.Category` naming a listed category (case-insensitive) | the command's `CategoryId` |
-| `Action.Category` empty or missing | Uncategorized (`CategoryId` null) |
-| every action of the group in one category named `General` (or the group has no actions) | **no categories at all**, every command Uncategorized: SP.net gives every app "General", so this is noise (18 of the reference config's 19 apps) |
+| `Action.Category` empty or missing | no category (`CategoryId` null); in Global the rules then put the command in the Uncategorized category, made with its fixed id (Joel, 2026-10-11) |
+| every action of the group in one category named `General` (or the group has no actions) | **no categories at all**, no command in one (in Global: all in Uncategorized): SP.net gives every app "General", so this is noise (18 of the reference config's 19 apps) |
 | a listed category no imported action uses | left out, no warning |
 | `Action.Category` naming a category the list lacks | the category is created with the action's spelling; **Info** "Category 'X' is not in the application's category list; created for its commands.", once per category per group |
 
