@@ -4,7 +4,7 @@ You are picking up a project whose first runnable milestone is built and accepte
 
 ## 0. Right now
 
-### ALSO NOW: plan 0006, the glass look (D2), decided, nothing built (written 2026-10-11, PC session)
+### ALSO NOW: plan 0006, the glass look (D2), built on main; Joel's real-window check next (written 2026-10-11, PC session)
 
 Joel decided the app's look on an interactive mockup: **[plan 0006](plans/0006-glass-look.md)**. In short:
 - frosted glass, with depth from translucent layers instead of white outlines
@@ -15,7 +15,13 @@ Joel decided the app's look on an interactive mockup: **[plan 0006](plans/0006-g
 - a fresh install's trail is yellow `#F5C542`
 - Options gets sub-tabs: General · Strokes · Appearance · Sync · About
 
-Open [design/mockups/augram-glass-theme.html](../design/mockups/augram-glass-theme.html) in a browser before touching a theme file. The first step is the glass test in the real window. Joel runs it on each machine; per CLAUDE.md, the lead tells him first. Plan 0005's Mac check is independent of this and can go first on the Mac.
+Open [design/mockups/augram-glass-theme.html](../design/mockups/augram-glass-theme.html) in a browser before touching a theme file.
+
+**Built (2026-10-11):** everything in the plan's steps 2–6 is on main, CI green, and the app runs on the Default theme. To see the look without launching Augram, use `tools/UiShots` (headless PNGs, dark and light; safe from agents). Read [learnings 0008](learnings/0008-the-glass-look.md) before touching a theme file.
+
+**Next: Joel's real-window check, PC then Mac.** It covers the system glass, dragging by the title bar, double-click to maximize, Windows 11 snap layouts, and Options › Appearance live. Then a version bump and his install.
+
+**Not run on a desktop yet.** Run the dev build with `--no-engine`, after telling Joel; it asks to take over the installed Augram. Plan 0005's Mac check is independent of this and can go first on the Mac.
 
 ### NOW: plan 0005 (button triggers, Also in, Exclusions) as 0.10.0 on the PC, Joel's check (written 2026-10-11, PC session)
 
