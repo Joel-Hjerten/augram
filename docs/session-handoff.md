@@ -42,6 +42,7 @@ What this session learned (a stuck button read from the log, other programs' hoo
 - **Start at login has never run on a real login.** On the PC it is still off (every 0.10.x start logs `Start at login checked {setting=false status=NotRegistered}`, no Run value); Joel has not ticked it. Check lists: App README "Windows check list", Platform.MacOS README "Start at login on macOS".
 - **Export/import follow-ups** (accumulation, a redrawn gesture's Keep mine / Keep both, per-group Replace): plan 0003 "Follow-ups from Joel's questions".
 - **Sync conflicts are visible only in Options › Sync** (the Conflicts row and Resolve…); no pop-up (by design) and nothing in the tray, whose tooltip only says "synced 14:32". Proposed: "· 1 conflict" in the tray tooltip and Resolve… in the tray menu while one is pending.
+- **Augram stops working while Task Manager has focus; StrokesPlus.net keeps working** (Joel, 2026-10-11: "lets take it later"). Elevated windows on Windows, see requirements §4 for the cause and the two fixes.
 - **Debug logging cannot be switched on** in any build (Engine README, `ChannelEventLog`). Joel: not needed now; logs rotate daily, 7 days kept, a few hundred KB.
 
 ### NEXT: Mac session, bring the Mac to 0.9.1 (written 2026-10-10 night, PC session)

@@ -209,7 +209,7 @@ Instead of one-off probe runs, the app logs its own health and timings continuou
 ## 4. Out of scope for v1 (DECIDED — from handoff)
 
 - No scripting engine, no text expansion, no floaters, no window-automation API, no plugin system (extensible ≠ pluggable-by-users).
-- Elevated/admin windows on Windows and secure input fields on macOS are accepted ceilings — document, don't chase.
+- Elevated/admin windows on Windows and secure input fields on macOS are accepted ceilings — document, don't chase. **Reopened for Windows (Joel, 2026-10-11), to do later:** StrokesPlus.net works over Task Manager, while Augram stops working whenever Task Manager (an elevated window) has focus. Windows keeps a medium-integrity process's hooks and injected input away from higher-integrity windows (UIPI). The fixes are invasive: run Augram elevated, e.g. a logon task with highest privileges (programs a Run step starts would then be elevated too), or `uiAccess="true"`, which needs a signed exe installed under Program Files (today's installer is per-user and asks for no admin rights). Check first how SP.net runs on the PC (Task Manager › Details, the Elevated column).
 
 ## 5. Open decisions index
 
