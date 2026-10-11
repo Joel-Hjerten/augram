@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 
 namespace Augram.App.Components.Shell;
 
@@ -35,7 +36,7 @@ public static class WindowDragArea
     private static void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.Handled || sender is not Control control || TopLevel.GetTopLevel(control) is not Window window
-            || !e.GetCurrentPoint(control).Properties.IsLeftButtonPressed)
+            || !e.GetCurrentPoint(control).Properties.IsLeftButtonPressed || IsOnControlInside(control, e.Source))
         {
             return;
         }
@@ -50,5 +51,23 @@ public static class WindowDragArea
         }
 
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Whether the press landed on a tab, button or text box inside the area. Their presses bubble up through the area
+    /// before their own control acts on them (a TabControl selects in its own handler, further up), so the area must leave
+    /// them alone or no tab could be clicked (Joel's first run, 2026-10-11).
+    /// </summary>
+    private static bool IsOnControlInside(Control area, object? source)
+    {
+        for (var visual = source as Visual; visual is not null && !ReferenceEquals(visual, area); visual = visual.GetVisualParent())
+        {
+            if (visual is TabItem or Button or TextBox or ListBoxItem)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

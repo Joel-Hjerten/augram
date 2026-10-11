@@ -63,7 +63,10 @@
         <Setter Property="FontSize" Value="{StaticResource Font.M}" />
         <Setter Property="Template">
           <ControlTemplate>
-            <Panel Height="{StaticResource Tab.Height}" VerticalAlignment="Bottom">
+            <!-- The transparent background is what makes the tab clickable: a Border whose corners differ (rounded on top only)
+                 is not hit-testable, so without it a press on an unselected tab fell through to the title bar (Joel's first
+                 run, 2026-10-11; learnings 0008). -->
+            <Panel Height="{StaticResource Tab.Height}" VerticalAlignment="Bottom" Background="Transparent">
               <Path Name="PART_FlareLeft"
                     Data="M 10,0 L 10,10 L 0,10 A 10,10 0 0 0 10,0 Z"
                     Fill="{DynamicResource Layer.Page}"

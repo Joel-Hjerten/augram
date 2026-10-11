@@ -1,7 +1,9 @@
 using Augram.App.Components.Shell;
 using Augram.App.Themes;
 using Augram.App.Views;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
@@ -34,6 +36,24 @@ public sealed class ShellTitleBarTests
         var selected = tabs.Single(tab => tab.IsSelected);
         Assert.All(Flares(selected), flare => Assert.True(flare.IsVisible));
         Assert.All(tabs.Where(tab => !tab.IsSelected).SelectMany(Flares), flare => Assert.False(flare.IsVisible));
+    }
+
+    [AvaloniaFact]
+    public void ClickingATopLevelTabInTheTitleBarSelectsIt()
+    {
+        var window = Show();
+        // Headless hit testing uses the last rendered frame: render one first.
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        var options = TopTabs(window).Single(tab => (string?)tab.Header == "Options");
+        Assert.False(options.IsSelected);
+
+        var centre = options.TranslatePoint(new Point(options.Bounds.Width / 2, options.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(centre, Avalonia.Input.MouseButton.Left);
+        window.MouseUp(centre, Avalonia.Input.MouseButton.Left);
+        window.UpdateLayout();
+
+        Assert.True(options.IsSelected);
     }
 
     [AvaloniaFact]

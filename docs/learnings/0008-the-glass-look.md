@@ -40,6 +40,15 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 
   Add the answers here.
 
+## Clicks (Joel's first real-window run: no top-level tab could be clicked)
+
+- **A `Border` whose corners differ (`10,10,0,0`) is not hit-testable** in Avalonia 11.3, even with a transparent background. Uniform corners are fine.
+  - An unselected folder tab's only background was such a border, so presses fell through to the title bar.
+  - The fix was `Background="Transparent"` on the template's root panel.
+  - A headless check can't see this unless it renders a frame first: hit testing uses the last rendered frame, so call `Dispatcher.UIThread.RunJobs()` and `AvaloniaHeadlessPlatform.ForceRenderTimerTick()` before `window.MouseDown`.
+- **A drag area must leave its children's presses alone.** A TabControl selects in its own handler, which sits above the title bar in the bubble route. So `WindowDragArea` skips presses that land on a tab, button, text box or list item.
+- **A test that sets `SelectedKey` from code proves nothing about clicking.** `ShellTitleBarTests` now clicks a real tab through the headless input.
+
 ## Smaller ones
 
 - **`GlyphStroke` draws one segment at a time with round caps.** At 3 px, or with a translucent colour, the overlaps show as beads. Keep gesture strokes at 2 px and opaque (inactive glyphs use opaque greys).
