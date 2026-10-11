@@ -178,21 +178,15 @@ internal sealed class CommandExecutor : IDisposable
     /// </summary>
     private void ExecuteHold(ExecutionRequest request, CommandId id)
     {
-        var mapping = _mapping();
-        foreach (var group in mapping.Groups)
+        if (_mapping().FindCommand(id) is not { } found)
         {
-            foreach (var command in group.Commands)
-            {
-                if (command.Id == id)
-                {
-                    var target = _windows.Foreground();
-                    _log.Info(LogSources.Execution, "Hold command", ("trigger", request.Describe()), ("command", CommandNames.Label(group, command)), ("process", target?.ProcessName));
-                    _runner.Run(request, group, command, target);
-                    return;
-                }
-            }
+            _log.Debug(LogSources.Execution, "Hold command not found", ("trigger", request.Describe()));
+            return;
         }
 
-        _log.Debug(LogSources.Execution, "Hold command not found", ("trigger", request.Describe()));
+        var (group, command) = found;
+        var target = _windows.Foreground();
+        _log.Info(LogSources.Execution, "Hold command", ("trigger", request.Describe()), ("command", CommandNames.Label(group, command)), ("process", target?.ProcessName));
+        _runner.Run(request, group, command, target);
     }
 }

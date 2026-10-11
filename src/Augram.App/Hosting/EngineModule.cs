@@ -60,10 +60,9 @@ public static class EngineModule
         services.AddSingleton(sp => sp.GetRequiredService<ConfigSession>().Mapping);
         // Shared by the hook and the simulator: the hook takes other programs' wheel events but not our own Scroll step's,
         // and other programs' button releases (plan 0005 decision 10) but not the ones we post.
-        services.AddSingleton(_ => new OwnWheelInjections());
-        services.AddSingleton(_ => new OwnButtonInjections());
-        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>(), sp.GetRequiredService<IEventLog>(), sp.GetRequiredService<OwnWheelInjections>(), sp.GetRequiredService<OwnButtonInjections>()));
-        services.AddSingleton(sp => CreateSimulator(sp.GetRequiredService<OwnWheelInjections>(), sp.GetRequiredService<OwnButtonInjections>(), options.PlatformAdapters));
+        services.AddSingleton(_ => new OwnInjections());
+        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>(), sp.GetRequiredService<IEventLog>(), sp.GetRequiredService<OwnInjections>()));
+        services.AddSingleton(sp => CreateSimulator(sp.GetRequiredService<OwnInjections>(), options.PlatformAdapters));
         RegisterPlatform(services, options.PlatformAdapters);
 
         services.AddSingleton(sp => new TrailOverlayWindow(
@@ -198,10 +197,11 @@ public static class EngineModule
     /// SharpHook's simulator; on macOS wrapped so the volume and playback keys reach the system (<see cref="MacMediaKeySimulator"/>)
     /// and a hold remap's button output, its modifiers and its re-posted drags go through CoreGraphics (<see cref="MacRemapButtonSimulator"/>).
     /// </summary>
-    private static IInputSimulator CreateSimulator(OwnWheelInjections ownWheel, OwnButtonInjections ownButtons, bool adapters)
+    private static IInputSimulator CreateSimulator(OwnInjections own, bool adapters)
     {
-        var simulator = new SharpHookInputSimulator(ownWheel, ownButtons);
-        return adapters && OperatingSystem.IsMacOS() ? new MacRemapButtonSimulator(new MacMediaKeySimulator(simulator), ownButtons.Expect) : simulator;
+        var simulator = new SharpHookInputSimulator(own);
+        // Platform may not reference the Engine, so the macOS wrapper announces its releases through a delegate.
+        return adapters && OperatingSystem.IsMacOS() ? new MacRemapButtonSimulator(new MacMediaKeySimulator(simulator), button => own.Expect(OwnInjections.SlotOf(button))) : simulator;
     }
 
     private static void RegisterPlatform(IServiceCollection services, bool adapters)

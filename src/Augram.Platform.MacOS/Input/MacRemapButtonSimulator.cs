@@ -24,7 +24,7 @@ namespace Augram.Platform.MacOS.Input;
 /// </list>
 /// Engine worker thread. No AppKit, so no main-thread hop and no autorelease pool. What is posted comes back through the hook
 /// marked simulated and is dropped there (the spike relied on that too: otherwise a re-posted drag would be swallowed again).
-/// A release posted here is announced first through <paramref name="announceRelease"/> (the engine's <c>OwnButtonInjections</c>),
+/// A release posted here is announced first through <paramref name="announceRelease"/> (the engine's <c>OwnInjections</c>),
 /// so the hook does not take it for another program's release (plan 0005 decision 10).
 /// <b>Compiled, not yet run on a Mac</b> (the Platform.MacOS README lists the checks).
 /// </summary>
@@ -42,13 +42,13 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
         var result = SimulationResult.Success;
         foreach (var change in keys.Downs)
         {
-            result = Worst(result, PostFlagsChanged(change, keyDown: true));
+            result = InputSimulation.Worst(result, PostFlagsChanged(change, keyDown: true));
         }
 
-        result = Worst(result, PostButton(mouse.Down, mouse.Button, Point(x, y), keys.MouseDownFlags));
+        result = InputSimulation.Worst(result, PostButton(mouse.Down, mouse.Button, Point(x, y), keys.MouseDownFlags));
         foreach (var change in keys.Ups)
         {
-            result = Worst(result, PostFlagsChanged(change, keyDown: false));
+            result = InputSimulation.Worst(result, PostFlagsChanged(change, keyDown: false));
         }
 
         return result;
@@ -57,7 +57,7 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
     public SimulationResult ReleaseRemapButton(MouseButton button)
     {
         var mouse = MacRemapButtonEvents.For(button);
-        var result = TryPointer(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => announceRelease?.Invoke(button)) : SimulationResult.Failed;
+        var result = MacPointer.TryRead(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => announceRelease?.Invoke(button)) : SimulationResult.Failed;
         return result == SimulationResult.Success ? result : inner.ReleaseRemapButton(button);
     }
 
@@ -131,33 +131,10 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
         return Post(cgEvent);
     }
 
-    /// <summary>Where the pointer is now: a blank event carries the current location (as <see cref="MacCursorProbe"/> reads it).</summary>
-    private static bool TryPointer(out MacNative.CGPoint at)
-    {
-        var blank = MacNative.CGEventCreate(0);
-        if (blank == 0)
-        {
-            at = default;
-            return false;
-        }
-
-        try
-        {
-            at = MacNative.CGEventGetLocation(blank);
-            return true;
-        }
-        finally
-        {
-            Cf.Release(blank);
-        }
-    }
-
     private static SimulationResult Post(nint cgEvent)
     {
         MacNative.CGEventPost(HidEventTap, cgEvent);
         Cf.Release(cgEvent);
         return SimulationResult.Success;
     }
-
-    private static SimulationResult Worst(SimulationResult a, SimulationResult b) => a >= b ? a : b;
 }

@@ -1,6 +1,6 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
-using Augram.Engine.Input;
+using Augram.Core.Steps.Hotkey;
 
 namespace Augram.Engine.Execution;
 
@@ -27,27 +27,16 @@ internal sealed record ClickRelay(MouseButton Button, int X, int Y, KeyModifiers
             return simulator.Click(button, x, y);
         }
 
-        var held = SharpHookInputSimulator.ModifierKeys(keys, KeyModifiers.None);
-        var result = SimulationResult.Success;
-        foreach (var key in held)
+        return simulator.WithModifiersHeld(HotkeyKeys.LeftKeys(keys), () =>
         {
-            result = Worst(result, simulator.KeyPress(key));
-        }
+            var result = simulator.Click(button, x, y);
+            if ((keys & (KeyModifiers.Alt | KeyModifiers.Meta)) != 0 && (keys & KeyModifiers.Control) == 0)
+            {
+                result = InputSimulation.Worst(result, simulator.KeyPress(KeyCode.LeftControl));
+                result = InputSimulation.Worst(result, simulator.KeyRelease(KeyCode.LeftControl));
+            }
 
-        result = Worst(result, simulator.Click(button, x, y));
-        if ((keys & (KeyModifiers.Alt | KeyModifiers.Meta)) != 0 && (keys & KeyModifiers.Control) == 0)
-        {
-            result = Worst(result, simulator.KeyPress(KeyCode.LeftControl));
-            result = Worst(result, simulator.KeyRelease(KeyCode.LeftControl));
-        }
-
-        for (var i = held.Count - 1; i >= 0; i--)
-        {
-            result = Worst(result, simulator.KeyRelease(held[i]));
-        }
-
-        return result;
+            return result;
+        });
     }
-
-    private static SimulationResult Worst(SimulationResult a, SimulationResult b) => a >= b ? a : b;
 }

@@ -43,6 +43,7 @@ public sealed partial class EngineHost : IDisposable
     private readonly Timer _tick;
     private readonly TimeSpan _tickInterval;
     private readonly IDisposable? _healthRegistration;
+    private readonly ISystemEvents? _systemEvents;
     private int _tickArmed;
     private int _started;
     private int _running;
@@ -60,6 +61,7 @@ public sealed partial class EngineHost : IDisposable
 
         _log = ports.Log;
         _clock = ports.Clock;
+        _systemEvents = ports.SystemEvents;
         _tickInterval = options.TickInterval ?? EngineHostOptions.DefaultTickInterval;
         // Wait mode so TryWrite reports a full queue instead of silently dropping; the gate decides per event kind.
         _queue = Channel.CreateBounded<WorkerMessage>(new BoundedChannelOptions(options.QueueCapacity)
@@ -190,6 +192,12 @@ public sealed partial class EngineHost : IDisposable
         }
 
         _log.Info(LogSources.Engine, "Engine starting", ("strokeButton", StrokeButton), ("enabled", Enabled), ("tickMs", _tickInterval.TotalMilliseconds));
+        if (_systemEvents?.ReportsForeground is { } reported)
+        {
+            // Once: whether a new app in front reaches the watch at once, or only at its focus poll.
+            _log.Info(LogSources.Engine, "Foreground notifications", ("installed", reported));
+        }
+
         _workerThread.Start();
         _executor?.Start();
         _ignoreWatch?.Start();

@@ -8,4 +8,11 @@ namespace Augram.Core.Abstractions;
 public interface ISystemEvents
 {
     event EventHandler<SystemEventKind>? Occurred;
+
+    /// <summary>
+    /// Whether <see cref="SystemEventKind.ForegroundChanged"/> will be raised (Windows: the foreground WinEvent hook installed;
+    /// macOS: the observers registered), so a new app in front reaches the engine's watch at once; false means only the watch's
+    /// 200 ms poll sees focus move. Null when the source does not say. The engine logs it once at start.
+    /// </summary>
+    bool? ReportsForeground => null;
 }

@@ -84,10 +84,10 @@ internal sealed class IgnoreLookup
     /// <summary>An active "disable while focused" app can match here: the foreground's identity is read when focus moves.</summary>
     public bool WatchesFocus => _pausing;
 
-    /// <summary>The active ignored app (either mode) the window under the pointer belongs to, as of the last pass.</summary>
+    /// <summary>The active ignored app (either mode) the window under the pointer belongs to, as of the last pass. The watch thread's working copy; other threads read the watch's published <see cref="IgnoreListWatch.Over"/>.</summary>
     public IgnoredApp? Over { get; private set; }
 
-    /// <summary>The active "disable while focused" app that has focus, as of the last pass.</summary>
+    /// <summary>The active "disable while focused" app that has focus, as of the last pass. The watch thread's working copy; other threads read <see cref="IgnoreListWatch.PausedBy"/>.</summary>
     public IgnoredApp? PausedBy { get; private set; }
 
     /// <summary>A pointer lookup was put off (no cheap key, too soon after the last): when to pass again, on the clock's milliseconds.</summary>

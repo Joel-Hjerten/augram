@@ -1,4 +1,5 @@
 using Augram.Core.Abstractions;
+using Augram.Core.Steps.Hotkey;
 
 namespace Augram.Engine.Input;
 
@@ -33,23 +34,14 @@ public sealed class KeySuppressionShadow
     private readonly byte[] _state = new byte[Slots];
     private readonly long[] _lastMs = new long[Slots];
 
-    /// <summary>Keys whose suppressed press still owes a suppressed release; for tests and diagnostics.</summary>
-    public int OwedCount => _state.Count(state => state == Owed);
+    /// <summary>Keys whose suppressed press still owes a suppressed release; for tests.</summary>
+    internal int OwedCount => _state.Count(state => state == Owed);
 
-    public bool IsOwed(KeyCode key) => Volatile.Read(ref _state[Slot(key)]) == Owed;
+    /// <summary>For tests: <paramref name="key"/>'s press was suppressed and its release is still owed.</summary>
+    internal bool IsOwed(KeyCode key) => Volatile.Read(ref _state[Slot(key)]) == Owed;
 
     /// <summary>Forget every key. Only when the hook was reinstalled or the OS state is otherwise unknown.</summary>
     public void Reset() => Array.Clear(_state);
-
-    /// <summary>Ctrl, Alt, Shift or Win for a modifier key (left or right), else none.</summary>
-    public static KeyModifiers ModifierOf(KeyCode key) => key switch
-    {
-        KeyCode.LeftControl or KeyCode.RightControl => KeyModifiers.Control,
-        KeyCode.LeftAlt or KeyCode.RightAlt => KeyModifiers.Alt,
-        KeyCode.LeftShift or KeyCode.RightShift => KeyModifiers.Shift,
-        KeyCode.LeftMeta or KeyCode.RightMeta => KeyModifiers.Meta,
-        _ => KeyModifiers.None,
-    };
 
     /// <summary>
     /// Ctrl, Alt, Shift and Win as far as this shadow has seen them go down and not up since the last <see cref="Reset"/>.
@@ -64,7 +56,7 @@ public sealed class KeySuppressionShadow
         {
             if (Volatile.Read(ref _state[(int)key]) != Up)
             {
-                held |= ModifierOf(key);
+                held |= HotkeyKeys.ModifierOf(key);
             }
         }
 
@@ -87,8 +79,8 @@ public sealed class KeySuppressionShadow
         return Volatile.Read(ref _state[slot]) == Up || input.TimestampMs - _lastMs[slot] > LostReleaseAfterMs;
     }
 
-    /// <summary>Decides for one key event and records it; anything but a key event is never suppressed.</summary>
-    public bool Decide(in RawInput input, bool captureArmed) => Decide(in input, captureArmed, KeyModifiers.None);
+    /// <summary>For tests: decides for one key event with nothing claimed and records it; anything but a key event is never suppressed.</summary>
+    internal bool Decide(in RawInput input, bool captureArmed) => Decide(in input, captureArmed, KeyModifiers.None);
 
     /// <summary>
     /// Decides for one key event and records it. A press is suppressed when it starts while a hotkey capture is armed, when
@@ -120,7 +112,7 @@ public sealed class KeySuppressionShadow
 
         if (state == Up)
         {
-            state = captureArmed || claim || (ModifierOf(input.Key) & pressClaims) != 0 ? Owed : Passed;
+            state = captureArmed || claim || (HotkeyKeys.ModifierOf(input.Key) & pressClaims) != 0 ? Owed : Passed;
         }
 
         Volatile.Write(ref _state[slot], state);

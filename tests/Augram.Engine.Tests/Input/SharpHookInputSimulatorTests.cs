@@ -11,35 +11,13 @@ using WheelUnit = SharpHook.Data.MouseWheelScrollType;
 namespace Augram.Engine.Tests.Input;
 
 /// <summary>
-/// The tested pieces of the SharpHook simulator: which physical modifier keys a hotkey holds (the left keys as before;
-/// the right-hand key, F5: RAlt, RCtrl, for a modifier in the right-hand set), what one wheel notch is on each
-/// platform and how a scroll is sent, and a hold remap's button output (its modifiers around the press, no drag re-posting:
-/// Windows as before plan 0002 step 3a), over SharpHook's own test hook.
+/// The tested pieces of the SharpHook simulator: what a hotkey posts (its modifier keys, left or right hand as Core's
+/// <c>HotkeyKeys.Keys</c> chooses, around the key), what one wheel notch is on each platform and how a scroll is sent, and a
+/// hold remap's button output (its modifiers around the press, no drag re-posting: Windows as before plan 0002 step 3a), over
+/// SharpHook's own test hook.
 /// </summary>
 public sealed class SharpHookInputSimulatorTests
 {
-    [Fact]
-    public void PlainModifiersPressTheLeftKeysInCtrlAltShiftWinOrder()
-    {
-        Assert.Equal(
-            [KeyCode.LeftControl, KeyCode.LeftAlt, KeyCode.LeftShift, KeyCode.LeftMeta],
-            SharpHookInputSimulator.ModifierKeys(KeyModifiers.Meta | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Control, KeyModifiers.None));
-        Assert.Empty(SharpHookInputSimulator.ModifierKeys(KeyModifiers.None, KeyModifiers.None));
-        Assert.Empty(SharpHookInputSimulator.ModifierKeys(KeyModifiers.None, KeyModifiers.Alt));
-    }
-
-    [Theory]
-    [InlineData(KeyModifiers.Alt, KeyModifiers.Alt, new[] { KeyCode.RightAlt })]
-    [InlineData(KeyModifiers.Control, KeyModifiers.Control, new[] { KeyCode.RightControl })]
-    [InlineData(KeyModifiers.Control | KeyModifiers.Shift, KeyModifiers.Control | KeyModifiers.Shift, new[] { KeyCode.RightControl, KeyCode.RightShift })]
-    [InlineData(KeyModifiers.Control | KeyModifiers.Alt, KeyModifiers.Alt, new[] { KeyCode.LeftControl, KeyCode.RightAlt })]
-    [InlineData(KeyModifiers.Shift | KeyModifiers.Meta, KeyModifiers.Meta, new[] { KeyCode.LeftShift, KeyCode.RightMeta })]
-    [InlineData(KeyModifiers.Control, KeyModifiers.Alt | KeyModifiers.Shift, new[] { KeyCode.LeftControl })]
-    public void RightHandModifiersPressTheRightKey_BitsOutsideTheModifiersPressNothing(KeyModifiers modifiers, KeyModifiers rightHand, KeyCode[] expected)
-    {
-        Assert.Equal(expected, SharpHookInputSimulator.ModifierKeys(modifiers, rightHand));
-    }
-
     [Theory]
     [InlineData(ScrollDirection.Up, false, 120, WheelAxis.Vertical, WheelUnit.UnitScroll)]
     [InlineData(ScrollDirection.Down, false, -120, WheelAxis.Vertical, WheelUnit.UnitScroll)]
@@ -101,6 +79,18 @@ public sealed class SharpHookInputSimulatorTests
     }
 
     [Fact]
+    public void AHotkeyIsItsModifierKeysAroundTheKey_RightHandWhereAsked()
+    {
+        using var hook = new TestGlobalHook();
+
+        Assert.Equal(SimulationResult.Success, new SharpHookInputSimulator(hook).Hotkey(KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt));
+
+        Assert.Equal(
+            ["KeyPressed VcLeftControl", "KeyPressed VcRightAlt", "KeyPressed VcF9", "KeyReleased VcF9", "KeyReleased VcRightAlt", "KeyReleased VcLeftControl"],
+            Posted(hook));
+    }
+
+    [Fact]
     public void ARemapButtonWithoutModifiersIsAPlainPress()
     {
         using var hook = new TestGlobalHook();
@@ -114,22 +104,22 @@ public sealed class SharpHookInputSimulatorTests
     public void AVerticalScrollAnnouncesItsNotchesSoTheHookDropsThem_AHorizontalOneDoesNot()
     {
         using var hook = new TestGlobalHook();
-        var own = new OwnWheelInjections(() => 0);
+        var own = new OwnInjections(() => 0);
         var simulator = new SharpHookInputSimulator(hook, own);
 
         simulator.Scroll(ScrollDirection.Down, 3, 0, 0);
-        Assert.Equal(3, own.Pending);
+        Assert.Equal(3, own.Pending(InjectionSlot.Wheel));
 
         simulator.Scroll(ScrollDirection.Left, 2, 0, 0);
-        Assert.Equal(3, own.Pending);
+        Assert.Equal(3, own.Pending(InjectionSlot.Wheel));
     }
 
     [Fact]
     public void EveryReleasePostedIsAnnouncedFirst_SoTheHookNeverTakesItForAnotherProgramsRelease()
     {
         using var hook = new TestGlobalHook();
-        var own = new OwnButtonInjections(() => 0);
-        var simulator = new SharpHookInputSimulator(hook, ownButtons: own);
+        var own = new OwnInjections(() => 0);
+        var simulator = new SharpHookInputSimulator(hook, own);
 
         simulator.Click(MouseButton.Right, 10, 10);
         simulator.Press(MouseButton.Left, 10, 10);
@@ -137,21 +127,22 @@ public sealed class SharpHookInputSimulatorTests
         simulator.PressRemapButton(MouseButton.Middle, KeyModifiers.None, 10, 10);
         simulator.ReleaseRemapButton(MouseButton.Middle);
 
-        Assert.Equal(1, own.Pending(MouseButton.Right));
-        Assert.Equal(1, own.Pending(MouseButton.Left));
-        Assert.Equal(1, own.Pending(MouseButton.Middle));
+        Assert.Equal(1, own.Pending(InjectionSlot.Right));
+        Assert.Equal(1, own.Pending(InjectionSlot.Left));
+        Assert.Equal(1, own.Pending(InjectionSlot.Middle));
+        Assert.Equal(0, own.Pending(InjectionSlot.Wheel));
     }
 
     [Fact]
     public void AReleaseThatFailsToPostIsWithdrawn()
     {
         using var hook = new TestGlobalHook { SimulateMouseReleaseResult = UioHookResult.Failure };
-        var own = new OwnButtonInjections(() => 0);
+        var own = new OwnInjections(() => 0);
 
-        var result = new SharpHookInputSimulator(hook, ownButtons: own).Release(MouseButton.Right);
+        var result = new SharpHookInputSimulator(hook, own).Release(MouseButton.Right);
 
         Assert.Equal(SimulationResult.Failed, result);
-        Assert.Equal(0, own.Pending(MouseButton.Right));
+        Assert.Equal(0, own.Pending(InjectionSlot.Right));
     }
 
     /// <summary>What was posted; the test hook also reports the click libuiohook makes of a press and its release, which posts nothing.</summary>

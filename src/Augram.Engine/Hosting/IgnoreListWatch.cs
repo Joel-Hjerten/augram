@@ -22,6 +22,14 @@ namespace Augram.Engine.Hosting;
 /// and leaving an ignored app is logged at Debug, a pause starting and stopping at Info, the foreground's hold remaps changing
 /// at Debug, and a pause (or its app's name) changing raises the callback the host turns into
 /// <c>EngineHost.PauseChanged</c>. Present only when the engine has a mapping.
+/// <para>
+/// So it is the engine's whole "window under the pointer, app in front" service, not the ignore list's alone (Engine README,
+/// "The watch"). Which copies cross threads: the answers published to <see cref="InputGate"/> (read by the hook), and
+/// <see cref="Over"/> / <see cref="PausedBy"/> here (<c>_over</c>, <c>_pausedBy</c>: written by this thread after each pass and
+/// cleared at <see cref="Stop"/>, read by any thread through <c>EngineHost.IgnoredUnderPointer</c> and <c>PausedBy</c>, so
+/// volatile). Thread-private: the <see cref="IgnoreLookup"/> and everything in it, its own <c>Over</c> / <c>PausedBy</c>
+/// included (the pass's working answer, which this thread then compares with the published copy to log and publish a change).
+/// </para>
 /// </summary>
 internal sealed class IgnoreListWatch : IDisposable
 {

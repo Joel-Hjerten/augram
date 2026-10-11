@@ -18,7 +18,7 @@ namespace Augram.Engine.Hosting;
 /// <see cref="IInputSimulator.ReleaseRemapButton"/>; where the simulator re-posts drags (macOS), each move the hook swallowed
 /// while it is held through <see cref="IInputSimulator.DragRemapButton"/>, with the delta from the previous physical position
 /// seen here (a button event's or a move's); a key output with its modifiers held through the press (repeats mirrored); a
-/// wheel output through <see cref="IInputSimulator.Scroll"/> (so <see cref="OwnWheelInjections"/> claims it); the hold key's
+/// wheel output through <see cref="IInputSimulator.Scroll"/> (so <see cref="OwnInjections"/> claims it); the hold key's
 /// tap; replayed keys. A Steps command goes to the <see cref="CommandExecutor"/>. Keys the hook swallowed only to keep the
 /// order behind a rollover are replayed here as they were. A reset (hook reset, dropped events, engine stop) releases
 /// everything still down (A19). Acts first, logs second.
@@ -151,7 +151,7 @@ internal sealed partial class EngineWorker
         }
     }
 
-    private SimulationResult Tap(KeyCode key) => Worst(_simulator.KeyPress(key), _simulator.KeyRelease(key));
+    private SimulationResult Tap(KeyCode key) => InputSimulation.Worst(_simulator.KeyPress(key), _simulator.KeyRelease(key));
 
     /// <summary>A button output: its modifiers around the down only (Blender reads them when the drag starts), the simulator's own way; a key output: its modifiers held until its release.</summary>
     private SimulationResult PressOutput(RemapOutput output, int x, int y)
@@ -161,7 +161,7 @@ internal sealed partial class EngineWorker
             case RemapOutput.Button button:
                 return _simulator.PressRemapButton(button.MouseButton, button.Modifiers & HotkeyKeys.AllModifiers, x, y);
             case RemapOutput.Key { IsSet: true } key:
-                return Worst(PressKeys(ModifierKeysOf(key)), _simulator.KeyPress(key.KeyCode));
+                return InputSimulation.Worst(_simulator.PressKeys(ModifierKeysOf(key)), _simulator.KeyPress(key.KeyCode));
             default:
                 return SimulationResult.Success;
         }
@@ -177,7 +177,7 @@ internal sealed partial class EngineWorker
                 _dragFailures = 0;
                 return _simulator.ReleaseRemapButton(button.MouseButton);
             case RemapOutput.Key { IsSet: true } key:
-                return Worst(_simulator.KeyRelease(key.KeyCode), ReleaseKeys(ModifierKeysOf(key)));
+                return InputSimulation.Worst(_simulator.KeyRelease(key.KeyCode), _simulator.ReleaseKeys(ModifierKeysOf(key)));
             default:
                 return SimulationResult.Success;
         }
@@ -222,28 +222,14 @@ internal sealed partial class EngineWorker
         }
     }
 
-    /// <summary>One notch at the event's position with the output's modifiers held around it; <see cref="IInputSimulator.Scroll"/> announces it to <see cref="OwnWheelInjections"/>, so no wheel trigger sees it.</summary>
+    /// <summary>One notch at the event's position with the output's modifiers held around it; <see cref="IInputSimulator.Scroll"/> announces it to <see cref="OwnInjections"/>, so no wheel trigger sees it.</summary>
     private SimulationResult TurnWheel(RemapOutput.Wheel wheel, int x, int y)
-    {
-        var keys = SharpHookInputSimulator.ModifierKeys(wheel.Modifiers & HotkeyKeys.AllModifiers, KeyModifiers.None);
-        var result = PressKeys(keys);
-        result = Worst(result, _simulator.Scroll(wheel.Direction, 1, x, y));
-        return Worst(result, ReleaseKeys(keys));
-    }
+        => _simulator.WithModifiersHeld(HotkeyKeys.LeftKeys(wheel.Modifiers), () => _simulator.Scroll(wheel.Direction, 1, x, y));
 
     /// <summary>A Steps command: to the executor, target the foreground window; nothing to do without one (no mapping).</summary>
     private SimulationResult RunSteps(HoldRemapOutcome.RunSteps run, HoldRemapEntry? entry)
     {
-        HoldBinding? binding = null;
-        foreach (var candidate in entry?.Bindings ?? [])
-        {
-            if (candidate.CommandId == run.CommandId)
-            {
-                binding = candidate;
-                break;
-            }
-        }
-
+        var binding = entry?.FindBinding(run.CommandId);
         if (_executor is null)
         {
             _log.Debug(LogSources.Hold, "Steps not run: no mapping", ("command", binding?.Name));
@@ -255,158 +241,6 @@ internal sealed partial class EngineWorker
         return SimulationResult.Success;
     }
 
-    private SimulationResult PressKeys(List<KeyCode> keys)
-    {
-        var result = SimulationResult.Success;
-        foreach (var key in keys)
-        {
-            result = Worst(result, _simulator.KeyPress(key));
-        }
-
-        return result;
-    }
-
-    private SimulationResult ReleaseKeys(List<KeyCode> keys)
-    {
-        var result = SimulationResult.Success;
-        for (var i = keys.Count - 1; i >= 0; i--)
-        {
-            result = Worst(result, _simulator.KeyRelease(keys[i]));
-        }
-
-        return result;
-    }
-
-    private static List<KeyCode> ModifierKeysOf(RemapOutput.Key key)
-        => SharpHookInputSimulator.ModifierKeys(key.Modifiers & HotkeyKeys.AllModifiers, key.RightHand);
-
-    private static SimulationResult Worst(SimulationResult a, SimulationResult b) => a >= b ? a : b;
-
-    /// <summary>
-    /// The hook decided from its shadow, which follows the machine's rules; a mismatch on the hold key's own press or release,
-    /// on a button the hold remap names, or on a move swallowed for a drag (the first of a hold: the rest are the same
-    /// mismatch, at Debug) is a bug (Warning). Elsewhere (a wheel notch, another key or button) it can follow a reset the
-    /// shadow did not share (dropped events), so it is logged at Debug.
-    /// </summary>
-    private void CrossCheckHold(HoldRemapEvent e, bool hookSuppressed, IReadOnlyList<HoldRemapOutcome> outcomes, HoldRemapEntry? entry)
-    {
-        // For a focus move the hook's "decision" is that it ended the hold; the machine must have ended it too.
-        var machineSuppressed = e is HoldRemapEvent.FocusMoved
-            ? outcomes.Any(outcome => outcome is HoldRemapOutcome.HoldEnded)
-            : outcomes.Count > 0 && outcomes[0] is HoldRemapOutcome.Suppress;
-        if (e is HoldRemapEvent.Reset || machineSuppressed == hookSuppressed)
-        {
-            return;
-        }
-
-        var own = e is HoldRemapEvent.HoldDown or HoldRemapEvent.HoldUp or HoldRemapEvent.FocusMoved
-            || (e is HoldRemapEvent.Button button && entry?.IsInput(button.MouseButton) == true)
-            || (e is HoldRemapEvent.Key key && key.KeyCode == entry?.HoldKey);
-        if (e is HoldRemapEvent.Move)
-        {
-            // Every move of the drag would mismatch alike: one Warning until the next reset or hold, the rest at Debug.
-            own = !_moveMismatchWarned;
-            _moveMismatchWarned = true;
-        }
-
-        var level = own ? EventLevel.Warning : EventLevel.Debug;
-        if (_log.IsEnabled(level))
-        {
-            _log.Log(new LogEvent(DateTimeOffset.Now, level, LogSources.Hold, "Hold decision mismatch", [new("event", e.ToString()), new("hook", hookSuppressed), new("machine", machineSuppressed)]));
-        }
-    }
-
-    /// <summary>Debug lines per hold: its start, its tap or why not, its end when focus moved, a rollover, every output pressed and released.</summary>
-    private void LogHold(HoldRemapEvent e, HoldRemapState before, IReadOnlyList<HoldRemapOutcome> outcomes, HoldRemapEntry? entry, string? app)
-    {
-        var started = e is HoldRemapEvent.HoldDown && before is HoldRemapState.Idle or HoldRemapState.Following && _holdMachine.State == HoldRemapState.Holding;
-        if (started)
-        {
-            _holdDownAt = e.TimestampMs;
-            _moveMismatchWarned = false;
-        }
-
-        if (!_log.IsEnabled(EventLevel.Debug))
-        {
-            return;
-        }
-
-        var tapped = false;
-        foreach (var outcome in outcomes)
-        {
-            tapped |= outcome is HoldRemapOutcome.TapHoldKey;
-        }
-
-        if (started)
-        {
-            _log.Debug(LogSources.Hold, "Hold", ("key", KeyName(entry!.HoldKey)), ("remap", entry.Name), ("app", app));
-        }
-        else if (e is HoldRemapEvent.HoldUp up && before is HoldRemapState.Holding or HoldRemapState.RolledOver && entry is not null && up.HoldKey == entry.HoldKey)
-        {
-            var heldMs = up.TimestampMs - _holdDownAt;
-            if (tapped)
-            {
-                _log.Debug(LogSources.Hold, "Tap sent", ("key", KeyName(up.HoldKey)), ("heldMs", heldMs));
-            }
-            else
-            {
-                var reason = before == HoldRemapState.RolledOver ? "sent at the rollover"
-                    : heldMs > entry.TapTimeMs ? $"held longer than the tap time ({entry.TapTimeMs} ms)"
-                    : "a mouse button, a wheel turn or an input was used";
-                _log.Debug(LogSources.Hold, "Tap not sent", ("key", KeyName(up.HoldKey)), ("heldMs", heldMs), ("reason", reason));
-            }
-        }
-
-        foreach (var outcome in outcomes)
-        {
-            switch (outcome)
-            {
-                case HoldRemapOutcome.HoldEnded ended:
-                    _log.Debug(LogSources.Hold, "Hold ended: focus moved", ("key", KeyName(ended.HoldKey)), ("heldMs", e.TimestampMs - _holdDownAt));
-                    break;
-                case HoldRemapOutcome.ReplayKey { Phase: KeyPhase.Down } replay when tapped:
-                    _log.Debug(LogSources.Hold, "Rollover", ("key", KeyName(replay.Key)), ("holdKey", KeyName(entry?.HoldKey ?? KeyCode.None)));
-                    break;
-                case HoldRemapOutcome.PressOutput press:
-                    _log.Debug(LogSources.Hold, "Output pressed", ("output", press.Output.Describe(HotkeyText.Names)), ("command", CommandName(entry, press.CommandId)), ("x", press.X), ("y", press.Y));
-                    break;
-                case HoldRemapOutcome.ReleaseOutput { Output: RemapOutput.Button } release when _gate.RepostsRemapDrags:
-                    _log.Debug(LogSources.Hold, "Output released", ("output", release.Output.Describe(HotkeyText.Names)), ("command", CommandName(entry, release.CommandId)), ("drags", _releasedDrags.Drags), ("dragsFailed", _releasedDrags.Failures));
-                    break;
-                case HoldRemapOutcome.ReleaseOutput release:
-                    _log.Debug(LogSources.Hold, "Output released", ("output", release.Output.Describe(HotkeyText.Names)), ("command", CommandName(entry, release.CommandId)));
-                    break;
-                case HoldRemapOutcome.WheelOutput wheel:
-                    _log.Debug(LogSources.Hold, "Output turned", ("output", wheel.Output.Describe(HotkeyText.Names)), ("command", CommandName(entry, wheel.CommandId)));
-                    break;
-            }
-        }
-    }
-
-    private static string KeyName(KeyCode key) => HotkeyText.KeyName(key);
-
-    private static string? CommandName(HoldRemapEntry? entry, CommandId id)
-    {
-        foreach (var binding in entry?.Bindings ?? [])
-        {
-            if (binding.CommandId == id)
-            {
-                return binding.Name;
-            }
-        }
-
-        return null;
-    }
-
-    private static string Describe(HoldRemapOutcome outcome) => outcome switch
-    {
-        HoldRemapOutcome.TapHoldKey tap => $"tap {KeyName(tap.Key)}",
-        HoldRemapOutcome.PressOutput press => $"press {press.Output.Describe(HotkeyText.Names)}",
-        HoldRemapOutcome.RepeatOutput repeat => $"repeat {repeat.Output.Describe(HotkeyText.Names)}",
-        HoldRemapOutcome.ReleaseOutput release => $"release {release.Output.Describe(HotkeyText.Names)}",
-        HoldRemapOutcome.DragOutput drag => $"drag {drag.Output.Describe(HotkeyText.Names)}",
-        HoldRemapOutcome.WheelOutput wheel => $"turn {wheel.Output.Describe(HotkeyText.Names)}",
-        HoldRemapOutcome.ReplayKey replay => $"replay {KeyName(replay.Key)} {replay.Phase.ToString().ToLowerInvariant()}",
-        _ => outcome.GetType().Name,
-    };
+    /// <summary>A key output's modifier keys, left or right hand as it says: pressed before its key (<see cref="PressOutput"/>), released after it (<see cref="ReleaseOutput"/>).</summary>
+    private static IReadOnlyList<KeyCode> ModifierKeysOf(RemapOutput.Key key) => HotkeyKeys.Keys(key.Modifiers, key.RightHand);
 }

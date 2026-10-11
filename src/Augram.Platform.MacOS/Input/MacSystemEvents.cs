@@ -38,8 +38,8 @@ public sealed unsafe class MacSystemEvents : ISystemEvents, IDisposable
 
     public event EventHandler<SystemEventKind>? Occurred;
 
-    /// <summary>True once the observers are registered (AppKit loaded, the main thread reached).</summary>
-    public bool IsObserving => Volatile.Read(ref _observer) != 0;
+    /// <summary>True once the observers are registered (AppKit loaded, the main thread reached), the frontmost app's among them; the engine logs it at start.</summary>
+    public bool? ReportsForeground => Volatile.Read(ref _observer) != 0;
 
     /// <summary>Removes the observer from every center (they are thread-safe) and releases it.</summary>
     public void Dispose()

@@ -24,17 +24,34 @@ internal static class MacWindowList
     /// <summary>Each active display's bounds in global top-left points.</summary>
     public static IReadOnlyList<MacRect> Displays()
     {
+        var active = ActiveDisplays();
+        var displays = new List<MacRect>(active.Count);
+        foreach (var (_, bounds) in active)
+        {
+            displays.Add(bounds);
+        }
+
+        return displays;
+    }
+
+    /// <summary>
+    /// Each active display's id and bounds in global top-left points (<c>CGGetActiveDisplayList</c>, at most 16, and
+    /// <c>CGDisplayBounds</c>): the one display enumeration, which <see cref="Displays"/> and the Display steps'
+    /// <c>MacDisplayList</c> read. Empty when CoreGraphics refuses.
+    /// </summary>
+    public static IReadOnlyList<(uint Id, MacRect Bounds)> ActiveDisplays()
+    {
         Span<uint> ids = stackalloc uint[MaxDisplays];
         if (MacNative.CGGetActiveDisplayList(MaxDisplays, ids, out var count) != 0)
         {
             return [];
         }
 
-        var displays = new List<MacRect>((int)count);
+        var displays = new List<(uint, MacRect)>((int)count);
         foreach (var id in ids[..(int)Math.Min(count, MaxDisplays)])
         {
             var bounds = MacNative.CGDisplayBounds(id);
-            displays.Add(new MacRect(bounds.X, bounds.Y, bounds.Width, bounds.Height));
+            displays.Add((id, new MacRect(bounds.X, bounds.Y, bounds.Width, bounds.Height)));
         }
 
         return displays;
