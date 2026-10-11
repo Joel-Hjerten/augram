@@ -33,7 +33,7 @@ public static class TransferGalleryPages
         var blender = current.Mapping.Groups.Single(group => group.Name == "Blender").Id;
         return new FormScreen("Transfer",
         [
-            new Section("Export: everything (Options › Configuration), with the typed-text note",
+            new Section("Export: everything (Options › Sync › Export and import), with the typed-text note",
             [
                 new CustomField("Export", () => ExportDialog(current, ExportScope.Everything)),
             ]),

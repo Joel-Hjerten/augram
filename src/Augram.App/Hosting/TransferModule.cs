@@ -11,7 +11,7 @@ namespace Augram.App.Hosting;
 
 /// <summary>
 /// The export and import slice of the composition root (plan 0003 steps 3–4): the file picker, the export and import
-/// presenters, the import's windows and Options › Configuration's view model. Expects the <see cref="ConfigSession"/> (the engine slice), the
+/// presenters, the import's windows and Options › Sync › Export and import's view model. Expects the <see cref="ConfigSession"/> (the engine slice), the
 /// <see cref="IImportPresenter"/> (the Gestures slice) and <see cref="IEventLog"/>; registers the shared form dialog
 /// presenter only when the Commands slice has not. The Commands and Gestures tabs find <see cref="IExportPresenter"/> when
 /// they are resolved, so the order of the slices does not matter; register it after <see cref="GesturesModule"/>.

@@ -5,12 +5,13 @@ using Avalonia.Controls;
 namespace Augram.App.Screens;
 
 /// <summary>
-/// The Configuration section of the Options tab (plan 0003, Question 4 as proposed; before About): the Augram file's
-/// Export… and Import…, the StrokesPlus.net import beside them, and the last outcome line once there is one.
+/// The Export and import section of Options › Sync, after Sync (plan 0003, Question 4 as proposed; "Configuration" until
+/// plan 0006 gave Options sub-tabs): the Augram file's Export… and Import…, the StrokesPlus.net import beside them, and the
+/// last outcome line once there is one.
 /// </summary>
 public static class OptionsConfigurationSection
 {
-    public const string Title = "Configuration";
+    public const string Title = "Export and import";
     public const string AugramFileLabel = "Augram file";
     public const string StrokesPlusLabel = "StrokesPlus.net";
     public const string ExportLabel = "Export…";

@@ -10,7 +10,8 @@ namespace Augram.App.Components.SectionForm;
 /// <summary>
 /// Renders a <see cref="FormScreen"/> (ADR-0002 §5c): one <see cref="SectionView"/> per section, one
 /// <see cref="FieldRow"/> per field, the editor from <see cref="FieldRendererRegistry"/>. Sets
-/// <see cref="Region"/> marks on every node so the F1 inspector can name them. Knows no field kind.
+/// <see cref="Region"/> marks on every node so the F1 inspector can name them. Applies every field's
+/// <see cref="Field.Visible"/> (the row) and <see cref="Field.Enabled"/> (the editor). Knows no field kind.
 /// </summary>
 public sealed class SectionForm : TemplatedControl
 {
@@ -73,7 +74,8 @@ public sealed class SectionForm : TemplatedControl
 
     private FieldRow BuildRow(string sectionPath, Field field)
     {
-        var row = new FieldRow { Label = field.Label, Help = field.Help, Editor = Renderers.Build(field), Accessory = field.Accessory?.Invoke() };
+        var editor = Renderers.Build(field);
+        var row = new FieldRow { Label = field.Label, Help = field.Help, Editor = editor, Accessory = field.Accessory?.Invoke() };
         Region.Mark(row, field.Label, new RegionInfo($"{sectionPath} › {field.Label}", field.Kind, field.Source, field.Binding?.PropertyName));
         if (field.StretchesEditor)
         {
@@ -83,6 +85,13 @@ public sealed class SectionForm : TemplatedControl
         if (field.Visible is { } visible)
         {
             BindingObserver.Attach(row, visible, value => row.IsVisible = value);
+        }
+
+        if (field.Enabled is { } enabled)
+        {
+            // Only the editor: the label and its help (i) stay live, so the tooltip can still say why.
+            var editable = editor.IsEnabled;
+            BindingObserver.Attach(editor, enabled, value => editor.IsEnabled = editable && value);
         }
 
         return row;

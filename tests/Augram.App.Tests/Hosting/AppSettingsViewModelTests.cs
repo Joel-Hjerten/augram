@@ -102,7 +102,7 @@ public sealed class AppSettingsViewModelTests
         using var state = new AppState(engine.Settings, registration, NullEventLog.Instance, TestBuilds.Release);
         using var detection = new StrokeButtonDetection(engine.Host, engine.Settings, action => action());
         using var vm = new AppSettingsViewModel(engine.Settings, state, detection);
-        var fields = Assert.IsType<FormScreen>(OptionsScreen.Declare(vm)).Sections.Single(section => section.Title == "General").Fields.ToList();
+        var fields = Assert.IsType<FormScreen>(OptionsScreen.DeclareGeneral(vm)).Sections.Single(section => section.Title == "General").Fields.ToList();
         var toggle = fields.FindIndex(field => field.Label == "Start at login");
         var note = Assert.IsType<NoteField>(fields[toggle + 1]);
         var raised = new List<string?>();
@@ -134,7 +134,7 @@ public sealed class AppSettingsViewModelTests
     {
         using var engine = new EngineFixture(start: false);
         using var vm = Create(engine);
-        var general = Assert.IsType<FormScreen>(OptionsScreen.Declare(vm)).Sections.Single(section => section.Title == "General");
+        var general = Assert.IsType<FormScreen>(OptionsScreen.DeclareGeneral(vm)).Sections.Single(section => section.Title == "General");
         var keys = Assert.Single(general.Fields.OfType<TogglesField>(), field => field.Label == "Ignore keys");
 
         Assert.Equal(

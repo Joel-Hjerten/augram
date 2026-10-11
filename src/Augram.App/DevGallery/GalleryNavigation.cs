@@ -71,7 +71,20 @@ public static class GalleryNavigation
                 new ButtonRadioField<string>("ButtonRadio", Choice.FromStrings("Left", "Middle", "Right"), new DelegateBinding<string>(() => fake.Button, v => fake.Button = v, fake)),
                 new TextField("Text", new DelegateBinding<string>(() => fake.Name, v => fake.Name = v, fake)),
                 new NumberField("Number", new DelegateBinding<double>(() => fake.Amount, v => fake.Amount = v, fake), 0, 100, 5, "0–100 in steps of 5."),
+                new SliderField("Slider", new DelegateBinding<double>(() => fake.Amount, v => fake.Amount = v, fake), 0, 100, 1, "%", "The Number above on a slider, 0–100 in steps of 1."),
+                new SliderField("Slider, enabled by Toggle", new DelegateBinding<double>(() => fake.Amount / 5, v => fake.Amount = v * 5, fake), 0, 20, 1, " px", "Disabled while the Toggle above is off (Field.Enabled).")
+                {
+                    Enabled = new DelegateBinding<bool>(() => fake.Flag, owner: fake),
+                },
                 new ColorField("Color", new DelegateBinding<RgbColor>(() => fake.Colour, v => fake.Colour = v, fake)),
+                new ColorField("Color with presets", new DelegateBinding<RgbColor>(() => fake.Colour, v => fake.Colour = v, fake), "The rainbow swatches; the Color above picks the same colour.")
+                {
+                    Presets = ColourPresets.Rainbow,
+                },
+                new ColorField("Presets, custom colour", new DelegateBinding<RgbColor>(() => fake.CustomColour, v => fake.CustomColour = v, fake), "A colour that is no preset: one more swatch at the end, ringed.")
+                {
+                    Presets = ColourPresets.Rainbow,
+                },
                 new NoteField("Note", new DelegateBinding<string>(() => $"Live: {fake.Name} / {fake.Amount} / {fake.Colour}", owner: fake), "Updates as the others change."),
                 new LinksField("Links", new DelegateBinding<IReadOnlyList<LinkItem>>(() => fake.Flag ? [new("Global › Media › Zoom in", () => fake.Flag = false), new("Chrome › Zoom in", () => { }, "inactive"), new("Plain text, no action", null)] : [], owner: fake, propertyName: null), "none", "Links one under the other; the first clears the Toggle above, which empties the list."),
                 new CustomField("Custom", () => new Button { Content = "A custom control" }),

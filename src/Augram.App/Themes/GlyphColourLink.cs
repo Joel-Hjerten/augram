@@ -9,7 +9,7 @@ namespace Augram.App.Themes;
 
 /// <summary>
 /// Gesture pictures in the user's trail colour (Joel, 2026-10-08): keeps the <c>Brush.Glyph</c> and <c>Brush.GlyphStart</c>
-/// resources, which the glyph template reads as dynamic resources, at Options › Trail › Colour and its shaded start
+/// resources, which the glyph template reads as dynamic resources, at Options › Appearance › Trail › Colour and its shaded start
 /// (<see cref="GlyphColours.StartFor"/>). Set once at startup and again whenever the trail colour changes; the tokens in
 /// <c>Tokens.axaml</c> are what a root without this link (tests, the previewer) shows. Inactive pictures keep the muted
 /// greys.

@@ -72,6 +72,10 @@ public static partial class GalleryFakes
 
         [ObservableProperty]
         public partial RgbColor Colour { get; set; } = new(0, 255, 64);
+
+        /// <summary>A colour that is no preset, for the swatch row's extra custom swatch.</summary>
+        [ObservableProperty]
+        public partial RgbColor CustomColour { get; set; } = new(140, 90, 60);
     }
 }
 #endif

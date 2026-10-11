@@ -178,6 +178,38 @@
             </StackPanel>
           </ControlTemplate>
         </Setter>
+        <!-- With presets (plan 0006 decision 8): the round swatches in their order, then Custom…, whose flyout is the same picker. -->
+        <Style Selector="^:presets">
+          <Setter Property="Template">
+            <ControlTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Swatch.Spacing}">
+                <ItemsControl ItemsSource="{TemplateBinding SwatchButtons}" VerticalAlignment="Center">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Swatch.Spacing}" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <Button Name="PART_Custom" Classes="toolbar" Content="Custom…" VerticalAlignment="Center">
+                  <Button.Styles>
+                    <!-- As ColorPicker's own button does: the picker fills its flyout, no padding round it. -->
+                    <Style Selector="FlyoutPresenter.nopadding">
+                      <Setter Property="Padding" Value="0" />
+                    </Style>
+                  </Button.Styles>
+                  <Button.Flyout>
+                    <Flyout FlyoutPresenterClasses="nopadding">
+                      <ColorView Name="PART_Picker"
+                                 IsAlphaEnabled="False"
+                                 IsAlphaVisible="False"
+                                 IsColorPaletteVisible="False" />
+                    </Flyout>
+                  </Button.Flyout>
+                </Button>
+              </StackPanel>
+            </ControlTemplate>
+          </Setter>
+        </Style>
       </ControlTheme>
 
       <!-- Gestures tab (M1 step 7): glyph, tile, grid and the training draw area. -->
@@ -1000,7 +1032,7 @@
   <Style Selector="DockPanel.field-line > Button">
     <Setter Property="Margin" Value="0,0,8,0" />
   </Style>
-  <!-- Several controls side by side on one form line (Options › Configuration's buttons, the import review's Apply to all). -->
+  <!-- Several controls side by side on one form line (Options › Sync › Export and import's buttons, the import review's Apply to all). -->
   <Style Selector="StackPanel.field-buttons">
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="Spacing" Value="{StaticResource Space.M}" />
@@ -1008,6 +1040,51 @@
   <Style Selector="NumericUpDown.channel">
     <Setter Property="Width" Value="130" />
     <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <!-- A colour field's preset swatch (plan 0006 decision 8): a round fill inside a ring that shows only on the selected one. -->
+  <Style Selector="Button.swatch">
+    <Setter Property="Width" Value="{StaticResource Swatch.Size}" />
+    <Setter Property="Height" Value="{StaticResource Swatch.Size}" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="{StaticResource Swatch.RingGap}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Swatch.CornerRadius}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Swatch.Ring}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.swatch.selected">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Text}" />
+  </Style>
+  <!-- Fluent's hover and press would paint the button grey over the ring; keep it clear and hint the ring instead. -->
+  <Style Selector="Button.swatch:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.swatch:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.TextMuted}" />
+  </Style>
+  <Style Selector="Button.swatch.selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.swatch.selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Text}" />
+  </Style>
+  <Style Selector="Border.swatch-fill">
+    <Setter Property="CornerRadius" Value="{StaticResource Swatch.FillCornerRadius}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
+  </Style>
+  <!-- A slider field (plan 0006: Tint, Corner rounding): the slider, then its value and unit; muted while disabled. -->
+  <Style Selector="StackPanel.slider-line">
+    <Setter Property="Spacing" Value="{StaticResource Space.M}" />
+  </Style>
+  <Style Selector="Slider.field-slider">
+    <Setter Property="Width" Value="{StaticResource Editor.SliderWidth}" />
+  </Style>
+  <Style Selector="TextBlock.slider-value">
+    <Setter Property="MinWidth" Value="{StaticResource Editor.SliderValueWidth}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.slider-value:disabled">
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
   </Style>
   <Style Selector="RadioButton.button-radio">
     <Setter Property="Margin" Value="0,0,8,0" />

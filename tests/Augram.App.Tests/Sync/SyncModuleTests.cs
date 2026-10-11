@@ -105,15 +105,14 @@ public sealed class SyncModuleTests : IDisposable
         var sync = services.GetRequiredService<SyncViewModel>();
         Assert.False(services.GetRequiredService<SyncService>().IsConfigured);
 
-        var screen = Assert.IsType<FormScreen>(OptionsScreen.Declare(services.GetRequiredService<AppSettingsViewModel>(), sync));
+        var screen = Assert.IsType<FormScreen>(OptionsScreen.DeclareSync(sync, services.GetService<ConfigurationViewModel>()));
         var form = new SectionForm { Screen = screen };
         new Window { Content = form, Width = 900, Height = 900 }.Show();
 
-        // Sync is the last settings section; only About (three read-only rows) comes after it.
-        Assert.Equal(OptionsSyncSection.Title, screen.Sections[^2].Title);
-        Assert.Equal(OptionsScreen.AboutTitle, screen.Sections[^1].Title);
+        // Options › Sync (plan 0006): the Sync section first, then Export and import.
+        Assert.Equal([OptionsSyncSection.Title, OptionsConfigurationSection.Title], screen.Sections.Select(section => section.Title));
         var rows = form.GetVisualDescendants().OfType<FieldRow>().ToList();
-        Assert.Equal(["Repository", "This machine", "Automatic sync", "Status", "Conflicts", "Details"], rows.SkipLast(3).TakeLast(6).Select(row => row.Label));
+        Assert.Equal(["Repository", "This machine", "Automatic sync", "Status", "Conflicts", "Details"], rows.Take(6).Select(row => row.Label));
         Assert.Contains("stores no password", rows.Single(row => row.Label == "Repository").Help, StringComparison.Ordinal);
         Assert.False(rows.Single(row => row.Label == "Conflicts").IsVisible);
         Assert.False(rows.Single(row => row.Label == "Details").IsVisible);

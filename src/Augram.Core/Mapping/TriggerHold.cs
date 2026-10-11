@@ -18,7 +18,7 @@ namespace Augram.Core.Mapping;
 /// <param name="Capture">Before, After or Either, for the members besides the anchor.</param>
 /// <param name="DragDistancePx">
 /// The command's own button drag distance (Joel, 2026-10-10, plan 0004): how far a press of one of its anchors may move before it
-/// is handed back to the app as a drag; null uses Options › Capture's (<c>CaptureThresholds.ButtonDragDistancePx</c>). Only a set
+/// is handed back to the app as a drag; null uses Options › Strokes › Capture's (<c>CaptureThresholds.ButtonDragDistancePx</c>). Only a set
 /// without the stroke button has anchors that are handed back, so the stored form drops it everywhere else (<see cref="Normalised"/>).
 /// </param>
 public sealed record TriggerHold(HeldButtons Buttons, KeyModifiers Keys = KeyModifiers.None, HoldCapture Capture = HoldCapture.Either, int? DragDistancePx = null)

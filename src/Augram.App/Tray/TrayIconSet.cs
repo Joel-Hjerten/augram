@@ -9,7 +9,7 @@ namespace Augram.App.Tray;
 /// scaling (16 px at 100 %, 20 at 125 %, …) so the tray is not shrunk from a larger image; the 32 px PNG is the fallback
 /// if a backend cannot read the .ico. Linux: the PNGs. macOS: a menu-bar template image (black and alpha only,
 /// <see cref="IsTemplate"/>) that the system tints for light and dark menu bars, dimmed when disabled; or, with Options ›
-/// Colour menu-bar icon, the app icon in colour (greyed when disabled).
+/// General › Colour menu-bar icon, the app icon in colour (greyed when disabled).
 /// </summary>
 public sealed class TrayIconSet
 {
