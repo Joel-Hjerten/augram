@@ -24,7 +24,7 @@ namespace Augram.Platform.MacOS.Input;
 /// </list>
 /// Engine worker thread. No AppKit, so no main-thread hop and no autorelease pool. What is posted comes back through the hook
 /// marked simulated and is dropped there (the spike relied on that too: otherwise a re-posted drag would be swallowed again).
-/// A release posted here is announced first through <paramref name="announceRelease"/> (the engine's <c>OwnButtonInjections</c>),
+/// A release posted here is announced first through <paramref name="announceRelease"/> (the engine's <c>OwnInjections</c>),
 /// so the hook does not take it for another program's release (plan 0005 decision 10).
 /// <b>Compiled, not yet run on a Mac</b> (the Platform.MacOS README lists the checks).
 /// </summary>

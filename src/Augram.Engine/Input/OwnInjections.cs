@@ -1,0 +1,102 @@
+using Augram.Core.Capture;
+
+namespace Augram.Engine.Input;
+
+/// <summary>
+/// Tells Augram's own injected input from other programs', one ledger per <see cref="InjectionSlot"/>: the wheel and each mouse
+/// button. The hook drops simulated input as a rule, with two exceptions that need this ledger:
+/// <list type="bullet">
+/// <item><b>Wheel</b> (2026-10-09). A vendor tool such as Logi Options+ re-posts every wheel turn of its mouse, so all of them
+/// arrive with <c>IsEventSimulated</c> set; dropping those left wheel triggers nothing to see. So the hook takes simulated
+/// vertical wheel events, except the Scroll step's own: <see cref="SharpHookInputSimulator.Scroll"/> announces each notch
+/// before posting it, and the hook claims one per simulated vertical wheel event it sees. Without the claim, a Scroll step
+/// fired by a wheel trigger would fire the trigger again, for as long as the stroke button is held.</item>
+/// <item><b>Button releases</b> (plan 0005 decision 10). Another program that swallows a real release and posts its own
+/// (Eyeris's loupe chord) leaves the button up in the OS while Augram, which drops simulated input, still counts it down. So the
+/// hook takes a simulated release as "released elsewhere", except Augram's own: <see cref="SharpHookInputSimulator"/> (and the
+/// macOS remap wrapper, through an <c>Action&lt;MouseButton&gt;</c> since Platform may not reference the Engine) announce each
+/// release before posting it, and <see cref="Withdraw"/> it when the post fails; the hook claims one per simulated release of
+/// that button. Without the claim, a replayed click's release could end the next real press of the same button.</item>
+/// </list>
+/// Announcements that never come back (a failed post, another program's hook swallowing ours) expire <see cref="Lifetime"/>
+/// after that slot's last announcement, so a lost one cannot hide foreign input for long. Announcements come from the worker or
+/// the command executor, the claim from the hook thread: one lock, held for a few instructions. One instance, shared by the
+/// source and the simulator (<c>App/Hosting/EngineModule</c>).
+/// </summary>
+public sealed class OwnInjections
+{
+    public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(1);
+
+    private static readonly int SlotCount = Enum.GetValues<InjectionSlot>().Length;
+
+    private readonly Func<long> _nowMs;
+    private readonly object _gate = new();
+    private readonly int[] _pending = new int[SlotCount];
+    private readonly long[] _expiresAtMs = new long[SlotCount];
+
+    /// <param name="nowMs">A monotonic clock in milliseconds; the default is <see cref="Environment.TickCount64"/>.</param>
+    public OwnInjections(Func<long>? nowMs = null)
+    {
+        _nowMs = nowMs ?? (static () => Environment.TickCount64);
+    }
+
+    /// <summary>The slot of <paramref name="button"/>'s releases: the same number, so the hook's lookup is a cast.</summary>
+    public static InjectionSlot SlotOf(MouseButton button) => (InjectionSlot)button;
+
+    /// <summary>Injections into <paramref name="slot"/> announced and not yet seen by the hook (after expiry, zero).</summary>
+    public int Pending(InjectionSlot slot)
+    {
+        lock (_gate)
+        {
+            return _nowMs() > _expiresAtMs[(int)slot] ? 0 : _pending[(int)slot];
+        }
+    }
+
+    /// <summary>Worker or executor: <paramref name="count"/> injections into <paramref name="slot"/> of ours are about to be posted; none for zero or less.</summary>
+    public void Expect(InjectionSlot slot, int count = 1)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            var now = _nowMs();
+            var i = (int)slot;
+            _pending[i] = now > _expiresAtMs[i] ? count : _pending[i] + count;
+            _expiresAtMs[i] = now + (long)Lifetime.TotalMilliseconds;
+        }
+    }
+
+    /// <summary>Worker or executor: one announced injection was not posted after all (the post failed).</summary>
+    public void Withdraw(InjectionSlot slot)
+    {
+        lock (_gate)
+        {
+            var i = (int)slot;
+            if (_pending[i] > 0)
+            {
+                _pending[i]--;
+            }
+        }
+    }
+
+    /// <summary>Hook thread, for a simulated event of <paramref name="slot"/>: true when it is one of ours (and is now accounted for).</summary>
+    public bool TryClaim(InjectionSlot slot)
+    {
+        lock (_gate)
+        {
+            var i = (int)slot;
+            if (_pending[i] == 0 || _nowMs() > _expiresAtMs[i])
+            {
+                _pending[i] = 0;
+                return false;
+            }
+
+            _pending[i]--;
+            return true;
+        }
+    }
+}
+

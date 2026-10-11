@@ -11,31 +11,29 @@ namespace Augram.Engine.Input;
 /// <see cref="IInputSimulator"/> over SharpHook's <see cref="EventSimulator"/>. Thin and untested against a desktop
 /// except for <see cref="Notch"/>, one wheel notch per platform (<see cref="Scroll"/> itself is tested over SharpHook's
 /// <c>TestGlobalHook</c>, which posts nothing); everything above it is driven through a fake in tests. The keys a hotkey or a
-/// hold remap button output holds are Core's (<see cref="HotkeyKeys.Keys"/>, held through <see cref="InputSimulation.WithModifiersHeld"/>). Injected events come
-/// back through the hook with <c>IsEventSimulated</c> set and <see cref="SharpHookInputSource"/> drops
-/// them, which is what keeps a replayed click from being captured again. Wheel notches are the exception: the hook takes
-/// other programs' simulated wheel events, so <see cref="Scroll"/> announces its vertical notches to
-/// <see cref="OwnWheelInjections"/> first and the hook drops exactly those. Button releases are the other: the hook takes
-/// another program's simulated release as "released elsewhere" (plan 0005 decision 10), so every release posted here is
-/// announced to <see cref="OwnButtonInjections"/> first (and withdrawn when the post fails).
+/// hold remap button output holds are Core's (<see cref="HotkeyKeys.Keys"/>, held through
+/// <see cref="InputSimulation.WithModifiersHeld"/>). Injected events come back through the hook with <c>IsEventSimulated</c>
+/// set and <see cref="SharpHookInputSource"/> drops them, which is what keeps a replayed click from being captured again.
+/// Wheel notches are the exception: the hook takes other programs' simulated wheel events, so <see cref="Scroll"/> announces
+/// its vertical notches to <see cref="OwnInjections"/> first and the hook drops exactly those. Button releases are the other:
+/// the hook takes another program's simulated release as "released elsewhere" (plan 0005 decision 10), so every release
+/// posted here is announced to the same ledger first (and withdrawn when the post fails).
 /// </summary>
 public sealed class SharpHookInputSimulator : IInputSimulator
 {
     private readonly IEventSimulator _simulator;
-    private readonly OwnWheelInjections? _ownWheel;
-    private readonly OwnButtonInjections? _ownButtons;
+    private readonly OwnInjections? _own;
 
-    public SharpHookInputSimulator(OwnWheelInjections? ownWheel = null, OwnButtonInjections? ownButtons = null)
-        : this(new EventSimulator(), ownWheel, ownButtons)
+    public SharpHookInputSimulator(OwnInjections? own = null)
+        : this(new EventSimulator(), own)
     {
     }
 
-    public SharpHookInputSimulator(IEventSimulator simulator, OwnWheelInjections? ownWheel = null, OwnButtonInjections? ownButtons = null)
+    public SharpHookInputSimulator(IEventSimulator simulator, OwnInjections? own = null)
     {
         ArgumentNullException.ThrowIfNull(simulator);
         _simulator = simulator;
-        _ownWheel = ownWheel;
-        _ownButtons = ownButtons;
+        _own = own;
     }
 
     public SimulationResult Click(MouseButton button, int x, int y)
@@ -84,7 +82,7 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         var (rotation, axis, type) = Notch(direction, OperatingSystem.IsMacOS());
         if (axis == WheelAxis.Vertical)
         {
-            _ownWheel?.Expect(notches);
+            _own?.Expect(InjectionSlot.Wheel, notches);
         }
 
         var result = SimulationResult.Success;
@@ -150,11 +148,11 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     /// <summary>A release of ours, announced before it is posted so the hook does not take it for another program's; withdrawn when it fails.</summary>
     private SharpHook.Data.UioHookResult Announced(MouseButton button, Func<SharpHook.Data.UioHookResult> release)
     {
-        _ownButtons?.Expect(button);
+        _own?.Expect(OwnInjections.SlotOf(button));
         var result = release();
         if (result != SharpHook.Data.UioHookResult.Success)
         {
-            _ownButtons?.Withdraw(button);
+            _own?.Withdraw(OwnInjections.SlotOf(button));
         }
 
         return result;

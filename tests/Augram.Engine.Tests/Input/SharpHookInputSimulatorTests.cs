@@ -104,22 +104,22 @@ public sealed class SharpHookInputSimulatorTests
     public void AVerticalScrollAnnouncesItsNotchesSoTheHookDropsThem_AHorizontalOneDoesNot()
     {
         using var hook = new TestGlobalHook();
-        var own = new OwnWheelInjections(() => 0);
+        var own = new OwnInjections(() => 0);
         var simulator = new SharpHookInputSimulator(hook, own);
 
         simulator.Scroll(ScrollDirection.Down, 3, 0, 0);
-        Assert.Equal(3, own.Pending);
+        Assert.Equal(3, own.Pending(InjectionSlot.Wheel));
 
         simulator.Scroll(ScrollDirection.Left, 2, 0, 0);
-        Assert.Equal(3, own.Pending);
+        Assert.Equal(3, own.Pending(InjectionSlot.Wheel));
     }
 
     [Fact]
     public void EveryReleasePostedIsAnnouncedFirst_SoTheHookNeverTakesItForAnotherProgramsRelease()
     {
         using var hook = new TestGlobalHook();
-        var own = new OwnButtonInjections(() => 0);
-        var simulator = new SharpHookInputSimulator(hook, ownButtons: own);
+        var own = new OwnInjections(() => 0);
+        var simulator = new SharpHookInputSimulator(hook, own);
 
         simulator.Click(MouseButton.Right, 10, 10);
         simulator.Press(MouseButton.Left, 10, 10);
@@ -127,21 +127,22 @@ public sealed class SharpHookInputSimulatorTests
         simulator.PressRemapButton(MouseButton.Middle, KeyModifiers.None, 10, 10);
         simulator.ReleaseRemapButton(MouseButton.Middle);
 
-        Assert.Equal(1, own.Pending(MouseButton.Right));
-        Assert.Equal(1, own.Pending(MouseButton.Left));
-        Assert.Equal(1, own.Pending(MouseButton.Middle));
+        Assert.Equal(1, own.Pending(InjectionSlot.Right));
+        Assert.Equal(1, own.Pending(InjectionSlot.Left));
+        Assert.Equal(1, own.Pending(InjectionSlot.Middle));
+        Assert.Equal(0, own.Pending(InjectionSlot.Wheel));
     }
 
     [Fact]
     public void AReleaseThatFailsToPostIsWithdrawn()
     {
         using var hook = new TestGlobalHook { SimulateMouseReleaseResult = UioHookResult.Failure };
-        var own = new OwnButtonInjections(() => 0);
+        var own = new OwnInjections(() => 0);
 
-        var result = new SharpHookInputSimulator(hook, ownButtons: own).Release(MouseButton.Right);
+        var result = new SharpHookInputSimulator(hook, own).Release(MouseButton.Right);
 
         Assert.Equal(SimulationResult.Failed, result);
-        Assert.Equal(0, own.Pending(MouseButton.Right));
+        Assert.Equal(0, own.Pending(InjectionSlot.Right));
     }
 
     /// <summary>What was posted; the test hook also reports the click libuiohook makes of a press and its release, which posts nothing.</summary>

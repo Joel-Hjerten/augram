@@ -18,7 +18,7 @@ namespace Augram.Engine.Hosting;
 /// <see cref="IInputSimulator.ReleaseRemapButton"/>; where the simulator re-posts drags (macOS), each move the hook swallowed
 /// while it is held through <see cref="IInputSimulator.DragRemapButton"/>, with the delta from the previous physical position
 /// seen here (a button event's or a move's); a key output with its modifiers held through the press (repeats mirrored); a
-/// wheel output through <see cref="IInputSimulator.Scroll"/> (so <see cref="OwnWheelInjections"/> claims it); the hold key's
+/// wheel output through <see cref="IInputSimulator.Scroll"/> (so <see cref="OwnInjections"/> claims it); the hold key's
 /// tap; replayed keys. A Steps command goes to the <see cref="CommandExecutor"/>. Keys the hook swallowed only to keep the
 /// order behind a rollover are replayed here as they were. A reset (hook reset, dropped events, engine stop) releases
 /// everything still down (A19). Acts first, logs second.
@@ -222,7 +222,7 @@ internal sealed partial class EngineWorker
         }
     }
 
-    /// <summary>One notch at the event's position with the output's modifiers held around it; <see cref="IInputSimulator.Scroll"/> announces it to <see cref="OwnWheelInjections"/>, so no wheel trigger sees it.</summary>
+    /// <summary>One notch at the event's position with the output's modifiers held around it; <see cref="IInputSimulator.Scroll"/> announces it to <see cref="OwnInjections"/>, so no wheel trigger sees it.</summary>
     private SimulationResult TurnWheel(RemapOutput.Wheel wheel, int x, int y)
         => _simulator.WithModifiersHeld(HotkeyKeys.LeftKeys(wheel.Modifiers), () => _simulator.Scroll(wheel.Direction, 1, x, y));
 
