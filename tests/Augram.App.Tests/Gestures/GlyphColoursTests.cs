@@ -63,15 +63,22 @@ public sealed class GlyphColoursTests
         var settings = new SettingsStore(Settings.Default with { Trail = Settings.Default.Trail with { Colour = new RgbColor(0, 255, 255) } });
         var resources = new ResourceDictionary();
 
-        GlyphColourLink.Follow(settings, resources);
-        Assert.Equal(Color.FromRgb(0, 255, 255), ((ISolidColorBrush)resources[GlyphColourLink.EndKey]!).Color);
+        AppearanceLink.Follow(settings, resources, _ => { });
+        Assert.Equal(Color.FromRgb(0, 255, 255), Brush(resources, AppearanceLink.GlyphEndKey));
 
         settings.SetTrail(settings.Current.Trail with { Colour = new RgbColor(255, 255, 0) });
         Dispatcher.UIThread.RunJobs();
 
-        var end = ((ISolidColorBrush)resources[GlyphColourLink.EndKey]!).Color;
-        var start = ((ISolidColorBrush)resources[GlyphColourLink.StartKey]!).Color;
+        var end = Brush(resources, AppearanceLink.GlyphEndKey);
+        var start = Brush(resources, AppearanceLink.GlyphStartKey);
         Assert.Equal(Color.FromRgb(255, 255, 0), end);
         Assert.Equal(GlyphColours.StartFor(end), start);
+    }
+
+    /// <summary>The dark theme's picture colours (the trail colour as it is, for a bright one).</summary>
+    private static Color Brush(ResourceDictionary resources, string key)
+    {
+        Assert.True(resources.TryGetResource(key, Avalonia.Styling.ThemeVariant.Dark, out var value));
+        return ((ISolidColorBrush)value!).Color;
     }
 }

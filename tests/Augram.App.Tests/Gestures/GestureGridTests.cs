@@ -169,22 +169,23 @@ public sealed class GestureGridTests
     public void ShownPicturesTakeANewTrailColourAtOnce()
     {
         var resources = Avalonia.Application.Current!.Resources;
-        Augram.App.Themes.GlyphColourLink.Apply(resources, new Augram.Core.Config.RgbColor(0, 255, 255));
+        var cyan = new Augram.Core.Config.RgbColor(0, 255, 255);
+        var yellow = new Augram.Core.Config.RgbColor(255, 255, 0);
+        Augram.App.Themes.AppearanceLink.ApplyColours(resources, cyan, cyan);
         try
         {
             var (grid, _) = Show();
             var stroke = grid.GetVisualDescendants().OfType<GlyphStroke>().First();
             Assert.Equal(Avalonia.Media.Color.FromRgb(0, 255, 255), ((Avalonia.Media.ISolidColorBrush)stroke.Stroke!).Color);
 
-            Augram.App.Themes.GlyphColourLink.Apply(resources, new Augram.Core.Config.RgbColor(255, 255, 0));
+            Augram.App.Themes.AppearanceLink.ApplyColours(resources, yellow, yellow);
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(Avalonia.Media.Color.FromRgb(255, 255, 0), ((Avalonia.Media.ISolidColorBrush)stroke.Stroke!).Color);
         }
         finally
         {
-            resources.Remove(Augram.App.Themes.GlyphColourLink.EndKey);
-            resources.Remove(Augram.App.Themes.GlyphColourLink.StartKey);
+            Augram.App.Themes.AppearanceLink.RemoveColours(resources);
         }
     }
 

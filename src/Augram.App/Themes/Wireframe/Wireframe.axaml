@@ -200,7 +200,7 @@
             </Border>
           </ControlTemplate>
         </Setter>
-        <!-- Start to finish, shaded start to the trail colour (Joel, 2026-10-08; Themes/GlyphColourLink): direction reads along the whole stroke. Inactive: greys. -->
+        <!-- Start to finish, shaded start to the trail colour (Joel, 2026-10-08; Themes/AppearanceLink): direction reads along the whole stroke. Inactive: greys. -->
         <Style Selector="^:inactive /template/ glyph|GlyphStroke#PART_Stroke">
           <Setter Property="StartBrush" Value="{StaticResource Brush.GlyphStartMuted}" />
           <Setter Property="Stroke" Value="{StaticResource Brush.TextMuted}" />

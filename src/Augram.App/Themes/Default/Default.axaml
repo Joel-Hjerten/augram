@@ -46,7 +46,7 @@
                   <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" Margin="12,0" />
                 </ScrollViewer>
               </Grid>
-              <Border Name="PART_Page" Background="{DynamicResource Layer.Page}" CornerRadius="{StaticResource Radius.Page}" Margin="8,0,8,8">
+              <Border Name="PART_Page" Background="{DynamicResource Layer.Page}" CornerRadius="{DynamicResource Radius.Page}" Margin="8,0,8,8">
                 <ContentPresenter Name="PART_SelectedContentHost"
                                   Content="{TemplateBinding SelectedContent}"
                                   ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
@@ -78,9 +78,10 @@
                     HorizontalAlignment="Right" VerticalAlignment="Bottom"
                     Margin="0,0,-10,0"
                     IsVisible="False" />
-              <Border Name="PART_Tab" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Tab}" Padding="4,0">
-                <Border Name="PART_Hover" CornerRadius="{StaticResource Radius.Control}" Padding="12,5" Margin="0,4" VerticalAlignment="Center">
-                  <ContentPresenter Name="PART_HeaderPresenter" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}" />
+              <Border Name="PART_Tab" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.Tab}" Padding="4,0">
+                <Border Name="PART_Hover" CornerRadius="{DynamicResource Radius.Control}" Padding="12,5" Margin="0,4" VerticalAlignment="Center">
+                  <!-- A local foreground: Wireframe's global TextBlock rule would otherwise paint every label its fixed grey. -->
+                  <TextBlock Name="PART_Header" Text="{Binding $parent[TabItem].Header}" Foreground="{Binding $parent[TabItem].Foreground}" />
                 </Border>
               </Border>
             </Panel>
@@ -134,9 +135,10 @@
             <Border Background="{TemplateBinding Background}"
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="{StaticResource Radius.Control}"
+                    CornerRadius="{DynamicResource Radius.Control}"
                     Padding="12,4">
-              <ContentPresenter Name="PART_HeaderPresenter" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}" />
+              <!-- A local foreground: Wireframe's global TextBlock rule would otherwise paint every label its fixed grey. -->
+                  <TextBlock Name="PART_Header" Text="{Binding $parent[TabItem].Header}" Foreground="{Binding $parent[TabItem].Foreground}" />
             </Border>
           </ControlTemplate>
         </Setter>

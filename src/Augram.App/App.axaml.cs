@@ -114,9 +114,10 @@ public sealed partial class App : Application
             _services.GetRequiredService<ViewModels.MainWindowViewModel>().InitialTabKey = DevGallery.GalleryNavigation.Key;
         }
 #endif
-        // Gesture pictures follow the trail colour; set before the first window builds its glyphs.
-        GlyphColourLink.Follow(_services.GetRequiredService<Core.Config.SettingsStore>(), Resources);
+        // The look follows Options › Appearance and the trail colour (plan 0006); set before the first window builds its glyphs.
+        var appearance = AppearanceLink.Follow(_services.GetRequiredService<Core.Config.SettingsStore>(), this);
         var window = _services.GetRequiredService<MainWindow>();
+        appearance.Attach(window);
         HandOver(desktop, window, now: !lifetimeShowsWindow || (_launchEvent is null && launch is { Hidden: false }));
         if (OperatingSystem.IsMacOS())
         {

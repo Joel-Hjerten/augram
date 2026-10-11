@@ -6,9 +6,7 @@ using Augram.App.ViewModels;
 using Augram.App.Views;
 using Augram.Core.Config;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Headless;
-using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -37,20 +35,21 @@ AppBuilder.Configure(() => new App(services))
     .SetupWithoutStarting();
 
 // What App.StartDesktop would link up (it does not run without a desktop lifetime).
-GlyphColourLink.Follow(services.GetRequiredService<SettingsStore>(), Application.Current!.Resources);
+var app = Application.Current!;
+var appearance = AppearanceLink.Follow(services.GetRequiredService<SettingsStore>(), app);
 
 var window = services.GetRequiredService<MainWindow>();
 window.Width = options.Width;
 window.Height = options.Height;
+appearance.Attach(window);
 window.Show();
 var shell = window.GetVisualDescendants().OfType<Shell>().Single();
 var keys = options.Keys.Count > 0 ? options.Keys : LeafKeys(services.GetRequiredService<MainWindowViewModel>().Registry, options.Gallery);
 
 foreach (var (name, variant) in options.Themes)
 {
-    Application.Current.RequestedThemeVariant = variant;
-    // Solid until the window backdrop is wired; a real window shows the system's glass under the tint instead.
-    window.Background = window.TryFindResource("Layer.Window", variant, out var tint) && tint is Color colour ? new SolidColorBrush(colour) : null;
+    // The headless window gets no glass, so the link paints the tint opaque: the solid fallback a real window shows without it.
+    app.RequestedThemeVariant = variant;
     foreach (var key in keys)
     {
         shell.SelectedKey = key;
