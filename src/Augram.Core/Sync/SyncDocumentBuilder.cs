@@ -52,39 +52,45 @@ internal static partial class SyncDocumentBuilder
     internal static IEnumerable<int> IncomingLast(IReadOnlyList<SyncItem> items, IReadOnlySet<SyncItemKey> incoming)
         => Enumerable.Range(0, items.Count).OrderBy(index => incoming.Contains(items[index].Key) ? 1 : 0);
 
-    private static Gesture[] Gestures(SyncItem.GestureItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
+    /// <summary>
+    /// The name an item takes in <paramref name="names"/>: its own, or the first free " (2)", " (3)"… when it is taken, with a
+    /// <see cref="SyncRepairKind.Renamed"/> line ("Incoming <paramref name="noun"/> 'Orbit' <paramref name="where"/> renamed
+    /// 'Orbit (2)': the name is taken."). Every rename the rebuild makes goes through here; the caller has the items already
+    /// here claim first (<see cref="IncomingLast"/>), so the incoming one is the one renamed.
+    /// </summary>
+    internal static string Claimed(NameScope names, string name, SyncItemKey key, string noun, string? where, List<SyncRepair> repairs)
     {
-        var names = new NameScope();
-        var gestures = items.Select(item => item.Gesture).ToArray();
-        foreach (int index in IncomingLast(items, incoming))
+        var claimed = names.Claim(name);
+        if (claimed != name)
         {
-            var name = names.Claim(gestures[index].Name);
-            if (name != gestures[index].Name)
-            {
-                repairs.Add(new(items[index].Key, SyncRepairKind.Renamed, $"Incoming gesture '{gestures[index].Name}' renamed '{name}': the name is taken."));
-                gestures[index] = gestures[index] with { Name = name };
-            }
+            var place = where is null ? string.Empty : " " + where;
+            repairs.Add(new(key, SyncRepairKind.Renamed, $"Incoming {noun} '{name}'{place} renamed '{claimed}': the name is taken."));
         }
 
-        return gestures;
+        return claimed;
     }
+
+    private static Gesture[] Gestures(SyncItem.GestureItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
+        => NamesUnique(items, [.. items.Select(item => item.Gesture)], incoming, gesture => gesture.Name, (gesture, name) => gesture with { Name = name }, "gesture", repairs);
 
     /// <summary>The ignored apps, an incoming one renamed when its name is taken (names are unique, like group names).</summary>
     private static IgnoredApp[] Ignored(SyncItem.IgnoredItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
+        => NamesUnique(items, [.. items.Select(item => item.App)], incoming, app => app.Name, (app, name) => app with { Name = name }, "excluded app", repairs);
+
+    /// <summary><paramref name="values"/> (one per item, in place) with names unique in one scope, the incoming ones renamed (<see cref="Claimed"/>).</summary>
+    private static T[] NamesUnique<T>(IReadOnlyList<SyncItem> items, T[] values, IReadOnlySet<SyncItemKey> incoming, Func<T, string> nameOf, Func<T, string, T> withName, string noun, List<SyncRepair> repairs)
     {
         var names = new NameScope();
-        var apps = items.Select(item => item.App).ToArray();
         foreach (int index in IncomingLast(items, incoming))
         {
-            var name = names.Claim(apps[index].Name);
-            if (name != apps[index].Name)
+            var name = Claimed(names, nameOf(values[index]), items[index].Key, noun, null, repairs);
+            if (name != nameOf(values[index]))
             {
-                repairs.Add(new(items[index].Key, SyncRepairKind.Renamed, $"Incoming excluded app '{apps[index].Name}' renamed '{name}': the name is taken."));
-                apps[index] = apps[index] with { Name = name };
+                values[index] = withName(values[index], name);
             }
         }
 
-        return apps;
+        return values;
     }
 
     /// <summary>The group headers, Global first (restored if the merge lost it) and never renamed.</summary>
@@ -103,10 +109,9 @@ internal static partial class SyncDocumentBuilder
             .OrderBy(index => groups[index].IsGlobal ? 0 : incoming.Contains(keys[index]) ? 2 : 1);
         foreach (int index in order)
         {
-            var name = names.Claim(groups[index].Name);
+            var name = Claimed(names, groups[index].Name, keys[index], "app group", null, repairs);
             if (name != groups[index].Name)
             {
-                repairs.Add(new(keys[index], SyncRepairKind.Renamed, $"Incoming app group '{groups[index].Name}' renamed '{name}': the name is taken."));
                 groups[index] = groups[index] with { Name = name };
             }
         }
@@ -132,12 +137,7 @@ internal static partial class SyncDocumentBuilder
                 continue;
             }
 
-            var name = names[item.GroupId].Claim(item.Category.Name);
-            if (name != item.Category.Name)
-            {
-                repairs.Add(new(item.Key, SyncRepairKind.Renamed, $"Incoming category '{item.Category.Name}' in '{groupNames[item.GroupId]}' renamed '{name}': the name is taken."));
-            }
-
+            var name = Claimed(names[item.GroupId], item.Category.Name, item.Key, "category", $"in '{groupNames[item.GroupId]}'", repairs);
             list.Add(item.Category with { Name = name });
         }
 

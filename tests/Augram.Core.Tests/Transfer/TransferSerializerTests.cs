@@ -1,6 +1,7 @@
 using Augram.Core.Config;
 using Augram.Core.Mapping;
 using Augram.Core.Steps.Unknown;
+using Augram.Core.Sync.Files;
 using Augram.Core.Transfer;
 using Xunit;
 using static Augram.Core.Tests.Transfer.Support.TransferSamples;

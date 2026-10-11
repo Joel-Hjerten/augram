@@ -7,6 +7,7 @@ using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Sync.Files;
 
 namespace Augram.Core.Transfer;
 

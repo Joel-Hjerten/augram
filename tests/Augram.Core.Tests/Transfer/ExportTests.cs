@@ -66,7 +66,7 @@ public sealed class ExportTests
         Assert.Null(back.Settings);
         var mapping = Assert.IsType<MappingDocument>(back.Mapping);
         Assert.Equal([GroupId.Global, chrome.Id], mapping.Groups.Select(group => group.Id));
-        Assert.True(TransferContents.IsShell(mapping.Global));
+        Assert.True(mapping.Global.IsShell);
         Assert.Empty(mapping.Ignored);
         var shell = config.Mapping.Global with { Commands = [], Categories = [] };
         Assert.Equal(Contents([GestureNamed(config.Gestures, "Down")], new MappingDocument([shell, chrome], [])), Contents(back.Gestures, mapping));

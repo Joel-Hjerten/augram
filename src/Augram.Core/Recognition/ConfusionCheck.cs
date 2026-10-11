@@ -9,7 +9,8 @@ namespace Augram.Core.Recognition;
 /// threshold and a perfect score (87.5 at the default 75): under Legacy scoring two straight flicks
 /// 45° apart already score 75 against each other, so the threshold itself would flag every
 /// neighbouring flick in the starter set. A Core rule so the Gestures page only displays the
-/// result (ADR-0002 §5a). Cost is one <see cref="GestureMatcher.Rank"/> per gesture.
+/// result (ADR-0002 §5a). Cost is one <see cref="GestureMatcher.Rank"/> per gesture. <see cref="Duplicate"/> is the same
+/// rule for one sample against a list: an import's "same shape" match.
 /// </summary>
 public static class ConfusionCheck
 {
@@ -28,6 +29,21 @@ public static class ConfusionCheck
 
     public static IReadOnlyList<ConfusionPair> Find(IReadOnlyList<Gesture> gestures, RecognitionOptions options, GestureMatcher? matcher = null)
         => Find(gestures, options, CutOff(options), matcher);
+
+    /// <summary>
+    /// The candidate <paramref name="sample"/> duplicates (A7: the best score, at or above <see cref="DuplicateCutOff"/>),
+    /// inactive candidates scored too; null when none does. What an import matches a gesture by shape with: the Augram import
+    /// (<c>Transfer/ImportMatcher</c>) and the StrokesPlus.net importer's merge.
+    /// </summary>
+    public static MatchResult? Duplicate(IReadOnlyList<GesturePoint> sample, IEnumerable<Gesture> candidates, RecognitionOptions options, GestureMatcher? matcher = null)
+    {
+        ArgumentNullException.ThrowIfNull(sample);
+        ArgumentNullException.ThrowIfNull(candidates);
+        ArgumentNullException.ThrowIfNull(options);
+        matcher ??= new GestureMatcher();
+        var best = matcher.Rank(sample, candidates.Select(gesture => gesture.IsActive ? gesture : gesture with { IsActive = true }), options).FirstOrDefault();
+        return best is not null && best.Score >= DuplicateCutOff ? best : null;
+    }
 
     public static IReadOnlyList<ConfusionPair> Find(IReadOnlyList<Gesture> gestures, RecognitionOptions options, double cutOff, GestureMatcher? matcher = null)
     {

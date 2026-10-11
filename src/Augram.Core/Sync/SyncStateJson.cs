@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Augram.Core.Config;
+using Augram.Core.Sync.Files;
 
 namespace Augram.Core.Sync;
 

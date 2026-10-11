@@ -10,8 +10,8 @@ using Augram.Core.Tests.Config;
 using Augram.Core.Tests.Fixtures;
 using Augram.Core.Tests.HoldRemaps.Support;
 using Augram.Core.Tests.Mapping.Support;
+using Augram.Core.Tests.Sync.Support;
 using Augram.Core.Transfer;
-using static Augram.Core.Tests.Mapping.Support.MappingFixtures;
 
 namespace Augram.Core.Tests.Transfer.Support;
 
@@ -30,20 +30,15 @@ internal static class TransferSamples
     /// <summary>A gesture drawn as the stock flick <paramref name="shape"/> (its own name by default).</summary>
     public static Gesture Flick(string name, string? shape = null) => TestGestures.Create(name, StockFlicks.Template(shape ?? name));
 
+    /// <summary>The Sync tests' sample world (<see cref="SyncSamples.World"/>) drawn as stock flicks, with Blender, as a whole configuration.</summary>
     public static ConfigDocument SampleConfig()
     {
-        var up = Flick("Up");
-        var down = Flick("Down");
-        var left = Flick("Left");
-        var window = NewCategory("Window");
-        var global = NewGlobal(NewCommand("Minimize", up.Id, NewStep("min")).In(window), NewCommand("Close", down.Id, NewStep("close"))) with { Categories = [window] };
-        var chrome = NewGroup("Chrome", null, NewCommand("Close tab", down.Id, NewStep("ctrl+w")));
-        var game = new IgnoredApp(GroupId.New(), "Game", IsActive: true, ByProcess("game.exe"), DisableEntirely: true);
+        var (gestures, mapping) = SyncSamples.World(name => Flick(name), Blender.Group());
         return new ConfigDocument
         {
             Settings = SampleDocuments.NonDefaultSettings with { Sync = new SyncSettings(RepositoryUrl, Guid.NewGuid(), "PC-HOME") },
-            Gestures = [up, down, left],
-            Mapping = MappingRules.ValidDocument(new MappingDocument([global, chrome, Blender.Group()], [game])),
+            Gestures = gestures,
+            Mapping = mapping,
         };
     }
 

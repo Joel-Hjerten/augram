@@ -32,9 +32,6 @@ public sealed partial class AugramImportViewModel : ObservableObject
     public const string OptionsHelp =
         "The file's stroke button, ignore keys, capture, trail, recognition and no-match choice. Not Sync, start at login, Enabled or the menu-bar icon: those stay this machine's.";
 
-    /// <summary>How often <see cref="Import"/> plans again when the stores keep moving between planning and applying.</summary>
-    private const int Attempts = 3;
-
     private readonly ConfigSession _session;
     private readonly TransferFile _file;
     private readonly IEventLog _log;
@@ -149,10 +146,10 @@ public sealed partial class AugramImportViewModel : ObservableObject
     };
 
     /// <summary>
-    /// Applies the import on the stores' (UI) thread: one undo step per store that changes. The reviewed plan first; when a
-    /// store moved since it was made (a sync applied while the review was open) the stores refuse it, and the import plans
-    /// again from them with the same choices. Logs Info <c>import</c> with the counts, never content. False when there is
-    /// nothing to import, or the stores kept moving (then <see cref="Error"/> says so and nothing changed).
+    /// Applies the import on the stores' (UI) thread through <see cref="ImportApplier"/>: one undo step per store that changes.
+    /// The reviewed plan first; when a store moved since it was made (a sync applied while the review was open) the stores
+    /// refuse it, and the import plans again from them with the same choices. Logs Info <c>import</c> with the counts, never
+    /// content. False when there is nothing to import, or the stores kept moving (then <see cref="Error"/> says so and nothing changed).
     /// </summary>
     public bool Import()
     {
@@ -161,20 +158,12 @@ public sealed partial class AugramImportViewModel : ObservableObject
             return false;
         }
 
-        var choices = Choices();
-        for (var attempt = 0; attempt < Attempts; attempt++)
+        var applied = ImportApplier.Apply(_session, _plan, Choices(), Options());
+        _plan = applied.Plan;
+        if (applied.Result is { } result)
         {
-            if (attempt > 0)
-            {
-                _plan = Plan();
-            }
-
-            var result = _plan.Resolve(choices);
-            if (result.ApplyTo(_session.Settings, _session.Gestures, _session.Mapping))
-            {
-                Done(result, replanned: attempt);
-                return true;
-            }
+            Done(result, replanned: applied.Replanned);
+            return true;
         }
 
         Error = "Augram's configuration kept changing while importing (a sync?), so nothing was imported. Try again.";
@@ -186,11 +175,13 @@ public sealed partial class AugramImportViewModel : ObservableObject
 
     partial void OnTakeSettingsChanged(bool value) => Refresh();
 
-    private ImportPlan Plan() => ImportPlan.Create(_file, _session.Document, new ImportOptions
+    private ImportPlan Plan() => ImportPlan.Create(_file, _session.Document, Options());
+
+    private ImportOptions Options() => new()
     {
         SourceName = FileName,
         MatchShapes = _session.Settings.Current.Recognition,
-    });
+    };
 
     /// <summary>The preview under the current choices, and every binding on the review told (an empty name refreshes them all).</summary>
     private void Refresh()

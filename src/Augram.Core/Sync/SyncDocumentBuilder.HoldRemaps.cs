@@ -35,10 +35,9 @@ internal static partial class SyncDocumentBuilder
                 continue;
             }
 
-            var name = names[item.GroupId].Claim(holdRemap.Name);
+            var name = Claimed(names[item.GroupId], holdRemap.Name, item.Key, "hold remap", $"in '{groupNames[item.GroupId]}'", repairs);
             if (name != holdRemap.Name)
             {
-                repairs.Add(new(item.Key, SyncRepairKind.Renamed, $"Incoming hold remap '{holdRemap.Name}' in '{groupNames[item.GroupId]}' renamed '{name}': the name is taken."));
                 holdRemap = holdRemap with { Name = name };
             }
 

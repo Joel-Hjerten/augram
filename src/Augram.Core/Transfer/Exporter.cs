@@ -55,7 +55,7 @@ public static class Exporter
         if (!groups.Any(group => group.IsGlobal))
         {
             var global = mapping.Groups.FirstOrDefault(group => group.IsGlobal) ?? AppGroup.EmptyGlobal;
-            groups.Insert(0, global with { Commands = [], Categories = [], HoldRemaps = [] });
+            groups.Insert(0, global.HeaderOnly());
         }
 
         var notIn = groups.SelectMany(group => group.Commands).SelectMany(command => command.NotIn).ToHashSet();

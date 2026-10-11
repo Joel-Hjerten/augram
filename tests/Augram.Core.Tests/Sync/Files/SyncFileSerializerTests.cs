@@ -1,11 +1,12 @@
 using System.Text.Json.Nodes;
 using Augram.Core.Config;
 using Augram.Core.Mapping;
+using Augram.Core.Sync.Files;
 using Augram.Core.Tests.Mapping.Support;
 using Augram.Core.Tests.Sync.Support;
 using Xunit;
 
-namespace Augram.Core.Tests.Config;
+namespace Augram.Core.Tests.Sync.Files;
 
 public sealed class SyncFileSerializerTests
 {

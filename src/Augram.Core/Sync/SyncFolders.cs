@@ -1,13 +1,12 @@
 using System.Globalization;
 using Augram.Core.Abstractions;
-using Augram.Core.Sync;
 
-namespace Augram.App.Hosting;
+namespace Augram.Core.Sync;
 
 /// <summary>
 /// The sync folders under the config folder (F8 sync): <c>sync/repo</c> (the git clone), <c>sync/state</c>
 /// (<see cref="SyncBaseStore"/>) and <c>sync/repository-url.txt</c>, the URL the clone and the state belong to.
-/// Before every run the sync worker calls <see cref="Prepare"/> with the URL in the settings: when it differs
+/// Before every run <see cref="SyncCoordinator.Run"/> calls <see cref="Prepare"/> with the URL in the settings: when it differs
 /// from the remembered one (changed or cleared), the old repository's state is cleared, so the next run asks the
 /// join question again, and the old clone is moved aside to <c>sync/repo-old-&lt;timestamp&gt;</c>, never deleted
 /// (the git adapter refuses a clone of another URL). The marker makes this hold across restarts: a URL changed

@@ -34,8 +34,8 @@ internal sealed class SyncMachine : IDisposable
         Folders = new SyncFolders(Folder, Clock);
         Bases = new SyncBaseStore(Folder);
         StoreThread = new SyncStoreThread((apply, _) => apply());
-        Coordinator = new SyncCoordinator(Repository, Settings, Gestures, Mapping, Bases, Clock, Log, StoreThread.Run);
-        Service = new SyncService(Coordinator, Settings, Gestures, Mapping, Bases, Folders, StoreThread, Clock, Log, Schedule.Schedule);
+        Coordinator = new SyncCoordinator(Repository, Settings, Gestures, Mapping, Bases, Clock, Log, StoreThread.Run, folders: Folders);
+        Service = new SyncService(Coordinator, Settings, Gestures, Mapping, Bases, StoreThread, Clock, Log, Schedule.Schedule);
     }
 
     public string Folder { get; }

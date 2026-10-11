@@ -54,7 +54,8 @@ public sealed class ImportResult
     public bool IsEmpty => Counts.IsEmpty && !SettingsChanged;
 
     /// <summary>
-    /// Replaces what changed, one store call each (one undo step per store). Runs on the stores' thread. Refused (false,
+    /// Replaces what changed, one store call each (one undo step per store): the sync's store-thread apply
+    /// (<see cref="SyncStoreWriter"/>), then the options. Runs on the stores' thread. Refused (false,
     /// nothing applied) when a store no longer holds the snapshot the plan was made from (a sync applied while the review
     /// was open): plan again from the stores and resolve with the same choices.
     /// </summary>
@@ -63,21 +64,12 @@ public sealed class ImportResult
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(gestures);
         ArgumentNullException.ThrowIfNull(mapping);
-        if (!ReferenceEquals(gestures.All, _seen.Gestures) || !ReferenceEquals(mapping.Current, _seen.Mapping) || !ReferenceEquals(settings.Current, _seen.Settings))
+        if (!SyncStoreWriter.StillHolds(gestures, mapping, _seen.Gestures, _seen.Mapping) || !ReferenceEquals(settings.Current, _seen.Settings))
         {
             return false;
         }
 
-        if (Counts.Gestures.Total > 0)
-        {
-            gestures.ReplaceAll(Gestures);
-        }
-
-        if (Counts.MappingChanged)
-        {
-            mapping.ReplaceAll(Mapping);
-        }
-
+        SyncStoreWriter.Replace(gestures, mapping, Gestures, Mapping, Counts);
         if (SettingsChanged)
         {
             settings.Apply(_ => Settings);

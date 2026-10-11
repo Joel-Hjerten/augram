@@ -42,8 +42,7 @@ public static class GestureMerge
         }
 
         matcher ??= new GestureMatcher();
-        var candidates = existing.Select(gesture => gesture.IsActive ? gesture : gesture with { IsActive = true }).ToList();
-        var entries = plan.Entries.Select(entry => ShapeChecked(entry, existing, candidates, options, matcher)).ToList();
+        var entries = plan.Entries.Select(entry => ShapeChecked(entry, existing, options, matcher)).ToList();
         return new MergePlan(existing, entries);
     }
 
@@ -103,15 +102,14 @@ public static class GestureMerge
         return new MergeOutcome(result, map);
     }
 
-    private static MergeEntry ShapeChecked(MergeEntry entry, IReadOnlyList<Gesture> existing, IReadOnlyList<Gesture> candidates, RecognitionOptions options, GestureMatcher matcher)
+    private static MergeEntry ShapeChecked(MergeEntry entry, IReadOnlyList<Gesture> existing, RecognitionOptions options, GestureMatcher matcher)
     {
         if (entry.Kind != MergeKind.Add || entry.Imported.Samples.Count == 0)
         {
             return entry;
         }
 
-        var best = matcher.Rank(entry.Imported.Samples[0], candidates, options).FirstOrDefault();
-        if (best is null || best.Score < ConfusionCheck.DuplicateCutOff)
+        if (ConfusionCheck.Duplicate(entry.Imported.Samples[0], existing, options, matcher) is not { } best)
         {
             return entry;
         }

@@ -4,11 +4,13 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Sync.Files;
 
 namespace Augram.Core.Sync;
 
 /// <summary>
-/// Runs one sync (F8 sync; README: the run) and applies conflict resolutions. Threading contract: <see cref="Run"/>
+/// Runs one sync (F8 sync; README: the run) and applies conflict resolutions; before each run it makes the sync folders
+/// belong to the repository URL in the settings (<see cref="SyncFolders"/>). Threading contract: <see cref="Run"/>
 /// and <see cref="Resolve"/> are called from the sync worker only, never from the store (UI) thread; the git work,
 /// the merge and the state files happen there, and every store mutation goes through <c>onStoreThread</c>, which the
 /// host runs on the thread that owns the stores (tests pass <c>f =&gt; f()</c>), against a snapshot it re-checks
@@ -30,6 +32,7 @@ public sealed class SyncCoordinator
     private readonly StepRegistry _steps;
     private readonly SyncStoreWriter _writer;
     private readonly SyncPublisher _publisher;
+    private readonly SyncFolders? _folders;
     private IReadOnlyList<SyncConflict> _pending;
 
     /// <param name="repository">The repo adapter (<c>Augram.Sync.Git</c>).</param>
@@ -41,6 +44,7 @@ public sealed class SyncCoordinator
     /// <param name="log">One line per run, source <see cref="LogSources.Sync"/>.</param>
     /// <param name="onStoreThread">Runs the function on the stores' thread and returns its result.</param>
     /// <param name="steps">The step types other machines' files may use; <see cref="StepRegistry.BuiltIn"/> by default.</param>
+    /// <param name="folders">The sync folders, reset when the URL changes before every <see cref="Run"/>; null (tests) leaves the folders alone.</param>
     public SyncCoordinator(
         ISyncRepository repository,
         SettingsStore settings,
@@ -50,7 +54,8 @@ public sealed class SyncCoordinator
         IClock clock,
         IEventLog log,
         Func<Func<SyncApplied>, SyncApplied> onStoreThread,
-        StepRegistry? steps = null)
+        StepRegistry? steps = null,
+        SyncFolders? folders = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -64,39 +69,60 @@ public sealed class SyncCoordinator
             mapping ?? throw new ArgumentNullException(nameof(mapping)),
             onStoreThread);
         _publisher = new SyncPublisher(repository, bases, clock);
+        _folders = folders;
         _pending = bases.PendingConflicts();
     }
 
     /// <summary>
     /// Every conflict waiting for the user, across machines (Options › Sync), as of construction or the last
-    /// <see cref="Run"/> or <see cref="Resolve"/>. Safe from any thread, the UI thread included: it never waits for a run.
+    /// <see cref="Run"/> or <see cref="Resolve"/>; empty as soon as a run resets the folders for another repository. Safe from
+    /// any thread, the UI thread included: it never waits for a run.
     /// </summary>
     public IReadOnlyList<SyncConflict> PendingConflicts() => Volatile.Read(ref _pending);
 
-    /// <summary>Pulls, merges every other machine's file, applies the result and publishes this machine's file.</summary>
+    /// <summary>
+    /// One sync job: first the folders are made to belong to the URL in the settings (a new URL, or none, clears the state and
+    /// moves the old clone aside, and the pending conflicts go with the state); with no repository set that is all
+    /// (<see cref="SyncStatus.Off"/>). Then each of <paramref name="resolutions"/> is applied in order (<see cref="Resolve"/>),
+    /// stopping at the first that fails; then the run: pull, merge every other machine's file, apply the result and publish
+    /// this machine's file. The resolutions' notes come first in the report.
+    /// </summary>
     /// <param name="join">The answer to an earlier <see cref="SyncStatus.NeedsJoinChoice"/>; ignored once this machine has synced.</param>
-    public SyncReport Run(SyncJoin? join = null)
+    /// <param name="resolutions">The user's answers to pending conflicts, applied before the run so it publishes them.</param>
+    public SyncReport Run(SyncJoin? join = null, IReadOnlyList<SyncResolution>? resolutions = null)
     {
         lock (_gate)
         {
-            if (_settings.Current.Sync.RepositoryUrl is not { } url)
-            {
-                return new SyncReport(SyncStatus.Off, _clock.UtcNow);
-            }
-
-            SyncReport report;
             try
             {
-                report = RunLocked(url, join);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                report = Failed($"The sync state could not be written: {ex.Message}");
-            }
+                var url = _settings.Current.Sync.RepositoryUrl;
+                PrepareFolders(url);
+                if (url is null)
+                {
+                    return RunOnce(join: null);
+                }
 
-            Log(report, SyncSettingsRules.Host(url), "Sync");
-            Volatile.Write(ref _pending, _bases.PendingConflicts());
-            return report;
+                var notes = new List<string>();
+                foreach (var resolution in resolutions ?? [])
+                {
+                    var resolved = Resolve(resolution.Conflict, resolution.Choice);
+                    notes.AddRange(resolved.Notes);
+                    if (resolved.Status == SyncStatus.Failed)
+                    {
+                        return resolved with { Notes = notes };
+                    }
+                }
+
+                var report = RunOnce(join);
+                return notes.Count == 0 ? report : report with { Notes = [.. notes, .. report.Notes] };
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // The old clone could not be moved aside (a file in it is open) or the sync folder is not writable; nothing
+                // changed and the next run tries again. A state file failing outside a run's own guard ends the same way.
+                _log.Warning(LogSources.Sync, "Sync folder could not be prepared", ("error", exception.Message));
+                return Failed($"The old sync folder could not be moved aside: {exception.Message}");
+            }
         }
     }
 
@@ -120,6 +146,41 @@ public sealed class SyncCoordinator
             Volatile.Write(ref _pending, _bases.PendingConflicts());
             return report;
         }
+    }
+
+    /// <summary>A URL other than the one the folders belong to (or none) resets them: logged, and the pending conflicts are forgotten with the state.</summary>
+    private void PrepareFolders(string? url)
+    {
+        if (_folders?.Prepare(url, _bases) is not { Reset: true } reset)
+        {
+            return;
+        }
+
+        Volatile.Write(ref _pending, _bases.PendingConflicts());
+        _log.Info(LogSources.Sync, "Sync state cleared: the repository changed", ("host", SyncSettingsRules.Host(url)), ("old clone kept", reset.MovedTo is not null));
+    }
+
+    /// <summary>The run itself, under the lock: what <see cref="Run"/> did before the folders and the resolutions joined it.</summary>
+    private SyncReport RunOnce(SyncJoin? join)
+    {
+        if (_settings.Current.Sync.RepositoryUrl is not { } url)
+        {
+            return new SyncReport(SyncStatus.Off, _clock.UtcNow);
+        }
+
+        SyncReport report;
+        try
+        {
+            report = RunLocked(url, join);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            report = Failed($"The sync state could not be written: {ex.Message}");
+        }
+
+        Log(report, SyncSettingsRules.Host(url), "Sync");
+        Volatile.Write(ref _pending, _bases.PendingConflicts());
+        return report;
     }
 
     private SyncReport RunLocked(string url, SyncJoin? join)
@@ -189,7 +250,7 @@ public sealed class SyncCoordinator
             return new SyncReport(SyncStatus.UpToDate, _clock.UtcNow) { Conflicts = _bases.PendingConflicts(), Notes = ["That conflict is no longer pending."] };
         }
 
-        var (effective, note) = ConflictResolution.Effective(pending, choice);
+        var (effective, note) = SyncChoiceRules.Effective(pending, choice);
         SyncMergeResult? result = null;
         if (effective != SyncChoice.KeepMine)
         {

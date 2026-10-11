@@ -1,6 +1,7 @@
 using Augram.Core.Config;
 using Augram.Core.Diagnostics;
 using Augram.Core.Sync;
+using Augram.Core.Sync.Files;
 using Augram.Core.Tests.Sync.Support;
 using Xunit;
 

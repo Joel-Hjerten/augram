@@ -1,8 +1,10 @@
 # Core/Sync
 
-Machine-to-machine sync (requirements F8, "Sync between machines", Joel 2026-10-07): gestures and the mapping (groups, categories, commands, ignored apps) travel between Joel's machines through a private git repo; settings never do. Each machine writes only its own file, `machines/<machineId>.json` (format: `../Config/README.md`, sync file), so git never merges content. Augram merges, item by item, here. The git side is the `ISyncRepository` port (`../Abstractions/`), implemented by `Augram.Sync.Git`.
+Machine-to-machine sync (requirements F8, "Sync between machines", Joel 2026-10-07): gestures and the mapping (groups, categories, commands, ignored apps) travel between Joel's machines through a private git repo; settings never do. Each machine writes only its own file, `machines/<machineId>.json` (format: "Sync file" below), so git never merges content. Augram merges, item by item, here. The git side is the `ISyncRepository` port (`../Abstractions/`), implemented by `Augram.Sync.Git`.
 
-Everything in this folder is pure except `SyncBaseStore` (local files) and `SyncCoordinator` (calls the port and the stores).
+Everything in this folder is pure except `SyncBaseStore` and `SyncFolders` (local files) and `SyncCoordinator` (calls the port and the stores).
+
+**Where the one merge decision is:** `ThreeWayMerge.Decide`, the merge table below. The Augram import (`../Transfer/`) is that table with no base: `ImportPlan`'s New / Same / Different are its rows with the base column empty (added there, the same, both added differently), and the import's choices are applied by the sync's own `ConflictResolution`.
 
 ## Types
 
@@ -10,20 +12,24 @@ Everything in this folder is pure except `SyncBaseStore` (local files) and `Sync
 |---|---|
 | `SyncItemKind`, `SyncItemKey` | the kinds and an item's identity; text form `gesture:<id>`, `group:<id>`, `category:<groupId>/<id>`, `holdRemap:<groupId>/<id>`, `command:<id>`, `version:<commandId>`, `ignored:<id>` |
 | `SyncItem` (+ nested `GestureItem`, `GroupItem`, `CategoryItem`, `HoldRemapItem`, `CommandItem`, `VersionItem`, `IgnoredItem`) | one item: key, name, model value and canonical `Content` |
+| `SyncItemJson` (internal) | an item's canonical text, written and read back by the config file's writers and readers (`../Config/`) |
 | `SyncItemSet` | a document as items, in document order; `From(gestures, mapping)`, `Contents()`, `SameAs` |
 | `ThreeWayMerge` | `Merge(base, local, remote[, held])` → `SyncMergeResult` (gestures, mapping, conflicts, repairs, counts, items) |
-| `SyncDocumentBuilder` (+ `.HoldRemaps.cs`), `CommandPlacement` | rebuild merged items into a valid document, repairing (below) |
+| `SyncDocumentBuilder` (+ `.HoldRemaps.cs`), `CommandPlacement` | rebuild merged items into a valid document, repairing (below); every rename goes through `SyncDocumentBuilder.Claimed` (one sentence shape for all six kinds) |
 | `SyncConflict`, `SyncRepair` + `SyncRepairKind`, `SyncCounts` + `SyncKindCounts` | what a merge reports; `SyncCounts.Phrase(pick)` is "1 gesture, 2 app groups and 8 commands" for Options › Sync and the import summary |
 | `SyncItemNouns` | the one noun table for the kinds: `Count(kind, n)` ("2 app groups", "1 command's own steps"), `Heading` ("App group", "Own steps": a conflict's and a match line's kind), `LogPlural` ("groups", for `SyncCounts.ToString`), `ReadingOrder`; also used by `Transfer/TransferContents` and the import review |
 | `SyncMachineState`, `SyncPublished`, `SyncBaseStore` (+ internal `SyncStateJson`) | the local state under `<configFolder>/sync/state/` |
+| `SyncFolders`, `SyncFolderReset` | which repository the clone and the state belong to: `sync/repository-url.txt`; `Prepare(url, bases)` resets both when the URL changes or is cleared (below, Limits) |
 | `SyncPlanner` (internal) | one run's merges, pure |
-| `ConflictResolution` (internal) | what a resolution does to the document, pure |
-| `SyncCoordinator` (+ internal `SyncStoreWriter`, `SyncPublisher`, `SyncRepositoryFiles`) | a run and a resolution, end to end |
-| `SyncReport`, `SyncStatus`, `SyncJoin`, `SyncChoice`, `SyncApplied`, `SyncMachineSummary`, `SyncNewerMachine` | the App's side of it |
+| `SyncChoiceRules` | which choices a conflict offers (`Allowed`: Keep both only for a gesture or command on both sides; the conflict dialog and the import review show it) and the choice actually applied (`Effective`, the nearest one with a note) |
+| `ConflictResolution` (internal) | what answering conflicts does to the document, pure: a list of answers (theirs, or null for a deletion, with an effective choice), then `SyncDocumentBuilder.Build`. The sync passes one conflict; the Augram import passes every item of the file it adds or changes, with its two extras (arriving commands bound to the copy of a gesture kept both; own steps following their command) |
+| `SyncCoordinator` (+ internal `SyncStoreWriter`, `SyncPublisher`, `SyncRepositoryFiles`) | a run and a resolution, end to end; `SyncStoreWriter.StillHolds` and `Replace` are the store-thread apply the Augram import uses too |
+| `Files/`: `SyncFile`, `SyncAcknowledgement`, `SyncFileHeader`, `SyncFileSerializer` | one machine's file in the sync repo ("Sync file" below); `TryRead` never throws: a broken file is an error line |
+| `SyncReport`, `SyncStatus`, `SyncJoin`, `SyncChoice`, `SyncResolution`, `SyncApplied`, `SyncMachineSummary`, `SyncNewerMachine` | the App's side of it |
 
 ## Items
 
-A document splits into items keyed by kind + id. Each item's `Content` is its JSON as the config file writes it (`Config/SyncItemJson`, which calls the same writers), so equal text is equal item and nothing is compared field by field.
+A document splits into items keyed by kind + id. Each item's `Content` is its JSON as the config file writes it (`SyncItemJson`, which calls the same writers), so equal text is equal item and nothing is compared field by field.
 
 | Kind | Key | Content |
 |---|---|---|
@@ -91,10 +97,11 @@ Per other machine, `SyncMachineState.Base` holds, per item, the content both mac
 
 Why both: a base that is "the result of my last merge" reverts my change when the other machine publishes without having seen it (a race between two syncs, or a machine that skipped my file); a base that is only "their file as I last read it" shows every conflict on both machines and a "keep mine" never reaches the other side. With acknowledgements each machine knows which of its own versions the other has seen.
 
-**Conflicts show on one machine.** The machine whose merge finds a conflict keeps its own version, lists the conflict and publishes the key as `pending`; the other machine holds the key (keeps its own, no conflict) until the resolution arrives. Keep mine: our version stays, and since their version is now our base the other machine takes ours on its next sync. Take theirs: we take theirs; both now agree. Keep both (gestures and commands present on both sides): ours stays and theirs is added with a new id, renamed on a name clash and unbound if its trigger is taken; for other kinds, or when one side deleted the item, the nearest choice is applied and the report's note says so. Two machines that found the same conflict at the same moment both list it; the last resolution wins.
+**Conflicts show on one machine.** The machine whose merge finds a conflict keeps its own version, lists the conflict and publishes the key as `pending`; the other machine holds the key (keeps its own, no conflict) until the resolution arrives. Keep mine: our version stays, and since their version is now our base the other machine takes ours on its next sync. Take theirs: we take theirs; both now agree. Keep both (gestures and commands present on both sides): ours stays and theirs is added with a new id, renamed on a name clash and unbound if its trigger is taken; for other kinds, or when one side deleted the item, the nearest choice is applied and the report's note says so (`SyncChoiceRules`). Two machines that found the same conflict at the same moment both list it; the last resolution wins.
 
 ## The run (`SyncCoordinator.Run`)
 
+0. With the `SyncFolders` (the App passes them): the folders are made to belong to the URL in the settings (Limits, below). Then the job's resolutions (`Run(join, resolutions)`, the conflict dialog's answers) are applied in order, as `Resolve` does, stopping at the first that fails; their notes lead the report.
 1. Sync off (no repository) → `Off`. The machine id is generated on first use (`SettingsStore.EnsureMachineId`, on the store thread).
 2. `Prepare(url)`, `Pull()`, `ReadMachineFiles()`; a failure → `Failed`, stores and state untouched.
 3. Read the files (`SyncRepositoryFiles`): this machine's own (only its revision matters) and the others, in machine-id order. A file that does not parse, breaks a rule, sits under another id, or has steps this build cannot read is skipped with a note (merging the last kind would delete those steps everywhere; the note says to update Augram here).
@@ -106,15 +113,51 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 
 ## Format version
 
-`SyncFile.CurrentFormatVersion` (the file's `formatVersion`, separate from the config `schemaVersion`) is the sync's own contract. **Raise it with every change to what a sync item holds or to which item kinds exist**, and add a line to its history on the constant. 1: every file before 2026-10-07 (no member). 2: F8 cross-platform commands (Use on, macOS executable names, a command's own steps as an item of their own). 3 (2026-10-08): "Use on" on a category (the category item's `useOn`); a format 2 build would read such a category as used everywhere and publish it back that way, so it pauses instead ("Paused: PC-WORK uses a newer Augram…"). 4 (2026-10-08): the step types TypeText, Run and Display (`typeText`, `run`, `displayMode`, `hdr`); a format 3 build cannot read a command holding one and would drop it. 5 (2026-10-09): Display mode's "highest available" refresh (`"refreshHz": "highest"`), which a format 4 build refuses to read. 6 (2026-10-09): trigger combinations (a trigger's `hold`, the click trigger `{ "click": true }`, an own-steps item's `trigger`); a format 5 build would read a combination as the plain trigger and publish it back that way (the config schema went to 2 at the same time, so such a build also refuses the file by its schema). 7 (2026-10-09): the step types Scroll and Clear clipboard (`scroll`, `clearClipboard`); a format 6 build cannot read a command holding one and would drop the step. 8 to 10: see the history on the constant. 11 (2026-10-10): hold remaps (the `holdRemap` item kind, a command item's `holdRemap`, the input trigger, the Remap step); a format 10 build would drop the hold remaps and publish the group without them, could not read an input trigger, and would keep a Remap step only as is (the config schema went to 4 at the same time). 12 (2026-10-10, plan 0004): a command's own drag distance (a trigger hold's `dragDistancePx`, in a command item and an own-steps item's trigger) and a Global command's `notIn`; a format 11 build would drop both and publish the commands without them (the config schema went to 5 at the same time). 13 (the same evening, plan 0004 revised): Ignored › Per command entries (an ignored app item's `"scope": "PerCommand"`), which a command item's `notIn` names instead of app groups; a format 12 build would read such an entry as an ignore of the whole app, switch Augram off over it and drop every "Not in" naming one (the config schema went to 6). 14 (the same night, plan 0005): button triggers (a command item's and an own-steps item's `{ "button": … }` trigger) and a command item's `alsoIn` (Exclusions › Global entries); a format 13 build could not read a file holding a button trigger, so it would skip that file, and it would drop every "Also in" and publish the commands without it (the config schema went to 7). Why: a build that reads a newer file drops what it cannot see, and its next publish deletes that on every machine (2026-10-07: the PC, still on an old build, had to be stopped by hand before it read the Mac's own steps).
+`SyncFile.CurrentFormatVersion` (the file's `formatVersion`, separate from the config `schemaVersion`) is the sync's own contract. **Raise it with every change to what a sync item holds or to which item kinds exist**, and add a row here. Why: a build that reads a newer file drops what it cannot see, and its next publish deletes that on every machine (2026-10-07: the PC, still on an old build, had to be stopped by hand before it read the Mac's own steps). The last column is what a build one format older would have done, and why it pauses instead ("Paused: PC-WORK uses a newer Augram…").
+
+| Format | When | What changed | A build one format older |
+|---|---|---|---|
+| 1 | before 2026-10-07 | every file before the member existed (no `formatVersion`) | |
+| 2 | 2026-10-07 | F8 cross-platform commands: Use on, macOS executable names, a command's own steps as an item of their own | |
+| 3 | 2026-10-08 | "Use on" on a category (the category item's `useOn`) | reads such a category as used everywhere and publishes it back that way |
+| 4 | 2026-10-08 | the step types TypeText, Run and Display (`typeText`, `run`, `displayMode`, `hdr`) | cannot read a command holding one and drops it |
+| 5 | 2026-10-09 | Display mode's "highest available" refresh (`"refreshHz": "highest"`) | refuses to read it |
+| 6 | 2026-10-09 | trigger combinations (a trigger's `hold`, the click trigger `{ "click": true }`, an own-steps item's `trigger`); config schema 2 | reads a combination as the plain trigger and publishes it back that way (such a build also refuses the file by its schema) |
+| 7 | 2026-10-09 | the step types Scroll and Clear clipboard (`scroll`, `clearClipboard`) | cannot read a command holding one and drops the step |
+| 8 | 2026-10-09 | the StrokesPlus.net app definition's fields (regex executable names; a macOS executable path and window title; root, parent and control titles; owner, root, parent and control classes); config schema 3 | ignores them, matches too many windows and publishes the matcher back without them |
+| 9 | 2026-10-09 | the Open app step (`openApp`) | keeps it as is but cannot run it |
+| 10 | 2026-10-09 | a gesture's `originalSamples` (shape cleanup) | drops them and publishes the gesture without its original |
+| 11 | 2026-10-10 | hold remaps (F9: the `holdRemap` item kind, a command item's `holdRemap`, the input trigger, the Remap step); config schema 4 | drops the hold remaps and publishes the group without them, cannot read an input trigger, keeps a Remap step only as is |
+| 12 | 2026-10-10, plan 0004 | a command's own drag distance (a trigger hold's `dragDistancePx`, in a command item and an own-steps item's trigger) and a Global command's `notIn`; config schema 5 | drops both and publishes the commands without them |
+| 13 | the same evening, plan 0004 revised | Ignored › Per command entries (an ignored app item's `"scope": "PerCommand"`), which a command item's `notIn` names instead of app groups; config schema 6 | reads such an entry as an ignore of the whole app, switches Augram off over it, and drops every "Not in" naming one |
+| 14 | the same night, plan 0005 | button triggers (a command item's and an own-steps item's `{ "button": "Left", "hold": … }` trigger) and a command item's `alsoIn` (Exclusions › Global entries); config schema 7 | cannot read a file holding a button trigger, so skips that file; drops every "Also in" and publishes the commands without it |
 
 - `SyncFileSerializer.ReadHeader` reads both versions and the machine name before anything else. A file newer in either goes to `SyncRepositoryFiles.Newer` unread, and the run answers `NeedsUpdate`. `Read` refuses such a file too.
 - **Never downgrade.** The publisher records the format it publishes in `SyncBaseStore.PublishedFormatVersion` (before the push; only ever raised). A build that writes an older format answers `NeedsUpdate` naming this machine, as it does when this machine's own file in the repo is newer.
 - **An older file still merges**: members it lacks read as their defaults. That is safe because a build with this guard never publishes after seeing a newer file, so an older file never acknowledges items it could not read. Builds from before the guard have no such protection; keep every machine on one that has it.
 
+## Sync file (`Files/SyncFileSerializer`)
+
+`machines/<machineId>.json` in the sync repo (F8 sync; the merge is above): the config file's `gestures` and `mapping` members, written and read by exactly the same code, under a machine header. Settings never travel.
+
+```json
+{
+  "schemaVersion": 7,
+  "formatVersion": 14,
+  "machine": { "id": "<machine id>", "name": "PC-HOME", "writtenAt": "2026-10-07T18:30:00+00:00", "revision": "<new Guid per publish>" },
+  "merged": [
+    { "machineId": "<other machine>", "revision": "<its revision merged here>", "except": ["command:<id>"], "pending": ["command:<id>"] }
+  ],
+  "gestures": [ … ],
+  "mapping": { "groups": [ … ], "ignored": [ … ] }
+}
+```
+
+`merged` has one entry per other machine this one has merged: the revision of its file, the item keys of that revision not taken (`except`: pending conflicts on either side) and the keys this machine has a conflict on with it, waiting for the user (`pending`; the other machine leaves those alone). The schema version is the config file's: newer is refused, older is migrated by `../Config/ConfigMigrations` (same members, same steps). `formatVersion` is the sync's own (`SyncFile.CurrentFormatVersion`; missing = 1): newer is refused, older reads with defaults. `ReadHeader` reads both and the machine name alone, so the sync can pause on a file a newer Augram wrote without reading the rest (Format version below; `SyncFileHeader`: `IsNewer` for this build, `IsNewerThan(schema, format)` for what an older build answers). Reading validates with `GestureRules` and `MappingRules`; a file that breaks a rule is an error like a malformed one. Steps of an unknown type are kept as is with a notice, as on load (`../Steps/Unknown/`); the sync then skips such a file rather than merge what it cannot read.
+
 ## Threading
 
-`Run` and `Resolve` are for the **sync worker** (they take a lock; calling them on the store thread would deadlock on `onStoreThread`). `PendingConflicts()` is safe from any thread: a snapshot as of construction or the last run or resolution. The git calls, the merge and the state files run there. Every store mutation goes through the `onStoreThread` delegate the host passes (`Func<Func<SyncApplied>, SyncApplied>`: run the function on the stores' thread and return its result; tests pass `f => f()`). The worker merges against `GestureLibrary.All` and `MappingStore.Current` read as snapshots; the store-thread function applies only if both are still the same instances, else returns `SyncApplied.Moved` and the worker merges again (at most `MaxAttempts`), so an edit made meanwhile is never lost. The stores raise `Changed` there, so `ConfigSession` saves and the engine swaps as for any edit. After `Resolve`, the next `Run` publishes; the App's change-triggered sync does that.
+`Run` and `Resolve` are for the **sync worker** (they take a lock; calling them on the store thread would deadlock on `onStoreThread`). `PendingConflicts()` is safe from any thread: a snapshot as of construction, the last run or resolution, or a folder reset (which empties it). The git calls, the merge and the state files run there. Every store mutation goes through the `onStoreThread` delegate the host passes (`Func<Func<SyncApplied>, SyncApplied>`: run the function on the stores' thread and return its result; tests pass `f => f()`). The worker merges against `GestureLibrary.All` and `MappingStore.Current` read as snapshots; the store-thread function applies only if both are still the same instances, else returns `SyncApplied.Moved` and the worker merges again (at most `MaxAttempts`), so an edit made meanwhile is never lost. The stores raise `Changed` there, so `ConfigSession` saves and the engine swaps as for any edit. After `Resolve`, the next `Run` publishes; the App's change-triggered sync does that.
 
 ## State files (`<configFolder>/sync/state/`)
 
@@ -128,6 +171,6 @@ An unreadable state file is reported and treated as absent (no base: conflicts r
 ## Limits
 
 - Contents are compared as text: a release that changes how an item is written makes items here look changed once (they are kept and published, not lost); a format change needs a schema version and a migration (`../Config/ConfigMigrations`), and any change to what an item holds raises the sync format version.
-- The state belongs to one repository and Core does not know which. `SyncBaseStore.Clear()` forgets it (every machine's state, the published revisions, the pending-publish flag, the published format); the App calls it when the repository URL changes or is cleared, so the next run asks the join question again (`src/Augram.App/README.md`, Sync).
+- The state belongs to one repository, the one `SyncFolders` remembers in `sync/repository-url.txt` (a URL string and a folder; Core still knows nothing of git). Before every run the coordinator calls `SyncFolders.Prepare(url)`: no marker yet → remember the URL (an existing clone is taken as this URL's); a different URL or none → move `sync/repo` aside to `sync/repo-old-<yyyyMMdd-HHmmss>` (never deleted; the git adapter refuses a clone of another URL), `SyncBaseStore.Clear()` (every machine's state, the published revisions, the pending-publish flag, the published format), remember the new URL (or delete the marker), forget the pending conflicts with the state, and log "Sync state cleared: the repository changed" (host only). The next run asks the join question again; a URL changed just before quitting is reset at the next start. A clone that cannot be moved (a file open in it) fails the run ("The old sync folder could not be moved aside: …", logged as "Sync folder could not be prepared") and nothing changes.
 
-**May reference:** `Abstractions` (`ISyncRepository`, `IClock`, `IEventLog`), `Config` (settings, the sync file, item JSON), `Diagnostics`, `Gestures`, `Mapping`, `Steps`. **Referenced by:** the composition root, the Options › Sync view model, and `Transfer` (an import is this merge without a base: it reuses the items, `SyncConflict`, `SyncChoice`, `ConflictResolution.Effective`, `SyncDocumentBuilder` with its repairs, and `SyncCounts`; a change to any of them changes imports too, `../Transfer/README.md`).
+**May reference:** `Abstractions` (`ISyncRepository`, `IClock`, `IEventLog`), `Config` (settings; the config file's writers, readers and migrations, which the sync file and item JSON go through), `Diagnostics`, `Gestures`, `Mapping`, `Steps`. **Referenced by:** the App's sync (`Hosting/SyncModule`, `SyncService`, `SyncStoreThread`, `SyncHealthContributor`; `Sync/SyncPrompter`, the conflict presenter; `Tray/SyncTrayItem`; the view models `SyncViewModel`, `SyncConflictsViewModel`, `SyncJoinViewModel`), and `Transfer` (an import is this merge without a base: it reuses the items, `SyncConflict`, `SyncChoice`, `SyncChoiceRules`, `ConflictResolution` with its two extras, `SyncDocumentBuilder` with its repairs, `SyncStoreWriter`'s store-thread apply, and `SyncCounts`; a change to any of them changes imports too, `../Transfer/README.md`).

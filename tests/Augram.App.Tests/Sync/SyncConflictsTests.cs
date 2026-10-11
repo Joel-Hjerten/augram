@@ -1,6 +1,5 @@
 using Augram.App.Components.GestureGlyph;
 using Augram.App.Components.SyncConflictList;
-using Augram.App.Hosting;
 using Augram.App.Sync;
 using Augram.App.Tests.Support;
 using Augram.App.Tests.Sync.Support;

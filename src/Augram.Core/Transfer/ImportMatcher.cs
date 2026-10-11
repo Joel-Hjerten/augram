@@ -17,7 +17,7 @@ namespace Augram.Core.Transfer;
 internal sealed partial class ImportMatcher
 {
     private readonly Dictionary<SyncItemKey, ImportMatch> _matches = [];
-    private readonly Dictionary<GestureId, GestureId> _gestureIds = [];
+    private Dictionary<GestureId, GestureId> _gestureIds = [];
 
     private ImportMatcher()
     {
@@ -35,53 +35,45 @@ internal sealed partial class ImportMatcher
         return new Matched(matchedGestures, matchedMapping, matcher._matches);
     }
 
+    /// <summary>By id, then by name (<see cref="Pair"/>, as every other kind), then by shape when asked.</summary>
     private Gesture[] Gestures(IReadOnlyList<Gesture> file, IReadOnlyList<Gesture> local, RecognitionOptions? shapes)
     {
-        var localIds = local.Select(gesture => gesture.Id).ToHashSet();
-        var claimed = file.Select(gesture => gesture.Id).Where(localIds.Contains).ToHashSet();
-        var unknown = file.Where(gesture => !localIds.Contains(gesture.Id)).ToArray();
-        foreach (var gesture in unknown)
-        {
-            if (local.FirstOrDefault(twin => !claimed.Contains(twin.Id) && GestureRules.NameComparer.Equals(twin.Name, gesture.Name)) is { } twin)
-            {
-                Claim(gesture, twin, new ImportMatch(ImportMatchKind.Name, gesture.Name), claimed);
-            }
-        }
-
+        _gestureIds = Pair(
+            file,
+            local,
+            gesture => gesture.Id,
+            gesture => gesture.Name,
+            SyncItemKey.ForGesture,
+            (ImportMatchKind.Name, (gesture, twin) => GestureRules.NameComparer.Equals(twin.Name, gesture.Name)));
         if (shapes is not null)
         {
-            MatchShapes(unknown.Where(gesture => !_gestureIds.ContainsKey(gesture.Id)), local, claimed, shapes);
+            var localIds = local.Select(gesture => gesture.Id).ToHashSet();
+            var claimed = file.Select(gesture => gesture.Id).Where(localIds.Contains).Concat(_gestureIds.Values).ToHashSet();
+            MatchShapes(file.Where(gesture => !localIds.Contains(gesture.Id) && !_gestureIds.ContainsKey(gesture.Id)), local, claimed, shapes);
         }
 
         return [.. file.Select(gesture => _gestureIds.TryGetValue(gesture.Id, out var id) ? gesture with { Id = id } : gesture)];
     }
 
-    /// <summary>A7: the first sample against every gesture not yet matched (inactive ones too), a duplicate score taking its id.</summary>
+    /// <summary>A7: the first sample against every gesture not yet matched (inactive ones too), a duplicate score taking its id (<see cref="ConfusionCheck.Duplicate"/>).</summary>
     private void MatchShapes(IEnumerable<Gesture> unknown, IReadOnlyList<Gesture> local, HashSet<GestureId> claimed, RecognitionOptions shapes)
     {
         var matcher = new GestureMatcher();
         foreach (var gesture in unknown.Where(gesture => gesture.Samples.Count > 0))
         {
-            var candidates = local.Where(twin => !claimed.Contains(twin.Id)).Select(twin => twin.IsActive ? twin : twin with { IsActive = true }).ToArray();
+            var candidates = local.Where(twin => !claimed.Contains(twin.Id)).ToArray();
             if (candidates.Length == 0)
             {
                 return;
             }
 
-            var best = matcher.Rank(gesture.Samples[0], candidates, shapes).FirstOrDefault();
-            if (best is not null && best.Score >= ConfusionCheck.DuplicateCutOff)
+            if (ConfusionCheck.Duplicate(gesture.Samples[0], candidates, shapes, matcher) is { } best)
             {
-                var twin = local.First(candidate => candidate.Id == best.GestureId);
-                Claim(gesture, twin, new ImportMatch(ImportMatchKind.Shape, gesture.Name, best.Score), claimed);
+                claimed.Add(best.GestureId);
+                _gestureIds[gesture.Id] = best.GestureId;
+                _matches[SyncItemKey.ForGesture(best.GestureId)] = new ImportMatch(ImportMatchKind.Shape, gesture.Name, best.Score);
             }
         }
-    }
-
-    private void Claim(Gesture gesture, Gesture twin, ImportMatch match, HashSet<GestureId> claimed)
-    {
-        claimed.Add(twin.Id);
-        _gestureIds[gesture.Id] = twin.Id;
-        _matches[SyncItemKey.ForGesture(twin.Id)] = match;
     }
 
     /// <summary>The file with its ids lined up, and how each item that took a local id by something other than its id matched, by its (local) key.</summary>

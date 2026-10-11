@@ -1,4 +1,4 @@
-using Augram.Core.Config;
+using Augram.Core.Sync.Files;
 
 namespace Augram.Core.Sync;
 
