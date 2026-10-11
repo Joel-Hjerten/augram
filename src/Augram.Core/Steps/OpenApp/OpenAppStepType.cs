@@ -16,8 +16,6 @@ public sealed class OpenAppStepType : IStepType
 
     public static OpenAppStepType Instance { get; } = new();
 
-    internal static HostPlatform CurrentPlatform => OperatingSystem.IsMacOS() ? HostPlatform.MacOS : HostPlatform.Windows;
-
     public string Key => "openApp";
 
     public string DisplayName => "Open app";
@@ -64,6 +62,6 @@ public sealed class OpenAppStepType : IStepType
     public StepResult Execute(IStep step, StepExecutionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return OpenAppExecutor.Execute(StepParameters.Expect<OpenAppStep>(step, this), context, CurrentPlatform);
+        return OpenAppExecutor.Execute(StepParameters.Expect<OpenAppStep>(step, this), context, RunningPlatform.Current);
     }
 }

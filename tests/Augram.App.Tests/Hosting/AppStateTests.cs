@@ -214,7 +214,7 @@ public sealed class AppStateTests
         // Never switched back on; the switched-off leftover is removed, so the OS and the setting agree.
         Assert.Equal([false], registration.Writes);
         Assert.Equal(StartupStatus.NotRegistered, registration.Status);
-        Assert.Equal(StartupPolicy.FollowedNote(StartupStatus.DisabledByUser, AppState.Platform), state.StartAtLoginNote);
+        Assert.Equal(StartupPolicy.FollowedNote(StartupStatus.DisabledByUser, RunningPlatform.Current), state.StartAtLoginNote);
         Assert.NotEmpty(state.StartAtLoginNote);
         Assert.Contains(nameof(AppState.StartAtLogin), changes);
         Assert.Contains(nameof(AppState.StartAtLoginNote), changes);
@@ -231,7 +231,7 @@ public sealed class AppStateTests
 
         Assert.False(state.StartAtLogin);
         Assert.Equal([false], registration.Writes);
-        Assert.Equal(StartupPolicy.FollowedNote(StartupStatus.NeedsApproval, AppState.Platform), state.StartAtLoginNote);
+        Assert.Equal(StartupPolicy.FollowedNote(StartupStatus.NeedsApproval, RunningPlatform.Current), state.StartAtLoginNote);
     }
 
     [Fact]

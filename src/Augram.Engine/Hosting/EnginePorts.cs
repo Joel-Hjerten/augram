@@ -11,6 +11,8 @@ namespace Augram.Engine.Hosting;
 /// </summary>
 public sealed record EnginePorts
 {
+    private readonly HostPlatform? _platform;
+
     public required IInputSource Input { get; init; }
 
     public required IInputSimulator Simulator { get; init; }
@@ -36,6 +38,16 @@ public sealed record EnginePorts
 
     /// <summary>What a <c>WindowOp</c> step acts through (M2); the null object declines every operation.</summary>
     public IWindowOperations WindowOperations { get; init; } = NullWindowOperations.Instance;
+
+    /// <summary>
+    /// The platform the engine runs as: which steps a command plans, which app group names match, whether a Win or Alt held
+    /// before a press is masked. <see cref="WindowOperations"/>' platform unless set.
+    /// </summary>
+    public HostPlatform Platform
+    {
+        get => _platform ?? WindowOperations.Platform;
+        init => _platform = value;
+    }
 
     /// <summary>What a <c>Run</c> step starts programs through (M2); the null object declines every launch.</summary>
     public IProcessLauncher ProcessLauncher { get; init; } = NullProcessLauncher.Instance;

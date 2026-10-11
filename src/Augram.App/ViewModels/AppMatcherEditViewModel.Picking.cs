@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 
 namespace Augram.App.ViewModels;
@@ -18,7 +17,7 @@ public sealed partial class AppMatcherEditViewModel
     private bool _editChanged;
 
     /// <summary>The platform Augram runs on: a picked window is one of its windows, so its values go into this platform's fields.</summary>
-    public HostPlatform Platform { get; init; } = CommandsModule.CurrentPlatform;
+    public HostPlatform Platform { get; init; } = RunningPlatform.Current;
 
     /// <summary>Adds the executable to this platform's names unless it is listed already (compared as matching does: trimmed, any case); true when added.</summary>
     public bool TakeExecutable(WindowIdentity window)

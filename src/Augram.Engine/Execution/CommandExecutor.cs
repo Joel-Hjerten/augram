@@ -44,7 +44,7 @@ internal sealed class CommandExecutor : IDisposable
         ArgumentNullException.ThrowIfNull(options);
         _mapping = ports.Mapping ?? throw new ArgumentException("The executor needs the Mapping port.", nameof(ports));
         _windows = ports.Windows;
-        _platform = ports.WindowOperations.Platform;
+        _platform = ports.Platform;
         _recognitionLog = ports.RecognitionLog;
         _log = ports.Log;
         _simulator = ports.Simulator;

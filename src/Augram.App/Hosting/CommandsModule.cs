@@ -30,9 +30,6 @@ namespace Augram.App.Hosting;
 /// </summary>
 public static class CommandsModule
 {
-    /// <summary>The platform a step authored on this machine is stored with (F8).</summary>
-    public static HostPlatform CurrentPlatform => OperatingSystem.IsMacOS() ? HostPlatform.MacOS : HostPlatform.Windows;
-
     public static IServiceCollection Register(IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -84,7 +81,7 @@ public static class CommandsModule
             sp.GetRequiredService<IFormDialogPresenter>(),
             sp.GetRequiredService<IConfirmPresenter>(),
             sp.GetRequiredService<CommandClipboard>(),
-            CurrentPlatform,
+            RunningPlatform.Current,
             sp.GetService<IExportPresenter>());
         if (sp.GetService<SettingsStore>() is { } settings)
         {

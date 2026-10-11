@@ -24,6 +24,7 @@ internal sealed class CommandRunner
 {
     private readonly IWindowSystem _windows;
     private readonly IWindowOperations _operations;
+    private readonly EnginePorts _ports;
     private readonly IDisplayModes _displays;
     private readonly IInputSimulator _simulator;
     private readonly IProcessLauncher _processes;
@@ -39,6 +40,7 @@ internal sealed class CommandRunner
     {
         _windows = ports.Windows;
         _operations = ports.WindowOperations;
+        _ports = ports;
         _displays = ports.DisplayModes;
         _simulator = ports.Simulator;
         _processes = ports.ProcessLauncher;
@@ -55,7 +57,7 @@ internal sealed class CommandRunner
 
     public void Run(ExecutionRequest request, AppGroup group, Command command, WindowIdentity? target)
     {
-        var plan = command.PlanFor(_operations.Platform);
+        var plan = command.PlanFor(_ports.Platform); // read per command, as the adapter answers it (tests switch a fake's platform mid-run)
         if (!plan.Any(step => step.Stored.IsActive))
         {
             _log.Info(LogSources.Execution, "Command has no active steps", ("command", CommandNames.Label(group, command)));

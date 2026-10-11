@@ -212,7 +212,7 @@ public sealed class SyncConflictsViewModel
 
     private string VersionText(CommandVersion version)
     {
-        var platform = version.Platform == HostPlatform.MacOS ? "macOS" : "Windows";
+        var platform = version.Platform.DisplayName();
         var steps = version.Steps.Count == 0 ? "no steps (does nothing there)" : string.Join(", ", version.Steps.Select(step => step.Step.SummaryOn(step.AuthoredOn)));
         return version.Trigger is { } own ? $"{platform} trigger: {TriggerText(own)}; {platform} steps: {steps}" : $"{platform} steps: {steps}";
     }

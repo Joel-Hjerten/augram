@@ -55,7 +55,7 @@ internal sealed partial class EngineWorker
         _simulator = ports.Simulator;
         _log = ports.Log;
         _clock = ports.Clock;
-        _maskWinAlt = ports.WindowOperations.Platform == HostPlatform.Windows;
+        _maskWinAlt = ports.Platform == HostPlatform.Windows;
         _deepQueue = Math.Max(1, queueCapacity / 2);
     }
 

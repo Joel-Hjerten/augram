@@ -199,8 +199,6 @@ public sealed partial record CommandItem(
         };
     }
 
-    private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
-
     /// <summary>"Set by category 'Personal': Windows only", "Set by app group 'Steam' and hold remap 'Space': …"; null when nothing limits the command.</summary>
     private static string? LimitLine(AppGroup group, Command command)
     {
@@ -235,10 +233,10 @@ public sealed partial record CommandItem(
     /// </summary>
     private static string? VersionLine(Command command, HostPlatform here)
     {
-        var name = StepPlatformMarker.Name(here);
+        var name = here.DisplayName();
         if (command.OwnVersion is { } own && own.Platform == here)
         {
-            var origin = StepPlatformMarker.Name(Other(here));
+            var origin = here.Other().DisplayName();
             return command.IsOwnVersionStale
                 ? $"Own {name} steps. The {origin} original changed since they were made: check them, then mark them as checked."
                 : $"Own {name} steps; the {origin} original runs on {origin}.";
@@ -246,14 +244,14 @@ public sealed partial record CommandItem(
 
         if (command.OwnVersion is { } other)
         {
-            var otherName = StepPlatformMarker.Name(other.Platform);
+            var otherName = other.Platform.DisplayName();
             return command.IsOwnVersionStale
                 ? $"{name} original. {otherName} has its own steps, made before this original last changed."
                 : $"{name} original. {otherName} has its own steps.";
         }
 
         return command.Origin is { } authored && authored != here
-            ? $"{StepPlatformMarker.Name(authored)} original, converted for {name}. Editing a step here makes own {name} steps; {StepPlatformMarker.Name(authored)} keeps the original."
+            ? $"{authored.DisplayName()} original, converted for {name}. Editing a step here makes own {name} steps; {authored.DisplayName()} keeps the original."
             : null;
     }
 
@@ -263,10 +261,10 @@ public sealed partial record CommandItem(
     /// </summary>
     private static string? TriggerLine(Command command, HostPlatform here)
     {
-        var name = StepPlatformMarker.Name(here);
+        var name = here.DisplayName();
         if (command.HasOwnTriggerOn(here))
         {
-            return $"Own {name} trigger; the original keeps its own on {StepPlatformMarker.Name(Other(here))}.";
+            return $"Own {name} trigger; the original keeps its own on {here.Other().DisplayName()}.";
         }
 
         if (command.Origin is not { } origin || origin == here)
@@ -281,7 +279,7 @@ public sealed partial record CommandItem(
         }
 
         return plan.IsConverted
-            ? $"{StepPlatformMarker.Name(origin)} trigger {command.Trigger.Describe(origin)}, converted for {name}: {plan.Trigger.Describe(here)}. Changing it here makes it {name}'s own."
+            ? $"{origin.DisplayName()} trigger {command.Trigger.Describe(origin)}, converted for {name}: {plan.Trigger.Describe(here)}. Changing it here makes it {name}'s own."
             : null;
     }
 

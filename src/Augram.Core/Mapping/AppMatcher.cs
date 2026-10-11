@@ -148,7 +148,7 @@ public sealed record AppMatcher
             return own;
         }
 
-        var other = Other(platform);
+        var other = platform.Other();
         return ProcessNamesAreRegexOn(other) ? [] : KnownApps.Guess(ProcessNamesFor(other).Where(HasText), platform);
     }
 
@@ -167,8 +167,6 @@ public sealed record AppMatcher
             && WindowFields.All(entry => MatchesText(entry.Pattern, entry.IsRegex, entry.Actual(window.Levels)))
             && MatchesClassChain(window.ClassChain);
     }
-
-    private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 
     /// <summary>Not consulted when no list names anything; otherwise the window's executable must be one of this platform's names or guesses.</summary>
     private bool MatchesProcessName(string actual, HostPlatform platform)

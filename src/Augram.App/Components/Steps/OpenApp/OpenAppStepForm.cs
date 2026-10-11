@@ -1,6 +1,5 @@
 using Augram.App.Components.WindowFinder;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 using Augram.Core.Steps;
 using Augram.Core.Steps.OpenApp;
@@ -25,7 +24,7 @@ public sealed partial class OpenAppStepForm : IStepForm
     {
         ArgumentNullException.ThrowIfNull(changed);
         var state = new FormState(StepParameters.Expect<OpenAppStep>(current, OpenAppStepType.Instance), changed);
-        var platform = CommandsModule.CurrentPlatform;
+        var platform = RunningPlatform.Current;
         // Every binding names the property the state raises: a null name means "read it from the getter" (here IsAugram,
         // which never fires), and the app rows hidden by a ticked This app never came back (Joel, 2026-10-09).
         var apps = new DelegateBinding<bool>(() => !state.Step.IsAugram, owner: state, propertyName: nameof(FormState.Step));

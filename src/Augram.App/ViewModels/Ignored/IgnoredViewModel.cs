@@ -204,7 +204,7 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
 
         if (!IgnoreList.CanMatchOn(matcher, _platform))
         {
-            return "nothing on " + (_platform == HostPlatform.MacOS ? "macOS" : "Windows");
+            return "nothing on " + _platform.DisplayName();
         }
 
         if (matcher.HasProcessNames)
