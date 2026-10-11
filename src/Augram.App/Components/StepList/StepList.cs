@@ -249,7 +249,8 @@ public sealed partial class StepList : TemplatedControl
     /// Right-click selects before the context menu opens, so the menu acts on the step under the pointer. A left press on a
     /// step's header or grip goes to the drag tracker and is marked handled, so the list does not select (open) the step on
     /// the press: it opens and closes on the click, and a press that becomes a drag leaves it closed (Joel, 0.11.4). Presses
-    /// in the open form and on the active box are theirs.
+    /// in the open form and on the active box are theirs. Keyboard focus still moves to the step's container on the press:
+    /// Avalonia's focus manager does that on the tunnelling press, before this bubbling handler (StepListFocusTests).
     /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
