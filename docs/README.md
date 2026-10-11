@@ -11,6 +11,8 @@ Agent-for-agent documentation, modeled on the Chimera repo's system with a few r
 | `plans/` | Active implementation plans for features being built | Move to `plans/completed/` when shipped — completed plans are the historical record of *why the code is shaped this way* |
 | `reference/` | Durable how-it-works docs for subsystems (the things an agent must read before editing an area) | Kept current with the code |
 | `learnings/` | Hard-won debugging insight and "we tried X, it fails because Y" write-ups | Append; these prevent repeat burns |
+| [session-handoff.md](session-handoff.md) | The current state for the next agent: what is true now, what is open, rules from incidents | Replaced, not appended: a session updates its section; history stays in git |
+| `archive/` | Frozen snapshots of docs that were cut down (e.g. the handoff before plan 0007) | Never edited |
 | [handoff.md](handoff.md) | The original research handoff (prior art, recognition algorithm, platform notes) | Frozen historical input; requirements.md supersedes it where they conflict |
 
 ## Conventions (inherited from Chimera, adjusted)
