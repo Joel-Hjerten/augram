@@ -14,9 +14,12 @@ public static class IgnoredModes
 
     public const string DisableWhileFocused = "Disable while focused";
 
+    /// <summary>One short paragraph per mode, a blank line between them (Joel, 2026-10-11: one run-on paragraph was unreadable).</summary>
     public const string Help =
-        "Gestures off: over the app's windows the stroke button reaches the app untouched (its drag and the wheel too), as with the ignore key. "
-        + "Disable while focused: the same, and while the app has focus Augram behaves as if switched off, so a virtual machine gets the raw button.";
+        "Gestures off over this app\n"
+        + "While the pointer is over this app, the stroke button goes straight to the app. Everywhere else, gestures work as usual. Hold remaps keep working.\n\n"
+        + "Disable while focused\n"
+        + "While this app is the active window, Augram is fully off, gestures and hold remaps alike, wherever the pointer is. Use it for a virtual machine.";
 
     /// <summary>A plain entry's form (Joel, 2026-10-10).</summary>
     public const string HoldRemapsStillWork = "Hold remaps still work in this app: they never use the stroke button.";
