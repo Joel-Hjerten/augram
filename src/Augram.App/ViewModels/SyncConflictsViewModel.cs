@@ -12,6 +12,7 @@ using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Sync;
+using Augram.Core.Text;
 
 namespace Augram.App.ViewModels;
 
@@ -84,7 +85,7 @@ public sealed class SyncConflictsViewModel
         }
 
         var machines = conflicts.Select(conflict => conflict.MachineName).Where(name => name.Length > 0).Distinct(StringComparer.Ordinal).ToList();
-        var count = string.Create(CultureInfo.InvariantCulture, $"{conflicts.Count} conflict{(conflicts.Count == 1 ? string.Empty : "s")}");
+        var count = Sentence.Count(conflicts.Count, "conflict");
         return machines.Count == 0 ? count : $"{count} with {string.Join(" and ", machines)}";
     }
 
@@ -131,21 +132,10 @@ public sealed class SyncConflictsViewModel
 
     private SyncConflictEntry Entry(SyncConflict conflict, int index)
     {
-        var detail = conflict.MachineName.Length > 0 ? $"{KindLabel(conflict.Kind)} · with {conflict.MachineName}" : KindLabel(conflict.Kind);
+        var detail = conflict.MachineName.Length > 0 ? $"{SyncItemNouns.Heading(conflict.Kind)} · with {conflict.MachineName}" : SyncItemNouns.Heading(conflict.Kind);
         var choices = Allowed(conflict).Select(choice => new Choice<SyncChoice>(Label(choice), choice)).ToList();
         return new SyncConflictEntry(conflict.Name, detail, Side(conflict, conflict.LocalContent), Side(conflict, conflict.RemoteContent), choices, _choices[index]);
     }
-
-    public static string KindLabel(SyncItemKind kind) => kind switch
-    {
-        SyncItemKind.Gesture => "Gesture",
-        SyncItemKind.Group => "App group",
-        SyncItemKind.Category => "Category",
-        SyncItemKind.Command => "Command",
-        SyncItemKind.CommandVersion => "Own steps",
-        SyncItemKind.HoldRemap => "Hold remap",
-        _ => "Excluded app",
-    };
 
     public static string Label(SyncChoice choice) => choice switch
     {
@@ -186,7 +176,7 @@ public sealed class SyncConflictsViewModel
 
     private static string GestureText(Gesture gesture)
     {
-        var samples = string.Create(CultureInfo.InvariantCulture, $"{gesture.Samples.Count} sample{(gesture.Samples.Count == 1 ? string.Empty : "s")}");
+        var samples = Sentence.Count(gesture.Samples.Count, "sample");
         return $"{gesture.Name} · {samples}{(gesture.IsActive ? string.Empty : " · inactive")}";
     }
 

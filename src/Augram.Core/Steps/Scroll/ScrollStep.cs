@@ -1,5 +1,6 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Steps.Hotkey;
+using Augram.Core.Text;
 
 namespace Augram.Core.Steps.Scroll;
 
@@ -27,7 +28,7 @@ public sealed record ScrollStep(ScrollDirection Direction, int Notches = 1, KeyM
     {
         var scroll = $"scroll {Direction.ToString().ToLowerInvariant()}" + (NotchCount > 1 ? $" ×{NotchCount}" : string.Empty);
         return HeldKeys == KeyModifiers.None
-            ? char.ToUpperInvariant(scroll[0]) + scroll[1..]
+            ? Sentence.Capitalised(scroll)
             : $"{HotkeyText.Format(HeldKeys, KeyCode.None, names: platform)} + {scroll}";
     }
 }

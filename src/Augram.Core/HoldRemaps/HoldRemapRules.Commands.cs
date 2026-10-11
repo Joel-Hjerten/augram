@@ -3,6 +3,7 @@ using Augram.Core.Capture;
 using Augram.Core.Mapping;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Remap;
+using Augram.Core.Text;
 
 namespace Augram.Core.HoldRemaps;
 
@@ -174,7 +175,7 @@ public static partial class HoldRemapRules
     /// </summary>
     private sealed record StepsRule(string Situation, string Reason, string? Alone = null)
     {
-        public string Problem => Alone ?? $"{char.ToUpperInvariant(Reason[0])}{Reason[1..]}.";
+        public string Problem => Alone ?? Sentence.Capitalised(Reason) + ".";
 
         public string Refusal(Command command) => $"'{command.Name}' {Situation}: {Reason}.";
     }

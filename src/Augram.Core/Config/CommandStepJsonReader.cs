@@ -3,6 +3,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Unknown;
+using Augram.Core.Text;
 
 namespace Augram.Core.Config;
 
@@ -42,7 +43,7 @@ internal sealed class CommandStepJsonReader
 
     private CommandStep Read(JsonNode? node, string where)
     {
-        var envelope = JsonMembers.RequireObject(node, Capitalised(where));
+        var envelope = JsonMembers.RequireObject(node, Sentence.Capitalised(where));
         var key = JsonMembers.RequireString(envelope, "type", where);
         var parameters = Parameters(envelope["params"], "params", where);
         var type = _registry.Find(key);
@@ -77,10 +78,7 @@ internal sealed class CommandStepJsonReader
     /// <summary>The step as the file had it, with one notice; the sync counts these notices and skips such a file.</summary>
     private UnknownStep Keep(string where, string key, JsonObject parameters, string why)
     {
-        _notice?.Invoke($"{Capitalised(where)} kept as is: {why}.");
+        _notice?.Invoke($"{Sentence.Capitalised(where)} kept as is: {why}.");
         return UnknownStepType.Keep(key, parameters, why);
     }
-
-    private static string Capitalised(string text)
-        => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 }

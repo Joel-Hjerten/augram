@@ -3,6 +3,7 @@ using Augram.App.Components.MasterDetail;
 using Augram.App.Declarations;
 using Augram.App.UsedBy;
 using Augram.Core.Mapping;
+using Augram.Core.Text;
 
 namespace Augram.App.ViewModels.Ignored;
 
@@ -77,5 +78,5 @@ public sealed partial class IgnoredViewModel
                 pair.Command.IsActive ? null : "inactive");
         })];
 
-    private static string Commands(int count) => count == 1 ? "1 command" : $"{count} commands";
+    private static string Commands(int count) => Sentence.Count(count, "command");
 }

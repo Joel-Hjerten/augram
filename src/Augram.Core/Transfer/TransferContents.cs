@@ -1,5 +1,5 @@
-using System.Globalization;
 using Augram.Core.Mapping;
+using Augram.Core.Sync;
 
 namespace Augram.Core.Transfer;
 
@@ -56,24 +56,24 @@ public sealed record TransferContents(
             parts.Add("options");
         }
 
-        Add(parts, Gestures, "gesture");
+        Add(parts, Gestures, SyncItemKind.Gesture);
         if (HasGlobal)
         {
             parts.Add(AppGroup.GlobalName);
         }
 
-        Add(parts, AppGroups, "app group");
-        Add(parts, HoldRemaps, "hold remap");
-        Add(parts, Commands, "command");
-        Add(parts, IgnoredApps, "excluded app");
+        Add(parts, AppGroups, SyncItemKind.Group);
+        Add(parts, HoldRemaps, SyncItemKind.HoldRemap);
+        Add(parts, Commands, SyncItemKind.Command);
+        Add(parts, IgnoredApps, SyncItemKind.Ignored);
         return parts.Count == 0 ? "nothing" : string.Join(", ", parts);
     }
 
-    private static void Add(List<string> parts, int count, string noun)
+    private static void Add(List<string> parts, int count, SyncItemKind kind)
     {
         if (count > 0)
         {
-            parts.Add(string.Create(CultureInfo.InvariantCulture, $"{count} {noun}{(count == 1 ? string.Empty : "s")}"));
+            parts.Add(SyncItemNouns.Count(kind, count));
         }
     }
 }

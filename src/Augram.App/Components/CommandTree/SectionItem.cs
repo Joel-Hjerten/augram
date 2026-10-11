@@ -1,4 +1,4 @@
-using System.Globalization;
+using Augram.Core.Text;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -57,10 +57,10 @@ public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool 
                 parts.Add(KindText);
             }
 
-            parts.Add(Count(Commands.Count, "command"));
+            parts.Add(Sentence.Count(Commands.Count, "command", zeroAsNo: true));
             if (HoldRemapCount > 0)
             {
-                parts.Add(Count(HoldRemapCount, "hold remap"));
+                parts.Add(Sentence.Count(HoldRemapCount, "hold remap", zeroAsNo: true));
             }
 
             if (Note is not null)
@@ -71,11 +71,4 @@ public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool 
             return string.Join(" · ", parts);
         }
     }
-
-    private static string Count(int count, string what) => count switch
-    {
-        0 => $"no {what}s",
-        1 => $"1 {what}",
-        var n => n.ToString(CultureInfo.InvariantCulture) + $" {what}s",
-    };
 }

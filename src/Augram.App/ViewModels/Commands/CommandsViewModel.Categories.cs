@@ -17,7 +17,7 @@ public sealed partial class CommandsViewModel
     private void NewCategory()
     {
         var global = _store.Global;
-        var category = new CommandCategory(CategoryId.New(), FreeNames.Next("New category", global.Categories.Select(existing => existing.Name)));
+        var category = new CommandCategory(CategoryId.New(), FreeNames.Next("New category", global.Categories.Select(existing => existing.Name), MappingRules.NameComparer));
         var section = SectionId.ForCategory(global.Id, category.Id);
         _expanded.Add(section);
         _store.UpdateGroup(global with { Categories = [.. global.Categories, category] });

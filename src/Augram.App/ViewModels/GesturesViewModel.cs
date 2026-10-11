@@ -7,6 +7,7 @@ using Augram.Core.Gestures;
 using Augram.Core.Gestures.Cleanup;
 using Augram.Core.Mapping;
 using Augram.Core.Recognition;
+using Augram.Core.Text;
 using Augram.Core.Transfer;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -115,8 +116,6 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
         _library.Changed -= OnLibraryChanged;
     }
 
-    private static string Count(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n} {noun}s";
-
     private void Dispatch(GestureGridActionEventArgs e)
     {
         switch (e.Action)
@@ -201,7 +200,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
             var removed = _library.Remove(tile.Id);
             Message = unbound == 0
                 ? $"Deleted '{removed.Name}'. {GestureGridKeymap.Undo} undoes it."
-                : $"Deleted '{removed.Name}' and unbound {Count(unbound, "command")}. {GestureGridKeymap.Undo} undoes the delete; the Commands tab undoes the unbinding.";
+                : $"Deleted '{removed.Name}' and unbound {Sentence.Count(unbound, "command")}. {GestureGridKeymap.Undo} undoes the delete; the Commands tab undoes the unbinding.";
         }
         catch (Exception exception) when (exception is GestureValidationException or MappingValidationException)
         {
@@ -240,7 +239,7 @@ public sealed partial class GesturesViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var commands = $"{Count(retargeted, "command")} retargeted to '{tile.Name}'" + (unbound == 0 ? "." : $"; {Count(unbound, "command")} unbound (its group already used '{tile.Name}').");
+        var commands = $"{Sentence.Count(retargeted, "command")} retargeted to '{tile.Name}'" + (unbound == 0 ? "." : $"; {Sentence.Count(unbound, "command")} unbound (its group already used '{tile.Name}').");
         Message = $"Kept '{tile.Name}'; deleted {string.Join(", ", names)}. {commands} {GestureGridKeymap.Undo} undoes the delete; the Commands tab undoes the retargeting.";
     }
 

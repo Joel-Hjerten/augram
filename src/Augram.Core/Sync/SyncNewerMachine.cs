@@ -1,5 +1,6 @@
 using System.Globalization;
 using Augram.Core.Config;
+using Augram.Core.Text;
 
 namespace Augram.Core.Sync;
 
@@ -30,7 +31,7 @@ public sealed record SyncNewerMachine(Guid MachineId, string MachineName, bool I
         {
             0 => "this machine last synced with a newer Augram",
             1 => $"{others[0]} uses a newer Augram",
-            _ => $"{string.Join(", ", others[..^1])} and {others[^1]} use a newer Augram",
+            _ => $"{Sentence.List(others)} use a newer Augram",
         };
     }
 }
