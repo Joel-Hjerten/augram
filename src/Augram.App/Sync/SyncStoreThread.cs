@@ -1,13 +1,13 @@
 using Augram.Core.Sync;
 using Avalonia.Threading;
 
-namespace Augram.App.Hosting;
+namespace Augram.App.Sync;
 
 /// <summary>
 /// The <c>onStoreThread</c> delegate <see cref="SyncCoordinator"/> applies through (Core/Sync README: threading):
 /// runs the function on the stores' thread, the Avalonia UI thread in the app, synchronously, and returns its
 /// result; called on the UI thread it runs at once. While the function runs, <see cref="IsApplying"/> is true, so
-/// <see cref="SyncService"/> can tell the store changes a sync makes from the user's own (it reads the flag in the
+/// <see cref="SyncScheduler"/> can tell the store changes a sync makes from the user's own (it reads the flag in the
 /// stores' <c>Changed</c> handlers, which run inside the function on the same thread). After <see cref="Stop"/> a
 /// waiting call returns <see cref="SyncApplied.Failed"/> at once and nothing more is applied, so shutdown never
 /// waits on a UI thread that is no longer pumping and a sync never lands after the app closed.

@@ -1,6 +1,5 @@
 using System.Globalization;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
 using Augram.App.Sync;
 using Augram.App.Tests.Sync.Support;
 using Augram.App.ViewModels;

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Augram.App.Hosting;
+using Augram.App.Sync;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Avalonia.Controls;

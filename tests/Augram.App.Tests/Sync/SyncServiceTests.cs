@@ -1,7 +1,6 @@
-using Augram.App.Hosting;
+using Augram.App.Sync;
 using Augram.App.Tests.Support;
 using Augram.App.Tests.Sync.Support;
-using Augram.App.ViewModels;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
 using Augram.Core.Sync.Files;
@@ -46,7 +45,7 @@ public sealed class SyncServiceTests : SyncTestBase
 
         Assert.Equal(0, home.Service.RunCount);
         Assert.Empty(home.Repository.PreparedUrls);
-        Assert.Equal(0, home.Schedule.Scheduled(SyncService.ChangeDelay));
+        Assert.Equal(0, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
         Assert.False(home.Service.IsConfigured);
     }
 
@@ -59,13 +58,13 @@ public sealed class SyncServiceTests : SyncTestBase
         home.Gestures.Rename(home.Gesture("Up").Id, "North");
         Thread.Sleep(Quiet);
         Assert.Equal(0, home.Service.RunCount);
-        Assert.Equal(0, home.Schedule.Scheduled(SyncService.ChangeDelay));
+        Assert.Equal(0, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
 
         home.Service.SyncNow();
         home.WaitForRuns(1);
 
         Assert.Equal(SyncTrigger.Manual, home.Service.LastTrigger);
-        Assert.Equal(0, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(0, home.Schedule.Pending(SyncScheduler.PollInterval));
     }
 
     [Fact]
@@ -88,7 +87,7 @@ public sealed class SyncServiceTests : SyncTestBase
         Assert.Equal(2, home.Repository.Pulls);
         Assert.Equal(1, home.Repository.MaxConcurrent);
         Assert.Equal(SyncTrigger.Manual, home.Service.LastTrigger);
-        Assert.Equal(0, home.Schedule.Pending(SyncService.ChangeDelay));
+        Assert.Equal(0, home.Schedule.Pending(SyncScheduler.ChangeDelay));
         Assert.Contains("North", Remote.Files[home.Settings.Current.Sync.MachineId.ToString("D")], StringComparison.Ordinal);
     }
 
@@ -102,10 +101,10 @@ public sealed class SyncServiceTests : SyncTestBase
         home.Gestures.Rename(home.Gesture("Up").Id, "North");
         home.Mapping.AddCommand(GroupId.Global, MappingFixture.Unbound("Close"));
 
-        Assert.Equal(2, home.Schedule.Scheduled(SyncService.ChangeDelay));
-        Assert.Equal(1, home.Schedule.Pending(SyncService.ChangeDelay));
+        Assert.Equal(2, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
+        Assert.Equal(1, home.Schedule.Pending(SyncScheduler.ChangeDelay));
         Assert.Equal(1, home.Service.RunCount);
-        Assert.Equal(1, home.Schedule.Fire(SyncService.ChangeDelay));
+        Assert.Equal(1, home.Schedule.Fire(SyncScheduler.ChangeDelay));
         home.WaitForRuns(2);
         Assert.Equal(SyncTrigger.LocalChange, home.Service.LastTrigger);
         var file = Remote.Files[home.Settings.Current.Sync.MachineId.ToString("D")];
@@ -122,7 +121,7 @@ public sealed class SyncServiceTests : SyncTestBase
 
         home.Settings.SetSync(home.Settings.Current.Sync with { MachineName = "Laptop" });
 
-        Assert.Equal(1, home.Schedule.Pending(SyncService.ChangeDelay));
+        Assert.Equal(1, home.Schedule.Pending(SyncScheduler.ChangeDelay));
     }
 
     [Fact]
@@ -139,7 +138,7 @@ public sealed class SyncServiceTests : SyncTestBase
 
         Assert.Equal(SyncStatus.Applied, home.Service.LastReport!.Status);
         Assert.True(home.HasGesture("North"));
-        Assert.Equal(0, home.Schedule.Scheduled(SyncService.ChangeDelay));
+        Assert.Equal(0, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
         Assert.Equal(["PC-WORK"], home.Service.OtherMachines);
     }
 
@@ -149,23 +148,23 @@ public sealed class SyncServiceTests : SyncTestBase
         var home = Machine("PC-HOME");
         home.Service.Start();
         home.WaitForRuns(1);
-        Assert.Equal(1, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(1, home.Schedule.Pending(SyncScheduler.PollInterval));
 
-        home.Schedule.Fire(SyncService.PollInterval);
+        home.Schedule.Fire(SyncScheduler.PollInterval);
         home.WaitForRuns(2);
         Assert.Equal(SyncTrigger.Poll, home.Service.LastTrigger);
-        Assert.Equal(1, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(1, home.Schedule.Pending(SyncScheduler.PollInterval));
 
         home.Settings.SetSync(home.Settings.Current.Sync with { AutoSync = false });
-        Assert.Equal(0, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(0, home.Schedule.Pending(SyncScheduler.PollInterval));
         home.Service.SyncNow();
         home.WaitForRuns(3);
-        Assert.Equal(0, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(0, home.Schedule.Pending(SyncScheduler.PollInterval));
 
         home.Settings.SetSync(home.Settings.Current.Sync with { AutoSync = true });
         home.WaitForRuns(4);
         Assert.Equal(SyncTrigger.AutoSyncOn, home.Service.LastTrigger);
-        Assert.Equal(1, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(1, home.Schedule.Pending(SyncScheduler.PollInterval));
     }
 
     [Fact]
@@ -180,9 +179,9 @@ public sealed class SyncServiceTests : SyncTestBase
         Assert.Equal(SyncStatus.NeedsJoinChoice, report.Status);
         Assert.Equal("PC-WORK", Assert.Single(report.OtherMachines).MachineName);
         Assert.True(home.Service.IsPaused);
-        Assert.Equal(0, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(0, home.Schedule.Pending(SyncScheduler.PollInterval));
         home.Gestures.Rename(home.Gesture("Mine").Id, "Mine too");
-        Assert.Equal(0, home.Schedule.Scheduled(SyncService.ChangeDelay));
+        Assert.Equal(0, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
 
         home.Service.SyncNow();
         home.WaitForRuns(2);
@@ -196,7 +195,7 @@ public sealed class SyncServiceTests : SyncTestBase
         Assert.False(home.Service.IsPaused);
         Assert.True(home.HasGesture("Up"));
         Assert.False(home.HasGesture("Mine too"));
-        Assert.Equal(1, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(1, home.Schedule.Pending(SyncScheduler.PollInterval));
     }
 
     [Fact]
@@ -216,12 +215,13 @@ public sealed class SyncServiceTests : SyncTestBase
 
         Assert.Equal(SyncStatus.NeedsUpdate, home.Service.LastReport!.Status);
         Assert.True(home.Service.IsPaused);
-        Assert.Equal(0, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(0, home.Schedule.Pending(SyncScheduler.PollInterval));
         home.Gestures.Rename(home.Gesture("Up").Id, "North");
-        Assert.Equal(0, home.Schedule.Scheduled(SyncService.ChangeDelay));
+        Assert.Equal(0, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
         Assert.Equal(
             "Paused: PC-WORK uses a newer Augram. Update this machine (pull, rebuild, restart) to resume.",
-            SyncViewModel.Status(true, false, home.Service.IsPaused, home.Service.LastReport, home.Service.OtherMachines));
+            SyncStatusText.Status(home.Service.Snapshot));
+        Assert.Equal(SyncPhase.PausedForUpdate, home.Service.Snapshot.Phase);
 
         home.Service.SyncNow();
         home.WaitForRuns(2);
@@ -240,10 +240,10 @@ public sealed class SyncServiceTests : SyncTestBase
         home.WaitForRuns(1);
         Assert.Equal(SyncStatus.Failed, home.Service.LastReport!.Status);
         Assert.Equal("offline or the host cannot be reached", home.Service.LastReport.Error);
-        Assert.Equal(1, home.Schedule.Pending(SyncService.PollInterval));
+        Assert.Equal(1, home.Schedule.Pending(SyncScheduler.PollInterval));
 
         home.Repository.FailWith = null;
-        home.Schedule.Fire(SyncService.PollInterval);
+        home.Schedule.Fire(SyncScheduler.PollInterval);
         home.WaitForRuns(2);
         Assert.Equal(SyncStatus.UpToDate, home.Service.LastReport!.Status);
     }
@@ -258,11 +258,11 @@ public sealed class SyncServiceTests : SyncTestBase
         home.Service.Dispose();
         home.Service.SyncNow();
         home.Gestures.Rename(home.Gesture("Up").Id, "North");
-        home.Schedule.Fire(SyncService.PollInterval);
+        home.Schedule.Fire(SyncScheduler.PollInterval);
         Thread.Sleep(Quiet);
 
         Assert.Equal(1, home.Service.RunCount);
-        Assert.Equal(0, home.Schedule.Scheduled(SyncService.ChangeDelay));
+        Assert.Equal(0, home.Schedule.Scheduled(SyncScheduler.ChangeDelay));
         home.Service.Dispose();
     }
 

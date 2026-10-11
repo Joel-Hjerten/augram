@@ -1,4 +1,5 @@
 using Augram.App.Hosting;
+using Augram.App.Sync;
 using Augram.App.Themes;
 using Augram.App.Tray;
 using Augram.App.Views;

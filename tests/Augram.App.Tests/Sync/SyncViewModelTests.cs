@@ -1,7 +1,6 @@
 using System.Globalization;
-using Augram.App.Hosting;
+using Augram.App.Sync;
 using Augram.App.Tests.Sync.Support;
-using Augram.App.Tray;
 using Augram.App.ViewModels;
 using Augram.Core.Config;
 using Augram.Core.Sync;
@@ -22,13 +21,13 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME", autoSync: false);
         using var vm = ViewModel(home);
 
-        Assert.Equal(SyncMachine.Url, vm.RepositoryUrlText);
-        Assert.Equal("PC-HOME", vm.MachineNameText);
+        Assert.Equal(SyncMachine.Url, vm.RepositoryUrl.Text);
+        Assert.Equal("PC-HOME", vm.MachineName.Text);
         Assert.False(vm.AutoSync);
         Assert.True(vm.IsConfigured);
         Assert.True(vm.CanSyncNow);
-        Assert.Null(vm.UrlProblem);
-        Assert.Equal(SyncViewModel.NeverText, vm.StatusText);
+        Assert.Null(vm.RepositoryUrl.Problem);
+        Assert.Equal(SyncStatusText.NeverText, vm.StatusText);
     }
 
     [Fact]
@@ -36,25 +35,25 @@ public sealed class SyncViewModelTests : SyncTestBase
     {
         var home = Machine("PC-HOME", url: null);
         using var vm = ViewModel(home);
-        Assert.Equal(SyncViewModel.OffText, vm.StatusText);
+        Assert.Equal(SyncStatusText.OffText, vm.StatusText);
         Assert.False(vm.CanSyncNow);
 
-        vm.RepositoryUrlText = "https://joel:ghp_secret@github.com/joel/augram-settings.git";
-        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.UrlProblem);
-        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.UrlProblemText);
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Text = "https://joel:ghp_secret@github.com/joel/augram-settings.git";
+        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.RepositoryUrl.Problem);
+        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.RepositoryUrl.ProblemText);
+        vm.RepositoryUrl.Commit();
         Assert.Null(home.Settings.Current.Sync.RepositoryUrl);
 
-        vm.RepositoryUrlText = "  " + SyncMachine.Url;
-        Assert.Null(vm.UrlProblem);
+        vm.RepositoryUrl.Text = "  " + SyncMachine.Url;
+        Assert.Null(vm.RepositoryUrl.Problem);
         Assert.Null(home.Settings.Current.Sync.RepositoryUrl);
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Commit();
         Assert.Equal(SyncMachine.Url, home.Settings.Current.Sync.RepositoryUrl);
-        Assert.Equal(SyncMachine.Url, vm.RepositoryUrlText);
+        Assert.Equal(SyncMachine.Url, vm.RepositoryUrl.Text);
         Assert.True(vm.IsConfigured);
 
         int changes = home.Settings.Version;
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Commit();
         Assert.Equal(changes, home.Settings.Version);
     }
 
@@ -64,15 +63,15 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME");
         using var vm = ViewModel(home);
 
-        vm.RepositoryUrlText = "git@github";
-        Assert.NotNull(vm.UrlProblem);
-        vm.RevertRepositoryUrl();
-        Assert.Equal(SyncMachine.Url, vm.RepositoryUrlText);
-        Assert.Null(vm.UrlProblem);
+        vm.RepositoryUrl.Text = "git@github";
+        Assert.NotNull(vm.RepositoryUrl.Problem);
+        vm.RepositoryUrl.Revert();
+        Assert.Equal(SyncMachine.Url, vm.RepositoryUrl.Text);
+        Assert.Null(vm.RepositoryUrl.Problem);
 
-        vm.RepositoryUrlText = "   ";
-        Assert.Null(vm.UrlProblem);
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Text = "   ";
+        Assert.Null(vm.RepositoryUrl.Problem);
+        vm.RepositoryUrl.Commit();
         Assert.Null(home.Settings.Current.Sync.RepositoryUrl);
         Assert.False(vm.IsConfigured);
     }
@@ -83,19 +82,19 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME");
         using var vm = ViewModel(home);
 
-        vm.MachineNameText = " ";
-        Assert.Equal(SyncViewModel.NameProblemText, vm.MachineNameProblem);
-        vm.CommitMachineName();
+        vm.MachineName.Text = " ";
+        Assert.Equal(SyncViewModel.NameProblemText, vm.MachineName.Problem);
+        vm.MachineName.Commit();
         Assert.Equal("PC-HOME", home.Settings.Current.Sync.MachineName);
 
-        vm.MachineNameText = "Laptop ";
-        Assert.Null(vm.MachineNameProblem);
-        vm.CommitMachineName();
+        vm.MachineName.Text = "Laptop ";
+        Assert.Null(vm.MachineName.Problem);
+        vm.MachineName.Commit();
         Assert.Equal("Laptop", home.Settings.Current.Sync.MachineName);
 
-        vm.MachineNameText = "Typing";
-        vm.RevertMachineName();
-        Assert.Equal("Laptop", vm.MachineNameText);
+        vm.MachineName.Text = "Typing";
+        vm.MachineName.Revert();
+        Assert.Equal("Laptop", vm.MachineName.Text);
     }
 
     [Fact]
@@ -104,10 +103,10 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME");
         using var vm = ViewModel(home);
 
-        vm.RepositoryUrlText = "https://github.com/joel/half";
+        vm.RepositoryUrl.Text = "https://github.com/joel/half";
         home.Settings.SetGeneral(home.Settings.Current.General with { Enabled = false });
 
-        Assert.Equal("https://github.com/joel/half", vm.RepositoryUrlText);
+        Assert.Equal("https://github.com/joel/half", vm.RepositoryUrl.Text);
     }
 
     [Fact]
@@ -128,17 +127,17 @@ public sealed class SyncViewModelTests : SyncTestBase
     }
 
     [Theory]
-    [InlineData(false, false, false, null, SyncViewModel.OffText)]
-    [InlineData(true, true, false, null, SyncViewModel.RunningText)]
-    [InlineData(true, false, true, null, SyncViewModel.PausedText)]
-    [InlineData(true, false, false, null, SyncViewModel.NeverText)]
-    [InlineData(true, false, false, SyncStatus.Off, SyncViewModel.NeverText)]
-    [InlineData(true, false, false, SyncStatus.NeedsJoinChoice, SyncViewModel.PausedText)]
+    [InlineData(false, false, false, null, SyncStatusText.OffText)]
+    [InlineData(true, true, false, null, SyncStatusText.RunningText)]
+    [InlineData(true, false, true, null, SyncStatusText.PausedText)]
+    [InlineData(true, false, false, null, SyncStatusText.NeverText)]
+    [InlineData(true, false, false, SyncStatus.Off, SyncStatusText.NeverText)]
+    [InlineData(true, false, false, SyncStatus.NeedsJoinChoice, SyncStatusText.PausedText)]
     public void TheStatusLineSaysWhatIsGoingOn(bool configured, bool running, bool paused, SyncStatus? status, string expected)
     {
         var report = status is { } s ? new SyncReport(s, At) : null;
 
-        Assert.Equal(expected, SyncViewModel.Status(configured, running, paused, report, []));
+        Assert.Equal(expected, SyncStatusText.Status(SyncSnapshot.Of(configured, running, paused, report, [])));
     }
 
     [Fact]
@@ -151,10 +150,10 @@ public sealed class SyncViewModelTests : SyncTestBase
 
         Assert.Equal(
             "Paused: Mac uses a newer Augram. Update this machine (pull, rebuild, restart) to resume.",
-            SyncViewModel.Status(true, false, true, report, ["Mac"]));
-        Assert.Equal("sync paused: Mac uses a newer Augram", SyncTrayItem.Short(true, false, true, report));
-        Assert.Equal("Paused (Mac uses a newer Augram)", SyncHealthContributor.Outcome(report));
-        Assert.Equal("UpToDate", SyncHealthContributor.Outcome(new SyncReport(SyncStatus.UpToDate, At)));
+            SyncStatusText.Status(SyncSnapshot.Of(true, false, true, report, ["Mac"])));
+        Assert.Equal("sync paused: Mac uses a newer Augram", SyncStatusText.Short(SyncSnapshot.Of(true, false, true, report, [])));
+        Assert.Equal("Paused (Mac uses a newer Augram)", SyncStatusText.Outcome(report));
+        Assert.Equal("UpToDate", SyncStatusText.Outcome(new SyncReport(SyncStatus.UpToDate, At)));
     }
 
     [Fact]
@@ -166,13 +165,13 @@ public sealed class SyncViewModelTests : SyncTestBase
         };
         var both = applied with { Counts = applied.Counts with { Gestures = new SyncKindCounts(0, 1, 0), Groups = new SyncKindCounts(2, 0, 0) } };
 
-        Assert.Equal($"Up to date (last synced {Time}).", SyncViewModel.Status(true, false, false, new SyncReport(SyncStatus.UpToDate, At), ["Mac"]));
-        Assert.Equal($"Last synced {Time}: 3 commands changed from Mac.", SyncViewModel.Status(true, false, false, applied, ["Mac"]));
-        Assert.Equal($"Last synced {Time}: 1 gesture, 2 app groups and 3 commands changed from Mac and PC-WORK.", SyncViewModel.Status(true, false, false, both, ["Mac", "PC-WORK"]));
-        Assert.Equal("1 hold remap and 3 commands changed", SyncViewModel.Changes(applied.Counts with { HoldRemaps = new SyncKindCounts(0, 1, 0) }));
+        Assert.Equal($"Up to date (last synced {Time}).", SyncStatusText.Status(SyncSnapshot.Of(true, false, false, new SyncReport(SyncStatus.UpToDate, At), ["Mac"])));
+        Assert.Equal($"Last synced {Time}: 3 commands changed from Mac.", SyncStatusText.Status(SyncSnapshot.Of(true, false, false, applied, ["Mac"])));
+        Assert.Equal($"Last synced {Time}: 1 gesture, 2 app groups and 3 commands changed from Mac and PC-WORK.", SyncStatusText.Status(SyncSnapshot.Of(true, false, false, both, ["Mac", "PC-WORK"])));
+        Assert.Equal("1 hold remap and 3 commands changed", SyncStatusText.Changes(applied.Counts with { HoldRemaps = new SyncKindCounts(0, 1, 0) }));
         Assert.Equal(
             $"Sync failed at {Time}: sign-in needed: GitHub refused the credentials",
-            SyncViewModel.Status(true, false, false, new SyncReport(SyncStatus.Failed, At) { Error = "sign-in needed: GitHub refused the credentials" }, ["Mac"]));
+            SyncStatusText.Status(SyncSnapshot.Of(true, false, false, new SyncReport(SyncStatus.Failed, At) { Error = "sign-in needed: GitHub refused the credentials" }, ["Mac"])));
     }
 
     [Fact]

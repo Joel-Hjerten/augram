@@ -1,4 +1,4 @@
-using Augram.App.Hosting;
+using Augram.App.Sync;
 using Augram.App.Tests.Sync.Support;
 using Augram.Core.Diagnostics;
 using Augram.Core.Sync;

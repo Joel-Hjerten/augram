@@ -1,6 +1,4 @@
-using System.Globalization;
-using Augram.App.Hosting;
-using Augram.Core.Sync;
+using Augram.App.Sync;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
@@ -38,13 +36,14 @@ public sealed class SyncTrayItem : IDisposable
     /// <summary>True while the item is in the menu.</summary>
     public bool IsShown => _menu.Items.Contains(Item);
 
-    /// <summary>For the tooltip; null while sync is off.</summary>
+    /// <summary>For the tooltip (<see cref="SyncStatusText.Short"/>); null while sync is off or before the first run.</summary>
     public string? ShortStatus { get; private set; }
 
     /// <summary>Re-reads the service; the constructor and every service change call it.</summary>
     public void Refresh()
     {
-        var configured = _service.IsConfigured;
+        var status = _service.Snapshot;
+        var configured = status.IsConfigured;
         if (configured && !IsShown)
         {
             var separator = _menu.Items.ToList().FindIndex(item => item is NativeMenuItemSeparator);
@@ -55,44 +54,12 @@ public sealed class SyncTrayItem : IDisposable
             _menu.Items.Remove(Item);
         }
 
-        Item.IsEnabled = !_service.IsRunning;
-        ShortStatus = Short(configured, _service.IsRunning, _service.IsPaused, _service.LastReport);
+        Item.IsEnabled = !status.IsRunning;
+        ShortStatus = SyncStatusText.Short(status);
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void Dispose() => _service.Changed -= OnServiceChanged;
-
-    /// <summary>"synced 14:32", "sync failed 14:32", "sync paused", "sync paused: Mac uses a newer Augram", "syncing…"; null while off or before the first run.</summary>
-    public static string? Short(bool configured, bool running, bool paused, SyncReport? report)
-    {
-        if (!configured)
-        {
-            return null;
-        }
-
-        if (running)
-        {
-            return "syncing…";
-        }
-
-        if (report?.Status == SyncStatus.NeedsUpdate)
-        {
-            return $"sync paused: {SyncNewerMachine.Summary(report.NewerMachines)}";
-        }
-
-        if (paused || report?.Status == SyncStatus.NeedsJoinChoice)
-        {
-            return "sync paused";
-        }
-
-        if (report is null || report.Status == SyncStatus.Off)
-        {
-            return null;
-        }
-
-        var at = report.When.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
-        return report.Status == SyncStatus.Failed ? $"sync failed {at}" : $"synced {at}";
-    }
 
     private void OnServiceChanged(object? sender, EventArgs e) => _marshal(Refresh);
 }
