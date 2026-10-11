@@ -27,8 +27,9 @@ public sealed class LinksFieldRenderer : IFieldRenderer
         panel.Children.Clear();
         if (items.Count == 0)
         {
+            // An empty placeholder ("none"): the Secondary text role (Themes/Default/Text.axaml).
             var empty = new TextBlock { Text = emptyText, VerticalAlignment = VerticalAlignment.Center };
-            empty.Classes.Add("note");
+            empty.Classes.Add("secondary");
             panel.Children.Add(empty);
             return;
         }

@@ -1,0 +1,168 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:list="using:Augram.App.Components.ItemList"
+        xmlns:grid="using:Augram.App.Components.GestureGrid"
+        xmlns:tree="using:Augram.App.Components.CommandTree"
+        xmlns:steps="using:Augram.App.Components.StepList"
+        xmlns:md="using:Augram.App.Components.MasterDetail">
+  <!--
+    The glass look's type: a few text roles, each defined once here, and every text in the app on exactly one of them
+    (Joel, 2026-10-11: "set down a couple of font stylings and then reuse those"). No other Default theme file and no
+    component sets a font size or weight (TextRoleTests).
+
+    Role       Size     Weight     Colour         For
+    Heading    Font.L   SemiBold   Text.Primary   the selected command's name in the command header; a dialog's title
+    Title      Font.M   SemiBold   Text.Primary   a panel's title; every name in a row (command, section, app group,
+                                                  hold remap, excluded app, step, gesture tile)
+    Group      Font.M   SemiBold   Text.Muted     a title above what it groups: a form section above its card, a list's
+                                                  column titles, the step type picker's categories
+    Body       Font.M   Normal     Text.Primary   labels, values, notes, cells; every TextBlock without a role class; the
+                                                  text of every standard control (buttons, tabs, pills, boxes, menus)
+    Secondary  Font.S   Normal     Text.Faint     the line under a name, counts, help and captions, empty placeholders,
+                                                  the ⓘ, the window's title in the title bar (muted)
+    Badge      Font.XS  SemiBold   Text.Muted     a trigger badge's words, small tags (category, platform, score)
+    Mono       Font.S   Normal     (unchanged)    Diagnostics › Log's lines, in Font.Mono
+
+    A role is a class: heading, title, group, body, secondary, badge, mono. The older classes the templates and screens
+    use (row-name, help, note…) are listed in their role's selector below, so a new text takes a role class, or an
+    existing class that is listed here, and never a size or weight of its own.
+    Colour modifiers combine with a role and change only its colour: muted, faint, danger, warn, ok, accent (links).
+
+    Order matters (learnings 0008: no selector specificity, the later of two equal styles wins; a style with a class or
+    pseudo-class outranks a plain type rule). Default.axaml includes this file after Forms.axaml and Lists.axaml, so the
+    roles win over every class style before them (Wireframe's too). Here: the plain default and the template parts it
+    must not override, the controls, then the roles (Mono after Body: a log cell is both), the modifiers, and last the
+    states, which change a role's colour only (never its size or weight) and must come after it to win.
+  -->
+  <Styles.Resources>
+    <ResourceDictionary>
+      <!-- The tokens again: this file's setters are resolved while it loads. -->
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!-- ===== Body as every TextBlock's default (a plain type rule: any role class outranks it). ===== -->
+  <Style Selector="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Family}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <!-- Toolkit template parts that are plain TextBlocks: after the default, or it would paint them primary. -->
+  <Style Selector="TextBox /template/ TextBlock#PART_Watermark, TextBox:focus /template/ TextBlock#PART_Watermark, TextBox:pointerover /template/ TextBlock#PART_Watermark">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+  </Style>
+  <Style Selector="MenuItem /template/ TextBlock#PART_InputGestureText">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+
+  <!-- ===== Controls with text of their own take Body's size and weight (a button's or a check box's label inherits it). ===== -->
+  <Style Selector="Button, ToggleButton, RepeatButton, DropDownButton, RadioButton, CheckBox, TextBox, NumericUpDown, ComboBox, ComboBoxItem, TabItem, ToolTip, MenuItem, Expander">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+  <!-- Wireframe makes the in-place rename box small; it replaces a name, so it takes Body like every editor. -->
+  <Style Selector="TextBox.tile-editor">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+  </Style>
+
+  <!-- ===== Roles ===== -->
+  <!-- Heading: the command header's name (bench-title), a dialog's title (section-title, the gesture picker's). -->
+  <Style Selector="TextBlock.heading, TextBlock.bench-title, TextBlock.section-title">
+    <Setter Property="FontSize" Value="{StaticResource Font.L}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <!-- Title: a panel's title (title); a name in a row (row-name, group-name, tile-name). -->
+  <Style Selector="TextBlock.title, TextBlock.row-name, TextBlock.group-name, TextBlock.tile-name">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <!-- Group: a form section's title above its card (section-heading), a list's column titles, the step type picker's categories. -->
+  <Style Selector="TextBlock.group, TextBlock.section-heading, TextBlock.column-header, TextBlock.picker-category">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <!-- Body: field labels, notes, messages, cells, values (the default above, again for the classes Wireframe styles otherwise). -->
+  <Style Selector="TextBlock.body, TextBlock.field-label, TextBlock.note, TextBlock.error, TextBlock.dialog-message, TextBlock.cell, TextBlock.slider-value, TextBlock.bench-label, TextBlock.bench-value, TextBlock.bench-error">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <!-- Secondary: the line under a name (row-summary, row-detail), counts, a step's grip and number, help and captions,
+       messages and empty placeholders, the ⓘ (help-icon), the window's title in the title bar. -->
+  <Style Selector="TextBlock.secondary, TextBlock.row-summary, TextBlock.row-detail, TextBlock.row-count, TextBlock.row-index, TextBlock.drag-handle, TextBlock.help, TextBlock.help-icon, TextBlock.bench-note, TextBlock.bench-action, TextBlock.panel-message, TextBlock.panel-empty, TextBlock.panel-empty-inline, TextBlock.titlebar-title">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+  </Style>
+  <!-- Badge: a trigger badge's words, a command's category tag, a platform marker, a gesture tile's partner score. -->
+  <Style Selector="TextBlock.badge, TextBlock.trigger-badge, TextBlock.category-tag, TextBlock.platform-marker, TextBlock.tile-partner">
+    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <!-- Mono: the log's cells (the list is told apart by its declared title, Screens/LogScreen). Its colour stays the cell's. -->
+  <Style Selector="TextBlock.mono, list|ItemList[Title=Log] TextBlock.cell">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
+  <!-- ===== Colour modifiers: with a role, they change its colour only. ===== -->
+  <Style Selector="TextBlock.muted, TextBlock.titlebar-title">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="TextBlock.faint">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+  </Style>
+  <Style Selector="TextBlock.danger, TextBlock.error, TextBlock.bench-error, TextBlock.tile-partner">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
+  </Style>
+  <Style Selector="TextBlock.warn">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Warn}" />
+  </Style>
+  <Style Selector="TextBlock.ok">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Ok}" />
+  </Style>
+  <Style Selector="TextBlock.accent">
+    <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
+  </Style>
+
+  <!-- ===== States: colour (or slant) only, after the roles they change. ===== -->
+  <!-- An inactive row's or gesture's name is muted; a pinned section's (Uncategorized) slanted. -->
+  <Style Selector="tree|SectionRow:inactive /template/ TextBlock#PART_Name, tree|CommandRow:inactive /template/ TextBlock#PART_Name, md|MasterRow:inactive /template/ TextBlock#PART_Name, steps|StepRow:inactive /template/ TextBlock#PART_Name, grid|GestureTile:inactive /template/ TextBlock#PART_Name">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="tree|SectionRow:pinned /template/ TextBlock#PART_Name">
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+  <Style Selector="TextBlock.help-icon:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="TextBlock.slider-value:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <!-- Lists of text cells (Diagnostics › Log and › Recognition): the first column (the time) muted. -->
+  <Style Selector="Grid.list-row > TextBlock.cell:nth-child(1)">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <!-- The log (.log, .lrow): the time faint, the source muted, a warning's level in Text.Warn, an error's in Text.Danger.
+       Its columns are Time, Level, Source, Message. -->
+  <Style Selector="list|ItemList[Title=Log] Grid.list-row > TextBlock.cell:nth-child(1)">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+  </Style>
+  <Style Selector="list|ItemList[Title=Log] Grid.list-row > TextBlock.cell:nth-child(3)">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="list|ItemList[Title=Log] TextBlock.cell[Text=WARN]">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Warn}" />
+  </Style>
+  <Style Selector="list|ItemList[Title=Log] TextBlock.cell[Text=ERROR]">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
+  </Style>
+</Styles>

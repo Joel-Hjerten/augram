@@ -39,6 +39,7 @@ public sealed partial class HelpTextTests
         Assert.Empty(offenders);
     }
 
-    [GeneratedRegex("""<TextBlock[^>]*Classes="help"[^>]*Text="(?<text>[^"]*)"[^>]*>""", RegexOptions.Singleline)]
+    // help, or secondary: the text role it is (Themes/Default/Text.axaml), so the rule holds under either class.
+    [GeneratedRegex("""<TextBlock[^>]*Classes="(?:help|secondary)"[^>]*Text="(?<text>[^"]*)"[^>]*>""", RegexOptions.Singleline)]
     private static partial Regex HelpBlock();
 }
