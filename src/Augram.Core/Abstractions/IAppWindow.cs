@@ -9,10 +9,3 @@ public interface IAppWindow
 {
     bool Open();
 }
-
-public sealed class NullAppWindow : IAppWindow
-{
-    public static NullAppWindow Instance { get; } = new();
-
-    public bool Open() => false;
-}
