@@ -1,6 +1,6 @@
 # Plan 0006: The glass look (D2): frosted, layered, dark by default, light on request
 
-**Status: BUILT on main (2026-10-11, PC session); Joel's real-window check (steps 1 and 7) next.** Decided by Joel the same day on the mockup. What was built:
+**Status: PC DONE as 0.11.0 (2026-10-11); the Mac next.** Joel's check on the PC passed: the glass, the title bar (drag, double-click, snap layouts), Wallpaper tint, Options › Appearance live, and consistent text ("all working and looks good"). His first run found the top-level tabs unclickable; fixed the same day ([learnings 0008](../learnings/0008-the-glass-look.md), "Clicks"). After that run, at his request: row names semibold with a faint second line, the Commands tree's buttons on their own row, a 180 px label column, and one type scale (`Themes/Default/Text.axaml`). Decided by Joel the same day on the mockup. What was built:
 - **Steps 2–6, with tests:** `Themes/AppearanceLink`, `AccentPalette` and `WindowBackdrop`; the appearance settings and the yellow trail default; Options sub-tabs with Appearance › Theme, `SliderField` and colour swatches; the Default theme (`Default.axaml` shell, `Forms.axaml`, `Lists.axaml`); the gallery in both themes; dialogs' backdrop.
 - **Step 1's code:** the title-bar tabs, `WindowDragArea` and the backdrop. Its check needs Joel's eyes on a real window: the glass, dragging, snap layouts, and the same on the Mac.
 - **Gotchas found on the way:** [learnings 0008](../learnings/0008-the-glass-look.md).

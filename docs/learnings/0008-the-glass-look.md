@@ -37,7 +37,7 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 - **Windows 11, Joel's first real-window run (2026-10-11):**
   - The frosted glass shows: the desktop is blurred behind the tint, and Windows draws its own caption buttons over the extended title bar (`PreferSystemChrome`).
   - Dragging by an empty part of the title bar works, and a double click maximizes and restores.
-  - Not checked yet: whether snap layouts appear on the maximize button, and how Wallpaper tint (Mica) looks.
+  - Snap layouts appear on the maximize button, and Wallpaper tint (Mica) works and looks good (Joel's second run).
   - macOS: not run yet.
 
 ## Clicks (Joel's first real-window run: no top-level tab could be clicked)
