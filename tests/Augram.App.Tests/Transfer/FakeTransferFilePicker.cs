@@ -2,7 +2,7 @@ using Augram.App.Transfer;
 
 namespace Augram.App.Tests.Transfer;
 
-/// <summary>Answers the pickers with fixed paths (null is Cancel) and records the suggested save names; never opens a dialog.</summary>
+/// <summary>Answers the pickers with fixed paths (null is Cancel) and records the suggested save names and the open requests; never opens a dialog.</summary>
 internal sealed class FakeTransferFilePicker : ITransferFilePicker
 {
     public string? SavePath { get; set; }
@@ -11,7 +11,9 @@ internal sealed class FakeTransferFilePicker : ITransferFilePicker
 
     public List<string> SuggestedNames { get; } = [];
 
-    public int Opened { get; private set; }
+    public List<FileOpenRequest> OpenRequests { get; } = [];
+
+    public int Opened => OpenRequests.Count;
 
     public Task<string?> PickSaveAsync(string suggestedFileName)
     {
@@ -19,9 +21,9 @@ internal sealed class FakeTransferFilePicker : ITransferFilePicker
         return Task.FromResult(SavePath);
     }
 
-    public Task<string?> PickOpenAsync()
+    public Task<string?> PickOpenAsync(FileOpenRequest request)
     {
-        Opened++;
+        OpenRequests.Add(request);
         return Task.FromResult(OpenPath);
     }
 }

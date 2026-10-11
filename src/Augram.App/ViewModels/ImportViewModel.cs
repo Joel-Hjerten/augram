@@ -13,8 +13,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace Augram.App.ViewModels;
 
 /// <summary>
-/// The StrokesPlus.net import dialog (F8, plan 0001 M2 step 8): reads a file through
-/// <see cref="StrokesPlusImporter.ReadAll(Stream)"/>, shows the stats line, the warnings and the
+/// The StrokesPlus.net import dialog (F8, plan 0001 M2 step 8): over what <see cref="ImportPresenter.Read"/> read from
+/// the file (<see cref="StrokesPlusImporter.ReadAll(Stream)"/>), shows the stats line, the warnings and the
 /// merge plan with one <see cref="ImportConflictItem"/> per name clash or shape match, and applies it:
 /// the gestures through <see cref="GestureMerge"/> into the library, then the mapping, rebound to the
 /// ids the gesture merge settled on, through <see cref="MappingImport"/> into the store. Merge policy
@@ -23,7 +23,6 @@ namespace Augram.App.ViewModels;
 public sealed partial class ImportViewModel : ObservableObject
 {
     public const string LogMessage = "Imported from StrokesPlus.net";
-    private const string SourceFileName = "StrokesPlus.net.json";
 
     private readonly GestureLibrary _library;
     private readonly MappingStore _mapping;
@@ -43,24 +42,6 @@ public sealed partial class ImportViewModel : ObservableObject
 
     /// <summary>Raised after Apply or Cancel; the dialog closes on it.</summary>
     public event EventHandler? Finished;
-
-    /// <summary>SP.net's live config, when this machine has one; the file picker starts there.</summary>
-    public static string? DefaultSourcePath
-    {
-        get
-        {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            if (appData.Length == 0)
-            {
-                return null;
-            }
-
-            var path = Path.Combine(appData, "StrokesPlus.net", SourceFileName);
-            return File.Exists(path) ? path : null;
-        }
-    }
-
-    public static string SuggestedFileName => SourceFileName;
 
     [ObservableProperty]
     public partial string? SourcePath { get; private set; }
@@ -90,20 +71,21 @@ public sealed partial class ImportViewModel : ObservableObject
 
     public IReadOnlyList<Declarations.Choice<MergeChoice>> Choices => ImportConflictItem.Choices;
 
-    public void Load(string path)
+    /// <summary>Shows what was read from the file at <paramref name="path"/>.</summary>
+    public void Load(string path, ImportResult result)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         SourcePath = path;
-        try
-        {
-            using var stream = File.OpenRead(path);
-            Load(StrokesPlusImporter.ReadAll(stream));
-        }
-        catch (Exception exception) when (exception is ImportFormatException or IOException or UnauthorizedAccessException)
-        {
-            Error = exception.Message;
-            CanApply = false;
-        }
+        Load(result);
+    }
+
+    /// <summary>The file at <paramref name="path"/> could not be read: <paramref name="error"/> shows and nothing can be applied.</summary>
+    public void LoadFailed(string path, string error)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        SourcePath = path;
+        Error = error;
+        CanApply = false;
     }
 
     public void Load(ImportResult result)

@@ -11,7 +11,7 @@ public sealed class ImportToleranceTests
     [Fact]
     public void StringWithBomIsAccepted()
     {
-        var result = StrokesPlusImporter.ReadGestures("﻿{ \"Gestures\": [] }");
+        var result = StrokesPlusImporter.ReadAll("﻿{ \"Gestures\": [] }");
 
         Assert.Empty(result.Gestures);
     }
@@ -22,7 +22,7 @@ public sealed class ImportToleranceTests
         var bytes = Encoding.UTF8.GetPreamble().Concat("{ \"Gestures\": [] }"u8.ToArray()).ToArray();
         using var stream = new MemoryStream(bytes);
 
-        var result = StrokesPlusImporter.ReadGestures(stream);
+        var result = StrokesPlusImporter.ReadAll(stream);
 
         Assert.Empty(result.Gestures);
     }
@@ -33,22 +33,22 @@ public sealed class ImportToleranceTests
     [InlineData("{ \"Gestures\": \"not an array\" }")]
     public void MissingGesturesArrayGivesZeroGesturesAndOneWarning(string json)
     {
-        var result = StrokesPlusImporter.ReadGestures(json);
+        var result = StrokesPlusImporter.ReadAll(json);
 
+        // The second notice is the missing GlobalApplication (an empty Global group), not the gestures.
         Assert.Empty(result.Gestures);
-        var warning = Assert.Single(result.Warnings);
-        Assert.Equal(ImportSeverity.Warning, warning.Severity);
-        Assert.Equal("Gestures", warning.Item);
-        Assert.Equal(new SourceStats(0, 0, null, null), result.Stats);
+        Assert.Equal(["Gestures", "GlobalApplication"], result.Warnings.Select(warning => warning.Item));
+        Assert.Equal(ImportSeverity.Warning, result.Warnings[0].Severity);
+        Assert.Equal(new SourceStats(0), result.Stats);
     }
 
     [Fact]
-    public void EmptyGesturesArrayGivesZeroGesturesAndNoWarning()
+    public void EmptyGesturesArrayGivesZeroGesturesAndNoGestureWarning()
     {
-        var result = StrokesPlusImporter.ReadGestures("{ \"Gestures\": [] }");
+        var result = StrokesPlusImporter.ReadAll("{ \"Gestures\": [] }");
 
         Assert.Empty(result.Gestures);
-        Assert.Empty(result.Warnings);
+        Assert.Equal(["GlobalApplication"], result.Warnings.Select(warning => warning.Item));
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public sealed class ImportToleranceTests
     [InlineData("[ 1, 2, 3 ]")]
     public void MalformedInputThrowsImportFormatException(string json)
     {
-        Assert.Throws<ImportFormatException>(() => StrokesPlusImporter.ReadGestures(json));
+        Assert.Throws<ImportFormatException>(() => StrokesPlusImporter.ReadAll(json));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class ImportToleranceTests
             ] }
             """;
 
-        var result = StrokesPlusImporter.ReadGestures(json);
+        var result = StrokesPlusImporter.ReadAll(json);
 
         var gesture = Assert.Single(result.Gestures);
         Assert.Equal("Unnamed gesture 1", gesture.Name);
@@ -87,7 +87,7 @@ public sealed class ImportToleranceTests
     [InlineData("0", true)]
     public void OnlyAFalseActiveMakesAGestureInactive(string active, bool expected)
     {
-        var result = StrokesPlusImporter.ReadGestures(
+        var result = StrokesPlusImporter.ReadAll(
             "{ \"Gestures\": [ { \"Name\": \"Synthetic Flag\", \"Active\": " + active + ", \"PointPatterns\": [ { \"Points\": [ { \"X\": 0, \"Y\": 0 }, { \"X\": 5, \"Y\": 5 } ] } ] } ] }");
 
         Assert.Equal(expected, Assert.Single(result.Gestures).IsActive);
@@ -99,7 +99,7 @@ public sealed class ImportToleranceTests
     [InlineData("null")]
     public void ANameThatIsNotTextFallsBackToANumberedName(string name)
     {
-        var result = StrokesPlusImporter.ReadGestures(
+        var result = StrokesPlusImporter.ReadAll(
             "{ \"Gestures\": [ { \"Name\": " + name + ", \"PointPatterns\": [ { \"Points\": [ { \"X\": 0, \"Y\": 0 }, { \"X\": 5, \"Y\": 5 } ] } ] } ] }");
 
         Assert.Equal("Unnamed gesture 1", Assert.Single(result.Gestures).Name);
@@ -112,7 +112,7 @@ public sealed class ImportToleranceTests
     public void AnOrderThatIsNotANumberKeepsTheSampleInItsPlace(string order)
     {
         // A sample's Order read as a number used to throw on anything else and fail the whole import.
-        var result = StrokesPlusImporter.ReadGestures(
+        var result = StrokesPlusImporter.ReadAll(
             "{ \"Gestures\": [ { \"Name\": \"Synthetic Order\", \"PointPatterns\": [ "
             + "{ \"Order\": " + order + ", \"Points\": [ { \"X\": 0, \"Y\": 0 }, { \"X\": 5, \"Y\": 5 } ] }, "
             + "{ \"Order\": 3, \"Points\": [ { \"X\": 0, \"Y\": 0 }, { \"X\": 9, \"Y\": 1 } ] } ] } ] }");
@@ -129,7 +129,7 @@ public sealed class ImportToleranceTests
                 { "X": "a", "Y": 1 }, { "X": 0, "Y": 0 }, null, { "X": 9 }, { "X": 5, "Y": 5 } ] } ] } ] }
             """;
 
-        var result = StrokesPlusImporter.ReadGestures(json);
+        var result = StrokesPlusImporter.ReadAll(json);
 
         var gesture = Assert.Single(result.Gestures);
         Assert.Equal(2, gesture.Samples[0].Count);

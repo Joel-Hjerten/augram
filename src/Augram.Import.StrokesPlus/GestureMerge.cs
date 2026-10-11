@@ -13,29 +13,15 @@ namespace Augram.Import.StrokesPlus;
 /// </summary>
 public static class GestureMerge
 {
-    /// <summary>Classifies by name only: <see cref="MergeKind.Add"/> or <see cref="MergeKind.Conflict"/>.</summary>
-    public static MergePlan Plan(IReadOnlyList<Gesture> existing, IReadOnlyList<Gesture> imported)
-    {
-        ArgumentNullException.ThrowIfNull(existing);
-        ArgumentNullException.ThrowIfNull(imported);
-        var byName = existing.ToDictionary(gesture => gesture.Name, GestureRules.NameComparer);
-        var entries = imported
-            .Select(gesture => byName.TryGetValue(gesture.Name, out var clash)
-                ? new MergeEntry(gesture, MergeKind.Conflict, clash)
-                : new MergeEntry(gesture, MergeKind.Add, null))
-            .ToList();
-        return new MergePlan(existing, entries);
-    }
-
     /// <summary>
-    /// Classifies by name, then scores each remaining addition's first sample against every existing
+    /// Classifies by name (<see cref="MergeKind.Add"/> or <see cref="MergeKind.Conflict"/>), then scores each remaining addition's first sample against every existing
     /// gesture (inactive ones included) and turns a score at or above
     /// <see cref="ConfusionCheck.DuplicateCutOff"/> into a <see cref="MergeKind.SameShape"/> entry.
     /// </summary>
     public static MergePlan Plan(IReadOnlyList<Gesture> existing, IReadOnlyList<Gesture> imported, RecognitionOptions options, GestureMatcher? matcher = null)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var plan = Plan(existing, imported);
+        var plan = ByName(existing, imported);
         if (existing.Count == 0)
         {
             return plan;
@@ -48,16 +34,10 @@ public static class GestureMerge
 
     /// <summary>
     /// Applies the plan. <paramref name="choices"/> is keyed by the imported gesture's id; a conflict
-    /// without a choice uses <paramref name="defaultChoice"/>. Returns the merged library in order:
-    /// existing gestures first (replaced in place for TakeTheirs), then the additions.
+    /// without a choice uses <paramref name="defaultChoice"/>. Returns the merged library in order
+    /// (existing gestures first, replaced in place for TakeTheirs, then the additions) and imported
+    /// id → final id for every imported gesture.
     /// </summary>
-    public static IReadOnlyList<Gesture> Apply(
-        MergePlan plan,
-        IReadOnlyDictionary<GestureId, MergeChoice> choices,
-        MergeChoice defaultChoice = MergeChoice.KeepMine)
-        => ApplyWithMap(plan, choices, defaultChoice).Gestures;
-
-    /// <summary>As <see cref="Apply"/>, also returning imported id → final id for every imported gesture.</summary>
     public static MergeOutcome ApplyWithMap(
         MergePlan plan,
         IReadOnlyDictionary<GestureId, MergeChoice> choices,
@@ -100,6 +80,19 @@ public static class GestureMerge
         }
 
         return new MergeOutcome(result, map);
+    }
+
+    private static MergePlan ByName(IReadOnlyList<Gesture> existing, IReadOnlyList<Gesture> imported)
+    {
+        ArgumentNullException.ThrowIfNull(existing);
+        ArgumentNullException.ThrowIfNull(imported);
+        var byName = existing.ToDictionary(gesture => gesture.Name, GestureRules.NameComparer);
+        var entries = imported
+            .Select(gesture => byName.TryGetValue(gesture.Name, out var clash)
+                ? new MergeEntry(gesture, MergeKind.Conflict, clash)
+                : new MergeEntry(gesture, MergeKind.Add, null))
+            .ToList();
+        return new MergePlan(existing, entries);
     }
 
     private static MergeEntry ShapeChecked(MergeEntry entry, IReadOnlyList<Gesture> existing, RecognitionOptions options, GestureMatcher matcher)

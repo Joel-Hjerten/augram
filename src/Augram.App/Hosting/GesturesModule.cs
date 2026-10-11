@@ -2,6 +2,7 @@ using Augram.App.Import;
 using Augram.App.Navigation;
 using Augram.App.Screens;
 using Augram.App.Training;
+using Augram.App.Transfer;
 using Augram.App.UsedBy;
 using Augram.App.ViewModels;
 using Augram.Core.Config;
@@ -21,7 +22,8 @@ namespace Augram.App.Hosting;
 /// from the config and engine registrations; falls back to the starter set, an empty mapping and default
 /// options when they are absent (tests, gallery), never overriding a registration made before it. The
 /// <see cref="ICommandLocator"/> is optional and looked up when the popup opens, so the Commands tab may
-/// register it after this module or not at all.
+/// register it after this module or not at all. The StrokesPlus.net import opens its file through the
+/// <see cref="ITransferFilePicker"/> it shares with <see cref="TransferModule"/>; whichever slice comes first registers it.
 /// </summary>
 public static class GesturesModule
 {
@@ -34,6 +36,7 @@ public static class GesturesModule
         services.AddSingleton<TrainingSession>();
         services.AddSingleton<ITrainingSession>(sp => sp.GetRequiredService<TrainingSession>());
         services.AddSingleton<ITrainingPresenter, TrainingPresenter>();
+        services.TryAddSingleton<ITransferFilePicker, TransferFilePicker>();
         services.AddSingleton<IImportPresenter, ImportPresenter>();
         services.AddSingleton<IUsedByPresenter>(sp => new UsedByPresenter(
             sp.GetRequiredService<MappingStore>(),

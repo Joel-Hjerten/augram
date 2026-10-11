@@ -4,38 +4,13 @@ namespace Augram.Import.StrokesPlus;
 
 /// <summary>
 /// Entry point of the importer. Composes one reader per SP.net section over a
-/// <see cref="StrokesPlusDocument"/>: <see cref="ReadGestures(StrokesPlusDocument)"/> reads the gesture
-/// library only (M1), <see cref="ReadAll(StrokesPlusDocument)"/> adds the applications, their actions
-/// and the ignored applications as a <see cref="Core.Mapping.MappingDocument"/> whose gesture triggers
-/// point at the ids of the gestures read from the same file (M2 step 8, plan 0001 §C1).
+/// <see cref="StrokesPlusDocument"/>: <see cref="ReadAll(StrokesPlusDocument)"/> reads the gesture
+/// library, the applications, their actions and the ignored applications; the applications and actions
+/// become a <see cref="Core.Mapping.MappingDocument"/> whose gesture triggers point at the ids of the
+/// gestures read from the same file (M2 step 8, plan 0001 §C1).
 /// </summary>
 public static class StrokesPlusImporter
 {
-    /// <summary>Imports the gestures of a StrokesPlus.net JSON text (BOM tolerated).</summary>
-    /// <exception cref="ImportFormatException">The text is not a JSON object.</exception>
-    public static ImportResult ReadGestures(string json)
-    {
-        using var document = StrokesPlusDocument.Parse(json);
-        return ReadGestures(document);
-    }
-
-    /// <summary>Imports the gestures of a StrokesPlus.net JSON stream (BOM tolerated).</summary>
-    /// <exception cref="ImportFormatException">The stream is not a JSON object.</exception>
-    public static ImportResult ReadGestures(Stream stream)
-    {
-        using var document = StrokesPlusDocument.Parse(stream);
-        return ReadGestures(document);
-    }
-
-    public static ImportResult ReadGestures(StrokesPlusDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var warnings = new List<ImportWarning>();
-        var gestures = new GestureReader(warnings).Read(document.Root);
-        var stats = SourceStatsReader.Read(document.Root);
-        return new ImportResult(gestures, warnings, stats);
-    }
-
     /// <summary>Imports gestures, app groups, commands and ignored apps from a StrokesPlus.net JSON text (BOM tolerated).</summary>
     /// <exception cref="ImportFormatException">The text is not a JSON object.</exception>
     public static ImportResult ReadAll(string json)
