@@ -118,6 +118,44 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
         set => Apply(s => s with { Trail = s.Trail with { Opacity = value } });
     }
 
+    /// <summary>Options › Appearance › Theme (plan 0006 decision 10): Dark, Light or Follow system.</summary>
+    public AppTheme Theme
+    {
+        get => Current.Appearance.Theme;
+        set => Apply(s => s with { Appearance = s.Appearance with { Theme = value } });
+    }
+
+    public WindowBackground WindowBackground
+    {
+        get => Current.Appearance.WindowBackground;
+        set => Apply(s => s with { Appearance = s.Appearance with { WindowBackground = value } });
+    }
+
+    public double TintPercent
+    {
+        get => Current.Appearance.TintPercent;
+        set => Apply(s => s with { Appearance = s.Appearance with { TintPercent = (int)Math.Round(value) } });
+    }
+
+    public double CornerRadiusPx
+    {
+        get => Current.Appearance.CornerRadiusPx;
+        set => Apply(s => s with { Appearance = s.Appearance with { CornerRadiusPx = (int)Math.Round(value) } });
+    }
+
+    /// <summary>"Same as the trail colour" (decision 6); off, <see cref="Accent"/> is the accent.</summary>
+    public bool AccentFollowsTrail
+    {
+        get => Current.Appearance.AccentFollowsTrail;
+        set => Apply(s => s with { Appearance = s.Appearance with { AccentFollowsTrail = value } });
+    }
+
+    public RgbColor Accent
+    {
+        get => Current.Appearance.Accent;
+        set => Apply(s => s with { Appearance = s.Appearance with { Accent = value } });
+    }
+
     public double Threshold
     {
         get => Current.Recognition.Threshold;

@@ -13,7 +13,7 @@ public abstract record ExportScope
     {
     }
 
-    /// <summary>The options (without the sync section), every gesture, the whole mapping.</summary>
+    /// <summary>The options (without the sync and appearance sections), every gesture, the whole mapping.</summary>
     public static ExportScope Everything { get; } = new EverythingScope();
 
     /// <summary>Every gesture in the library, nothing else.</summary>

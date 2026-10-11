@@ -14,7 +14,7 @@ namespace Augram.Core.Config;
     UseStringEnumConverter = true,
     AllowTrailingCommas = true,
     ReadCommentHandling = JsonCommentHandling.Skip,
-    Converters = [typeof(GestureIdJsonConverter), typeof(GestureSamplesJsonConverter), typeof(TrailSettingsJsonConverter)])]
+    Converters = [typeof(GestureIdJsonConverter), typeof(GestureSamplesJsonConverter), typeof(TrailSettingsJsonConverter), typeof(AppearanceSettingsJsonConverter)])]
 [JsonSerializable(typeof(ConfigDocument))]
 internal sealed partial class ConfigJsonContext : JsonSerializerContext
 {

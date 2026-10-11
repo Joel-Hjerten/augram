@@ -15,12 +15,12 @@ namespace Augram.Core.Tests.Transfer;
 
 /// <summary>
 /// Export (plan 0003): each scope written and read back as a file, the config file's format with members left out; never the
-/// sync section; a selection carries its groups whole and the gestures their commands use; the names and counts the dialog shows.
+/// sync or appearance section; a selection carries its groups whole and the gestures their commands use; the names and counts the dialog shows.
 /// </summary>
 public sealed class ExportTests
 {
     [Fact]
-    public void Everything_RoundTripsTheWholeConfiguration_AndItsOptionsWithoutTheSyncSection()
+    public void Everything_RoundTripsTheWholeConfiguration_AndItsOptionsWithoutTheSyncAndAppearanceSections()
     {
         var config = SampleConfig();
 
@@ -28,9 +28,10 @@ public sealed class ExportTests
         var back = TransferSerializer.Read(json, Registry);
 
         Assert.Equal(Contents(config), Contents(back.Gestures, back.Mapping));
-        Assert.Equal(config.Settings with { Sync = SyncSettings.Default }, back.Settings);
+        Assert.Equal(config.Settings with { Sync = SyncSettings.Default, Appearance = AppearanceSettings.Default }, back.Settings);
         Assert.Equal(["schemaVersion", "settings", "gestures", "mapping"], Members(json));
         Assert.DoesNotContain("\"sync\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"appearance\"", json, StringComparison.Ordinal);
         Assert.DoesNotContain(RepositoryUrl, json, StringComparison.Ordinal);
         Assert.DoesNotContain(config.Settings.Sync.MachineId.ToString(), json, StringComparison.Ordinal);
         Assert.Equal(json, TransferSerializer.Write(back));

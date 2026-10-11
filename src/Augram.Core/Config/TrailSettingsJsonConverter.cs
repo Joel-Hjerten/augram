@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Augram.Core.Config;
 
 /// <summary>
-/// <c>{ "widthPx": 5, "opacity": 0.5, "colour": "#00FF40" }</c>. Hand-written so a member
+/// <c>{ "widthPx": 5, "opacity": 0.5, "colour": "#F5C542" }</c>. Hand-written so a member
 /// missing from the file keeps its default (the source generator would zero it) and the
 /// colour is one hex string rather than three numbers. Unknown members are skipped.
 /// </summary>

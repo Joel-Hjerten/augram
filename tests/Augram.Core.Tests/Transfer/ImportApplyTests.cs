@@ -65,7 +65,25 @@ public sealed class ImportApplyTests
         Assert.Equal((theirs.Settings.Capture, theirs.Settings.Trail, theirs.Settings.Recognition, theirs.Settings.NoMatch), (options.Capture, options.Trail, options.Recognition, options.NoMatch));
         Assert.Equal((false, true, false), (options.General.StartAtLogin, options.General.Enabled, options.General.ColourMenuBarIcon));
         Assert.Same(mine.Settings.Sync, options.Sync);
+        Assert.Same(mine.Settings.Appearance, options.Appearance);
         Assert.False(ImportPlan.Create(Exported(theirs, ExportScope.GesturesOnly), mine).HasSettings);
+    }
+
+    [Fact]
+    public void AFileWithAnAppearanceSection_NeverChangesThisMachinesLook()
+    {
+        var theirs = SampleConfig();
+        var look = new AppearanceSettings { Theme = AppTheme.System, CornerRadiusPx = 16 };
+        var mine = theirs with { Settings = theirs.Settings with { Appearance = look } };
+        var configFile = TransferSerializer.Read(ConfigSerializer.Write(theirs), Registry);
+
+        var plan = ImportPlan.Create(configFile, mine);
+        var taken = plan.Resolve(new ImportChoices { TakeSettings = true });
+
+        Assert.Equal(AppearanceSettings.Default, configFile.Settings!.Appearance);
+        Assert.False(plan.SettingsDiffer);
+        Assert.False(taken.SettingsChanged);
+        Assert.Same(look, taken.Settings.Appearance);
     }
 
     [Fact]

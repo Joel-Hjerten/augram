@@ -56,7 +56,7 @@ internal sealed class ImportResolution
     /// <summary>
     /// Decision 2: the file's preferences over this machine's options. Capture, trail, recognition and no-match whole, and the
     /// stroke button and ignore keys of General; this machine keeps its sync section and the rest of General (start at login,
-    /// enabled, the menu-bar icon), which are its state, not preferences.
+    /// enabled, the menu-bar icon), which are its state, not preferences, and its appearance (plan 0006), a preference of its own.
     /// </summary>
     public static Settings WithOptionsFrom(Settings current, Settings file) => current with
     {

@@ -53,6 +53,8 @@ public sealed class SettingsStore
 
     public Settings SetNoMatch(NoMatchBehaviour noMatch) => Apply(settings => settings with { NoMatch = noMatch });
 
+    public Settings SetAppearance(AppearanceSettings appearance) => Apply(settings => settings with { Appearance = appearance });
+
     /// <summary>Sets the sync section, trimmed (a blank URL is sync off); the machine id is kept when <paramref name="sync"/> has none.</summary>
     public Settings SetSync(SyncSettings sync)
     {

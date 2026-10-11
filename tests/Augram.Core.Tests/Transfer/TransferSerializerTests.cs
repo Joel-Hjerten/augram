@@ -9,7 +9,7 @@ namespace Augram.Core.Tests.Transfer;
 
 /// <summary>
 /// Reading an Augram file (plan 0003, decisions 11 and 12): the config file's version check and migrations, a file breaking
-/// a rule refused whole, a step type this build lacks kept with a notice, and any Augram JSON readable, never with its sync section.
+/// a rule refused whole, a step type this build lacks kept with a notice, and any Augram JSON readable, never with its sync or appearance section.
 /// </summary>
 public sealed class TransferSerializerTests
 {
@@ -101,13 +101,13 @@ public sealed class TransferSerializerTests
     }
 
     [Fact]
-    public void TheConfigFileItself_ReadsAsAFile_WithoutThisMachinesSyncSection()
+    public void TheConfigFileItself_ReadsAsAFile_WithoutThisMachinesSyncAndAppearanceSections()
     {
         var config = SampleConfig();
 
         var file = TransferSerializer.Read(ConfigSerializer.Write(config), Registry);
 
-        Assert.Equal(config.Settings with { Sync = SyncSettings.Default }, file.Settings);
+        Assert.Equal(config.Settings with { Sync = SyncSettings.Default, Appearance = AppearanceSettings.Default }, file.Settings);
         Assert.Equal(Contents(config), Contents(file.Gestures, file.Mapping));
     }
 

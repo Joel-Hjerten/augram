@@ -16,13 +16,14 @@ namespace Augram.Core.Transfer;
 /// and migrations), so an export never drifts from the config file; only the envelope is written here, as
 /// <see cref="SyncFileSerializer"/> writes its own. A member the file lacks is left out (<c>settings</c> unless the export is
 /// "everything", <c>mapping</c> for gestures only); <c>settings</c> is written and read <b>without its <c>sync</c> member</b>,
-/// which names this machine and its repository. Reading refuses a newer schema, migrates an older one, and refuses a file
+/// which names this machine and its repository, <b>and without its <c>appearance</c></b>, this machine's look (plan 0006). Reading refuses a newer schema, migrates an older one, and refuses a file
 /// that breaks a gesture, mapping or settings rule (only a hand edit can), each as one <see cref="ConfigFormatException"/> line.
 /// </summary>
 public static class TransferSerializer
 {
     private const string What = "The file";
     private const string SyncMember = "sync";
+    private const string AppearanceMember = "appearance";
 
     private static readonly JsonWriterOptions WriterOptions = new() { Indented = true };
 
@@ -38,7 +39,7 @@ public static class TransferSerializer
             if (file.Settings is { } settings)
             {
                 writer.WritePropertyName("settings");
-                WithoutSync(settings).WriteTo(writer);
+                WithoutLocalSections(settings).WriteTo(writer);
             }
 
             writer.WritePropertyName("gestures");
@@ -90,7 +91,7 @@ public static class TransferSerializer
         // After Read the tree is the current schema (migrated in place), so these are the current members.
         bool hasSettings = root["settings"] is JsonObject;
         bool hasMapping = root["mapping"] is not null;
-        var settings = document.Settings with { Sync = SyncSettings.Default };
+        var settings = TransferFile.Portable(document.Settings);
         try
         {
             if (hasSettings)
@@ -111,11 +112,12 @@ public static class TransferSerializer
         }
     }
 
-    /// <summary>The options as the config file writes them, minus <c>sync</c>.</summary>
-    private static JsonObject WithoutSync(Settings settings)
+    /// <summary>The options as the config file writes them, minus <c>sync</c> and <c>appearance</c>.</summary>
+    private static JsonObject WithoutLocalSections(Settings settings)
     {
         var node = JsonSerializer.SerializeToNode(settings, ConfigJsonContext.Default.Settings)!.AsObject();
         node.Remove(SyncMember);
+        node.Remove(AppearanceMember);
         return node;
     }
 }

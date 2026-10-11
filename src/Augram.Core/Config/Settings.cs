@@ -17,7 +17,8 @@ public sealed record Settings
         TrailSettings? trail = null,
         RecognitionOptions? recognition = null,
         NoMatchBehaviour noMatch = NoMatchBehaviour.DoNothing,
-        SyncSettings? sync = null)
+        SyncSettings? sync = null,
+        AppearanceSettings? appearance = null)
     {
         General = general ?? GeneralSettings.Default;
         Capture = capture ?? CaptureThresholds.Default;
@@ -25,6 +26,7 @@ public sealed record Settings
         Recognition = recognition ?? RecognitionOptions.Default;
         NoMatch = noMatch;
         Sync = sync ?? SyncSettings.Default;
+        Appearance = appearance ?? AppearanceSettings.Default;
     }
 
     public GeneralSettings General { get; init; }
@@ -39,6 +41,9 @@ public sealed record Settings
 
     /// <summary>Machine-to-machine sync (F8): local to this machine and never synced itself, like every section here.</summary>
     public SyncSettings Sync { get; init; }
+
+    /// <summary>Theme, window background, tint, corner rounding and accent (plan 0006): this machine's look, left out of an export like the sync section.</summary>
+    public AppearanceSettings Appearance { get; init; }
 
     public static Settings Default { get; } = new();
 }
