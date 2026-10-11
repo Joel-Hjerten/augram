@@ -84,7 +84,7 @@ body{background:var(--page-bg); color:var(--page-fg); font-family:var(--ui); fon
   --m-input:rgba(0,0,0,.24); --m-seg-on:rgba(255,255,255,.14);
   --m-edge:rgba(255,255,255,.07); --m-edge-top:rgba(255,255,255,.12); --m-divider:rgba(255,255,255,.065);
   --m-accent:#ECB740; --m-accent-fg:#1D1606; --m-accent-soft:rgba(236,183,64,.15); --m-accent-line:rgba(236,183,64,.45); --m-accent-text:#F3C860;
-  --m-danger:#FF7A70; --m-ok:#5BD18B; --m-warn:#F5B84A;
+  --m-accent-edge:rgba(0,0,0,0); --m-track:rgba(255,255,255,.16); --m-thumb:#E9E8EE; --m-danger:#FF7A70; --m-ok:#5BD18B; --m-warn:#F5B84A;
   --glyph-start:#B06E1A; --glyph-end:#F7D25E; --glyph-start-muted:rgba(255,255,255,.16);
   --m-shadow:0 24px 70px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35); --m-outline:rgba(0,0,0,.55);
   color-scheme:dark;
@@ -97,7 +97,7 @@ body{background:var(--page-bg); color:var(--page-fg); font-family:var(--ui); fon
   --m-input:rgba(255,255,255,.72); --m-seg-on:rgba(255,255,255,1);
   --m-edge:rgba(20,20,40,.09); --m-edge-top:rgba(255,255,255,.8); --m-divider:rgba(20,20,40,.07);
   --m-accent:#B98109; --m-accent-fg:#FFFFFF; --m-accent-soft:rgba(205,148,20,.14); --m-accent-line:rgba(185,129,9,.45); --m-accent-text:#8C6105;
-  --m-danger:#D93B30; --m-ok:#1E9E57; --m-warn:#A86A00;
+  --m-accent-edge:rgba(0,0,0,.2); --m-track:rgba(20,20,40,.13); --m-thumb:#FFFFFF; --m-danger:#D93B30; --m-ok:#1E9E57; --m-warn:#A86A00;
   --glyph-start:#7C4A0E; --glyph-end:#D69C14; --glyph-start-muted:rgba(20,20,40,.16);
   --m-shadow:0 24px 70px rgba(30,30,60,.28), 0 2px 8px rgba(30,30,60,.12); --m-outline:rgba(20,20,40,.18);
   color-scheme:light;
@@ -168,7 +168,7 @@ body{background:var(--page-bg); color:var(--page-fg); font-family:var(--ui); fon
 .info{display:inline-grid; place-items:center; width:15px; height:15px; border-radius:50%; font-size:10px; font-weight:700; font-style:normal; color:var(--m-faint); box-shadow:inset 0 0 0 1.2px var(--m-faint); cursor:help; flex:none}
 .btn{font-size:12.5px; line-height:1; border:0; padding:7px 11px; border-radius:var(--rc); background:var(--m-ctl); cursor:pointer; box-shadow:inset 0 0 0 1px var(--m-edge); white-space:nowrap}
 .btn:hover{background:var(--m-ctl-hover)}
-.btn.primary{background:var(--m-accent); color:var(--m-accent-fg); box-shadow:none; font-weight:600}
+.btn.primary{background:var(--m-accent); color:var(--m-accent-fg); box-shadow:inset 0 0 0 1px var(--m-accent-edge); font-weight:600}
 .btn.primary:hover{filter:brightness(1.07)}
 .btn.ghost{background:transparent; box-shadow:none; color:var(--m-accent-text); padding-inline:8px}
 .btn.ghost:hover{background:var(--m-hover)}
@@ -205,12 +205,12 @@ body{background:var(--page-bg); color:var(--page-fg); font-family:var(--ui); fon
 
 /* Editors */
 .box{position:relative; display:inline-block; flex:none; width:16px; height:16px; border-radius:4px; background:var(--m-input); box-shadow:inset 0 0 0 1.2px var(--m-faint); cursor:pointer}
-.box.on{background:var(--m-accent); box-shadow:none}
+.box.on{background:var(--m-accent); box-shadow:inset 0 0 0 1px var(--m-accent-edge)}
 .box.on::after{content:""; position:absolute; left:5px; top:2px; width:4px; height:8px; border:solid var(--m-accent-fg); border-width:0 2px 2px 0; transform:rotate(45deg)}
 .ck{display:inline-flex; align-items:center; gap:6px; margin-right:12px; cursor:pointer; white-space:nowrap}
 .switch{position:relative; display:inline-block; width:34px; height:20px; border-radius:10px; background:var(--m-input); box-shadow:inset 0 0 0 1.2px var(--m-faint); cursor:pointer; flex:none; transition:background .15s}
 .switch::after{content:""; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:var(--m-muted); transition:transform .15s}
-.switch.on{background:var(--m-accent); box-shadow:none}
+.switch.on{background:var(--m-accent); box-shadow:inset 0 0 0 1px var(--m-accent-edge)}
 .switch.on::after{transform:translateX(14px); background:var(--m-accent-fg)}
 .switch.dis{opacity:.45; cursor:not-allowed}
 .input{display:inline-flex; align-items:center; min-height:28px; padding:4px 10px; border:0; border-radius:var(--rc); background:var(--m-input); box-shadow:inset 0 0 0 1px var(--m-edge); color:var(--m-fg); font:inherit; min-width:min(180px,100%)}
@@ -242,8 +242,14 @@ input.input:focus{outline:none; box-shadow:inset 0 0 0 1px var(--m-accent-line),
 .opts.inside{display:grid; gap:14px}
 .opts.inside .ihead + .frow{box-shadow:inset 0 1px 0 var(--m-divider)}
 .slider-field{display:inline-flex; align-items:center; gap:10px; min-width:0; max-width:100%}
-.slider-field input{width:min(240px,100%); accent-color:var(--m-accent)}
-.slider-field input:disabled{opacity:.4}
+.slider-field input{-webkit-appearance:none; appearance:none; width:min(240px,100%); height:6px; margin:0; border-radius:3px; cursor:pointer;
+  background:linear-gradient(to right, var(--m-accent) 0 var(--pct,50%), var(--m-track) var(--pct,50%) 100%)}
+.slider-field input::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
+  background:radial-gradient(circle, var(--m-accent) 0 36%, var(--m-thumb) 40%); box-shadow:0 0 0 1px var(--m-edge), 0 1px 3px rgba(0,0,0,.3)}
+.slider-field input::-moz-range-thumb{width:18px; height:18px; border:0; border-radius:50%;
+  background:radial-gradient(circle, var(--m-accent) 0 36%, var(--m-thumb) 40%); box-shadow:0 0 0 1px var(--m-edge), 0 1px 3px rgba(0,0,0,.3)}
+.slider-field input::-moz-range-track{background:transparent}
+.slider-field input:disabled{opacity:.4; cursor:not-allowed}
 .slider-field output{min-width:44px; font-size:12.5px; color:var(--m-muted); font-variant-numeric:tabular-nums}
 
 /* Commands workbench */
@@ -454,12 +460,14 @@ table.rt{width:100%; border-collapse:collapse; font-size:12.5px}
   }
   function themeVars(mode, accent, trail){
     var dark = mode === "dark", bg = dark ? [42, 41, 47] : [255, 255, 255], step = dark ? .02 : -.02;
-    var a = shift(accent, function(c){ return contrast(c, bg) >= 3; }, step);
+    /* Light: fills stay bright (1.6:1 against white, with a deeper edge); yellow darkened to 3:1 looked muddy (Joel, 2026-10-11). */
+    var a = shift(accent, function(c){ return contrast(c, bg) >= (dark ? 3 : 1.6); }, step);
+    var mid = shift(accent, function(c){ return contrast(c, bg) >= (dark ? 3 : 2.4); }, step);
     var text = shift(accent, function(c){ return contrast(c, bg) >= (dark ? 5 : 4.5); }, step);
-    var end = shift(trail, function(c){ return contrast(c, dark ? [46, 45, 51] : [244, 244, 247]) >= (dark ? 3 : 2.6); }, step);
+    var end = shift(trail, function(c){ return contrast(c, dark ? [46, 45, 51] : [244, 244, 247]) >= (dark ? 3 : 2); }, step);
     var fg = contrast(hexRgb(a), [23, 20, 10]) >= contrast(hexRgb(a), [255, 255, 255]) ? "#17140A" : "#FFFFFF";
-    return "--m-accent:" + a + ";--m-accent-fg:" + fg + ";--m-accent-soft:" + rgba(a, dark ? .16 : .14) +
-      ";--m-accent-line:" + rgba(a, .48) + ";--m-accent-text:" + text + ";--glyph-end:" + end + ";--glyph-start:" + startFor(end) + ";";
+    return "--m-accent:" + a + ";--m-accent-fg:" + fg + ";--m-accent-soft:" + rgba(a, dark ? .16 : .24) +
+      ";--m-accent-line:" + rgba(mid, dark ? .48 : .6) + ";--m-accent-edge:" + (dark ? "rgba(0,0,0,0)" : rgba(mid, .6)) + ";--m-accent-text:" + text + ";--glyph-end:" + end + ";--glyph-start:" + startFor(end) + ";";
   }
   var dyn = document.createElement("style");
   document.head.appendChild(dyn);
@@ -717,8 +725,9 @@ table.rt{width:100%; border-collapse:collapse; font-size:12.5px}
   }
 
   /* ---------- Options ---------- */
+  function pctOf(v, min, max){ return Math.round((v - min) / (max - min) * 1000) / 10; }
   function slider(key, min, max, unit, disabled){
-    return '<span class="slider-field"><input type="range" data-look="' + key + '" min="' + min + '" max="' + max + '" step="1" value="' + look[key] + '" aria-label="' + key + '"' + (disabled ? ' disabled' : '') + '>' +
+    return '<span class="slider-field"><input type="range" data-look="' + key + '" min="' + min + '" max="' + max + '" step="1" value="' + look[key] + '" aria-label="' + key + '" style="--pct:' + pctOf(look[key], min, max) + '%"' + (disabled ? ' disabled' : '') + '>' +
       '<output>' + look[key] + unit + '</output></span>';
   }
   function options(sub){
@@ -874,6 +883,7 @@ table.rt{width:100%; border-collapse:collapse; font-size:12.5px}
     win.querySelectorAll("[data-look]").forEach(function(input){
       var key = input.getAttribute("data-look");
       if (document.activeElement !== input) input.value = look[key];
+      input.style.setProperty("--pct", pctOf(look[key], +input.min, +input.max) + "%");
       input.nextElementSibling.textContent = look[key] + (key === "tint" ? "%" : " px");
     });
     placeMica();
