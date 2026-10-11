@@ -291,12 +291,12 @@ public sealed class StepListTests
     public void TheChangePickerGreysTheRefusalsOfTheStepItChanges()
     {
         var (list, actions, _) = Show(selected: 1);
-        const string Already = "It is a Delay step already.";
+        const string Already = "This step is Delay already.";
         var notHere = StepOffer.NotHere(RemapStepType.Instance);
         list.StepRefusals = new Dictionary<IStepType, string> { [RemapStepType.Instance] = notHere };
         list.ChangeRefusals =
         [
-            new Dictionary<IStepType, string> { [WindowOpStepType.Instance] = "It is a Window step already.", [RemapStepType.Instance] = notHere },
+            new Dictionary<IStepType, string> { [WindowOpStepType.Instance] = "This step is Window already.", [RemapStepType.Instance] = notHere },
             new Dictionary<IStepType, string> { [DelayStepType.Instance] = Already, [RemapStepType.Instance] = notHere },
         ];
 

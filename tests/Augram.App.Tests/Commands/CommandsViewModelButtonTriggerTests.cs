@@ -229,7 +229,7 @@ public sealed class CommandsViewModelButtonTriggerTests
         var (vm, store) = GlobalWithSteps("Magnifier", RightLeft, new RemapStep(new RemapOutput.Key(KeyCode.X, KeyModifiers.Meta | KeyModifiers.Shift)));
         Select(vm, "Magnifier");
         var refusal = Assert.Single(Assert.Single(vm.SelectedCommand!.ChangeRefusals));
-        Assert.Equal((RemapStepType.Instance, "It is a Remap step already."), (refusal.Key, refusal.Value));
+        Assert.Equal((RemapStepType.Instance, "This step is Remap already."), (refusal.Key, refusal.Value));
 
         vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[0], type: HotkeyStepType.Instance));
 

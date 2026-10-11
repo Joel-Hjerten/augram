@@ -67,7 +67,7 @@ public static class StepOffer
 
     /// <summary>
     /// Why the step at <paramref name="index"/> of <paramref name="command"/>'s steps on <paramref name="platform"/> cannot become a
-    /// step of <paramref name="type"/> now (the step menu's "Change to…"): "It is a Hotkey step already.", "A Remap step is a
+    /// step of <paramref name="type"/> now (the step menu's "Change to…"): "This step is Hotkey already.", "A Remap step is a
     /// command's only step."; null when it can. The step checked is the one "New step…" would add (<see cref="NewStep"/>), in that
     /// step's place (<see cref="CheckChange(IStep, Command, int, HostPlatform, Trigger?)"/>).
     /// </summary>
@@ -114,11 +114,11 @@ public static class StepOffer
         return RefusalsBy(types, type => CheckChange(type, command, index, platform, drafted));
     }
 
-    /// <summary>Why a step cannot be changed to its own type: "It is a Hotkey step already."</summary>
+    /// <summary>Why a step cannot be changed to its own type: "This step is Hotkey already."</summary>
     public static string Already(IStepType type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return $"It is a {type.DisplayName} step already.";
+        return $"This step is {type.DisplayName} already.";
     }
 
     /// <summary>

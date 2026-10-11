@@ -159,7 +159,7 @@ public sealed class StepOfferTests
         var orbit = Blender.Remap(space, "Orbit", HoldInput.Of(MouseButton.Left), Blender.Middle);
 
         Assert.Null(StepOffer.CheckChange(HotkeyStepType.Instance, orbit, 0, Windows));
-        Assert.Equal("It is a Remap step already.", StepOffer.CheckChange(RemapStepType.Instance, orbit, 0, Windows));
+        Assert.Equal("This step is Remap already.", StepOffer.CheckChange(RemapStepType.Instance, orbit, 0, Windows));
         var refusal = Assert.Single(StepOffer.ChangeRefusals(Types, orbit, 0, Windows));
         Assert.Same(RemapStepType.Instance, refusal.Key);
         Assert.Equal(StepOffer.Already(RemapStepType.Instance), refusal.Value);
@@ -173,10 +173,10 @@ public sealed class StepOfferTests
     {
         var three = NewCommand("Three", Up, new CommandStep(new DelayStep(10), Windows), new CommandStep(HotkeyStepType.Instance.CreateDefault(), Windows));
 
-        Assert.Equal("It is a Delay step already.", StepOffer.CheckChange(DelayStepType.Instance, three, 0, Windows));
-        Assert.Equal("It is a Hotkey step already.", StepOffer.CheckChange(HotkeyStepType.Instance, three, 1, Windows));
+        Assert.Equal("This step is Delay already.", StepOffer.CheckChange(DelayStepType.Instance, three, 0, Windows));
+        Assert.Equal("This step is Hotkey already.", StepOffer.CheckChange(HotkeyStepType.Instance, three, 1, Windows));
         Assert.Null(StepOffer.CheckChange(HotkeyStepType.Instance, three, 0, Windows));
-        Assert.Equal("It is a Hotkey step already.", StepOffer.Already(HotkeyStepType.Instance));
+        Assert.Equal("This step is Hotkey already.", StepOffer.Already(HotkeyStepType.Instance));
     }
 
     [Fact]

@@ -46,7 +46,7 @@ public sealed class ButtonTriggerGalleryTests
         Assert.Same(bench.ChangeRefusals, steps.ChangeRefusals);
         steps.OpenChangePicker(steps.Steps[0]);
         Assert.Equal([RemapStepType.Instance], steps.ChangeTypePicker.Listed.Except(steps.ChangeTypePicker.Offered));
-        Assert.Equal("It is a Remap step already.", Assert.Single(steps.ChangeRefusals)[RemapStepType.Instance]);
+        Assert.Equal("This step is Remap already.", Assert.Single(steps.ChangeRefusals)[RemapStepType.Instance]);
 
         var row = Assert.Single(steps.Rows);
         Assert.True(row.IsExpanded);

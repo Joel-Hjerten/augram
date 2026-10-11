@@ -169,11 +169,11 @@ public sealed class CommandsViewModelStepTests
         var refusals = vm.SelectedCommand!.ChangeRefusals;
         Assert.Equal(3, refusals.Count);
         Assert.Equal(2, refusals[1].Count);
-        Assert.Equal("It is a Delay step already.", refusals[1][DelayStepType.Instance]);
+        Assert.Equal("This step is Delay already.", refusals[1][DelayStepType.Instance]);
         Assert.Equal(notHere, refusals[1][RemapStepType.Instance]);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[1], type: DelayStepType.Instance));
-        Assert.Equal("It is a Delay step already.", vm.Message);
+        Assert.Equal("This step is Delay already.", vm.Message);
         vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[1], type: RemapStepType.Instance));
         Assert.Equal(notHere, vm.Message);
 

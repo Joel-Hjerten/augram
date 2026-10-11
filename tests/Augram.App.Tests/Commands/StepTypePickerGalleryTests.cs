@@ -41,7 +41,7 @@ public sealed class StepTypePickerGalleryTests
         // "Change to…" on Magnifier's Remap step (Joel, 2026-10-11): a replacement, so only its own type is greyed.
         Assert.DoesNotContain(RemapStepType.Instance, pickers[4].Offered);
         var own = pickers[4].Entries.OfType<Button>().Single(button => button.Tag == RemapStepType.Instance);
-        Assert.Equal("It is a Remap step already.", ToolTip.GetTip(own));
+        Assert.Equal("This step is Remap already.", ToolTip.GetTip(own));
     }
 
     [AvaloniaFact]
