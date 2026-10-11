@@ -1,16 +1,9 @@
-using System.Globalization;
-using Augram.App.Components.CommandTree;
-using Augram.App.Components.StepList;
 using Augram.App.Components.SyncConflictList;
 using Augram.App.Declarations;
 using Augram.App.Sync;
-using Augram.Core.Abstractions;
-using Augram.Core.Config;
 using Augram.Core.Gestures;
-using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
-using Augram.Core.Steps.Hotkey;
 using Augram.Core.Sync;
 using Augram.Core.Text;
 
@@ -18,10 +11,10 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// The conflict dialog (F8 sync, conflicts): one <see cref="SyncConflictEntry"/> per pending <see cref="SyncConflict"/>
-/// (its name, kind and the other machine; both versions, a gesture as its glyph, anything else as a one-line summary
-/// or "deleted") and the user's choice per conflict, Keep mine by default. Keep both is offered only for a gesture
-/// or a command that exists on both machines (<see cref="Allowed"/>); elsewhere Core would apply the nearest choice
-/// anyway. <see cref="Resolutions"/> is what Apply hands to <see cref="SyncService.Resolve"/>. Names in the summaries
+/// (its name, kind and the other machine; both versions in words by <see cref="SyncConflictSideText"/>, a gesture as
+/// its glyph, anything else as a one-line summary or "deleted") and the user's choice per conflict, Keep mine by
+/// default. Keep both is offered only for a gesture or a command that exists on both machines (<see cref="Allowed"/>);
+/// elsewhere Core would apply the nearest choice anyway. <see cref="Resolutions"/> is what Apply hands to <see cref="SyncService.Resolve"/>. Names in the summaries
 /// (a command's group and gesture) are read from this machine's stores, as snapshots, when the dialog opens. The Augram file
 /// import (plan 0003) reuses it for its differing items, with its own <see cref="Help"/> and the file as the other side.
 /// </summary>
@@ -35,9 +28,7 @@ public sealed class SyncConflictsViewModel
 
     private readonly SyncConflict[] _conflicts;
     private readonly SyncChoice[] _choices;
-    private readonly IReadOnlyList<Gesture> _gestures;
-    private readonly MappingDocument _mapping;
-    private readonly StepRegistry _steps;
+    private readonly SyncConflictSideText _sides;
 
     /// <summary><c>help</c> is the dialog's instructions (its ⓘ): the sync's (<see cref="SyncHelp"/>) unless the host has its own.</summary>
     public SyncConflictsViewModel(IReadOnlyList<SyncConflict> conflicts, IReadOnlyList<Gesture> gestures, MappingDocument mapping, StepRegistry? steps = null, string? help = null)
@@ -47,9 +38,7 @@ public sealed class SyncConflictsViewModel
         ArgumentNullException.ThrowIfNull(mapping);
         _conflicts = [.. conflicts];
         _choices = [.. conflicts.Select(_ => SyncChoice.KeepMine)];
-        _gestures = gestures;
-        _mapping = mapping;
-        _steps = steps ?? StepRegistry.BuiltIn;
+        _sides = new SyncConflictSideText(gestures, mapping, steps ?? StepRegistry.BuiltIn);
         Help = help ?? SyncHelp;
         Entries = [.. _conflicts.Select(Entry)];
     }
@@ -128,7 +117,7 @@ public sealed class SyncConflictsViewModel
     {
         var detail = conflict.MachineName.Length > 0 ? $"{SyncItemNouns.Heading(conflict.Kind)} · with {conflict.MachineName}" : SyncItemNouns.Heading(conflict.Kind);
         var choices = Allowed(conflict).Select(choice => new Choice<SyncChoice>(Label(choice), choice)).ToList();
-        return new SyncConflictEntry(conflict.Name, detail, Side(conflict, conflict.LocalContent), Side(conflict, conflict.RemoteContent), choices, _choices[index]);
+        return new SyncConflictEntry(conflict.Name, detail, _sides.Side(conflict, conflict.LocalContent), _sides.Side(conflict, conflict.RemoteContent), choices, _choices[index]);
     }
 
     public static string Label(SyncChoice choice) => choice switch
@@ -137,91 +126,4 @@ public sealed class SyncConflictsViewModel
         SyncChoice.TakeTheirs => TakeTheirsLabel,
         _ => KeepBothLabel,
     };
-
-    private SyncConflictSide Side(SyncConflict conflict, string? content)
-    {
-        if (content is null)
-        {
-            return SyncConflictSide.Deleted;
-        }
-
-        SyncItem item;
-        try
-        {
-            item = SyncItem.Parse(conflict.Key, content, _steps);
-        }
-        catch (ConfigFormatException)
-        {
-            return new SyncConflictSide("(this version cannot be read here)");
-        }
-
-        return item switch
-        {
-            SyncItem.GestureItem gesture => new SyncConflictSide(GestureText(gesture.Gesture), gesture.Gesture.Samples.Count > 0 ? gesture.Gesture.Samples[0] : null),
-            SyncItem.CommandItem command => new SyncConflictSide(CommandText(command.GroupId, command.Command)),
-            SyncItem.GroupItem group => new SyncConflictSide(GroupText(group.Header)),
-            SyncItem.CategoryItem category => new SyncConflictSide(CategoryText(category.Category)),
-            SyncItem.HoldRemapItem holdRemap => new SyncConflictSide(HoldRemapText(holdRemap.HoldRemap)),
-            SyncItem.IgnoredItem ignored => new SyncConflictSide(IgnoredText(ignored.App)),
-            SyncItem.VersionItem version => new SyncConflictSide(VersionText(version.Version)),
-            _ => new SyncConflictSide(item.Name),
-        };
-    }
-
-    private static string GestureText(Gesture gesture)
-    {
-        var samples = Sentence.Count(gesture.Samples.Count, "sample");
-        return $"{gesture.Name} · {samples}{(gesture.IsActive ? string.Empty : " · inactive")}";
-    }
-
-    /// <summary>"Chrome › Close tab: gesture Zig → Wait 30 ms", "Blender › Space › Orbit: Left → …" (<see cref="CommandNames.Label(string, string?, string)"/>).</summary>
-    private string CommandText(GroupId groupId, Command command)
-    {
-        var group = _mapping.Groups.FirstOrDefault(candidate => candidate.Id == groupId);
-        var holdRemap = command.HoldRemapId is not { } id ? null : group?.FindHoldRemap(id)?.Name ?? "another hold remap";
-        var label = CommandNames.Label(group?.Name ?? "another group", holdRemap, command.Name);
-        var trigger = TriggerText(command.Trigger);
-        var steps = command.Steps.Count == 0 ? "no steps" : string.Join(", ", command.Steps.Select(step => step.Step.Summary));
-        return $"{label}: {trigger} → {steps}{(command.IsActive ? string.Empty : " (inactive)")}";
-    }
-
-    /// <summary>"gesture Undo", "Shift + gesture Undo", "Right + wheel up", "a gesture not on this machine".</summary>
-    private string TriggerText(Trigger trigger)
-        => trigger is Trigger.GestureTrigger gesture
-            ? TriggerKindExtensions.Text(
-                trigger,
-                _gestures.FirstOrDefault(candidate => candidate.Id == gesture.GestureId) is { } known ? $"gesture {known.Name}" : "a gesture not on this machine",
-                HotkeyText.Names)
-            : trigger.Describe();
-
-    private string VersionText(CommandVersion version)
-    {
-        var platform = version.Platform.DisplayName();
-        var steps = version.Steps.Count == 0 ? "no steps (does nothing there)" : string.Join(", ", version.Steps.Select(step => step.Step.SummaryOn(step.AuthoredOn)));
-        return version.Trigger is { } own ? $"{platform} trigger: {TriggerText(own)}; {platform} steps: {steps}" : $"{platform} steps: {steps}";
-    }
-
-    private static string GroupText(AppGroup group)
-    {
-        var matches = group.Matcher is { WindowsProcessNames.Count: > 0 } matcher ? "matches " + string.Join(", ", matcher.WindowsProcessNames) : "matches no app yet";
-        return $"{group.Name}: {matches}{(group.SuppressGlobals ? ", suppresses global commands" : string.Empty)}{(group.IsActive ? string.Empty : " (inactive)")}";
-    }
-
-    /// <summary>"Personal", or "Personal · Windows only" when its Use on (F8, 2026-10-08) is what differs.</summary>
-    private static string CategoryText(CommandCategory category)
-        => category.UseOn == PlatformSet.All ? category.Name : $"{category.Name} · {StepPlatformMarker.Only(category.UseOn)}";
-
-    /// <summary>"Space: hold Space, tap 180 ms", then " · Windows only" and " (inactive)" when they apply (plan 0002).</summary>
-    private static string HoldRemapText(HoldRemap holdRemap)
-    {
-        var key = holdRemap.HoldKey == KeyCode.None ? "no hold key yet" : $"hold {HotkeyText.KeyName(holdRemap.HoldKey)}";
-        var useOn = holdRemap.UseOn == PlatformSet.All ? string.Empty : $" · {StepPlatformMarker.Only(holdRemap.UseOn)}";
-        return string.Create(CultureInfo.InvariantCulture, $"{holdRemap.Name}: {key}, tap {holdRemap.TapTimeMs} ms{useOn}{(holdRemap.IsActive ? string.Empty : " (inactive)")}");
-    }
-
-    private static string IgnoredText(IgnoredApp app)
-    {
-        var matches = app.Matcher.WindowsProcessNames.Count > 0 ? string.Join(", ", app.Matcher.WindowsProcessNames) : "no app yet";
-        return $"{app.Name}: {matches}{(app.DisableEntirely ? ", turns Augram off" : string.Empty)}{(app.IsActive ? string.Empty : " (inactive)")}";
-    }
 }
