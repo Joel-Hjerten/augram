@@ -74,6 +74,7 @@ The same pattern applies to triggers (gesture, wheel up/down) and, later, to app
 
 - MVVM with `CommunityToolkit.Mvvm`. Views are XAML plus a near-empty code-behind. View models hold all logic and are tested headless.
 - `App/Components/` holds every shared control, one folder per component: `GestureGlyph/`, `CommandTree/`, `StepList/`, `AppMatcherForm/`, `MasterDetail/`, `SectionToolbar/`, `ItemToolbar/`. Screens in `App/Views/` compose components and own no visuals of their own.
+- **Amended 2026-10-11 (Joel): every App folder gets a README, as every Core subsystem does (§3).** `Components/`, each component folder, `ViewModels/`, `Hosting/` and the rest: what lives there, its contract, what not to put there. Agents were relearning App on every task; the READMEs are written during the refactor and kept current with each change, like Core's.
 - `App/DevGallery/` is compiled only in Debug (`#if DEBUG` + a dev-mode flag) and shows every component in every state. A component is not done until it has a gallery entry.
 - Theme tokens (colors, spacing, type) live in one resource dictionary; components reference tokens, never literals.
 

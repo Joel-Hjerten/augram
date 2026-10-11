@@ -236,7 +236,7 @@ Commands and steps: Core/Mapping (AppGroup, Command, CommandResolver with overri
 
 ## 7. Working with subagents (what worked)
 
-Give each agent disjoint folder ownership, the exact docs to read, the verification commands, and "do not commit". Have them report file lists with line counts and deviations. Verify a subagent's work yourself (`dotnet build`, `dotnet test`, `dotnet format --verify-no-changes`), commit by path so parallel agents' in-progress files stay out, and check CI after the push. When several agents run, an isolated `git worktree` at HEAD is the safe way to verify a commit (`dotnet build-server shutdown` before removing it, or the folder stays locked). Do not `git stash` while agents are writing. For small UI fixes driven by Joel's feedback, the lead does them directly; it is faster than briefing an agent.
+Give each agent disjoint folder ownership, the exact docs to read, the verification commands, and "do not commit". Have them report file lists with line counts and deviations. Verify a subagent's work yourself (`dotnet build`, `dotnet test`, `dotnet format --verify-no-changes`), commit by path so parallel agents' in-progress files stay out, and check CI after the push. When several agents run, an isolated `git worktree` at HEAD is the safe way to verify a commit (`dotnet build-server shutdown` before removing it, or the folder stays locked). Do not `git stash` while agents are writing. For small UI fixes driven by Joel's feedback, the lead does them directly; it is faster than briefing an agent. The full set of turnaround rules and the agent effort levels are in CLAUDE.md (2026-10-11).
 
 ## 8. Tooling set up on 2026-10-07
 
