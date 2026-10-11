@@ -12,7 +12,7 @@ namespace Augram.App.Screens;
 /// The Sync section of Options › Sync (F8 sync), declared like the rest of the page: repository address, this
 /// machine's name, automatic sync, Sync now with the status line, the conflicts line with Resolve… (shown only while
 /// conflicts are pending) and the last run's details. The two text fields commit on leaving or Enter, not per
-/// keystroke (<see cref="SyncViewModel"/>), so they are custom editors: a text box with its problem shown under it.
+/// keystroke (<see cref="DraftText"/>), so they are custom editors: a text box with its problem shown under it.
 /// </summary>
 public static class OptionsSyncSection
 {
@@ -30,16 +30,16 @@ public static class OptionsSyncSection
         return new Section(Title,
         [
             new CustomField("Repository", () => CommittedText(
-                new DelegateBinding<string>(() => vm.RepositoryUrlText, value => vm.RepositoryUrlText = value, vm),
-                new DelegateBinding<string>(() => vm.UrlProblemText, owner: vm),
-                vm.CommitRepositoryUrl,
-                vm.RevertRepositoryUrl,
+                new DelegateBinding<string>(() => vm.RepositoryUrl.Text, value => vm.RepositoryUrl.Text = value, vm.RepositoryUrl),
+                new DelegateBinding<string>(() => vm.RepositoryUrl.ProblemText, owner: vm.RepositoryUrl),
+                vm.RepositoryUrl.Commit,
+                vm.RepositoryUrl.Revert,
                 wide: true), vm, RepositoryHelp),
             new CustomField("This machine", () => CommittedText(
-                new DelegateBinding<string>(() => vm.MachineNameText, value => vm.MachineNameText = value, vm),
-                new DelegateBinding<string>(() => vm.MachineNameProblemText, owner: vm),
-                vm.CommitMachineName,
-                vm.RevertMachineName,
+                new DelegateBinding<string>(() => vm.MachineName.Text, value => vm.MachineName.Text = value, vm.MachineName),
+                new DelegateBinding<string>(() => vm.MachineName.ProblemText, owner: vm.MachineName),
+                vm.MachineName.Commit,
+                vm.MachineName.Revert,
                 wide: false), vm, "How the other machines name this one (\"3 commands changed from PC-HOME\")."),
             new ToggleField("Automatic sync",
                 new DelegateBinding<bool>(() => vm.AutoSync, value => vm.AutoSync = value, vm),

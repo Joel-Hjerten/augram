@@ -21,12 +21,12 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME", autoSync: false);
         using var vm = ViewModel(home);
 
-        Assert.Equal(SyncMachine.Url, vm.RepositoryUrlText);
-        Assert.Equal("PC-HOME", vm.MachineNameText);
+        Assert.Equal(SyncMachine.Url, vm.RepositoryUrl.Text);
+        Assert.Equal("PC-HOME", vm.MachineName.Text);
         Assert.False(vm.AutoSync);
         Assert.True(vm.IsConfigured);
         Assert.True(vm.CanSyncNow);
-        Assert.Null(vm.UrlProblem);
+        Assert.Null(vm.RepositoryUrl.Problem);
         Assert.Equal(SyncStatusText.NeverText, vm.StatusText);
     }
 
@@ -38,22 +38,22 @@ public sealed class SyncViewModelTests : SyncTestBase
         Assert.Equal(SyncStatusText.OffText, vm.StatusText);
         Assert.False(vm.CanSyncNow);
 
-        vm.RepositoryUrlText = "https://joel:ghp_secret@github.com/joel/augram-settings.git";
-        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.UrlProblem);
-        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.UrlProblemText);
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Text = "https://joel:ghp_secret@github.com/joel/augram-settings.git";
+        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.RepositoryUrl.Problem);
+        Assert.Equal(SyncSettingsRules.UserInfoProblem, vm.RepositoryUrl.ProblemText);
+        vm.RepositoryUrl.Commit();
         Assert.Null(home.Settings.Current.Sync.RepositoryUrl);
 
-        vm.RepositoryUrlText = "  " + SyncMachine.Url;
-        Assert.Null(vm.UrlProblem);
+        vm.RepositoryUrl.Text = "  " + SyncMachine.Url;
+        Assert.Null(vm.RepositoryUrl.Problem);
         Assert.Null(home.Settings.Current.Sync.RepositoryUrl);
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Commit();
         Assert.Equal(SyncMachine.Url, home.Settings.Current.Sync.RepositoryUrl);
-        Assert.Equal(SyncMachine.Url, vm.RepositoryUrlText);
+        Assert.Equal(SyncMachine.Url, vm.RepositoryUrl.Text);
         Assert.True(vm.IsConfigured);
 
         int changes = home.Settings.Version;
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Commit();
         Assert.Equal(changes, home.Settings.Version);
     }
 
@@ -63,15 +63,15 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME");
         using var vm = ViewModel(home);
 
-        vm.RepositoryUrlText = "git@github";
-        Assert.NotNull(vm.UrlProblem);
-        vm.RevertRepositoryUrl();
-        Assert.Equal(SyncMachine.Url, vm.RepositoryUrlText);
-        Assert.Null(vm.UrlProblem);
+        vm.RepositoryUrl.Text = "git@github";
+        Assert.NotNull(vm.RepositoryUrl.Problem);
+        vm.RepositoryUrl.Revert();
+        Assert.Equal(SyncMachine.Url, vm.RepositoryUrl.Text);
+        Assert.Null(vm.RepositoryUrl.Problem);
 
-        vm.RepositoryUrlText = "   ";
-        Assert.Null(vm.UrlProblem);
-        vm.CommitRepositoryUrl();
+        vm.RepositoryUrl.Text = "   ";
+        Assert.Null(vm.RepositoryUrl.Problem);
+        vm.RepositoryUrl.Commit();
         Assert.Null(home.Settings.Current.Sync.RepositoryUrl);
         Assert.False(vm.IsConfigured);
     }
@@ -82,19 +82,19 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME");
         using var vm = ViewModel(home);
 
-        vm.MachineNameText = " ";
-        Assert.Equal(SyncViewModel.NameProblemText, vm.MachineNameProblem);
-        vm.CommitMachineName();
+        vm.MachineName.Text = " ";
+        Assert.Equal(SyncViewModel.NameProblemText, vm.MachineName.Problem);
+        vm.MachineName.Commit();
         Assert.Equal("PC-HOME", home.Settings.Current.Sync.MachineName);
 
-        vm.MachineNameText = "Laptop ";
-        Assert.Null(vm.MachineNameProblem);
-        vm.CommitMachineName();
+        vm.MachineName.Text = "Laptop ";
+        Assert.Null(vm.MachineName.Problem);
+        vm.MachineName.Commit();
         Assert.Equal("Laptop", home.Settings.Current.Sync.MachineName);
 
-        vm.MachineNameText = "Typing";
-        vm.RevertMachineName();
-        Assert.Equal("Laptop", vm.MachineNameText);
+        vm.MachineName.Text = "Typing";
+        vm.MachineName.Revert();
+        Assert.Equal("Laptop", vm.MachineName.Text);
     }
 
     [Fact]
@@ -103,10 +103,10 @@ public sealed class SyncViewModelTests : SyncTestBase
         var home = Machine("PC-HOME");
         using var vm = ViewModel(home);
 
-        vm.RepositoryUrlText = "https://github.com/joel/half";
+        vm.RepositoryUrl.Text = "https://github.com/joel/half";
         home.Settings.SetGeneral(home.Settings.Current.General with { Enabled = false });
 
-        Assert.Equal("https://github.com/joel/half", vm.RepositoryUrlText);
+        Assert.Equal("https://github.com/joel/half", vm.RepositoryUrl.Text);
     }
 
     [Fact]

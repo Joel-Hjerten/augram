@@ -153,6 +153,26 @@ public sealed class SyncModuleTests : IDisposable
         Assert.Equal(1, reverts);
     }
 
+    [AvaloniaFact]
+    public void TheRepositoryRowShowsItsDraftsProblemAndEscapeRevertsIt()
+    {
+        var sync = TestAppBuilder.Services.GetRequiredService<SyncViewModel>();
+        var form = new SectionForm { Screen = Assert.IsType<FormScreen>(OptionsScreen.DeclareSync(sync, null)) };
+        new Window { Content = form, Width = 900, Height = 900 }.Show();
+        var row = form.GetVisualDescendants().OfType<FieldRow>().Single(candidate => candidate.Label == "Repository");
+        var box = row.GetVisualDescendants().OfType<TextBox>().Single();
+        var error = row.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Classes.Contains("error"));
+
+        box.Text = "https://joel:ghp_secret@github.com/joel/augram-settings.git";
+        Assert.Equal(box.Text, sync.RepositoryUrl.Text);
+        Assert.Equal(SyncSettingsRules.UserInfoProblem, error.Text);
+        Assert.True(error.IsVisible);
+
+        box.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+        Assert.Equal(string.Empty, box.Text);
+        Assert.False(error.IsVisible);
+    }
+
     [Fact]
     public void HealthShowsTheLastSync()
     {
