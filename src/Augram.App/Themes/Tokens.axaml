@@ -146,8 +146,10 @@
   <Thickness x:Key="Pad.Tag">4,0</Thickness>
   <x:Double x:Key="Opacity.Dragging">0.5</x:Double>
 
-  <!-- Type -->
+  <!-- Type. The Default theme uses these through the text roles in Themes/Default/Text.axaml only. -->
   <FontFamily x:Key="Font.Family">$Default</FontFamily>
+  <!-- Diagnostics › Log's lines (the Mono role). -->
+  <FontFamily x:Key="Font.Mono">Consolas, Menlo, SF Mono, Cascadia Mono, Courier New</FontFamily>
   <!-- The smallest type: a trigger badge's two words inside a 40 px row tile. -->
   <x:Double x:Key="Font.XS">10</x:Double>
   <x:Double x:Key="Font.S">11</x:Double>

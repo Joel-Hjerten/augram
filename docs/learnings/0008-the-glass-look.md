@@ -16,9 +16,10 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 ## Theme layering (Default on top of Wireframe)
 
 - **Resources:** a `Styles` object looks in its own `Resources` first, then in its children from last to first. So `Default.axaml`'s own resources, and an include added after the Wireframe include, win over Wireframe's.
-- **Styles:** Avalonia has no selector specificity. Of two equal setters the later style wins. The include order is Wireframe, `Forms.axaml`, `Lists.axaml`; Lists comes last so its row metrics and list text colours win.
+- **Styles:** Avalonia has no selector specificity. Of two equal setters the later style wins. The include order is Wireframe, `Forms.axaml`, `Lists.axaml`, `Text.axaml`; Lists comes after Forms so its row metrics win, and the text roles come last.
 - **Every theme file merges `Tokens.axaml` into its own resources.** A file's top-level setters resolve while it loads, before a sibling include exists, so a missing token is a load-time XAML error.
 - **Wireframe's global `TextBlock { Foreground = {StaticResource Brush.Text} }` beats inherited colours.** A label inside a tab or pill ignored its parent's foreground and stayed light grey: invisible in the light theme. The Default theme overrides the global rule with `{DynamicResource Text.Primary}`. A template that must show its parent's colour binds it locally (`Foreground="{Binding $parent[TabItem].Foreground}"`), because a local value beats any style.
+- **Text roles (`Text.axaml`, included last):** a button's, check box's or segment's label is an `AccessText` (its presenter recognises access keys), which a `TextBlock` type selector does not match, so it inherits its control's font size: Fluent's 14 px showed on every check box and segment until one rule gave those controls Body's size. And because the roles come last, a colour-only state (an inactive name, the log's columns) must come after them in that file, or the role's colour wins.
 - **Fluent sets some values on its own template parts** (the dropdown frame, the arrow, the colour picker's tabs), and a plain style cannot override those. The Forms agent used selectors with an always-true condition while the part shows (`:dropdownopen`, `:not(:disabled)`, the flyout's `nopadding` class).
 
 ## Switching theme while the window is open

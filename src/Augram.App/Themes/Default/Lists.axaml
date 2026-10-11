@@ -30,9 +30,8 @@
       list box is drawn by its container (Lists.Row): rounded, no dividers, Layer.Hover under the pointer, Accent.Soft with
       an Accent.Line edge when selected. The container is what carries the selection (ListBoxItem:selected); the row's own
       frame stays quiet. Steps (Lists.Step) and gesture tiles (Lists.Tile) are cards drawn the same way.
-    - Text in these templates gets its colour here, from tokens: either a local value (static text) or a style with a class
-      or a pseudo-class (text with states; Avalonia ranks such a style above a plain type rule), so a global TextBlock rule
-      never decides it and Light reads as well as Dark.
+    - Text in these templates takes a text role by its class (title, row-name, row-summary…): sizes, weights and colours,
+      and the states that change a colour (an inactive row's name), are in Text.axaml, never here.
     - Every colour is a DynamicResource of the tokens and every corner a Radius.* token, so Light, Dark and the corner
       setting apply while the window is open. Controls (buttons, boxes, combos) are the standard controls' theme.
   -->
@@ -76,10 +75,6 @@
       <!-- The command header's labels (Trigger, While holding, Not in), so their editors line up (.fgrid's label column). -->
       <x:Double x:Key="Lists.HeaderLabelWidth">96</x:Double>
       <x:Double x:Key="Lists.TileWidth">104</x:Double>
-      <x:Double x:Key="Lists.CellFontSize">12</x:Double>
-      <!-- Diagnostics › Log's lines. -->
-      <FontFamily x:Key="Lists.Mono">Consolas, Menlo, SF Mono, Cascadia Mono, Courier New</FontFamily>
-      <x:Double x:Key="Lists.MonoFontSize">11</x:Double>
 
       <!-- A row's container in a list box: the row's rounded shape, hover and selection (the Row rule's look). -->
       <ControlTheme x:Key="Lists.Row" TargetType="ListBoxItem">
@@ -207,7 +202,7 @@
               <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
                   <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
-                    <TextBlock Text="{TemplateBinding Title}" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                    <TextBlock Classes="title" Text="{TemplateBinding Title}" VerticalAlignment="Center" />
                   </StackPanel>
                   <ItemsControl Grid.Column="1" ItemsSource="{TemplateBinding ToolbarItems}" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <ItemsControl.ItemsPanel>
@@ -321,7 +316,7 @@
                 <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
                   <!-- Help as an (i) after the title (Joel, 2026-10-09: the App README's help rule, for lists too). -->
                   <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
-                    <TextBlock Text="Gestures" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                    <TextBlock Classes="title" Text="Gestures" VerticalAlignment="Center" />
                     <TextBlock Classes="help-icon" ToolTip.Tip="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
                   </StackPanel>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
@@ -367,9 +362,8 @@
             <Border Name="PART_Well" CornerRadius="{DynamicResource Radius.Panel}" ClipToBounds="True">
               <Panel>
                 <TextBlock Name="PART_Hint"
+                           Classes="secondary"
                            Text="Draw here"
-                           FontSize="{StaticResource Font.M}"
-                           Foreground="{DynamicResource Text.Faint}"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            IsVisible="False" />
@@ -455,7 +449,7 @@
                 <!-- Title on its own line, the buttons under it, wrapping sideways: beside the title they stacked into a column in a narrow tree (Joel, 2026-10-11). -->
                 <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" Spacing="8">
                   <StackPanel Orientation="Horizontal" MinHeight="{StaticResource Lists.HeadLineHeight}">
-                    <TextBlock Text="{TemplateBinding Heading}" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                    <TextBlock Classes="title" Text="{TemplateBinding Heading}" VerticalAlignment="Center" />
                     <TextBlock Classes="help-icon"
                                ToolTip.Tip="{TemplateBinding HelpText}"
                                IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -584,7 +578,7 @@
                   <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
                       <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
-                        <TextBlock Text="{TemplateBinding Heading}" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                        <TextBlock Classes="title" Text="{TemplateBinding Heading}" VerticalAlignment="Center" />
                         <TextBlock Classes="help-icon"
                                    ToolTip.Tip="{TemplateBinding HelpText}"
                                    IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -815,7 +809,7 @@
               <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
                   <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
-                    <TextBlock Text="Steps" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                    <TextBlock Classes="title" Text="Steps" VerticalAlignment="Center" />
                     <TextBlock Classes="help-icon" ToolTip.Tip="Steps run top to bottom; drag one to reorder. Duplicate places the copy below it, Paste adds at the bottom. Delete asks nothing; Undo brings it back." />
                   </StackPanel>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
@@ -895,7 +889,7 @@
                   <Button Name="PART_Ok" Classes="toolbar" Content="OK" IsDefault="True" IsEnabled="{TemplateBinding HasSelection}" />
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="2,0,0,10">
-                  <TextBlock Text="Select Gesture" FontSize="{StaticResource Font.L}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                  <TextBlock Classes="heading" Text="Select Gesture" VerticalAlignment="Center" />
                   <TextBlock Classes="help-icon" ToolTip.Tip="Pick the gesture that fires this command; double-click also picks. No Gesture leaves the command trigger-less, New Gesture… draws one first." />
                 </StackPanel>
                 <Border Background="{DynamicResource Layer.Panel}"
@@ -1000,7 +994,7 @@
                                       Margin="0,0,8,0"
                                       Points="{TemplateBinding MinePoints}"
                                       IsVisible="{TemplateBinding HasMineGlyph}" />
-                  <TextBlock Grid.Column="1" Classes="row-detail" Text="{TemplateBinding MineText}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Classes="body" Text="{TemplateBinding MineText}" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </Grid>
                 <Grid Grid.Column="2" ColumnDefinitions="Auto,*" VerticalAlignment="Center" Margin="0,0,8,0">
                   <glyph:GestureGlyph Grid.Column="0"
@@ -1009,7 +1003,7 @@
                                       Margin="0,0,8,0"
                                       Points="{TemplateBinding TheirsPoints}"
                                       IsVisible="{TemplateBinding HasTheirsGlyph}" />
-                  <TextBlock Grid.Column="1" Classes="row-detail" Text="{TemplateBinding TheirsText}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Classes="body" Text="{TemplateBinding TheirsText}" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </Grid>
                 <ComboBox Grid.Column="3" Name="PART_Choice" Classes="field-editor" VerticalAlignment="Center" />
               </Grid>
@@ -1051,7 +1045,7 @@
                         BorderThickness="1"
                         CornerRadius="{DynamicResource Radius.Control}"
                         Padding="8,4">
-                  <TextBlock Name="PART_HoverText" Text="{TemplateBinding HoverText}" Foreground="{DynamicResource Text.Primary}" FontSize="{StaticResource Font.M}" />
+                  <TextBlock Name="PART_HoverText" Classes="body" Text="{TemplateBinding HoverText}" />
                 </Border>
               </Popup>
             </Panel>
@@ -1079,8 +1073,8 @@
   </Styles.Resources>
 
   <!--
-    Class styles for the parts inside these templates. Each selector has a class or a pseudo-class, so it outranks a global
-    TextBlock rule wherever that rule sits; state styles come after the base ones they override.
+    Class styles for the parts inside these templates: frames, spacing, wrapping. A text's size, weight and colour is its
+    text role (Text.axaml); state styles come after the base ones they override.
   -->
 
   <!-- Rows (the Row rule): the frame is quiet (its container draws hover and selection); the metrics stay Wireframe's Row.*. -->
@@ -1129,44 +1123,15 @@
     <Setter Property="RenderTransform" Value="rotate(0deg)" />
   </Style>
 
-  <!-- Row text: names, section names and counts, summaries, tags, badges, markers (.cmd-name, .cmd-sum, .sec-name, .count, .tag). -->
-  <!-- Names are semibold so they stand apart from the muted summary under them (Joel, 2026-10-11: "difficult to distinguish"). -->
-  <Style Selector="TextBlock.row-name">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <Style Selector="TextBlock.row-name.step-name">
-    <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
-  <Style Selector="TextBlock.group-name">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <Style Selector="TextBlock.row-count">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
-  </Style>
-  <!-- A row's second line (a command's steps, an excluded app's mode and match, a step's type) is the faint grey of a section's
-       count: the name carries the row, the subtext is quiet (Joel, 2026-10-11: the same in Commands and Exclusions). -->
+  <!-- Row text (.cmd-name, .cmd-sum, .sec-name, .count, .tag): names are Title, the second line and counts Secondary, tags
+       and badges Badge (Text.axaml; Joel, 2026-10-11: names semibold, the line under them faint, in Commands and Exclusions alike).
+       A row's second line stays on one line, trimmed. -->
   <Style Selector="TextBlock.row-summary">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
     <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
   <Style Selector="TextBlock.row-detail">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
     <Setter Property="TextWrapping" Value="Wrap" />
-  </Style>
-  <Style Selector="tree|SectionRow:inactive /template/ TextBlock#PART_Name, tree|CommandRow:inactive /template/ TextBlock#PART_Name, md|MasterRow:inactive /template/ TextBlock#PART_Name, steps|StepRow:inactive /template/ TextBlock#PART_Name">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="tree|SectionRow:pinned /template/ TextBlock#PART_Name">
-    <Setter Property="FontStyle" Value="Italic" />
   </Style>
   <Style Selector="Border.category-tag">
     <Setter Property="Background" Value="{DynamicResource Layer.Control}" />
@@ -1175,14 +1140,7 @@
     <Setter Property="Padding" Value="6,1" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="TextBlock.category-tag">
-    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
   <Style Selector="TextBlock.platform-marker">
-    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
     <Setter Property="Margin" Value="8,0" />
   </Style>
   <!-- A trigger badge: the gesture tile's place for a wheel, button or no trigger, its words small and quiet (.gt.badge). -->
@@ -1195,9 +1153,6 @@
     <Setter Property="Padding" Value="2" />
   </Style>
   <Style Selector="TextBlock.trigger-badge">
-    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
     <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
@@ -1209,15 +1164,10 @@
 
   <!-- Steps: the grip and the number, quiet; the open step's form below a faint line inside the card (.grip, .idx, .sform). -->
   <Style Selector="TextBlock.drag-handle">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
     <Setter Property="Margin" Value="2,0,8,0" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="TextBlock.row-index">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Margin" Value="0,0,8,0" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
@@ -1228,11 +1178,8 @@
     <Setter Property="Padding" Value="8,6,8,8" />
   </Style>
 
-  <!-- The step type picker's entries. -->
+  <!-- The step type picker's entries: a category's title (Group) over its types (Body). -->
   <Style Selector="TextBlock.picker-category">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
     <Setter Property="Margin" Value="8,8,8,2" />
   </Style>
   <Style Selector="Button.picker-type">
@@ -1248,10 +1195,6 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
   </Style>
-  <!-- The type's name is a string, so its presenter makes the TextBlock: coloured here, not by a global TextBlock rule. -->
-  <Style Selector="Button.picker-type TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
   <Style Selector="Button.picker-type:pointerover">
     <Setter Property="Background" Value="{DynamicResource Layer.Hover}" />
   </Style>
@@ -1259,59 +1202,13 @@
     <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
   </Style>
 
-  <!-- Gesture tiles: the name, muted when no command uses the gesture; the duplicate frame and the partner's score in danger red. -->
-  <Style Selector="TextBlock.tile-name">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <Style Selector="grid|GestureTile:inactive /template/ TextBlock#PART_Name">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="TextBlock.tile-partner">
-    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
-  </Style>
+  <!-- Gesture tiles: the duplicate frame in danger red (the name and the partner's score are text roles, Text.axaml). -->
   <Style Selector="grid|GestureTile:duplicate /template/ Border#PART_Frame, grid|GestureTile:partner /template/ Border#PART_Frame">
     <Setter Property="BorderBrush" Value="{DynamicResource Text.Danger}" />
   </Style>
 
-  <!-- Lists of text cells (Diagnostics › Log and › Recognition): small type, the first column (the time) muted. -->
-  <Style Selector="TextBlock.column-header">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="TextBlock.cell">
-    <Setter Property="FontSize" Value="{StaticResource Lists.CellFontSize}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <Style Selector="Grid.list-row > TextBlock.cell:nth-child(1)">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <!-- The log (.log, .lrow): monospace lines, the time faint, the source muted, a warning's level in Text.Warn, an error's in Text.Danger.
-       The list is told apart by its declared title, "Log" (Screens/LogScreen); its columns are Time, Level, Source, Message. -->
-  <Style Selector="list|ItemList[Title=Log] TextBlock.cell">
-    <Setter Property="FontFamily" Value="{StaticResource Lists.Mono}" />
-    <Setter Property="FontSize" Value="{StaticResource Lists.MonoFontSize}" />
-  </Style>
-  <Style Selector="list|ItemList[Title=Log] Grid.list-row > TextBlock.cell:nth-child(1)">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
-  </Style>
-  <Style Selector="list|ItemList[Title=Log] Grid.list-row > TextBlock.cell:nth-child(3)">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="list|ItemList[Title=Log] TextBlock.cell[Text=WARN]">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Warn}" />
-  </Style>
-  <Style Selector="list|ItemList[Title=Log] TextBlock.cell[Text=ERROR]">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
-  </Style>
-
   <!-- Panel text: the message line under a workbench or the grid, an empty side, the command header's lines (.msg, .flabel). -->
   <Style Selector="TextBlock.panel-message">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Margin" Value="4,8,4,0" />
   </Style>
@@ -1319,46 +1216,19 @@
     <Setter Property="Margin" Value="12,0,12,10" />
   </Style>
   <Style Selector="TextBlock.panel-empty">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Margin" Value="16" />
   </Style>
-  <Style Selector="TextBlock.panel-empty-inline">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
   <Style Selector="TextBlock.bench-title">
-    <Setter Property="FontSize" Value="{StaticResource Font.L}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
     <Setter Property="Margin" Value="0,0,0,4" />
   </Style>
   <Style Selector="TextBlock.bench-label">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector=":is(Control).bench-label-column">
     <Setter Property="MinWidth" Value="{StaticResource Lists.HeaderLabelWidth}" />
   </Style>
-  <Style Selector="TextBlock.bench-value">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <Style Selector="TextBlock.bench-action">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="TextBlock.bench-note">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-    <Setter Property="TextWrapping" Value="Wrap" />
-  </Style>
-  <Style Selector="TextBlock.bench-error">
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
+  <Style Selector="TextBlock.bench-note, TextBlock.bench-error">
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <!-- A trigger draft's "Not saved yet" note: a soft danger tint, its edge in danger, its colour only (never its size) saying so. -->
@@ -1370,7 +1240,6 @@
     <Setter Property="Padding" Value="10,8" />
   </Style>
   <Style Selector="TextBlock.dialog-message">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
     <Setter Property="Margin" Value="0,0,0,8" />
   </Style>
 </Styles>

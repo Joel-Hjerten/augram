@@ -60,7 +60,6 @@
       <ControlTheme x:Key="ShellTab" TargetType="TabItem">
         <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="FontSize" Value="{StaticResource Font.M}" />
         <Setter Property="Template">
           <ControlTemplate>
             <!-- The transparent background is what makes the tab clickable: a Border whose corners differ (rounded on top only)
@@ -83,7 +82,7 @@
                     IsVisible="False" />
               <Border Name="PART_Tab" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.Tab}" Padding="4,0">
                 <Border Name="PART_Hover" CornerRadius="{DynamicResource Radius.Control}" Padding="12,5" Margin="0,4" VerticalAlignment="Center">
-                  <!-- A local foreground: Wireframe's global TextBlock rule would otherwise paint every label its fixed grey. -->
+                  <!-- A local foreground: the global TextBlock rule (Text.axaml) would otherwise paint every label primary. -->
                   <TextBlock Name="PART_Header" Text="{Binding $parent[TabItem].Header}" Foreground="{Binding $parent[TabItem].Foreground}" />
                 </Border>
               </Border>
@@ -131,7 +130,6 @@
         <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="FontSize" Value="{StaticResource Font.M}" />
         <Setter Property="Margin" Value="0,0,4,4" />
         <Setter Property="Template">
           <ControlTemplate>
@@ -140,7 +138,7 @@
                     BorderThickness="1"
                     CornerRadius="{DynamicResource Radius.Control}"
                     Padding="12,4">
-              <!-- A local foreground: Wireframe's global TextBlock rule would otherwise paint every label its fixed grey. -->
+              <!-- A local foreground: the global TextBlock rule (Text.axaml) would otherwise paint every label primary. -->
                   <TextBlock Name="PART_Header" Text="{Binding $parent[TabItem].Header}" Foreground="{Binding $parent[TabItem].Foreground}" />
             </Border>
           </ControlTemplate>
@@ -168,8 +166,10 @@
 
   <StyleInclude Source="avares://Augram/Themes/Wireframe/Wireframe.axaml" />
   <StyleInclude Source="avares://Augram/Themes/Default/Forms.axaml" />
-  <!-- After Forms: equal styles go to the later one, so the lists' row metrics and text colours keep winning. -->
+  <!-- After Forms: equal styles go to the later one, so the lists' row metrics keep winning. -->
   <StyleInclude Source="avares://Augram/Themes/Default/Lists.axaml" />
+  <!-- Last: the text roles, so they win over every class style before them (Text.axaml's header). -->
+  <StyleInclude Source="avares://Augram/Themes/Default/Text.axaml" />
 
   <Style Selector="TabControl.shell > TabItem">
     <Setter Property="Theme" Value="{StaticResource ShellTab}" />
@@ -185,9 +185,5 @@
   <!-- Wireframe paints the sub-tab strip opaque; here the page shows through. -->
   <Style Selector="TabControl.sub /template/ WrapPanel">
     <Setter Property="Background" Value="Transparent" />
-  </Style>
-  <Style Selector="TextBlock.titlebar-title">
-    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
   </Style>
 </Styles>
