@@ -23,7 +23,7 @@ internal static partial class SyncDocumentBuilder
     {
         var byGroup = groups.ToDictionary(group => group.Id, _ => new List<HoldRemap>());
         var groupNames = groups.ToDictionary(group => group.Id, group => group.Name);
-        var names = groups.ToDictionary(group => group.Id, _ => new SyncNames());
+        var names = groups.ToDictionary(group => group.Id, _ => new NameScope());
         foreach (int index in IncomingLast(items, incoming))
         {
             var item = items[index];

@@ -137,7 +137,7 @@ public sealed class CommandsViewModelGlobalTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, Section(vm, "Uncategorized"), Item(vm, "Three steps")));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, Section(vm, "Window")));
 
-        var pasted = Find(store, "Three steps copy");
+        var pasted = Find(store, "Three steps (2)");
         Assert.Equal(Category(store, "Window").Id, pasted.CategoryId);
         Assert.Equal(pasted.Id, vm.SelectedCommandId);
         Assert.Equal(Section(vm, "Window").Id, vm.SelectedSectionId);

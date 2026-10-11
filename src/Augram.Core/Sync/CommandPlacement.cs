@@ -102,7 +102,7 @@ internal sealed class CommandPlacement
         {
             var command = original;
             var where = CommandNames.Where(_groupNames[groupId], HoldRemapName(groupId, command));
-            var name = new SyncNames(CommandNames.SiblingNames(result, command.HoldRemapId)).Claim(command.Name);
+            var name = new NameScope(CommandNames.SiblingNames(result, command.HoldRemapId)).Claim(command.Name);
             if (name != command.Name)
             {
                 _repairs.Add(new(key, SyncRepairKind.Renamed, $"Incoming command '{command.Name}' {where} renamed '{name}': the name is taken."));

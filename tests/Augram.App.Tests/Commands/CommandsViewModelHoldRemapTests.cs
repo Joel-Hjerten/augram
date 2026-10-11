@@ -157,10 +157,10 @@ public sealed class CommandsViewModelHoldRemapTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, space, Item(vm, "Grab")));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, space));
 
-        var copy = Find(store, "Grab copy");
+        var copy = Find(store, "Grab (2)");
         Assert.Equal(Space(store).Id, copy.HoldRemapId);
         Assert.Same(Trigger.None, copy.Trigger);
-        Assert.StartsWith("Pasted 'Grab copy' under 'Space' without its trigger: ", vm.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Pasted 'Grab (2)' under 'Space' without its trigger: ", vm.Message, StringComparison.Ordinal);
         Assert.Equal(space.Id, vm.SelectedSectionId);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, Section(vm, "Chrome"), Item(vm, "Close tab")));
@@ -200,15 +200,15 @@ public sealed class CommandsViewModelHoldRemapTests
         Assert.Equal(["Close tab"], Group(store, "Chrome").Commands.Select(command => command.Name));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, Section(vm, "Blender")));
-        var second = Blender(store).HoldRemaps.Single(holdRemap => holdRemap.Name == "Space copy");
+        var second = Blender(store).HoldRemaps.Single(holdRemap => holdRemap.Name == "Space (2)");
         Assert.Equal(KeyCode.None, second.HoldKey);
-        Assert.Equal("Pasted 'Space copy' into 'Blender' without its hold key: 'Space' in 'Blender' already uses Space as its hold key.", vm.Message);
+        Assert.Equal("Pasted 'Space (2)' into 'Blender' without its hold key: 'Space' in 'Blender' already uses Space as its hold key.", vm.Message);
         Assert.Equal(["Grab", "Orbit", "Pan", "Zoom both"], Blender(store).Commands.Where(command => command.HoldRemapId == second.Id).Select(command => command.Name));
     }
 
     /// <summary>
     /// Command names are unique within their parent (Joel, 2026-10-10): a pasted Orbit keeps its name under another hold remap
-    /// and is "Orbit copy" under its own; New command counts per parent; a rename is refused only by a sibling.
+    /// and is "Orbit (2)" under its own; New command counts per parent; a rename is refused only by a sibling.
     /// </summary>
     [AvaloniaFact]
     public void NamesAreFreeWithinTheParent_PasteNewCommandAndRenameAskOnlyTheSiblings()
@@ -225,7 +225,7 @@ public sealed class CommandsViewModelHoldRemapTests
         Assert.Equal(3, orbits.Count);
         Assert.Single(orbits, command => command.Name == "Orbit" && command.HoldRemapId == s.Id && command.Trigger == Trigger.ForInput(HoldInput.Of(MouseButton.Left)));
         Assert.Single(orbits, command => command.Name == "Orbit" && command.HoldRemapId == spaceId);
-        Assert.Single(orbits, command => command.Name == "Orbit copy" && command.HoldRemapId == spaceId);
+        Assert.Single(orbits, command => command.Name == "Orbit (2)" && command.HoldRemapId == spaceId);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand, HoldRemapSection(vm, "Space")));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.NewCommand, HoldRemapSection(vm, "S")));
@@ -236,9 +236,9 @@ public sealed class CommandsViewModelHoldRemapTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, HoldRemapSection(vm, "S"), orbitUnderS, "Pan"));
         Assert.Equal("Pan", store.FindCommand(orbitUnderS.Id)!.Value.Command.Name);
 
-        var copy = HoldRemapSection(vm, "Space").Commands.Single(command => command.Name == "Orbit copy");
+        var copy = HoldRemapSection(vm, "Space").Commands.Single(command => command.Name == "Orbit (2)");
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Rename, HoldRemapSection(vm, "Space"), copy, "Pan"));
         Assert.Equal("A command named 'Pan' already exists under 'Space' in 'Blender'.", vm.Message);
-        Assert.Equal("Orbit copy", store.FindCommand(copy.Id)!.Value.Command.Name);
+        Assert.Equal("Orbit (2)", store.FindCommand(copy.Id)!.Value.Command.Name);
     }
 }

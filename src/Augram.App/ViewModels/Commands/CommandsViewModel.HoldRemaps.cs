@@ -93,12 +93,12 @@ public sealed partial class CommandsViewModel
         var holdRemap = copy.HoldRemap with
         {
             Id = HoldRemapId.New(),
-            Name = FreeNames.CopyOf(copy.HoldRemap.Name, group.HoldRemaps.Select(existing => existing.Name)),
+            Name = NameScope.Free(copy.HoldRemap.Name, group.HoldRemaps.Select(existing => existing.Name)),
         };
         var commands = new List<Command>(copy.Commands.Count);
         foreach (var command in copy.Commands)
         {
-            var name = FreeNames.CopyOf(command.Name, CommandNames.SiblingNames([.. group.Commands, .. commands], holdRemap.Id));
+            var name = NameScope.Free(command.Name, CommandNames.SiblingNames([.. group.Commands, .. commands], holdRemap.Id));
             commands.Add(command with { Id = CommandId.New(), Name = name, HoldRemapId = holdRemap.Id, CategoryId = null });
         }
 

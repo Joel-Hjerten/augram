@@ -52,19 +52,19 @@ public sealed class GestureMergeTests
     {
         var merged = GestureMerge.Apply(Plan, new Dictionary<GestureId, MergeChoice> { [TheirsUp.Id] = MergeChoice.KeepBoth });
 
-        Assert.Equal(["Up", "Left", "up (imported)", "Circle"], merged.Select(gesture => gesture.Name));
+        Assert.Equal(["Up", "Left", "up (2)", "Circle"], merged.Select(gesture => gesture.Name));
         Assert.Equal([MineUp.Id, MineLeft.Id, TheirsUp.Id, TheirsCircle.Id], merged.Select(gesture => gesture.Id));
     }
 
     [Fact]
     public void KeepBothAvoidsASecondClash()
     {
-        var taken = TestGestures.Create("Up (imported)", Line);
+        var taken = TestGestures.Create("Up (2)", Line);
         var plan = GestureMerge.Plan([MineUp, taken], [TheirsUp]);
 
         var merged = GestureMerge.Apply(plan, new Dictionary<GestureId, MergeChoice>(), defaultChoice: MergeChoice.KeepBoth);
 
-        Assert.Equal(["Up", "Up (imported)", "up (imported) 2"], merged.Select(gesture => gesture.Name));
+        Assert.Equal(["Up", "Up (2)", "up (3)"], merged.Select(gesture => gesture.Name));
     }
 
     [Fact]

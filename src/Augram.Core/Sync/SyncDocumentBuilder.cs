@@ -54,7 +54,7 @@ internal static partial class SyncDocumentBuilder
 
     private static Gesture[] Gestures(SyncItem.GestureItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
     {
-        var names = new SyncNames();
+        var names = new NameScope();
         var gestures = items.Select(item => item.Gesture).ToArray();
         foreach (int index in IncomingLast(items, incoming))
         {
@@ -72,7 +72,7 @@ internal static partial class SyncDocumentBuilder
     /// <summary>The ignored apps, an incoming one renamed when its name is taken (names are unique, like group names).</summary>
     private static IgnoredApp[] Ignored(SyncItem.IgnoredItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
     {
-        var names = new SyncNames();
+        var names = new NameScope();
         var apps = items.Select(item => item.App).ToArray();
         foreach (int index in IncomingLast(items, incoming))
         {
@@ -98,7 +98,7 @@ internal static partial class SyncDocumentBuilder
             keys.Insert(0, SyncItemKey.ForGroup(GroupId.Global));
         }
 
-        var names = new SyncNames();
+        var names = new NameScope();
         var order = Enumerable.Range(0, groups.Count)
             .OrderBy(index => groups[index].IsGlobal ? 0 : incoming.Contains(keys[index]) ? 2 : 1);
         foreach (int index in order)
@@ -122,7 +122,7 @@ internal static partial class SyncDocumentBuilder
     {
         var byGroup = groups.ToDictionary(group => group.Id, _ => new List<CommandCategory>());
         var groupNames = groups.ToDictionary(group => group.Id, group => group.Name);
-        var names = groups.ToDictionary(group => group.Id, _ => new SyncNames());
+        var names = groups.ToDictionary(group => group.Id, _ => new NameScope());
         foreach (int index in IncomingLast(items, incoming))
         {
             var item = items[index];
