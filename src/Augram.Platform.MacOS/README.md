@@ -36,7 +36,7 @@ macOS implementations of the same Core ports as `Augram.Platform.Windows`, throu
 
 ## Ignore list on macOS (2026-10-09, not yet run on a Mac)
 
-The engine's ignore-list watch (`src/Augram.Engine/README.md`, "Ignore list") runs the same code on both platforms; only the two cheap keys above are Mac-specific. An ignored app matches on its macOS executable names, or on the known-app guess from its Windows names (`Core/Mapping/KnownApps`); an entry with only Windows names and no guess (`vmware.exe`) matches nothing on a Mac, and while no active entry can match here nothing is watched at all. The Mac session must verify:
+The engine's ignore-list watch (`src/Augram.Engine/README.md`, "The watch") runs the same code on both platforms; only the two cheap keys above are Mac-specific. An ignored app matches on its macOS executable names, or on the known-app guess from its Windows names (`Core/Mapping/KnownApps`); an entry with only Windows names and no guess (`vmware.exe`) matches nothing on a Mac, and while no active entry can match here nothing is watched at all. The Mac session must verify:
 
 1. Over an ignored app (Blender, or any app added on the Ignored tab by its macOS name), a right-drag reaches the app untouched: no trail, the app's own drag works, and the wheel while the button is held scrolls the app.
 2. A "disable while focused" app (VMware Fusion, executable `VMware Fusion`; or TextEdit for the test) pauses Augram while it is frontmost: the log says `Paused while an ignored app has focus`, the menu-bar tooltip says "Augram (paused: … is focused)", and gestures work again (`Resumed: …`) within about 200 ms of another app coming to the front.

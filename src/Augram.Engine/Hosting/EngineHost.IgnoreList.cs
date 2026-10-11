@@ -6,7 +6,7 @@ using Augram.Core.Mapping;
 namespace Augram.Engine.Hosting;
 
 /// <summary>
-/// The ignore list's face on the host (F5; README "Ignore list"): the <see cref="IgnoreListWatch"/> it creates with a
+/// The ignore list's face on the host (F5; Engine README "The watch"): the <see cref="IgnoreListWatch"/> it creates with a
 /// mapping keeps the hook's answer current; these members say what that answer is and let the App wake it after an edit.
 /// </summary>
 public sealed partial class EngineHost
