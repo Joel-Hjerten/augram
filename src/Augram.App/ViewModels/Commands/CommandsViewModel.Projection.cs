@@ -52,7 +52,7 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// Options › Capture's button drag distance, set by the composition root (plan 0004): what the header's Drag distance row
+    /// Options › Strokes › Capture's button drag distance, set by the composition root (plan 0004): what the header's Drag distance row
     /// calls the Options value ("Options value (10 px)"), the distance of a trigger without its own. The default elsewhere.
     /// </summary>
     public int OptionsDragDistancePx

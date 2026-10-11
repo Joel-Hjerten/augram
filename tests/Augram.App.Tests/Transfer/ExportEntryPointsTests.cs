@@ -20,8 +20,8 @@ using Xunit;
 namespace Augram.App.Tests.Transfer;
 
 /// <summary>
-/// Where Export… lives (plan 0003, Question 4 as proposed) and what each entry point preselects: Options › Configuration
-/// (everything), an app group's menu in Commands › Apps (that group), a category's or Uncategorized's menu in Commands ›
+/// Where Export… lives (plan 0003, Question 4 as proposed) and what each entry point preselects: Options › Sync › Export and
+/// import (everything), an app group's menu in Commands › Apps (that group), a category's or Uncategorized's menu in Commands ›
 /// Global (Global), the Gestures toolbar (gestures only). Each shows the presenter's outcome on its own line.
 /// </summary>
 public sealed class ExportEntryPointsTests
@@ -95,18 +95,19 @@ public sealed class ExportEntryPointsTests
     }
 
     [AvaloniaFact]
-    public void OptionsHasAConfigurationSectionBeforeAbout_ThatExportsEverything_AndImports()
+    public void OptionsSyncHasAnExportAndImportSection_ThatExportsEverything_AndImports()
     {
         var export = new FakeExportPresenter { Outcome = "Exported everything." };
         var import = new FakeAugramImportPresenter { Outcome = "Imported from Blender.augram.json: 1 app group added." };
         var strokesPlus = new FakeImportPresenter();
         var configuration = new ConfigurationViewModel(export, import, strokesPlus);
-        var settings = TestAppBuilder.Services.GetRequiredService<AppSettingsViewModel>();
+        var sync = TestAppBuilder.Services.GetRequiredService<SyncViewModel>();
 
-        var screen = Assert.IsType<FormScreen>(OptionsScreen.Declare(settings, configuration: configuration));
+        var screen = Assert.IsType<FormScreen>(OptionsScreen.DeclareSync(sync, configuration));
 
-        var titles = screen.Sections.Select(section => section.Title).ToList();
-        Assert.Equal(titles.IndexOf(OptionsScreen.AboutTitle) - 1, titles.IndexOf(OptionsConfigurationSection.Title));
+        // Options › Sync: the Sync section, then Export and import (plan 0006; Options › Configuration before About until then).
+        Assert.Equal("Export and import", OptionsConfigurationSection.Title);
+        Assert.Equal([OptionsSyncSection.Title, OptionsConfigurationSection.Title], screen.Sections.Select(section => section.Title));
         var section = screen.Sections.Single(candidate => candidate.Title == OptionsConfigurationSection.Title);
         Assert.Equal([OptionsConfigurationSection.AugramFileLabel, OptionsConfigurationSection.StrokesPlusLabel, "Last result"], section.Fields.Select(field => field.Label));
         Assert.False(section.Fields[2].Visible!.Get());
@@ -126,7 +127,8 @@ public sealed class ExportEntryPointsTests
         import.Outcome = null;
         Assert.True(configuration.ImportAsync().IsCompletedSuccessfully);
         Assert.Equal("Imported from Blender.augram.json: 1 app group added.", configuration.Status);
-        Assert.DoesNotContain(Assert.IsType<FormScreen>(OptionsScreen.Declare(settings)).Sections, candidate => candidate.Title == OptionsConfigurationSection.Title);
+        // A root without TransferModule leaves the section out; the sub-tab shows what it has.
+        Assert.Equal([OptionsSyncSection.Title], Assert.IsType<FormScreen>(OptionsScreen.DeclareSync(sync, null)).Sections.Select(candidate => candidate.Title));
     }
 
     [AvaloniaFact]

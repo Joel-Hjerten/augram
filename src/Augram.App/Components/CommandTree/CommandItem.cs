@@ -94,7 +94,7 @@ public sealed partial record CommandItem(
     public string? TriggerNote { get; init; }
 
     /// <summary>
-    /// Options › Capture's button drag distance (plan 0004), what a trigger without its own falls back to: the header's "Options
+    /// Options › Strokes › Capture's button drag distance (plan 0004), what a trigger without its own falls back to: the header's "Options
     /// value (10 px)". The view model sets it on the header's item; rows keep the default.
     /// </summary>
     public int OptionsDragDistancePx { get; init; } = CaptureThresholds.Default.ButtonDragDistancePx;

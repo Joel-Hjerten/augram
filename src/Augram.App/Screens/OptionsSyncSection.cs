@@ -9,7 +9,7 @@ using Avalonia.Layout;
 namespace Augram.App.Screens;
 
 /// <summary>
-/// The Sync section of the Options tab (F8 sync), declared like the rest of the page: repository address, this
+/// The Sync section of Options › Sync (F8 sync), declared like the rest of the page: repository address, this
 /// machine's name, automatic sync, Sync now with the status line, the conflicts line with Resolve… (shown only while
 /// conflicts are pending) and the last run's details. The two text fields commit on leaving or Enter, not per
 /// keystroke (<see cref="SyncViewModel"/>), so they are custom editors: a text box with its problem shown under it.

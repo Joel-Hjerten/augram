@@ -10,7 +10,7 @@ namespace Augram.App.Components.CommandTree;
 /// The drag distance row of <see cref="CommandHeader"/> (Joel, 2026-10-10, plan 0004), shown only while the trigger holds
 /// buttons other than the stroke button and not the stroke button (<see cref="CommandItem.ShowsDragDistance"/>: Right in
 /// Right + wheel), whose presses are held back and handed back as drags. <c>PART_DragDistanceMode</c> chooses between Options ›
-/// Capture's value ("Options value (10 px)", <see cref="CommandItem.OptionsDragDistancePx"/>) and the command's own, which
+/// Strokes › Capture's value ("Options value (10 px)", <see cref="CommandItem.OptionsDragDistancePx"/>) and the command's own, which
 /// <c>PART_DragDistance</c> (1 to <see cref="TriggerHold.MaxDragDistancePx"/> px) then shows. Like the "While holding" boxes it
 /// only asks (<see cref="CommandTreeAction.SetTriggerHold"/> with <see cref="TriggerHold.DragDistancePx"/> set or cleared), so
 /// it goes through the host's one trigger edit and is one undo step; the row then shows the item's trigger again.

@@ -6,7 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Augram.App.ViewModels;
 
 /// <summary>
-/// Options › Configuration (plan 0003, Question 4 as proposed): Export… (everything preselected), Import… of an Augram file,
+/// Options › Sync › Export and import (plan 0003, Question 4 as proposed; Options › Configuration before plan 0006): Export… (everything preselected), Import… of an Augram file,
 /// and the StrokesPlus.net import beside them (it stays on the Gestures toolbar too). Forwards each to its presenter and
 /// keeps the last outcome line for the page; the flows themselves are the presenters'.
 /// </summary>

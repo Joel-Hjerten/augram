@@ -70,14 +70,14 @@ public sealed class BuildLabelTests
         using var engine = new EngineFixture(start: false);
         using var vm = Create(engine, TestBuilds.Dev);
 
-        var about = Options(vm).Sections[^1];
+        var about = Assert.Single(About(vm).Sections);
 
         Assert.Equal(OptionsScreen.AboutTitle, about.Title);
         var notes = about.Fields.Cast<NoteField>().Select(field => (field.Label, field.Text.Get())).ToList();
         Assert.Equal([("Version", "0.2.0"), ("Commit", "3f1c2ab"), ("Channel", "Dev (development build)")], notes);
 
         using var release = Create(engine, TestBuilds.Release);
-        Assert.Contains(Options(release).Sections[^1].Fields, field => field is NoteField { Label: "Channel" } note && note.Text.Get() == "Release (installed)");
+        Assert.Contains(About(release).Sections[0].Fields, field => field is NoteField { Label: "Channel" } note && note.Text.Get() == "Release (installed)");
     }
 
     [Fact]
@@ -107,10 +107,10 @@ public sealed class BuildLabelTests
         Assert.True(engine.Settings.Current.General.StartAtLogin);
     }
 
-    private static FormScreen Options(AppSettingsViewModel vm) => Assert.IsType<FormScreen>(OptionsScreen.Declare(vm));
+    private static FormScreen About(AppSettingsViewModel vm) => Assert.IsType<FormScreen>(OptionsScreen.DeclareAbout(vm));
 
     private static ToggleField StartAtLoginToggle(AppSettingsViewModel vm) =>
-        Options(vm).Sections.SelectMany(section => section.Fields).OfType<ToggleField>().Single(field => field.Label == "Start at login");
+        Assert.IsType<FormScreen>(OptionsScreen.DeclareGeneral(vm)).Sections.SelectMany(section => section.Fields).OfType<ToggleField>().Single(field => field.Label == "Start at login");
 
     private static AppSettingsViewModel Create(EngineFixture engine, AppInfo app)
     {

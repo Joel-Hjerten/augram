@@ -8,6 +8,8 @@ namespace Augram.App.Declarations;
 /// that self-registers in <c>FieldRendererRegistry</c>. <see cref="Kind"/> is the registry key.
 /// <see cref="Visible"/>, when set, shows the whole row only while it reads true (Options › Sync's
 /// conflicts line); any kind can carry it: <c>new NoteField(…) { Visible = binding }</c>.
+/// <see cref="Enabled"/>, when set, enables the row's editor only while it reads true (Options › Appearance's
+/// Tint, disabled while the window background is Solid); any kind can carry it, and no renderer needs to know.
 /// <see cref="Accessory"/>, when set, puts a small control just before the editor (the window finder's
 /// magnifier on the app identification fields); any kind can carry it too.
 /// </summary>
@@ -20,6 +22,12 @@ public abstract record Field(string Label, string? Help, string File, int Line)
 
     /// <summary>Shows the row only while this reads true; null (the default) always shows it.</summary>
     public IValueBinding<bool>? Visible { get; init; }
+
+    /// <summary>
+    /// Enables the row's editor only while this reads true; null (the default) leaves it as its renderer made it. The row
+    /// stays visible, label and help included. An editor its renderer disabled (a read-only binding) stays disabled.
+    /// </summary>
+    public IValueBinding<bool>? Enabled { get; init; }
 
     /// <summary>
     /// The editor takes the row's whole editor column instead of its own width (a pattern row: its text box stretches and the
