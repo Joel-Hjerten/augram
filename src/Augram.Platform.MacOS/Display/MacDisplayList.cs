@@ -16,26 +16,24 @@ namespace Augram.Platform.MacOS.Display;
 [SupportedOSPlatform("macos")]
 internal static class MacDisplayList
 {
-    private const int MaxDisplays = 16;
-
     private static readonly Lazy<nint> AllModesOptions = new(CreateAllModesOptions);
 
+    /// <summary>Every active display (<see cref="MacWindowList.ActiveDisplays"/>) with its main and built-in flags, its current mode and every mode it offers.</summary>
     public static IReadOnlyList<MacDisplayReading> Read()
     {
-        Span<uint> ids = stackalloc uint[MaxDisplays];
-        if (MacNative.CGGetActiveDisplayList(MaxDisplays, ids, out var count) != 0)
+        var active = MacWindowList.ActiveDisplays();
+        if (active.Count == 0)
         {
             return [];
         }
 
         var main = MacNative.CGMainDisplayID();
-        var displays = new List<MacDisplayReading>((int)count);
-        foreach (var id in ids[..(int)Math.Min(count, MaxDisplays)])
+        var displays = new List<MacDisplayReading>(active.Count);
+        foreach (var (id, bounds) in active)
         {
-            var bounds = MacNative.CGDisplayBounds(id);
             displays.Add(new MacDisplayReading(
                 id,
-                new MacRect(bounds.X, bounds.Y, bounds.Width, bounds.Height),
+                bounds,
                 id == main,
                 MacNative.CGDisplayIsBuiltin(id) != 0,
                 CurrentMode(id),

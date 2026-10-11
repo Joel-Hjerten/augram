@@ -57,7 +57,7 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
     public SimulationResult ReleaseRemapButton(MouseButton button)
     {
         var mouse = MacRemapButtonEvents.For(button);
-        var result = TryPointer(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => announceRelease?.Invoke(button)) : SimulationResult.Failed;
+        var result = MacPointer.TryRead(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => announceRelease?.Invoke(button)) : SimulationResult.Failed;
         return result == SimulationResult.Success ? result : inner.ReleaseRemapButton(button);
     }
 
@@ -129,27 +129,6 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
 
         beforePost?.Invoke();
         return Post(cgEvent);
-    }
-
-    /// <summary>Where the pointer is now: a blank event carries the current location (as <see cref="MacCursorProbe"/> reads it).</summary>
-    private static bool TryPointer(out MacNative.CGPoint at)
-    {
-        var blank = MacNative.CGEventCreate(0);
-        if (blank == 0)
-        {
-            at = default;
-            return false;
-        }
-
-        try
-        {
-            at = MacNative.CGEventGetLocation(blank);
-            return true;
-        }
-        finally
-        {
-            Cf.Release(blank);
-        }
     }
 
     private static SimulationResult Post(nint cgEvent)

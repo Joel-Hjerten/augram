@@ -25,7 +25,6 @@ internal static partial class Ax
     public const string SizeAttribute = "AXSize";
     public const string TitleAttribute = "AXTitle";
     public const string CloseButtonAttribute = "AXCloseButton";
-    public const string ZoomButtonAttribute = "AXZoomButton";
     public const string PressAction = "AXPress";
     public const string RaiseAction = "AXRaise";
 
@@ -160,7 +159,7 @@ internal static partial class Ax
         }
     }
 
-    /// <summary>Presses one of the window's title-bar buttons (<see cref="CloseButtonAttribute"/>, <see cref="ZoomButtonAttribute"/>).</summary>
+    /// <summary>Presses one of the window's title-bar buttons (<see cref="CloseButtonAttribute"/>; never <c>AXZoomButton</c>, whose default is full screen on current macOS).</summary>
     public static int PressButton(nint window, string buttonAttribute)
     {
         var error = Copy(window, Cf.Constant(buttonAttribute), out var button);

@@ -36,9 +36,6 @@ internal static class ObjC
         return Cf.Constant(symbol);
     }
 
-    public static bool RespondsTo(nint receiver, string selector) =>
-        receiver != 0 && MacNative.SendBool(receiver, Selector("respondsToSelector:"), Selector(selector)) != 0;
-
     public static MacNative.CGRect Rect(nint receiver, string selector)
     {
         if (RuntimeInformation.ProcessArchitecture == Architecture.X64)

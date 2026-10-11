@@ -42,8 +42,8 @@ public sealed class Win32SystemEvents : ISystemEvents, IDisposable
 
     public event EventHandler<SystemEventKind>? Occurred;
 
-    /// <summary>True when the foreground WinEvent hook was installed (zero handle: no desktop, and only the 200 ms poll sees focus move).</summary>
-    public bool WatchesForeground => _foregroundHook != 0;
+    /// <summary>True when the foreground WinEvent hook was installed (zero handle: no desktop, and only the 200 ms poll sees focus move); the engine logs it at start.</summary>
+    public bool? ReportsForeground => _foregroundHook != 0;
 
     public void Dispose()
     {

@@ -5,7 +5,10 @@ using Xunit;
 
 namespace Augram.Platform.Windows.Tests.WindowSystem;
 
-/// <summary>Technique order, thread attach/detach pairing, verification and logging (B1).</summary>
+/// <summary>
+/// Technique order, thread attach/detach pairing, verification and logging (B1): one line per technique that did not settle;
+/// the outcome is the engine's line (plan 0007 Q7), never this adapter's.
+/// </summary>
 public sealed class ForegroundActivatorTests
 {
     private const nint Target = 0x10;
@@ -21,11 +24,7 @@ public sealed class ForegroundActivatorTests
         Assert.True(result.Succeeded);
         Assert.Equal("set-foreground", result.Technique);
         Assert.Equal(["set:16:attached=False:alt=False"], win.Calls);
-        var e = Assert.Single(log.Events);
-        Assert.Equal(LogSources.Window, e.Source);
-        Assert.Equal(EventLevel.Info, e.Level);
-        Assert.Equal("set-foreground", log.Property(e, "technique"));
-        Assert.Equal("app.exe", log.Property(e, "process"));
+        Assert.Empty(log.Events);
     }
 
     [Fact]
@@ -40,7 +39,12 @@ public sealed class ForegroundActivatorTests
             ["set:16:attached=False:alt=False", "attach:5->1:True", "set:16:attached=True:alt=False", "attach:5->1:False"],
             win.Calls);
         Assert.False(win.Attached);
-        Assert.Equal(2, log.Events.Count);
+        var e = Assert.Single(log.Events);
+        Assert.Equal(LogSources.Window, e.Source);
+        Assert.Equal(EventLevel.Info, e.Level);
+        Assert.Equal("Activation attempt failed", e.Message);
+        Assert.Equal("set-foreground", log.Property(e, "technique"));
+        Assert.Equal("app.exe", log.Property(e, "process"));
     }
 
     [Fact]
@@ -52,11 +56,11 @@ public sealed class ForegroundActivatorTests
 
         Assert.Equal("alt-tap", result.Technique);
         Assert.Contains("alt-tap", win.Calls);
-        Assert.Equal(3, log.Events.Count);
+        Assert.Equal(2, log.Events.Count);
     }
 
     [Fact]
-    public void NothingWorks_FailsWithWarningAndNoStrayAttach()
+    public void NothingWorks_FailsWithOneLinePerTechniqueAndNoStrayAttach()
     {
         var (win, log) = Setup();
 
@@ -65,8 +69,8 @@ public sealed class ForegroundActivatorTests
         Assert.False(result.Succeeded);
         Assert.Equal("none", result.Technique);
         Assert.False(win.Attached);
-        Assert.Equal(EventLevel.Warning, log.Events[^1].Level);
-        Assert.Equal("none", log.Property(log.Events[^1], "technique"));
+        Assert.Equal(["set-foreground", "attach-thread-input", "alt-tap"], log.Events.Select(e => log.Property(e, "technique")));
+        Assert.All(log.Events, e => Assert.Equal(("Activation attempt failed", EventLevel.Info), (e.Message, e.Level)));
     }
 
     [Fact]

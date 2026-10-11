@@ -28,8 +28,8 @@ internal sealed class WindowIdentityReader
             return null;
         }
 
-        var root = Or(_win.Root(handle), handle);
-        var rootOwner = Or(_win.RootOwner(handle), root);
+        var root = WindowHandles.Or(_win.Root(handle), handle);
+        var rootOwner = WindowHandles.Or(_win.RootOwner(handle), root);
         var classChain = ClassChain(handle, root, rootOwner);
         var rootClass = _win.ClassName(rootOwner);
 
@@ -120,6 +120,4 @@ internal sealed class WindowIdentityReader
         => _win.TryWindowRect(rootOwner, out var window)
            && _win.TryMonitorRect(rootOwner, out var monitor)
            && FullScreenRule.IsFullScreen(window, monitor, rootClass);
-
-    private static nint Or(nint value, nint fallback) => value == 0 ? fallback : value;
 }

@@ -48,11 +48,9 @@ public sealed class Win32WindowSystem : IWindowSystem
     public ActivationResult Activate(WindowIdentity target)
     {
         var foreground = _foreground.ForegroundWindow();
-        var foregroundRoot = foreground == 0 ? 0 : OrSelf(_win.RootOwner(foreground), foreground);
+        var foregroundRoot = _win.RootOwnerOrSelf(foreground);
         return ActivationPolicy.NeedsActivation(target, foregroundRoot)
             ? _activator.Activate(target)
             : ActivationResult.NotNeeded;
     }
-
-    private static nint OrSelf(nint value, nint fallback) => value == 0 ? fallback : value;
 }

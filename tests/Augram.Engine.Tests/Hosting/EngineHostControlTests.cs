@@ -2,6 +2,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Engine.Hosting;
+using Augram.Engine.Tests.Fakes;
 using Xunit;
 
 namespace Augram.Engine.Tests.Hosting;
@@ -123,5 +124,31 @@ public sealed class EngineHostControlTests
         harness.Dispose();
         harness.Dispose();
         Assert.Throws<ObjectDisposedException>(harness.Host.Start);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public void WhetherTheForegroundIsReported_IsLoggedOnceAtStart_WhenThePortSays(bool? reported)
+    {
+        var log = new ListEventLog();
+        using var host = new EngineHost(
+            new EnginePorts { Input = new FakeInputSource(), Simulator = new FakeInputSimulator(), Log = log, SystemEvents = new FakeSystemEvents { ReportsForeground = reported } },
+            () => [],
+            () => Core.Recognition.RecognitionOptions.Default,
+            new EngineHostOptions(EngineHarness.StrokeButton, HealthPollInterval: TimeSpan.FromHours(1)));
+
+        host.Start();
+
+        var lines = log.Events.Where(e => e.Source == LogSources.Engine && e.Message == "Foreground notifications").ToList();
+        if (reported is null)
+        {
+            Assert.Empty(lines);
+            return;
+        }
+
+        var line = Assert.Single(lines);
+        Assert.Equal(reported, line.Properties!.Single(p => p.Key == "installed").Value);
     }
 }

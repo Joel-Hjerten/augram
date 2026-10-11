@@ -9,7 +9,9 @@ namespace Augram.Platform.Windows.WindowSystem;
 /// <c>SetForegroundWindow</c> unless the caller owns the input or was the last to receive it, so three techniques
 /// run in order, each verified by polling the foreground root: plain call; <c>AttachThreadInput</c> to the current
 /// foreground thread (StrokeIt, GestureSign); an Alt tap through <c>SendInput</c>, which counts as "last input"
-/// and lifts the lock. Runs on the engine worker; it sleeps, so it must never run on the hook thread.
+/// and lifts the lock. Runs on the engine worker; it sleeps, so it must never run on the hook thread. Logs one line per
+/// technique that did not settle (the B1 tally); the outcome itself ("Window activated" / "Activation failed") is logged once,
+/// by the engine's command runner (<c>exec</c>, with <c>focusMoved</c>), on both platforms (plan 0007 Q7).
 /// </summary>
 internal sealed class ForegroundActivator
 {
@@ -41,17 +43,13 @@ internal sealed class ForegroundActivator
             Attempt(i, target.RootHandle, foreground);
             if (SettledOn(target.RootHandle))
             {
-                var elapsed = (int)clock.ElapsedMilliseconds;
-                _log.Info(LogSources.Window, "Window activated", ("technique", technique), ("elapsedMs", elapsed), ("process", target.ProcessName));
-                return new ActivationResult(true, technique, elapsed);
+                return new ActivationResult(true, technique, (int)clock.ElapsedMilliseconds);
             }
 
             _log.Info(LogSources.Window, "Activation attempt failed", ("technique", technique), ("elapsedMs", (int)clock.ElapsedMilliseconds), ("process", target.ProcessName));
         }
 
-        var total = (int)clock.ElapsedMilliseconds;
-        _log.Warning(LogSources.Window, "Activation failed", ("technique", "none"), ("elapsedMs", total), ("process", target.ProcessName));
-        return new ActivationResult(false, "none", total);
+        return new ActivationResult(false, "none", (int)clock.ElapsedMilliseconds);
     }
 
     private void Attempt(int index, nint target, nint foreground)
@@ -93,7 +91,7 @@ internal sealed class ForegroundActivator
     {
         for (var waited = 0; ; waited += PollMs)
         {
-            if (Root(_win.ForegroundWindow()) == target)
+            if (_query.RootOwnerOrSelf(_win.ForegroundWindow()) == target)
             {
                 return true;
             }
@@ -105,16 +103,5 @@ internal sealed class ForegroundActivator
 
             _sleep(PollMs);
         }
-    }
-
-    private nint Root(nint hwnd)
-    {
-        if (hwnd == 0)
-        {
-            return 0;
-        }
-
-        var root = _query.RootOwner(hwnd);
-        return root == 0 ? hwnd : root;
     }
 }
