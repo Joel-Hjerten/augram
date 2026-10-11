@@ -7,7 +7,8 @@ namespace Augram.Core.Tests.Import;
 /// <summary>
 /// One inline document for the names the importer makes unique, for every kind alike: gestures, apps ("Global" is taken), ignored
 /// apps and a group's commands. The first holder keeps a name; a repeat (case-insensitive) takes the first free " (2)", " (3)"…
-/// with one warning naming the kind. And an entry whose matcher ends up empty reads the same for an app and an ignored app.
+/// with one warning naming the kind. A blank name is the kind and the entry's position ("App 2"), skipped entries counted.
+/// And an entry whose matcher ends up empty reads the same for an app and an ignored app.
 /// </summary>
 public sealed class DuplicateNameTests
 {
@@ -54,6 +55,21 @@ public sealed class DuplicateNameTests
                 new ImportWarning(ImportSeverity.Warning, "Synthetic Ignored", "Duplicate ignored app name; imported as 'Synthetic Ignored (2)'."),
             ],
             Result.Warnings.Where(warning => warning.Message.StartsWith("Duplicate ", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void ABlankNameIsTheKindAndThePositionForEveryKind()
+    {
+        var result = StrokesPlusImporter.ReadAll(
+            "{ \"Gestures\": [ 5, " + Gesture("  ") + " ], "
+            + "\"GlobalApplication\": { \"Actions\": [ 5, { \"Description\": \"  \" } ] }, "
+            + "\"Applications\": [ 5, { \"Description\": \"\", " + Matcher + " } ], "
+            + "\"IgnoredApplications\": [ 5, { " + Matcher + " } ] }");
+
+        Assert.Equal("Unnamed gesture 2", Assert.Single(result.Gestures).Name);
+        Assert.Equal("Action 2", Assert.Single(result.Mapping.Global.Commands).Name);
+        Assert.Equal("App 2", result.Mapping.Groups.Single(group => !group.IsGlobal).Name);
+        Assert.Equal("Ignored app 2", Assert.Single(result.Mapping.Ignored).Name);
     }
 
     [Fact]

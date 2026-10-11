@@ -65,8 +65,7 @@ internal sealed class ApplicationReader
 
     private AppGroup ReadApplication(JsonElement application, int index)
     {
-        var description = JsonRead.Text(application, StrokesPlusJson.Application.Description);
-        var name = _names.Claim(description.Length == 0 ? FallbackName + " " + index : description);
+        var name = _names.Claim(JsonRead.Name(application, StrokesPlusJson.Application.Description, FallbackName, index));
         var (matcher, isActive) = MatcherReader.ReadWithActive(application, name, _warnings);
         var suppressGlobals = JsonRead.Flag(application, StrokesPlusJson.Application.NoGlobalActions);
         var (commands, categories) = _actions.ReadCommands(application, name);

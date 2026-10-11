@@ -19,7 +19,7 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 |---|---|
 | `StrokesPlusJson` | every SP.net member and method name used by the readers, in one place |
 | `StrokesPlusDocument` | parses text or a stream tolerantly (BOM skipped, comments and trailing commas allowed); throws `ImportFormatException` only for malformed JSON or a non-object root |
-| `JsonRead`, `MethodParameterReader`, `RegexAlternation` (internal) | the tolerant member reads every reader shares; `MethodParameters[]` as name → value text (numbers, bools and objects kept as JSON text); the "plain alternation of literals" regex splitter |
+| `JsonRead`, `MethodParameterReader`, `RegexAlternation` (internal) | the tolerant member reads every reader shares (`JsonRead.Name`: an item's name, or "Action 3", "App 2"… when blank); `MethodParameters[]` as name → value text (numbers, bools and objects kept as JSON text); the "plain alternation of literals" regex splitter |
 | `ImportedNames` (internal) | the names one kind of item takes in one scope (gestures, app groups with "Global" taken, ignored apps, one group's commands): `Claim(name)` renames a repeat `Name (2)`, `Name (3)`… by Core's rule (`Core/Sync/SyncNames`, case-insensitive) with one warning "Duplicate *kind* name; imported as '…'.". A reader that names items claims through it rather than keeping its own set |
 | `GestureReader` (internal) | `Gestures[]` to `Gesture` records: fresh `GestureId`, trimmed `Name`, `IsActive` from `Active`, one `GestureSample` per `PointPattern` ordered by `Order` |
 | `StepReader` (internal) | one `Steps[]` entry to one `CommandStep` authored on Windows, per the table below; counts placeholders per method and reports them once per file |

@@ -51,7 +51,7 @@ internal sealed class GestureReader
 
     private Gesture? ReadGesture(JsonElement element, int index)
     {
-        var sourceName = ReadName(element, index);
+        var sourceName = JsonRead.Name(element, StrokesPlusJson.Gesture.Name, FallbackName, index);
         var samples = ReadSamples(element, sourceName);
         if (samples.Count == 0)
         {
@@ -66,12 +66,6 @@ internal sealed class GestureReader
 
         var isActive = JsonRead.Flag(element, StrokesPlusJson.Gesture.Active, whenAbsent: true);
         return new Gesture(GestureId.New(), _names.Claim(sourceName), isActive, samples);
-    }
-
-    private static string ReadName(JsonElement element, int index)
-    {
-        var name = JsonRead.Text(element, StrokesPlusJson.Gesture.Name);
-        return name.Length == 0 ? FallbackName + " " + index : name;
     }
 
     private List<GestureSample> ReadSamples(JsonElement gesture, string sourceName)

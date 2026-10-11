@@ -64,8 +64,7 @@ internal sealed class ActionReader
 
     private Command ReadAction(JsonElement action, int index, ImportedNames names)
     {
-        var description = JsonRead.Text(action, StrokesPlusJson.Action.Description);
-        var name = names.Claim(description.Length == 0 ? FallbackName + " " + index : description);
+        var name = names.Claim(JsonRead.Name(action, StrokesPlusJson.Action.Description, FallbackName, index));
         var isActive = JsonRead.Flag(action, StrokesPlusJson.Action.Active, whenAbsent: true);
         var notes = new List<string>();
 

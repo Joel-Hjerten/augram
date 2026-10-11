@@ -48,8 +48,7 @@ internal sealed class IgnoredApplicationReader
 
     private IgnoredApp ReadApp(JsonElement application, int index)
     {
-        var description = JsonRead.Text(application, StrokesPlusJson.Application.Description);
-        var name = _names.Claim(description.Length == 0 ? FallbackName + " " + index : description);
+        var name = _names.Claim(JsonRead.Name(application, StrokesPlusJson.Application.Description, FallbackName, index));
         var (matcher, isActive) = MatcherReader.ReadWithActive(application, name, _warnings);
         var disableEntirely = JsonRead.Flag(application, StrokesPlusJson.Application.DisableOnFocus);
         return new IgnoredApp(GroupId.New(), name, isActive, matcher, disableEntirely);
