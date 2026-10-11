@@ -10,13 +10,18 @@ namespace Augram.App.DevGallery;
 
 /// <summary>
 /// The dev gallery (F7, ADR-0002 §5): one sub-tab per shared component, each shown in its states
-/// with fake data. A component is not done until it has an entry here. Debug builds only.
+/// with fake data, in the dark and the light theme side by side (<see cref="ThemePair"/>, plan 0006 step 6). A component
+/// is not done until it has an entry here. Debug builds only.
 /// </summary>
 public static class GalleryNavigation
 {
     public const string Key = "gallery";
 
     public static NavEntry Entry() => new("Gallery", Key, SubEntries:
+        [.. Pages.Select(page => page with { Screen = () => ThemePair.Declare(page.Title, page.Screen!) })]);
+
+    /// <summary>The pages as declared, one theme's worth each (tests render them).</summary>
+    internal static IReadOnlyList<NavEntry> Pages { get; } =
     [
         new("SectionForm", Key + ".sectionform", SectionFormPage),
         new("FieldRow", Key + ".fieldrow", FieldRowPage),
@@ -50,7 +55,7 @@ public static class GalleryNavigation
         new("Sync join", Key + ".syncjoin", SyncGalleryPages.JoinPage),
         new("Sync conflicts", Key + ".syncconflicts", SyncGalleryPages.ConflictsPage),
         new("Transfer", Key + ".transfer", TransferGalleryPages.Page),
-    ]);
+    ];
 
     private static ScreenDeclaration SectionFormPage()
     {

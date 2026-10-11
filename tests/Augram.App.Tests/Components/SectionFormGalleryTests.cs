@@ -16,7 +16,7 @@ public sealed class SectionFormGalleryTests
     [AvaloniaFact]
     public void TheSectionFormPageShowsTheSliderAndTheColourSwatches()
     {
-        var screen = Assert.IsType<FormScreen>(GalleryNavigation.Entry().SubEntries!.Single(entry => entry.Key == GalleryNavigation.Key + ".sectionform").Screen!());
+        var screen = Assert.IsType<FormScreen>(GalleryNavigation.Pages.Single(entry => entry.Key == GalleryNavigation.Key + ".sectionform").Screen!());
         var form = new SectionForm { Screen = screen };
         new Window { Content = form, Width = 1100, Height = 1400 }.Show();
         var rows = form.GetVisualDescendants().OfType<FieldRow>().ToDictionary(row => row.Label);

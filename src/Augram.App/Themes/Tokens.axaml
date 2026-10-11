@@ -15,6 +15,8 @@
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="Layer.Window">#18171C</Color>
+      <!-- The window colour as an opaque brush: what shows where no backdrop is (the gallery's theme pairs). -->
+      <SolidColorBrush x:Key="Layer.Solid" Color="#18171C" />
       <SolidColorBrush x:Key="Layer.Page" Color="#0BFFFFFF" />
       <SolidColorBrush x:Key="Layer.Panel" Color="#0EFFFFFF" />
       <SolidColorBrush x:Key="Layer.Control" Color="#14FFFFFF" />
@@ -45,6 +47,7 @@
     </ResourceDictionary>
     <ResourceDictionary x:Key="Light">
       <Color x:Key="Layer.Window">#ECEBF0</Color>
+      <SolidColorBrush x:Key="Layer.Solid" Color="#ECEBF0" />
       <SolidColorBrush x:Key="Layer.Page" Color="#6BFFFFFF" />
       <SolidColorBrush x:Key="Layer.Panel" Color="#9EFFFFFF" />
       <SolidColorBrush x:Key="Layer.Control" Color="#C7FFFFFF" />
