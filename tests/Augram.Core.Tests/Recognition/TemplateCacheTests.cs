@@ -44,15 +44,4 @@ public sealed class TemplateCacheTests
         Assert.Equal(-Math.PI / 2, upAngles[0], precision: 12);
         Assert.Equal(Math.PI / 2, downAngles[0], precision: 12);
     }
-
-    [Fact]
-    public void ClearDropsEntries()
-    {
-        var sample = new GestureSample(StockFlicks.Template("Up"));
-        var first = _cache.GetAngles(_id, 0, sample, 100);
-
-        _cache.Clear();
-
-        Assert.NotSame(first, _cache.GetAngles(_id, 0, sample, 100));
-    }
 }

@@ -16,7 +16,7 @@ public sealed class WheelTests
         var outcomes = new EventScript().Down(Stroke, 100, 100).Move(110, 100).Wheel(WheelDirection.Up).RunOnForLast(machine);
 
         Assert.Equal(
-            [CaptureOutcome.Suppress.Instance, new CaptureOutcome.WheelTrigger(WheelDirection.Up, new CapturePoint(100, 100, 0)) { Hold = PressHold.OfStroke(Stroke) }],
+            [CaptureOutcome.Suppress.Instance, new CaptureOutcome.WheelTrigger(WheelDirection.Up, new CapturePoint(100, 100, 0)) { Hold = new PressHold(HeldButtons.Stroke, Stroke) }],
             outcomes);
         Assert.Equal(CaptureState.WheelFiring, machine.State);
     }
@@ -33,7 +33,7 @@ public sealed class WheelTests
             [
                 CaptureOutcome.Suppress.Instance,
                 CaptureOutcome.EndStroke.Instance,
-                new CaptureOutcome.WheelTrigger(WheelDirection.Down, new CapturePoint(100, 100, 0)) { Hold = PressHold.OfStroke(Stroke), AfterDrawing = true },
+                new CaptureOutcome.WheelTrigger(WheelDirection.Down, new CapturePoint(100, 100, 0)) { Hold = new PressHold(HeldButtons.Stroke, Stroke), AfterDrawing = true },
             ],
             outcomes);
     }

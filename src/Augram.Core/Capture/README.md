@@ -9,6 +9,7 @@ Since 2026-10-09 a press can hold keys and other buttons (F1 "Triggers as combin
 | Type | Role |
 |---|---|
 | `CapturePoint` | `(X, Y, TimestampMs)`; timestamps are ms on one monotonic clock the Engine stamps |
+| `CapturePointExtensions` | `points.ToGesturePoints()`: a stroke's positions as `Gestures/GesturePoint`s, timestamps dropped; the one conversion, used by the Engine's recognizer and the App's training routing |
 | `MouseButton`, `WheelDirection` | Core's own enums; the Engine maps SharpHook's numbering at the boundary |
 | `HeldButtons`, `HeldButtonsExtensions` | buttons as a set: `Stroke` (whichever button is the stroke button on the machine at hand) and the physical `Left`…`X2`; `Flag(button)`, `Has`, `Buttons()` (display order Left, Right, Middle, X1, X2), `ForStrokeButton(button)` (a set naming this machine's stroke button explicitly means the stroke button) |
 | `AnchorPlan` | one `long` the hook reads per press: which buttons are held back as anchors over the window under the pointer (besides the stroke button, always one), and for each anchor (and the stroke button) which other buttons join its press, and (plan 0005) for each physical anchor which of them fire a button trigger at their press (`Fires`, `FiresAny`, `WithFires`; bit 59 is the highest, so two ignore bits still fit beside it). Worked out by `Mapping/AnchorPlanner` off the hook thread |
@@ -78,3 +79,9 @@ Recognition is **not** done here: the Engine runs the matcher when it receives `
 ## Threading
 
 Called from **one thread only**: the Engine's worker calls `Handle`; the hook thread applies its own shadow's decision synchronously and posts the event through its channel (`../../Augram.Engine/README.md`). The Engine serialises everything else that touches the machine (`Tick` from its timer, `Thresholds` and `StrokeButton` from live-save) onto that same thread; the machine has no locks.
+
+## The hook's shadows: change them in step
+
+The machine lags the hook by the queue depth, so the hook cannot run it or trust its state. The Engine keeps two hook-side copies of the decisions it needs: `Engine/Input/SuppressionShadow` derives the Suppress / PassThrough column of the contract table above from its own record of which anchor owns the press and which consumed releases are owed (and which Ctrl/Alt/Shift/Win press a held press claims), and `Engine/Input/KeySuppressionShadow` keeps each key press's decision for its repeats and release. **They are a deliberate second implementation of this table: a change to a row here is made, in the same commit, in `SuppressionShadow` (and in `KeySuppressionShadow` when it touches keys).** `tests/Augram.Engine.Tests/Input/SuppressionShadowTests` and `ChordPairingTests` drive shadow and machine together over random sequences and assert every decision equal, and the worker cross-checks every live decision, so a row changed in one place only shows up there.
+
+This pattern is **settled** (plan 0007, question 3, 2026-10-11): one pure decider run on both threads was considered and not taken, since it is invariant-1 territory and the duplication is guarded. Hold remaps follow the same pattern with `Engine/Input/HoldRemapShadow` (`../HoldRemaps/README.md`). Revisit only if a third rule change made twice bites.

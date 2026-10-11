@@ -49,7 +49,7 @@ public sealed class RingLogTests
     }
 
     [Fact]
-    public void Version_IncrementsPerAddAndClear()
+    public void Version_IncrementsPerAdd()
     {
         var ring = new RingLog<string>(2);
         Assert.Equal(0, ring.Version);
@@ -58,11 +58,6 @@ public sealed class RingLogTests
         ring.Add("b");
         ring.Add("c");
         Assert.Equal(3, ring.Version);
-
-        ring.Clear();
-        Assert.Equal(4, ring.Version);
-        Assert.Empty(ring.Snapshot());
-        Assert.Equal(0, ring.Count);
     }
 
     [Fact]

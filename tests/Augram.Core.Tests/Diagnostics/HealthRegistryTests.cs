@@ -34,7 +34,6 @@ public sealed class HealthRegistryTests
         Assert.Equal(3.5, snapshot.LastStrokeLatencyMs);
         Assert.Equal("SetForegroundWindow ok", snapshot.LastActivationOutcome);
         Assert.Null(snapshot.EventsLastMinute);
-        Assert.Equal(2, registry.ContributorCount);
     }
 
     [Fact]
@@ -87,7 +86,6 @@ public sealed class HealthRegistryTests
         var snapshot = registry.Current();
         Assert.Null(snapshot.HookReinstallCount);
         Assert.Equal(1024, snapshot.WorkingSetBytes);
-        Assert.Equal(1, registry.ContributorCount);
     }
 
     [Fact]

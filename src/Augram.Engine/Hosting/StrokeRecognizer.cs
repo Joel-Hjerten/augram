@@ -40,11 +40,7 @@ internal sealed class StrokeRecognizer
     public RecognitionResult Recognize(CaptureOutcome.StrokeComplete stroke, double worstHandlerUs)
     {
         var options = _options();
-        var points = new GesturePoint[stroke.Points.Count];
-        for (var i = 0; i < points.Length; i++)
-        {
-            points[i] = new GesturePoint(stroke.Points[i].X, stroke.Points[i].Y);
-        }
+        var points = stroke.Points.ToGesturePoints();
 
         var started = Stopwatch.GetTimestamp();
         var ranked = _matcher.Rank(points, _gestures(), options);
@@ -56,7 +52,7 @@ internal sealed class StrokeRecognizer
             top[i] = new RecognitionCandidate(ranked[i].Name, ranked[i].Score, ranked[i].GestureId);
         }
 
-        var best = ranked.Count > 0 && ranked[0].Score > options.Threshold && ranked[0].Score > 0 ? ranked[0] : null;
+        var best = GestureMatcher.Best(ranked, options);
         var reason = best is not null
             ? null
             : ranked.Count == 0

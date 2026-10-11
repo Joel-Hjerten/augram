@@ -100,9 +100,6 @@ public sealed partial class CaptureStateMachine
     /// <summary>The handed-back anchor whose injected down still waits for its release, or null: a hard reset must release it.</summary>
     public MouseButton? HandedBackButton => State == CaptureState.HandedBack ? _owner : null;
 
-    /// <summary>True while a button other than the active one is physically down, as far as this machine has seen.</summary>
-    public bool IsOtherButtonDown(MouseButton button) => button != ActiveButton && _down.Has(button);
-
     /// <summary>Buttons whose down was suppressed and whose up is still owed (A19), the owner included.</summary>
     public HeldButtons OwedButtons => _owed;
 

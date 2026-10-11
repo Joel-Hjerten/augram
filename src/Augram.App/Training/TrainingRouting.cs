@@ -1,5 +1,4 @@
 using Augram.Core.Capture;
-using Augram.Core.Gestures;
 using Augram.Engine.Hosting;
 
 namespace Augram.App.Training;
@@ -17,20 +16,9 @@ public static class TrainingRouting
         ArgumentNullException.ThrowIfNull(engineEvent);
         return engineEvent switch
         {
-            EngineEvent.GestureRecognized recognized => session.TryConsume(ToGesturePoints(recognized.Points), recognized.Start.X, recognized.Start.Y),
-            EngineEvent.NoMatch noMatch => session.TryConsume(ToGesturePoints(noMatch.Points), noMatch.Start.X, noMatch.Start.Y),
+            EngineEvent.GestureRecognized recognized => session.TryConsume(recognized.Points.ToGesturePoints(), recognized.Start.X, recognized.Start.Y),
+            EngineEvent.NoMatch noMatch => session.TryConsume(noMatch.Points.ToGesturePoints(), noMatch.Start.X, noMatch.Start.Y),
             _ => false,
         };
-    }
-
-    private static GesturePoint[] ToGesturePoints(IReadOnlyList<CapturePoint> points)
-    {
-        var result = new GesturePoint[points.Count];
-        for (var i = 0; i < result.Length; i++)
-        {
-            result[i] = new GesturePoint(points[i].X, points[i].Y);
-        }
-
-        return result;
     }
 }

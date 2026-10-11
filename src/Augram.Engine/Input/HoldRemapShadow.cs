@@ -56,9 +56,9 @@ public sealed class HoldRemapShadow
     private long _downAt;
     private HeldButtons _owed;
     private bool _buttonOutput;
-    private KeyBits _claimed;
-    private KeyBits _replayed;
-    private KeyBits _ordered;
+    private KeySet _claimed;
+    private KeySet _replayed;
+    private KeySet _ordered;
     private GroupId? _group;
     private KeyCode _ended;
     private int _pendingReplays;
@@ -235,13 +235,13 @@ public sealed class HoldRemapShadow
             return new(HoldKeyVerdict.HoldUp, owned, false);
         }
 
-        if (_replayed.Has(key))
+        if (_replayed.Contains(key))
         {
             _replayed = isUp ? _replayed.Without(key) : _replayed;
             return new(HoldKeyVerdict.Claimed, owned, true);
         }
 
-        if (_claimed.Has(key))
+        if (_claimed.Contains(key))
         {
             if (isUp)
             {
@@ -252,7 +252,7 @@ public sealed class HoldRemapShadow
             return new(HoldKeyVerdict.Claimed, owned, false);
         }
 
-        if (_ordered.Has(key))
+        if (_ordered.Contains(key))
         {
             _ordered = isUp ? _ordered.Without(key) : _ordered;
             return new(HoldKeyVerdict.Ordered, owned, true);
@@ -317,7 +317,7 @@ public sealed class HoldRemapShadow
     /// <summary>What <see cref="Save"/> returns; opaque to callers.</summary>
     public readonly struct Snapshot
     {
-        internal Snapshot(HoldRemapEntry? remap, bool holding, bool rolledOver, bool used, long downAt, HeldButtons owed, bool buttonOutput, KeyBits claimed, KeyBits replayed, KeyBits ordered, GroupId? group, KeyCode ended)
+        internal Snapshot(HoldRemapEntry? remap, bool holding, bool rolledOver, bool used, long downAt, HeldButtons owed, bool buttonOutput, KeySet claimed, KeySet replayed, KeySet ordered, GroupId? group, KeyCode ended)
         {
             Remap = remap;
             Holding = holding;
@@ -351,57 +351,11 @@ public sealed class HoldRemapShadow
 
         internal bool ButtonOutput { get; }
 
-        internal KeyBits Claimed { get; }
+        internal KeySet Claimed { get; }
 
-        internal KeyBits Replayed { get; }
+        internal KeySet Replayed { get; }
 
-        internal KeyBits Ordered { get; }
-    }
-
-    /// <summary>A set of keys as 256 bits, copied by value so a <see cref="Snapshot"/> allocates nothing; values outside 0..255 share bit 0.</summary>
-    internal readonly record struct KeyBits(ulong B0, ulong B1, ulong B2, ulong B3)
-    {
-        public bool IsEmpty => (B0 | B1 | B2 | B3) == 0;
-
-        public bool Has(KeyCode key)
-        {
-            var (word, bit) = Locate(key);
-            return (Word(word) & bit) != 0;
-        }
-
-        public KeyBits With(KeyCode key)
-        {
-            var (word, bit) = Locate(key);
-            return Set(word, Word(word) | bit);
-        }
-
-        public KeyBits Without(KeyCode key)
-        {
-            var (word, bit) = Locate(key);
-            return Set(word, Word(word) & ~bit);
-        }
-
-        private static (int Word, ulong Bit) Locate(KeyCode key)
-        {
-            var value = (uint)key < 256 ? (int)key : 0;
-            return (value >> 6, 1UL << (value & 63));
-        }
-
-        private ulong Word(int word) => word switch
-        {
-            0 => B0,
-            1 => B1,
-            2 => B2,
-            _ => B3,
-        };
-
-        private KeyBits Set(int word, ulong value) => word switch
-        {
-            0 => this with { B0 = value },
-            1 => this with { B1 = value },
-            2 => this with { B2 = value },
-            _ => this with { B3 = value },
-        };
+        internal KeySet Ordered { get; }
     }
 }
 

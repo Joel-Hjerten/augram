@@ -35,7 +35,7 @@ public class RingLog<T>
         }
     }
 
-    /// <summary>Bumped on every add or clear; a reader that remembers the last value it saw knows whether to refresh.</summary>
+    /// <summary>Bumped on every add; a reader that remembers the last value it saw knows whether to refresh.</summary>
     public long Version => Volatile.Read(ref _version);
 
     public void Add(T item)
@@ -69,18 +69,5 @@ public class RingLog<T>
 
             return result;
         }
-    }
-
-    public void Clear()
-    {
-        lock (_gate)
-        {
-            Array.Clear(_items);
-            _next = 0;
-            _count = 0;
-            Interlocked.Increment(ref _version);
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
     }
 }

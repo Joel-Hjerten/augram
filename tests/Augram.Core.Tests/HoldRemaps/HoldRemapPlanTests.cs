@@ -161,7 +161,7 @@ public sealed class HoldRemapPlanTests
     [InlineData(KeyCode.AppCalculator)]
     public void AKeySetHoldsExactlyTheKeysPutInIt(KeyCode key)
     {
-        var set = KeySet.Empty.With(key);
+        var set = default(KeySet).With(key);
 
         Assert.True(set.Contains(key));
         Assert.All(Enum.GetValues<KeyCode>().Where(other => other != key), other => Assert.False(set.Contains(other)));

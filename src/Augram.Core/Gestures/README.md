@@ -6,14 +6,15 @@ The gesture model and its store. Templates are **raw point lists** (CLAUDE.md in
 
 | Type | Role |
 |---|---|
-| `GesturePoint` | raw X/Y, screen pixels today (Y grows downwards) |
+| `GesturePoint` | raw X/Y, screen pixels today (Y grows downwards); `DistanceTo(other)`, the one point-to-point distance (the recognizer's resampler, shape cleanup and the starter set use it) |
 | `GestureSample` | one training sample, an immutable raw point list |
 | `Gesture` | `Id`, `Name`, `IsActive`, `Samples`, `OriginalSamples` (the drawn samples while `Samples` holds their cleaned shape; null otherwise; written as `originalSamples` only when set, sync format 10); immutable record |
 | `GestureId` | strongly typed Guid, stable across renames; serialized as a Guid string |
 | `GestureLibrary` | the store: the single mutable owner of the list for the running app |
 | `GestureRules` | the business rules, called by the store (and nothing else re-implements them) |
 | `GestureValidationException` | a rule was broken; the message is fit to show the user |
-| `Cleanup/ShapeCleanup` | shape cleanup (F3, plan M2 step 10): corners by ShortStraw plus a 35° turn test on a smoothed copy, each piece fitted as Line / Arc / Circle / Smooth, a raw point list again in the drawn direction and angle; pure. Measurements: `docs/learnings/0004-shape-cleanup.md` |
+| `Cleanup/ShapeCleanup` | shape cleanup (F3, plan M2 step 10): corners by ShortStraw plus a 35° turn test on a smoothed copy, each piece fitted as Line / Arc / Circle / Smooth, a raw point list again in the drawn direction and angle; pure. Three partials: `ShapeCleanup.cs` (the constants, `Clean`, smoothing, `ResampleEvenly`: points every *spacing* along the stroke, which is not the recognizer's count-based resampler and must not be folded into it), `.Corners.cs` (straws, the turn test, missed and straight corners), `.Fitting.cs` (line, arc, circle fits). The stroke's length is `Recognition/StrokeResampler.PathLength`. Measurements: `docs/learnings/0004-shape-cleanup.md` |
+| `Cleanup/CleanedShape`, `Cleanup/PieceKind` | what `Clean` returns: the new points, the corners found, each piece's kind (Line, Arc, Circle, Smooth) |
 | `Cleanup/GestureCleanup` | the cleanup on a whole gesture: `CleanUp` (samples cleaned, the drawn ones kept in `Gesture.OriginalSamples`; cleaning again starts from the originals), `Restore`, `FromStroke` (what training stores) |
 | `StarterGestures` | the fresh-install set (plan 0001 C3): 8 flicks, 4 out-and-backs, 4 L-shapes, C, S, Z, Circle at 100 px scale; ids derived from the names (SHA-256) so two installs agree |
 
@@ -44,4 +45,4 @@ The UI shows the exception message; it never re-checks these rules itself (ADR-0
 
 Single-writer: the UI thread mutates the library. Readers on other threads (the engine's recognizer) take `All` as a snapshot when told the version moved and never call a mutator. No locks inside.
 
-**May reference:** `State`. **Referenced by:** `Recognition`, `Config`, the importer, view models.
+**May reference:** `State`; `Cleanup/` also `Recognition`'s `StrokeResampler.PathLength` (nothing in Core outside `Cleanup/` references `Cleanup/`, so no cycle). **Referenced by:** `Recognition`, `Capture` (`ToGesturePoints`), `Config`, the importer, view models.

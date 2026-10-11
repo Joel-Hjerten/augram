@@ -26,9 +26,6 @@ public readonly record struct PressHold(
     /// <summary>Ctrl, Alt, Shift and Win: the keys a press records.</summary>
     public const KeyModifiers TrackedKeys = KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta;
 
-    /// <summary>A plain press of the stroke button: nothing held before, nothing pressed during.</summary>
-    public static PressHold OfStroke(MouseButton strokeButton) => new(HeldButtons.Stroke, strokeButton);
-
     /// <summary>Nothing besides the anchor: a plain click, stroke or wheel.</summary>
     public bool IsEmpty => Before == HeldButtons.None && BeforeKeys == KeyModifiers.None && After == HeldButtons.None && AfterKeys == KeyModifiers.None;
 
