@@ -1,0 +1,1372 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:form="using:Augram.App.Components.SectionForm"
+        xmlns:list="using:Augram.App.Components.ItemList"
+        xmlns:glyph="using:Augram.App.Components.GestureGlyph"
+        xmlns:grid="using:Augram.App.Components.GestureGrid"
+        xmlns:draw="using:Augram.App.Components.GestureDrawArea"
+        xmlns:bench="using:Augram.App.Components.CommandsWorkbench"
+        xmlns:tree="using:Augram.App.Components.CommandTree"
+        xmlns:steps="using:Augram.App.Components.StepList"
+        xmlns:picker="using:Augram.App.Components.StepTypePicker"
+        xmlns:gpicker="using:Augram.App.Components.GesturePicker"
+        xmlns:dialog="using:Augram.App.Components.FormDialog"
+        xmlns:md="using:Augram.App.Components.MasterDetail"
+        xmlns:sync="using:Augram.App.Components.SyncConflictList"
+        xmlns:wf="using:Augram.App.Components.WindowFinder"
+        xmlns:hk="using:Augram.App.Components.HotkeyCapture">
+  <!--
+    The glass look for lists, panels and the workbenches (plan 0006 step 4; visual reference
+    design/mockups/augram-glass-theme.html: .island, .ihead, .row, .gt, .tag, .steps, .ggrid, .log). Included by Default.axaml
+    after the Wireframe include, so the ControlThemes here replace Wireframe's for the same types and the styles below win
+    over Wireframe's class styles (Avalonia has no selector specificity: of two styles at the same priority, the later one
+    wins).
+
+    How it holds together:
+    - A panel is a Border in Layer.Panel with a 1 px Layer.Edge and Radius.Panel corners; its title sits in its header row,
+      beside its buttons (decision 12). Panels stand on the page with gaps, not borders; a splitter is a thin bar that shows
+      when hovered.
+    - Rows keep the Row rule (Border.row around Grid.row-line, the Row.* metrics untouched; RowMetricsTests). A row in a
+      list box is drawn by its container (Lists.Row): rounded, no dividers, Layer.Hover under the pointer, Accent.Soft with
+      an Accent.Line edge when selected. The container is what carries the selection (ListBoxItem:selected); the row's own
+      frame stays quiet. Steps (Lists.Step) and gesture tiles (Lists.Tile) are cards drawn the same way.
+    - Text in these templates gets its colour here, from tokens: either a local value (static text) or a style with a class
+      or a pseudo-class (text with states; Avalonia ranks such a style above a plain type rule), so a global TextBlock rule
+      never decides it and Light reads as well as Dark.
+    - Every colour is a DynamicResource of the tokens and every corner a Radius.* token, so Light, Dark and the corner
+      setting apply while the window is open. Controls (buttons, boxes, combos) are the standard controls' theme.
+  -->
+  <Styles.Resources>
+    <ResourceDictionary>
+      <!-- The tokens again, here: this file's setters are resolved while it loads, before the includes beside it exist. -->
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Augram/Themes/Tokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <!-- Colours only these templates need, per theme. -->
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <!-- Under a draft's "Not saved yet" note (the command header). -->
+          <SolidColorBrush x:Key="Lists.DangerSoft" Color="#1FFF7A70" />
+          <!-- An inactive gesture picture, start and end (the mockup's glyph-start-muted and faint text, made opaque over a tile:
+               the stroke is drawn a segment at a time, and translucent segments darken where their round caps overlap). -->
+          <SolidColorBrush x:Key="Lists.GlyphStartMuted" Color="#4C4C51" />
+          <SolidColorBrush x:Key="Lists.GlyphMuted" Color="#78777C" />
+          <!-- A popup is a window of its own with nothing behind it, so it needs an opaque fill (the window finder's line). -->
+          <SolidColorBrush x:Key="Lists.Popup" Color="#2B2A31" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="Lists.DangerSoft" Color="#14D93B30" />
+          <SolidColorBrush x:Key="Lists.GlyphStartMuted" Color="#CFCFD5" />
+          <SolidColorBrush x:Key="Lists.GlyphMuted" Color="#9C9BA0" />
+          <SolidColorBrush x:Key="Lists.Popup" Color="#FBFBFD" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <!-- Where a screen-filling component sits on its tab's page (the mockup's .content padding). -->
+      <Thickness x:Key="Lists.PageMargin">12,8,12,12</Thickness>
+      <!-- A panel's header row: its title, the ⓘ and its buttons (.ihead). -->
+      <Thickness x:Key="Lists.HeadPadding">12,10,12,8</Thickness>
+      <!-- A header row's title is as tall as a line of its buttons, so it stays beside the first line when they wrap. -->
+      <x:Double x:Key="Lists.HeadLineHeight">30</x:Double>
+      <!-- A list inside a panel, clear of its rounded corners (.list). -->
+      <Thickness x:Key="Lists.ListMargin">6,0,6,6</Thickness>
+      <!-- The gap between two panels side by side or stacked. -->
+      <x:Double x:Key="Lists.Gap">10</x:Double>
+      <!-- The command header's labels (Trigger, While holding, Not in), so their editors line up (.fgrid's label column). -->
+      <x:Double x:Key="Lists.HeaderLabelWidth">96</x:Double>
+      <x:Double x:Key="Lists.TileWidth">104</x:Double>
+      <x:Double x:Key="Lists.CellFontSize">12</x:Double>
+      <!-- Diagnostics › Log's lines. -->
+      <FontFamily x:Key="Lists.Mono">Consolas, Menlo, SF Mono, Cascadia Mono, Courier New</FontFamily>
+      <x:Double x:Key="Lists.MonoFontSize">11</x:Double>
+
+      <!-- A row's container in a list box: the row's rounded shape, hover and selection (the Row rule's look). -->
+      <ControlTheme x:Key="Lists.Row" TargetType="ListBoxItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <ContentPresenter Name="PART_RowPresenter"
+                              Background="{TemplateBinding Background}"
+                              BorderBrush="{TemplateBinding BorderBrush}"
+                              BorderThickness="{TemplateBinding BorderThickness}"
+                              CornerRadius="{TemplateBinding CornerRadius}"
+                              Padding="{TemplateBinding Padding}"
+                              Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+          <Setter Property="Background" Value="{DynamicResource Layer.Hover}" />
+        </Style>
+        <Style Selector="^:selected">
+          <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
+        </Style>
+      </ControlTheme>
+
+      <!-- A step's container: a card a step lighter than its panel, a gap below it; the selected (open) one gets the accent edge (.step). -->
+      <ControlTheme x:Key="Lists.Step" TargetType="ListBoxItem" BasedOn="{StaticResource Lists.Row}">
+        <Setter Property="Background" Value="{DynamicResource Layer.Tile}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Layer.Edge}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Style Selector="^:pointerover">
+          <Setter Property="Background" Value="{DynamicResource Layer.Control}" />
+        </Style>
+        <Style Selector="^:selected">
+          <Setter Property="Background" Value="{DynamicResource Layer.Tile}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
+        </Style>
+      </ControlTheme>
+
+      <!-- A gesture tile's container (.gtile): the tile's fill, hover and selection. The duplicate frame is the tile's own, inside. -->
+      <ControlTheme x:Key="Lists.Tile" TargetType="ListBoxItem" BasedOn="{StaticResource Lists.Row}">
+        <Setter Property="Background" Value="{DynamicResource Layer.Tile}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.Panel}" />
+        <Setter Property="Margin" Value="4" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Style Selector="^:pointerover">
+          <Setter Property="Background" Value="{DynamicResource Layer.Control}" />
+        </Style>
+        <Style Selector="^:selected">
+          <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
+        </Style>
+      </ControlTheme>
+
+      <!-- The splitter between two panels: the gap itself, with a thin bar that shows only under the pointer. -->
+      <ControlTheme x:Key="Lists.Splitter" TargetType="GridSplitter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Width" Value="{StaticResource Lists.Gap}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="Transparent">
+              <Border Name="PART_Bar"
+                      Width="2"
+                      CornerRadius="1"
+                      Margin="0,16"
+                      HorizontalAlignment="Center"
+                      Background="{TemplateBinding Background}" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+          <Setter Property="Background" Value="{DynamicResource Text.Faint}" />
+        </Style>
+        <Style Selector="^:pressed">
+          <Setter Property="Background" Value="{DynamicResource Accent.Line}" />
+        </Style>
+      </ControlTheme>
+
+      <!-- A section header's expander: its chevron (the content) on a quiet square that lights up under the pointer. -->
+      <ControlTheme x:Key="Lists.Expander" TargetType="Button">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_ExpanderBox" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+              <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- An entry of the step type picker: a row, not a framed button. -->
+      <ControlTheme x:Key="Lists.PickerItem" TargetType="Button">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_PickerBox"
+                    Background="{TemplateBinding Background}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter Content="{TemplateBinding Content}"
+                                Foreground="{TemplateBinding Foreground}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="Center" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- Diagnostics: the log and the recognition list (decision 12: title and buttons in one header row). -->
+      <ControlTheme x:Key="{x:Type list:ItemList}" TargetType="list:ItemList">
+        <Setter Property="Margin" Value="{StaticResource Lists.PageMargin}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{DynamicResource Layer.Panel}"
+                    BorderBrush="{DynamicResource Layer.Edge}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.Panel}">
+              <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
+                    <TextBlock Text="{TemplateBinding Title}" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <ItemsControl Grid.Column="1" ItemsSource="{TemplateBinding ToolbarItems}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel ItemSpacing="6" LineSpacing="4" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                </Grid>
+                <!-- The column titles line up with the cells: the list's margin, its row's edge and a cell's padding. -->
+                <ContentPresenter DockPanel.Dock="Top" Content="{TemplateBinding HeaderRow}" Margin="11,0,11,2" />
+                <ListBox Name="PART_Rows"
+                         ItemsSource="{TemplateBinding Rows}"
+                         ItemTemplate="{TemplateBinding RowTemplate}"
+                         ItemContainerTheme="{StaticResource Lists.Row}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0"
+                         Margin="{StaticResource Lists.ListMargin}" />
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- Gestures tab: glyph, tile, grid and the training draw area (.gt, .gtile, .ggrid). -->
+      <ControlTheme x:Key="{x:Type glyph:GestureGlyph}" TargetType="glyph:GestureGlyph">
+        <Setter Property="Width" Value="64" />
+        <Setter Property="Height" Value="64" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="ArrowLength" Value="9" />
+        <Setter Property="Background" Value="{DynamicResource Layer.Tile}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.Panel}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+              <glyph:GlyphStroke Name="PART_Stroke"
+                                 Points="{TemplateBinding StrokePoints}"
+                                 ArrowLength="{TemplateBinding ArrowLength}"
+                                 StartBrush="{DynamicResource Brush.GlyphStart}"
+                                 Stroke="{DynamicResource Brush.Glyph}"
+                                 StrokeThickness="2" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <!-- Start to finish, shaded start to the trail colour (Themes/AppearanceLink). Inactive: quiet greys of the theme. -->
+        <Style Selector="^:inactive /template/ glyph|GlyphStroke#PART_Stroke">
+          <Setter Property="StartBrush" Value="{DynamicResource Lists.GlyphStartMuted}" />
+          <Setter Property="Stroke" Value="{DynamicResource Lists.GlyphMuted}" />
+        </Style>
+        <!-- A thumbnail inside a list row (the command tree, Diagnostics › Recognition, sync conflicts): a 40 px tile. -->
+        <Style Selector="^.row-glyph">
+          <Setter Property="Width" Value="{StaticResource Row.GlyphSize}" />
+          <Setter Property="Height" Value="{StaticResource Row.GlyphSize}" />
+          <Setter Property="Padding" Value="7" />
+          <Setter Property="ArrowLength" Value="5" />
+          <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+        </Style>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type grid:GestureTile}" TargetType="grid:GestureTile">
+        <Setter Property="Width" Value="{StaticResource Lists.TileWidth}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <!-- The frame keeps one thickness; a duplicate changes only its colour, so the grid never shifts (A7). -->
+            <Border Name="PART_Frame"
+                    CornerRadius="{DynamicResource Radius.Panel}"
+                    BorderThickness="1.5"
+                    BorderBrush="Transparent"
+                    Padding="6,10,6,8">
+              <Panel>
+                <StackPanel Spacing="6">
+                  <glyph:GestureGlyph Points="{TemplateBinding Points}"
+                                      IsActive="{TemplateBinding IsActive}"
+                                      Background="Transparent"
+                                      HorizontalAlignment="Center" />
+                  <TextBlock Name="PART_Name"
+                             Classes="tile-name"
+                             Text="{TemplateBinding NameText}"
+                             TextAlignment="Center"
+                             TextWrapping="Wrap"
+                             IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                </StackPanel>
+                <!-- The partner's score in the corner, over the tile, so marking it never reflows the grid. -->
+                <Border Classes="tile-partner"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="0"
+                        Margin="0,-4,2,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        IsVisible="{TemplateBinding PartnerScoreText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <TextBlock Name="PART_Partner" Classes="tile-partner" Text="{TemplateBinding PartnerScoreText}" />
+                </Border>
+              </Panel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type grid:GestureGrid}" TargetType="grid:GestureGrid">
+        <Setter Property="Margin" Value="{StaticResource Lists.PageMargin}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{DynamicResource Layer.Panel}"
+                    BorderBrush="{DynamicResource Layer.Edge}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.Panel}">
+              <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
+                  <!-- Help as an (i) after the title (Joel, 2026-10-09: the App README's help rule, for lists too). -->
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
+                    <TextBlock Text="Gestures" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                    <TextBlock Classes="help-icon" ToolTip.Tip="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
+                  </StackPanel>
+                  <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
+                    <Button Name="PART_New" Classes="toolbar" Content="Add new gesture…" />
+                    <Button Name="PART_Import" Classes="toolbar" Content="Import from StrokesPlus.net…" />
+                    <Button Name="PART_Export" Classes="toolbar" Content="Export…" />
+                    <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
+                    <Button Name="PART_Redo" Classes="toolbar" Content="Redo" IsEnabled="{TemplateBinding CanRedo}" />
+                  </WrapPanel>
+                </Grid>
+                <TextBlock DockPanel.Dock="Bottom"
+                           Classes="panel-message"
+                           Text="{TemplateBinding Message}"
+                           IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <ListBox Name="PART_Tiles"
+                         ItemsSource="{TemplateBinding TileControls}"
+                         ItemContainerTheme="{StaticResource Lists.Tile}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0"
+                         Margin="8,0,8,8"
+                         SelectionMode="Single">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- The training canvas: a well a step darker than its page. The stroke is a quiet colour of the theme, so the cleaned
+           shape drawn over it in its own colour (draw|GestureDrawArea.cleaned, Wireframe's rule) always stands out. Fills and
+           the stroke are set by style, not locally, so the cleaned overlay's rule can clear them. -->
+      <ControlTheme x:Key="{x:Type draw:GestureDrawArea}" TargetType="draw:GestureDrawArea">
+        <Setter Property="MinHeight" Value="240" />
+        <Setter Property="ArrowLength" Value="14" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Well" CornerRadius="{DynamicResource Radius.Panel}" ClipToBounds="True">
+              <Panel>
+                <TextBlock Name="PART_Hint"
+                           Text="Draw here"
+                           FontSize="{StaticResource Font.M}"
+                           Foreground="{DynamicResource Text.Faint}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           IsVisible="False" />
+                <Path Name="PART_Stroke"
+                      Data="{TemplateBinding Geometry}"
+                      StrokeThickness="4"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round" />
+              </Panel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^ /template/ Border#PART_Well">
+          <Setter Property="BorderThickness" Value="1" />
+          <Setter Property="Background" Value="{DynamicResource Layer.Input}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Layer.Edge}" />
+        </Style>
+        <Style Selector="^ /template/ Path#PART_Stroke">
+          <Setter Property="Stroke" Value="{DynamicResource Text.Muted}" />
+        </Style>
+        <Style Selector="^:empty /template/ TextBlock#PART_Hint">
+          <Setter Property="IsVisible" Value="True" />
+        </Style>
+      </ControlTheme>
+
+      <!-- Commands tab: the tree beside the command's header and steps, two panels on the page with a splitter between. -->
+      <ControlTheme x:Key="{x:Type bench:CommandsWorkbench}" TargetType="bench:CommandsWorkbench">
+        <Setter Property="Margin" Value="{StaticResource Lists.PageMargin}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Bottom"
+                         Classes="panel-message"
+                         Text="{TemplateBinding Message}"
+                         TextWrapping="Wrap"
+                         IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource Workbench.TreeWidth}" MinWidth="240" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" MinWidth="240" />
+                </Grid.ColumnDefinitions>
+                <tree:CommandTree Name="PART_Tree"
+                                  Grid.Column="0"
+                                  Sections="{TemplateBinding Sections}"
+                                  SelectedSectionId="{TemplateBinding SelectedSectionId}"
+                                  SelectedCommandId="{TemplateBinding SelectedCommandId}"
+                                  Heading="{TemplateBinding TreeHeading}"
+                                  NewSectionLabel="{TemplateBinding NewSectionLabel}"
+                                  PlatformFilterLabel="{TemplateBinding PlatformFilterLabel}"
+                                  ShowsOtherPlatforms="{TemplateBinding ShowsOtherPlatforms}"
+                                  HelpText="{TemplateBinding TreeHelp}" />
+                <GridSplitter Grid.Column="1" Theme="{StaticResource Lists.Splitter}" ResizeDirection="Columns" />
+                <Panel Grid.Column="2">
+                  <DockPanel IsVisible="{TemplateBinding ShowsCommandPanel}">
+                    <tree:CommandHeader Name="PART_Header" DockPanel.Dock="Top" Margin="0,0,0,10" Item="{TemplateBinding SelectedCommand}" />
+                    <steps:StepList Name="PART_Steps"
+                                    Steps="{TemplateBinding Steps}"
+                                    SelectedIndex="{TemplateBinding SelectedStepIndex}"
+                                    StepTypes="{TemplateBinding StepTypes}"
+                                    HasCommand="{TemplateBinding HasCommand}"
+                                    UnderHoldRemap="{TemplateBinding OffersRemapStep}"
+                                    FormContext="{TemplateBinding StepFormContext}" />
+                  </DockPanel>
+                  <form:SectionForm Name="PART_GroupForm"
+                                    Screen="{TemplateBinding GroupForm}"
+                                    IsVisible="{TemplateBinding HasGroupForm}" />
+                </Panel>
+              </Grid>
+            </DockPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type tree:CommandTree}" TargetType="tree:CommandTree">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{DynamicResource Layer.Panel}"
+                    BorderBrush="{DynamicResource Layer.Edge}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.Panel}">
+              <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
+                    <TextBlock Text="{TemplateBinding Heading}" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                    <TextBlock Classes="help-icon"
+                               ToolTip.Tip="{TemplateBinding HelpText}"
+                               IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
+                    <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
+                    <Button Name="PART_NewCommand" Classes="toolbar" Content="New command" />
+                    <ToggleButton Name="PART_OtherPlatforms"
+                                  Classes="toolbar"
+                                  Content="{TemplateBinding PlatformFilterLabel}"
+                                  IsVisible="{TemplateBinding PlatformFilterLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </WrapPanel>
+                </Grid>
+                <ListBox Name="PART_Rows"
+                         ItemsSource="{TemplateBinding Rows}"
+                         ItemContainerTheme="{StaticResource Lists.Row}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0"
+                         Margin="{StaticResource Lists.ListMargin}"
+                         SelectionMode="Single">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- A section header (.row.sec): chevron, name, muted count; the active box only when the item allows it. -->
+      <ControlTheme x:Key="{x:Type tree:SectionRow}" TargetType="tree:SectionRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto">
+                <Button Grid.Column="0" Name="PART_Expander" Classes="expander">
+                  <Path Classes="chevron" Data="M 3.5,2 L 6.5,5 L 3.5,8" />
+                </Button>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space.M}" VerticalAlignment="Center">
+                  <TextBlock Name="PART_Name"
+                             Classes="group-name"
+                             Text="{TemplateBinding NameText}"
+                             VerticalAlignment="Center"
+                             IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="row-count" Text="{TemplateBinding CountText}" VerticalAlignment="Center" />
+                </StackPanel>
+                <CheckBox Grid.Column="2"
+                          Name="PART_Active"
+                          Classes="row-active"
+                          VerticalAlignment="Center"
+                          IsVisible="{TemplateBinding CanToggleActive}" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- A command (.row.cmd): glyph or trigger badge tile, name with its category tag, the step summary, F8 marker, active. -->
+      <ControlTheme x:Key="{x:Type tree:CommandRow}" TargetType="tree:CommandRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line indented" ColumnDefinitions="Auto,*,Auto,Auto">
+                <Panel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+                  <glyph:GestureGlyph Classes="row-glyph"
+                                      Points="{TemplateBinding Points}"
+                                      IsActive="{TemplateBinding IsActive}"
+                                      IsVisible="{TemplateBinding HasGlyph}" />
+                  <Border Classes="trigger-badge" IsVisible="{TemplateBinding HasGlyph, Converter={x:Static BoolConverters.Not}}">
+                    <Viewbox StretchDirection="DownOnly">
+                      <TextBlock Classes="trigger-badge" Text="{TemplateBinding BadgeText}" />
+                    </Viewbox>
+                  </Border>
+                </Panel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                  <StackPanel Orientation="Horizontal"
+                              Spacing="6"
+                              IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}">
+                    <TextBlock Name="PART_Name" Classes="row-name" Text="{TemplateBinding NameText}" VerticalAlignment="Center" />
+                    <Border Classes="category-tag" IsVisible="{TemplateBinding HasCategory}">
+                      <TextBlock Classes="category-tag" Text="{TemplateBinding CategoryText}" />
+                    </Border>
+                  </StackPanel>
+                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="row-summary" Text="{TemplateBinding SummaryText}" />
+                </StackPanel>
+                <TextBlock Grid.Column="2"
+                           Classes="platform-marker"
+                           Text="{TemplateBinding MarkerText}"
+                           IsVisible="{TemplateBinding HasMarker}"
+                           VerticalAlignment="Center" />
+                <CheckBox Grid.Column="3" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- A list beside the selected item's form (the Exclusions tab): the Commands tab's panel, columns and rows (.md). -->
+      <ControlTheme x:Key="{x:Type md:MasterDetail}" TargetType="md:MasterDetail">
+        <Setter Property="Margin" Value="{StaticResource Lists.PageMargin}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Bottom"
+                         Classes="panel-message"
+                         Text="{TemplateBinding Message}"
+                         TextWrapping="Wrap"
+                         IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource Workbench.TreeWidth}" MinWidth="240" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" MinWidth="240" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0"
+                        Background="{DynamicResource Layer.Panel}"
+                        BorderBrush="{DynamicResource Layer.Edge}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.Panel}">
+                  <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
+                      <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
+                        <TextBlock Text="{TemplateBinding Heading}" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                        <TextBlock Classes="help-icon"
+                                   ToolTip.Tip="{TemplateBinding HelpText}"
+                                   IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </StackPanel>
+                      <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
+                        <Button Name="PART_New" Classes="toolbar" Content="{TemplateBinding NewLabel}" />
+                      </WrapPanel>
+                    </Grid>
+                    <ListBox Name="PART_Rows"
+                             ItemsSource="{TemplateBinding Rows}"
+                             ItemContainerTheme="{StaticResource Lists.Row}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0"
+                             Margin="{StaticResource Lists.ListMargin}"
+                             SelectionMode="Single">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                    </ListBox>
+                  </DockPanel>
+                </Border>
+                <GridSplitter Grid.Column="1" Theme="{StaticResource Lists.Splitter}" ResizeDirection="Columns" />
+                <Panel Grid.Column="2">
+                  <TextBlock Classes="panel-empty"
+                             Text="{TemplateBinding EmptyDetailText}"
+                             IsVisible="{TemplateBinding HasDetail, Converter={x:Static BoolConverters.Not}}" />
+                  <form:SectionForm Name="PART_Detail"
+                                    Screen="{TemplateBinding Detail}"
+                                    IsVisible="{TemplateBinding HasDetail}" />
+                </Panel>
+              </Grid>
+            </DockPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- A MasterDetail row: name (or its in-place editor) over the summary, the active box at the end. -->
+      <ControlTheme x:Key="{x:Type md:MasterRow}" TargetType="md:MasterRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line" ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                  <TextBlock Name="PART_Name"
+                             Classes="row-name"
+                             Text="{TemplateBinding NameText}"
+                             IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}" />
+                  <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
+                  <TextBlock Classes="row-summary" Text="{TemplateBinding SummaryText}" />
+                </StackPanel>
+                <CheckBox Grid.Column="1" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- The selected command's trigger and settings: a panel, the name as its title, label and editors per line (.dbody, .fgrid). -->
+      <ControlTheme x:Key="{x:Type tree:CommandHeader}" TargetType="tree:CommandHeader">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{DynamicResource Layer.Panel}"
+                    BorderBrush="{DynamicResource Layer.Edge}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.Panel}"
+                    Padding="14,10,14,12">
+              <Panel>
+                <TextBlock Classes="panel-empty-inline"
+                           Text="Select a command to edit its trigger and steps."
+                           IsVisible="{TemplateBinding HasCommand, Converter={x:Static BoolConverters.Not}}" />
+                <StackPanel Spacing="6" IsVisible="{TemplateBinding HasCommand}">
+                  <TextBlock Classes="bench-title" Text="{TemplateBinding NameText}" />
+                  <!-- A command under a hold remap (F9, plan 0002): its input in place of the trigger kind and the While holding boxes. -->
+                  <StackPanel Spacing="6" IsVisible="{TemplateBinding IsInputCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                      <TextBlock Classes="bench-label bench-label-column" Text="Input" />
+                      <ComboBox Name="PART_InputKind" Classes="field-editor" />
+                      <ComboBox Name="PART_InputWheel" Classes="field-editor" IsVisible="{TemplateBinding IsWheelInput}" />
+                      <StackPanel Name="PART_InputButtons" Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding IsButtonsInput}" />
+                      <Button Name="PART_AddButton"
+                              Classes="toolbar"
+                              Content="Add button…"
+                              IsVisible="{TemplateBinding IsButtonsInput}"
+                              IsEnabled="{TemplateBinding IsDetecting, Converter={x:Static BoolConverters.Not}}"
+                              ToolTip.Tip="Then press the mouse button; add several for buttons held together." />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsKeyInput}">
+                      <TextBlock Classes="bench-label bench-label-column" Text="" />
+                      <hk:HotkeyCaptureBox Name="PART_InputKey" />
+                    </StackPanel>
+                    <TextBlock Classes="bench-note"
+                               Text="{TemplateBinding InputStatus}"
+                               IsVisible="{TemplateBinding InputStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="bench-note"
+                               Text="{TemplateBinding TriggerHint}"
+                               IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
+                    <TextBlock Classes="bench-label bench-label-column" Text="Trigger" />
+                    <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
+                    <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
+                    <!-- Plan 0005: a button trigger's pressed button (Left in Right + Left); the buttons held are the While holding boxes. -->
+                    <ComboBox Name="PART_TriggerButton" Classes="field-editor" IsVisible="{TemplateBinding IsButtonKind}" />
+                    <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                        <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />
+                        <TextBlock Classes="bench-value" Text="{TemplateBinding TriggerText}" VerticalAlignment="Center" />
+                        <TextBlock Classes="bench-action" Text="Change…" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                    <!-- How the trigger fires, as an ⓘ (Joel, 2026-10-11: the line ran off the side panel; the help rule). -->
+                    <TextBlock Classes="help-icon"
+                               ToolTip.Tip="{TemplateBinding TriggerHint}"
+                               VerticalAlignment="Center"
+                               IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <!-- F1 combinations (Joel, 2026-10-09): the buttons, then the keys (Ctrl / Alt / Shift / Win, Opt and Cmd on a Mac), then when they must go down. -->
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
+                    <TextBlock Classes="bench-label bench-label-column" Text="While holding" />
+                    <CheckBox Name="PART_HoldStroke" Classes="toggle-option" Content="Stroke button" />
+                    <CheckBox Name="PART_HoldLeft" Classes="toggle-option" Content="Left" />
+                    <CheckBox Name="PART_HoldRight" Classes="toggle-option" Content="Right" />
+                    <CheckBox Name="PART_HoldMiddle" Classes="toggle-option" Content="Middle" />
+                    <CheckBox Name="PART_HoldX1" Classes="toggle-option" Content="X1" />
+                    <CheckBox Name="PART_HoldX2" Classes="toggle-option" Content="X2" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
+                    <TextBlock Classes="bench-label bench-label-column" Text="" />
+                    <CheckBox Name="PART_KeyControl" Classes="toggle-option" />
+                    <CheckBox Name="PART_KeyAlt" Classes="toggle-option" />
+                    <CheckBox Name="PART_KeyShift" Classes="toggle-option" />
+                    <CheckBox Name="PART_KeyMeta" Classes="toggle-option" />
+                    <ComboBox Name="PART_Capture" Classes="field-editor" IsVisible="{TemplateBinding HasHoldMembers}" />
+                  </StackPanel>
+                  <!-- Plan 0004: how far a held-back button's press (Right in Right + wheel) may move before it goes to the app as a drag; the Options value or the command's own. -->
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding ShowsDragDistance}">
+                    <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Classes="bench-label" Text="Drag distance" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.DragDistanceHelp}" />
+                    </StackPanel>
+                    <ComboBox Name="PART_DragDistanceMode" Classes="field-editor" />
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasOwnDragDistance}">
+                      <NumericUpDown Name="PART_DragDistance" Classes="field-editor" />
+                      <TextBlock Classes="bench-label" Text="px" />
+                    </StackPanel>
+                  </StackPanel>
+                  <!-- A combination the rules refuse waits as a draft (Joel, 2026-10-09): what is wrong and how to fix it. Below the boxes, so they never move under the pointer.
+                       When another command uses it here, the note's box offers Take it and, beside it, Swap (Joel, 2026-10-10). -->
+                  <Border Classes="warning-note" IsVisible="{TemplateBinding DraftNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <StackPanel Spacing="{StaticResource Space.M}">
+                      <TextBlock Name="PART_DraftNote" Classes="bench-error" Text="{TemplateBinding DraftNote}" />
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasConflictActions}">
+                        <Button Name="PART_TakeTrigger"
+                                Classes="toolbar"
+                                Content="{TemplateBinding TakeText}"
+                                ToolTip.Tip="{TemplateBinding TakeTip}"
+                                IsVisible="{TemplateBinding CanTakeTrigger}" />
+                        <Button Name="PART_SwapTrigger"
+                                Classes="toolbar"
+                                Content="{TemplateBinding SwapText}"
+                                ToolTip.Tip="{TemplateBinding SwapTip}"
+                                IsVisible="{TemplateBinding CanSwapTrigger}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                  <TextBlock Classes="bench-note"
+                             Text="{TemplateBinding AnchorWarning}"
+                             IsVisible="{TemplateBinding AnchorWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <TextBlock Classes="bench-note"
+                             Text="{TemplateBinding TriggerNote}"
+                             IsVisible="{TemplateBinding TriggerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
+                    <TextBlock Classes="bench-label bench-label-column" Text="Category" />
+                    <ComboBox Name="PART_Category" Classes="field-editor" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                    <TextBlock Classes="bench-label bench-label-column" Text="Use on" />
+                    <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
+                    <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
+                    <TextBlock Classes="bench-note"
+                               Text="{TemplateBinding UseOnNote}"
+                               VerticalAlignment="Center"
+                               IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <!-- Plan 0004: the Exclusions › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
+                  <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
+                    <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                      <TextBlock Classes="bench-label" Text="Not in" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.NotInHelp}" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Left" Name="PART_NotInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
+                    <TextBlock Name="PART_NotInText" Classes="bench-value" Text="{TemplateBinding NotInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </DockPanel>
+                  <!-- Plan 0005 decision 7: the Exclusions › Global entries a command whose trigger holds no stroke button still works over. Laid out as Not in. -->
+                  <DockPanel IsVisible="{TemplateBinding CanSetAlsoIn}">
+                    <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                      <TextBlock Classes="bench-label" Text="Also in" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.AlsoInHelp}" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
+                    <TextBlock Name="PART_AlsoInText" Classes="bench-value" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </DockPanel>
+                  <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Classes="bench-note" Text="{TemplateBinding VersionText}" />
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                      <Button Name="PART_UseConverted" Classes="toolbar" Content="Use the converted original" IsVisible="{TemplateBinding HasOwnVersionHere}" />
+                      <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+              </Panel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- The selected command's steps: a panel of step cards (.steps, .step); the selected one opens in place with its form. -->
+      <ControlTheme x:Key="{x:Type steps:StepList}" TargetType="steps:StepList">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{DynamicResource Layer.Panel}"
+                    BorderBrush="{DynamicResource Layer.Edge}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.Panel}">
+              <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
+                    <TextBlock Text="Steps" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                    <TextBlock Classes="help-icon" ToolTip.Tip="Steps run top to bottom; drag one to reorder. Duplicate places the copy below it, Paste adds at the bottom. Delete asks nothing; Undo brings it back." />
+                  </StackPanel>
+                  <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
+                    <Button Name="PART_New" Classes="toolbar" Content="New step…" IsEnabled="{TemplateBinding HasCommand}" />
+                  </WrapPanel>
+                </Grid>
+                <ListBox Name="PART_Rows"
+                         ItemsSource="{TemplateBinding Rows}"
+                         ItemContainerTheme="{StaticResource Lists.Step}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0"
+                         Margin="10,0,10,4"
+                         SelectionMode="Single">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <ControlTheme x:Key="{x:Type steps:StepRow}" TargetType="steps:StepRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame" Classes="row">
+              <StackPanel>
+                <Grid Classes="row-line" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                  <TextBlock Grid.Column="0" Classes="drag-handle" Text="⋮⋮" />
+                  <TextBlock Grid.Column="1" Classes="row-index" Text="{TemplateBinding IndexText}" />
+                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                    <TextBlock Name="PART_Name" Classes="row-name step-name" Text="{TemplateBinding SummaryText}" />
+                    <TextBlock Classes="row-summary" Text="{TemplateBinding TypeText}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="3"
+                             Classes="platform-marker"
+                             Text="{TemplateBinding MarkerText}"
+                             IsVisible="{TemplateBinding HasMarker}"
+                             VerticalAlignment="Center" />
+                  <CheckBox Grid.Column="4" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
+                </Grid>
+                <Border Classes="step-form" IsVisible="{TemplateBinding IsExpanded}">
+                  <ContentPresenter Content="{TemplateBinding Form}" />
+                </Border>
+              </StackPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- "New step…"'s flyout: categories as quiet labels, each type a row. -->
+      <ControlTheme x:Key="{x:Type picker:StepTypePicker}" TargetType="picker:StepTypePicker">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Padding="4" MinWidth="220">
+              <ItemsControl ItemsSource="{TemplateBinding Entries}" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- Select Gesture (F3): the title with its ⓘ, the tiles in a panel, the buttons below. The window gives the backdrop. -->
+      <ControlTheme x:Key="{x:Type gpicker:GesturePicker}" TargetType="gpicker:GesturePicker">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}">
+              <DockPanel Classes="dialog">
+                <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
+                  <Button Name="PART_NoGesture" Classes="toolbar" Content="No Gesture" />
+                  <Button Name="PART_NewGesture" Classes="toolbar" Content="New Gesture…" />
+                  <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
+                  <Button Name="PART_Ok" Classes="toolbar" Content="OK" IsDefault="True" IsEnabled="{TemplateBinding HasSelection}" />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="2,0,0,10">
+                  <TextBlock Text="Select Gesture" FontSize="{StaticResource Font.L}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                  <TextBlock Classes="help-icon" ToolTip.Tip="Pick the gesture that fires this command; double-click also picks. No Gesture leaves the command trigger-less, New Gesture… draws one first." />
+                </StackPanel>
+                <Border Background="{DynamicResource Layer.Panel}"
+                        BorderBrush="{DynamicResource Layer.Edge}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.Panel}">
+                  <ListBox Name="PART_Tiles"
+                           ItemsSource="{TemplateBinding TileControls}"
+                           ItemContainerTheme="{StaticResource Lists.Tile}"
+                           Background="Transparent"
+                           BorderThickness="0"
+                           Padding="0"
+                           Margin="8"
+                           SelectionMode="Single">
+                    <ListBox.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel />
+                      </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                  </ListBox>
+                </Border>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- The small popup form (F7): message, the declared form, Cancel and the confirm button. The window gives the backdrop. -->
+      <ControlTheme x:Key="{x:Type dialog:FormDialog}" TargetType="dialog:FormDialog">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}">
+              <DockPanel Classes="dialog">
+                <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
+                  <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
+                  <Button Name="PART_Confirm" Classes="toolbar" Content="{TemplateBinding ConfirmLabel}" IsDefault="True" IsEnabled="{TemplateBinding CanConfirm}" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Classes="dialog-message"
+                           Text="{TemplateBinding Message}"
+                           TextWrapping="Wrap"
+                           IsVisible="{TemplateBinding HasMessage}" />
+                <form:SectionForm Screen="{TemplateBinding Screen}" IsVisible="{TemplateBinding HasScreen}" />
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- Sync conflicts and the import review (F8): a panel, the column titles, a row per conflict. -->
+      <ControlTheme x:Key="{x:Type sync:SyncConflictList}" TargetType="sync:SyncConflictList">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{DynamicResource Layer.Panel}"
+                    BorderBrush="{DynamicResource Layer.Edge}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.Panel}">
+              <DockPanel>
+                <!-- In line with the rows: the list's margin plus a row's padding. -->
+                <Grid DockPanel.Dock="Top" Margin="10,10,10,4">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{StaticResource SyncConflict.ItemColumn}" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="{StaticResource SyncConflict.ChoiceColumn}" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="0" Classes="column-header" Text="Item" />
+                  <TextBlock Grid.Column="1" Classes="column-header" Text="{TemplateBinding MineHeader}" />
+                  <TextBlock Grid.Column="2" Classes="column-header" Text="{TemplateBinding TheirsHeader}" />
+                  <TextBlock Grid.Column="3" Classes="column-header" Text="Choice" />
+                </Grid>
+                <ScrollViewer Margin="{StaticResource Lists.ListMargin}">
+                  <ItemsControl ItemsSource="{TemplateBinding Rows}" />
+                </ScrollViewer>
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- One conflict: name and detail, both versions side by side (glyphs for a gesture), the choice. -->
+      <ControlTheme x:Key="{x:Type sync:SyncConflictRow}" TargetType="sync:SyncConflictRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SyncConflict.ItemColumn}" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="{StaticResource SyncConflict.ChoiceColumn}" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}" Margin="0,0,8,0">
+                  <TextBlock Classes="row-name" Text="{TemplateBinding NameText}" TextWrapping="Wrap" />
+                  <TextBlock Classes="row-detail" Text="{TemplateBinding DetailText}" />
+                </StackPanel>
+                <Grid Grid.Column="1" ColumnDefinitions="Auto,*" VerticalAlignment="Center" Margin="0,0,8,0">
+                  <glyph:GestureGlyph Grid.Column="0"
+                                      Name="PART_MineGlyph"
+                                      Classes="row-glyph"
+                                      Margin="0,0,8,0"
+                                      Points="{TemplateBinding MinePoints}"
+                                      IsVisible="{TemplateBinding HasMineGlyph}" />
+                  <TextBlock Grid.Column="1" Classes="row-detail" Text="{TemplateBinding MineText}" VerticalAlignment="Center" />
+                </Grid>
+                <Grid Grid.Column="2" ColumnDefinitions="Auto,*" VerticalAlignment="Center" Margin="0,0,8,0">
+                  <glyph:GestureGlyph Grid.Column="0"
+                                      Name="PART_TheirsGlyph"
+                                      Classes="row-glyph"
+                                      Margin="0,0,8,0"
+                                      Points="{TemplateBinding TheirsPoints}"
+                                      IsVisible="{TemplateBinding HasTheirsGlyph}" />
+                  <TextBlock Grid.Column="1" Classes="row-detail" Text="{TemplateBinding TheirsText}" VerticalAlignment="Center" />
+                </Grid>
+                <ComboBox Grid.Column="3" Name="PART_Choice" Classes="field-editor" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!--
+        The window finder (F5 app identification): a magnifier drawn as a path on a small control-coloured square, and while
+        dragging the feedback line ("chrome.exe · Google Chrome") in a popup above it, so nothing on the form moves. Finding
+        changes only colours, never the frame's thickness.
+      -->
+      <ControlTheme x:Key="{x:Type wf:WindowFinder}" TargetType="wf:WindowFinder">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Panel>
+              <Border Name="PART_Glass"
+                      Width="{StaticResource Row.ControlSize}"
+                      Height="{StaticResource Row.ControlSize}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Radius.Control}">
+                <Path Name="PART_Magnifier"
+                      Data="M 10,6 A 4,4 0 1 1 2,6 A 4,4 0 1 1 10,6 Z M 9,9 L 14,14"
+                      StrokeThickness="1.5"
+                      StrokeLineCap="Round"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center" />
+              </Border>
+              <Popup Name="PART_Feedback"
+                     IsOpen="{TemplateBinding IsFinding}"
+                     Placement="Top"
+                     VerticalOffset="-4"
+                     IsLightDismissEnabled="False">
+                <Border Background="{DynamicResource Lists.Popup}"
+                        BorderBrush="{DynamicResource Accent.Line}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.Control}"
+                        Padding="8,4">
+                  <TextBlock Name="PART_HoverText" Text="{TemplateBinding HoverText}" Foreground="{DynamicResource Text.Primary}" FontSize="{StaticResource Font.M}" />
+                </Border>
+              </Popup>
+            </Panel>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^ /template/ Border#PART_Glass">
+          <Setter Property="Background" Value="{DynamicResource Layer.Control}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Layer.Edge}" />
+        </Style>
+        <Style Selector="^ /template/ Path#PART_Magnifier">
+          <Setter Property="Stroke" Value="{DynamicResource Text.Primary}" />
+        </Style>
+        <Style Selector="^:pointerover /template/ Border#PART_Glass">
+          <Setter Property="Background" Value="{DynamicResource Layer.ControlHover}" />
+        </Style>
+        <Style Selector="^:finding /template/ Border#PART_Glass">
+          <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
+        </Style>
+        <Style Selector="^:finding /template/ Path#PART_Magnifier">
+          <Setter Property="Stroke" Value="{DynamicResource Accent.Text}" />
+        </Style>
+      </ControlTheme>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!--
+    Class styles for the parts inside these templates. Each selector has a class or a pseudo-class, so it outranks a global
+    TextBlock rule wherever that rule sits; state styles come after the base ones they override.
+  -->
+
+  <!-- Rows (the Row rule): the frame is quiet (its container draws hover and selection); the metrics stay Wireframe's Row.*. -->
+  <Style Selector="Border.row">
+    <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+  <Style Selector="steps|StepRow:drop-target /template/ Border.row">
+    <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+  </Style>
+  <Style Selector="steps|StepRow:dragging /template/ Border.row">
+    <Setter Property="Opacity" Value="{StaticResource Opacity.Dragging}" />
+  </Style>
+  <Style Selector="tree|SectionRow:elsewhere, tree|CommandRow:elsewhere">
+    <Setter Property="Opacity" Value="0.55" />
+  </Style>
+
+  <!-- A section header's chevron: right while collapsed, down while open. -->
+  <Style Selector="Button.expander">
+    <Setter Property="Theme" Value="{StaticResource Lists.Expander}" />
+    <Setter Property="Width" Value="{StaticResource Row.ControlSize}" />
+    <Setter Property="Height" Value="{StaticResource Row.ControlSize}" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+  <Style Selector="Button.expander:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Layer.Hover}" />
+  </Style>
+  <Style Selector="Path.chevron">
+    <Setter Property="Width" Value="10" />
+    <Setter Property="Height" Value="10" />
+    <Setter Property="Stroke" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="StrokeThickness" Value="1.5" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <Setter Property="RenderTransform" Value="rotate(90deg)" />
+  </Style>
+  <Style Selector="tree|SectionRow:collapsed /template/ Path.chevron">
+    <Setter Property="RenderTransform" Value="rotate(0deg)" />
+  </Style>
+
+  <!-- Row text: names, section names and counts, summaries, tags, badges, markers (.cmd-name, .cmd-sum, .sec-name, .count, .tag). -->
+  <Style Selector="TextBlock.row-name">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <Style Selector="TextBlock.row-name.step-name">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.group-name">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <Style Selector="TextBlock.row-count">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+  </Style>
+  <Style Selector="TextBlock.row-summary">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="TextBlock.row-detail">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="tree|SectionRow:inactive /template/ TextBlock#PART_Name, tree|CommandRow:inactive /template/ TextBlock#PART_Name, md|MasterRow:inactive /template/ TextBlock#PART_Name, steps|StepRow:inactive /template/ TextBlock#PART_Name">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="tree|SectionRow:pinned /template/ TextBlock#PART_Name">
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+  <Style Selector="Border.category-tag">
+    <Setter Property="Background" Value="{DynamicResource Layer.Control}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Padding" Value="6,1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.category-tag">
+    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="TextBlock.platform-marker">
+    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+    <Setter Property="Margin" Value="8,0" />
+  </Style>
+  <!-- A trigger badge: the gesture tile's place for a wheel, button or no trigger, its words small and quiet (.gt.badge). -->
+  <Style Selector="Border.trigger-badge">
+    <Setter Property="Width" Value="{StaticResource Row.GlyphSize}" />
+    <Setter Property="Height" Value="{StaticResource Row.GlyphSize}" />
+    <Setter Property="Background" Value="{DynamicResource Layer.Tile}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Padding" Value="2" />
+  </Style>
+  <Style Selector="TextBlock.trigger-badge">
+    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- A name being renamed in place: the standard text box, rounded like its row. -->
+  <Style Selector="TextBox.tile-editor">
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+
+  <!-- Steps: the grip and the number, quiet; the open step's form below a faint line inside the card (.grip, .idx, .sform). -->
+  <Style Selector="TextBlock.drag-handle">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Margin" Value="2,0,8,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.row-index">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.step-form">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Layer.Divider}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Padding" Value="8,6,8,8" />
+  </Style>
+
+  <!-- The step type picker's entries. -->
+  <Style Selector="TextBlock.picker-category">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="Margin" Value="8,8,8,2" />
+  </Style>
+  <Style Selector="Button.picker-type">
+    <Setter Property="Theme" Value="{StaticResource Lists.PickerItem}" />
+    <Setter Property="MinWidth" Value="200" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+  <!-- The type's name is a string, so its presenter makes the TextBlock: coloured here, not by a global TextBlock rule. -->
+  <Style Selector="Button.picker-type TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <Style Selector="Button.picker-type:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Layer.Hover}" />
+  </Style>
+  <Style Selector="Button.picker-type:pressed">
+    <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+  </Style>
+
+  <!-- Gesture tiles: the name, muted when no command uses the gesture; the duplicate frame and the partner's score in danger red. -->
+  <Style Selector="TextBlock.tile-name">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <Style Selector="grid|GestureTile:inactive /template/ TextBlock#PART_Name">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="TextBlock.tile-partner">
+    <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
+  </Style>
+  <Style Selector="grid|GestureTile:duplicate /template/ Border#PART_Frame, grid|GestureTile:partner /template/ Border#PART_Frame">
+    <Setter Property="BorderBrush" Value="{DynamicResource Text.Danger}" />
+  </Style>
+
+  <!-- Lists of text cells (Diagnostics › Log and › Recognition): small type, the first column (the time) muted. -->
+  <Style Selector="TextBlock.column-header">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="TextBlock.cell">
+    <Setter Property="FontSize" Value="{StaticResource Lists.CellFontSize}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <Style Selector="Grid.list-row > TextBlock.cell:nth-child(1)">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <!-- The log (.log, .lrow): monospace lines, the time faint, the source muted, a warning's level in Text.Warn, an error's in Text.Danger.
+       The list is told apart by its declared title, "Log" (Screens/LogScreen); its columns are Time, Level, Source, Message. -->
+  <Style Selector="list|ItemList[Title=Log] TextBlock.cell">
+    <Setter Property="FontFamily" Value="{StaticResource Lists.Mono}" />
+    <Setter Property="FontSize" Value="{StaticResource Lists.MonoFontSize}" />
+  </Style>
+  <Style Selector="list|ItemList[Title=Log] Grid.list-row > TextBlock.cell:nth-child(1)">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+  </Style>
+  <Style Selector="list|ItemList[Title=Log] Grid.list-row > TextBlock.cell:nth-child(3)">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="list|ItemList[Title=Log] TextBlock.cell[Text=WARN]">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Warn}" />
+  </Style>
+  <Style Selector="list|ItemList[Title=Log] TextBlock.cell[Text=ERROR]">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
+  </Style>
+
+  <!-- Panel text: the message line under a workbench or the grid, an empty side, the command header's lines (.msg, .flabel). -->
+  <Style Selector="TextBlock.panel-message">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Margin" Value="4,8,4,0" />
+  </Style>
+  <Style Selector="grid|GestureGrid /template/ TextBlock.panel-message">
+    <Setter Property="Margin" Value="12,0,12,10" />
+  </Style>
+  <Style Selector="TextBlock.panel-empty">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Margin" Value="16" />
+  </Style>
+  <Style Selector="TextBlock.panel-empty-inline">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="TextBlock.bench-title">
+    <Setter Property="FontSize" Value="{StaticResource Font.L}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+  <Style Selector="TextBlock.bench-label">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector=":is(Control).bench-label-column">
+    <Setter Property="MinWidth" Value="{StaticResource Lists.HeaderLabelWidth}" />
+  </Style>
+  <Style Selector="TextBlock.bench-value">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <Style Selector="TextBlock.bench-action">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <Style Selector="TextBlock.bench-note">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.bench-error">
+    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <!-- A trigger draft's "Not saved yet" note: a soft danger tint, its edge in danger, its colour only (never its size) saying so. -->
+  <Style Selector="Border.warning-note">
+    <Setter Property="Background" Value="{DynamicResource Lists.DangerSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Text.Danger}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Padding" Value="10,8" />
+  </Style>
+  <Style Selector="TextBlock.dialog-message">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+</Styles>
