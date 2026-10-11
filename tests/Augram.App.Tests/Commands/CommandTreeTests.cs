@@ -1,4 +1,7 @@
+using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
+using Augram.App.Declarations;
+using Augram.App.Screens;
 using Augram.App.ViewModels.Commands;
 using Avalonia;
 using Avalonia.Controls;
@@ -322,9 +325,9 @@ public sealed class CommandTreeTests
     }
 
     [AvaloniaFact]
-    public void DoubleClickingARowRenamesIt_AHeaderEndsExpandedOrCollapsedAsItWas()
+    public void DoubleClickingACommandRowRenamesIt_OnItsNameOrAnywhereElseOnTheRow()
     {
-        var (tree, actions, _) = Show();
+        var (tree, _, _) = Show();
         var window = (Window)TopLevel.GetTopLevel(tree)!;
         var closeTab = tree.Rows.OfType<CommandRow>().Single(row => row.NameText == "Close tab");
 
@@ -333,15 +336,111 @@ public sealed class CommandTreeTests
 
         Assert.True(closeTab.IsEditing);
         closeTab.GetVisualDescendants().OfType<TextBox>().Single().RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
-        actions.Clear();
+        Assert.False(closeTab.IsEditing);
 
+        // The row's body, well right of its name and short of the active box: a command row does not toggle, so all of it renames.
+        var body = new Point(closeTab.Bounds.Width * 0.6, closeTab.Bounds.Height / 2);
+        Assert.False(BoundsIn(closeTab, NamePart(closeTab)).Contains(body));
+        DoubleClickAt(window, PointIn(window, closeTab, body));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.True(closeTab.IsEditing);
+    }
+
+    [AvaloniaFact]
+    public void DoubleClickingAHeadersNameRenamesIt_EndingExpandedOrCollapsedAsItWas()
+    {
+        var (tree, actions, _) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
         var chrome = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
-        DoubleClickAt(window, chrome.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "Chrome"));
+
+        DoubleClickAt(window, NamePart(chrome));
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
         // The first click toggles, the double click puts it back: two toggles, net nothing.
-        Assert.Equal(2, actions.Count(action => action is { Action: CommandTreeAction.ToggleExpanded, Section.Name: "Chrome" }));
+        Assert.Equal(2, Toggles(actions, "Chrome"));
         Assert.True(chrome.IsEditing);
+    }
+
+    [AvaloniaFact]
+    public void DoubleClickingAHeaderAwayFromItsNameTogglesItOnEachClick_NoRename()
+    {
+        var (tree, actions, _) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        var chrome = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
+        var count = CountPart(chrome);
+        var name = BoundsIn(chrome, NamePart(chrome));
+
+        // On the count, the empty space right of it, and the header's own line above the name: none of them is the name text.
+        var places = new[]
+        {
+            PointIn(window, count, new Point(3, count.Bounds.Height / 2)),
+            PointIn(window, chrome, new Point(chrome.Bounds.Width * 0.6, chrome.Bounds.Height / 2)),
+            PointIn(window, chrome, new Point(name.Center.X, name.Top / 2)),
+        };
+        Assert.True(name.Top >= 2, "The header line is taller than its name, so there is room above it.");
+        foreach (var place in places)
+        {
+            actions.Clear();
+
+            Click(window, place);
+            Assert.Equal(1, Toggles(actions, "Chrome"));
+
+            Click(window, place);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(2, Toggles(actions, "Chrome"));
+            Assert.False(chrome.IsEditing);
+        }
+    }
+
+    [AvaloniaFact]
+    public void DoubleClickingUncategorizedTogglesItOnEachClick_EvenOnItsName()
+    {
+        var (tree, actions, _) = Show(CommandsScope.Global);
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        var uncategorized = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Uncategorized");
+
+        DoubleClickAt(window, NamePart(uncategorized));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(2, Toggles(actions, "Uncategorized"));
+        Assert.False(uncategorized.IsEditing);
+        Assert.DoesNotContain(tree.Rows, row => row is ItemRow { IsEditing: true });
+    }
+
+    [AvaloniaFact]
+    public void ThroughTheViewModel_AQuickDoubleClickOpensAndClosesAHeader_OnItsNameItRenamesIt()
+    {
+        // As the app wires it: each toggle comes back from the view model as new sections, and every row is rebuilt under the
+        // pointer between the two clicks.
+        var (vm, _, _, _) = Create(CommandsScope.Apps);
+        var bench = Assert.IsType<CommandsWorkbench>(Assert.IsType<ComponentScreen>(CommandsScreen.Declare(vm)).Build());
+        var window = new Window { Content = bench, Width = 1400, Height = 900 };
+        window.Show();
+        Render();
+        SectionRow Chrome() => bench.TreePart!.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
+        Assert.False(Section(vm, "Chrome").IsExpanded);
+
+        var count = CountPart(Chrome());
+        var onCount = PointIn(window, count, new Point(3, count.Bounds.Height / 2));
+        Click(window, onCount);
+        Assert.True(Section(vm, "Chrome").IsExpanded);
+        Render();
+        Click(window, onCount);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.False(Section(vm, "Chrome").IsExpanded);
+        Assert.False(bench.TreePart!.IsEditing);
+
+        Render();
+        var onName = PointIn(window, NamePart(Chrome()), new Point(NamePart(Chrome()).Bounds.Width / 2, NamePart(Chrome()).Bounds.Height / 2));
+        Click(window, onName);
+        Render();
+        Click(window, onName);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.False(Section(vm, "Chrome").IsExpanded);
+        Assert.True(Chrome().IsEditing);
     }
 
     [AvaloniaFact]
@@ -372,11 +471,40 @@ public sealed class CommandTreeTests
         ClickAt(window, target);
     }
 
-    private static void ClickAt(Window window, Visual target)
+    private static void DoubleClickAt(Window window, Point point)
     {
-        var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;
+        Click(window, point);
+        Click(window, point);
+    }
+
+    private static void ClickAt(Window window, Visual target)
+        => Click(window, PointIn(window, target, new Point(target.Bounds.Width / 2, target.Bounds.Height / 2)));
+
+    private static void Click(Window window, Point point)
+    {
         window.MouseDown(point, MouseButton.Left);
         window.MouseUp(point, MouseButton.Left);
+    }
+
+    /// <summary>A point given in <paramref name="target"/>'s own coordinates, in the window's.</summary>
+    private static Point PointIn(Window window, Visual target, Point local) => target.TranslatePoint(local, window)!.Value;
+
+    /// <summary>Where <paramref name="part"/> lies inside <paramref name="row"/>.</summary>
+    private static Rect BoundsIn(Visual row, Visual part) => new(part.TranslatePoint(default, row)!.Value, part.Bounds.Size);
+
+    /// <summary>The row's name text, as the template lays it out (both themes name it <c>PART_Name</c>).</summary>
+    private static TextBlock NamePart(ItemRow row) => row.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "PART_Name");
+
+    private static TextBlock CountPart(SectionRow row) => row.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == row.CountText);
+
+    private static int Toggles(List<CommandTreeActionEventArgs> actions, string section)
+        => actions.Count(action => action.Action == CommandTreeAction.ToggleExpanded && action.Section?.Name == section);
+
+    /// <summary>Runs what is posted and renders a frame: headless hit testing uses the last rendered frame.</summary>
+    private static void Render()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     }
 
     private static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -401,6 +529,7 @@ public sealed class CommandTreeTests
         tree.ActionRequested += (_, e) => actions.Add(e);
         var window = new Window { Content = tree, Width = 800, Height = 600 };
         window.Show();
+        Render();
         return (tree, actions, vm);
     }
 }
