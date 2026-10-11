@@ -164,6 +164,8 @@
   </Styles.Resources>
 
   <StyleInclude Source="avares://Augram/Themes/Wireframe/Wireframe.axaml" />
+  <StyleInclude Source="avares://Augram/Themes/Default/Forms.axaml" />
+  <!-- After Forms: equal styles go to the later one, so the lists' row metrics and text colours keep winning. -->
   <StyleInclude Source="avares://Augram/Themes/Default/Lists.axaml" />
 
   <Style Selector="TabControl.shell > TabItem">
