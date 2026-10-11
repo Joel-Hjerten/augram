@@ -260,6 +260,7 @@ public sealed class StepListTests
         Assert.True(entry.IsEnabled);
         menu.Close();
         entry.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        Dispatcher.UIThread.RunJobs(); // the picker opens once the menu has closed
 
         var picker = list.ChangeTypePicker;
         Assert.NotSame(list.TypePicker, picker);

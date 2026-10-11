@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace Augram.App.Components.StepList;
@@ -290,6 +291,13 @@ public sealed partial class StepList : TemplatedControl
         }
     }
 
+    /// <summary>
+    /// Opens a picker once the menu that asked for it has closed: a flyout shown while the context menu is still open never
+    /// closed on a click elsewhere (Joel, 0.11.6), since the menu's closing took the light dismiss with it. From a key it only
+    /// waits a dispatcher turn.
+    /// </summary>
+    private static void AfterMenu(Action open) => Dispatcher.UIThread.Post(open, DispatcherPriority.Background);
+
     private void Request(StepListAction action)
     {
         var step = SelectedStep;
@@ -298,14 +306,14 @@ public sealed partial class StepList : TemplatedControl
             case StepListAction.Add:
                 if (CanAddStep)
                 {
-                    OpenTypePicker();
+                    AfterMenu(OpenTypePicker);
                 }
 
                 return;
             case StepListAction.ChangeType:
                 if (step is not null)
                 {
-                    OpenChangePicker(step);
+                    AfterMenu(() => OpenChangePicker(step));
                 }
 
                 return;
