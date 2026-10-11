@@ -19,7 +19,6 @@ namespace Augram.Import.StrokesPlus;
 /// </summary>
 internal sealed class StepReader
 {
-    public const int MaxDelayMilliseconds = 60_000;
     private const string NoMethod = "(no method)";
 
     private readonly List<ImportWarning> _warnings;
@@ -162,7 +161,7 @@ internal sealed class StepReader
             return Placeholder(StrokesPlusJson.Method.Delay, description, parameters);
         }
 
-        var clamped = Math.Clamp(milliseconds, 0, MaxDelayMilliseconds);
+        var clamped = Math.Clamp(milliseconds, DelayStepType.MinMilliseconds, DelayStepType.MaxMilliseconds);
         if (clamped != milliseconds)
         {
             _warnings.Add(new ImportWarning(ImportSeverity.Warning, commandName, $"Delay of {milliseconds} ms clamped to {clamped} ms."));
