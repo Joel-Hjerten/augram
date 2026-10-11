@@ -94,7 +94,7 @@ internal static class ConfigRecovery
     /// </summary>
     private static void LoadGroup(MappingStore store, AppGroup group, Action<string>? notice)
     {
-        var shell = group with { Commands = [], Categories = [], HoldRemaps = [] };
+        var shell = group.HeaderOnly();
         if (!Try(() => _ = group.IsGlobal ? store.UpdateGroup(shell) : store.AddGroup(shell), $"App group '{group.Name}' ({group.Id})", notice))
         {
             return;
