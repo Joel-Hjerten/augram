@@ -13,7 +13,6 @@ namespace Augram.Import.StrokesPlus;
 /// </summary>
 internal sealed class ApplicationReader
 {
-    public const string EmptyMatcherMessage = "No usable app definition; imported inactive (needs an app definition).";
     private const string FallbackName = "App";
 
     private readonly List<ImportWarning> _warnings;
@@ -68,14 +67,7 @@ internal sealed class ApplicationReader
     {
         var description = JsonRead.Text(application, StrokesPlusJson.Application.Description);
         var name = _names.Claim(description.Length == 0 ? FallbackName + " " + index : description);
-        var matcher = MatcherReader.Read(application, name, _warnings);
-        var isActive = JsonRead.Flag(application, StrokesPlusJson.Application.Active, whenAbsent: true);
-        if (matcher.IsEmpty)
-        {
-            _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, EmptyMatcherMessage));
-            isActive = false;
-        }
-
+        var (matcher, isActive) = MatcherReader.ReadWithActive(application, name, _warnings);
         var suppressGlobals = JsonRead.Flag(application, StrokesPlusJson.Application.NoGlobalActions);
         var (commands, categories) = _actions.ReadCommands(application, name);
         var group = new AppGroup(GroupId.New(), name, isActive, suppressGlobals, matcher, commands);

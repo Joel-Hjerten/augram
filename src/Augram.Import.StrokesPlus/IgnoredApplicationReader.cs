@@ -50,14 +50,7 @@ internal sealed class IgnoredApplicationReader
     {
         var description = JsonRead.Text(application, StrokesPlusJson.Application.Description);
         var name = _names.Claim(description.Length == 0 ? FallbackName + " " + index : description);
-        var matcher = MatcherReader.Read(application, name, _warnings);
-        var isActive = JsonRead.Flag(application, StrokesPlusJson.Application.Active, whenAbsent: true);
-        if (matcher.IsEmpty)
-        {
-            _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, ApplicationReader.EmptyMatcherMessage));
-            isActive = false;
-        }
-
+        var (matcher, isActive) = MatcherReader.ReadWithActive(application, name, _warnings);
         var disableEntirely = JsonRead.Flag(application, StrokesPlusJson.Application.DisableOnFocus);
         return new IgnoredApp(GroupId.New(), name, isActive, matcher, disableEntirely);
     }

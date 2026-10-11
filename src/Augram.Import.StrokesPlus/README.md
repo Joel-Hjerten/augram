@@ -26,7 +26,7 @@ Importer for StrokesPlus.net's live JSON (`%APPDATA%\StrokesPlus.net\StrokesPlus
 | `ActionReader` (internal) | one `Action` to one `Command`: name = `Description` (fallback "Action N", unique in the group with a numbered suffix), trigger, steps, script, `Active`; hands back each action's `Category` name beside its command |
 | `TriggerReader` (internal) | an action's trigger with its keys, buttons and capture mode, and the file's `SecondaryStrokeButton` (table below) |
 | `CategoryReader` (internal) | an application's `Categories[]` and its actions' `Category` names to the group's `CommandCategory` list and each command's `CategoryId`, per the table below |
-| `MatcherReader` (internal) | the shared matcher fields to an `AppMatcher`, per the table below |
+| `MatcherReader` (internal) | the shared matcher fields to an `AppMatcher`, per the table below; `ReadWithActive` adds the entry's `Active` flag, false with the "needs an app definition" warning when the matcher ends up empty (app groups and ignored apps alike) |
 | `ApplicationReader`, `IgnoredApplicationReader` (internal) | `GlobalApplication` to the Global group's commands; `Applications[]` to `AppGroup`s (`NoGlobalActions` → `SuppressGlobals`); `IgnoredApplications[]` to `IgnoredApp`s (`DisableOnFocus` → `DisableEntirely`). An entry whose matcher ends up empty is imported **inactive** with a warning ("needs an app definition") |
 | `MappingAssembler` (internal) | validates each group and ignored app on its own through `MappingRules`; a failing group is dropped with a warning (Global falls back to empty) and the rest still import |
 | `SourceStatsReader` (internal) | counts gestures, samples, actions, steps, applications and ignored applications in the source |
