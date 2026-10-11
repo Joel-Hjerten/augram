@@ -731,58 +731,6 @@
         </Style>
       </ControlTheme>
 
-      <!-- The window finder (F5 app identification): a small magnifier button; while dragging, the feedback line in a popup above it. -->
-      <ControlTheme x:Key="{x:Type wf:WindowFinder}" TargetType="wf:WindowFinder">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Template">
-          <ControlTemplate>
-            <Panel>
-              <Border Name="PART_Glass"
-                      Width="{StaticResource Editor.Height}"
-                      Height="{StaticResource Editor.Height}"
-                      Background="{DynamicResource Layer.Control}"
-                      BorderBrush="{DynamicResource Layer.Edge}"
-                      BorderThickness="{StaticResource Border.Hairline}"
-                      CornerRadius="{DynamicResource Radius.Control}">
-                <Path Name="PART_Magnifier"
-                      Data="M 10,6 A 4,4 0 1 1 2,6 A 4,4 0 1 1 10,6 Z M 9,9 L 14,14"
-                      Stroke="{DynamicResource Text.Muted}"
-                      StrokeThickness="1.5"
-                      StrokeLineCap="Round"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center" />
-              </Border>
-              <Popup Name="PART_Feedback"
-                     IsOpen="{TemplateBinding IsFinding}"
-                     Placement="Top"
-                     VerticalOffset="-4"
-                     IsLightDismissEnabled="False">
-                <Border Background="{DynamicResource Layer.Popup}"
-                        BorderBrush="{DynamicResource Accent.Line}"
-                        BorderThickness="{StaticResource Border.Hairline}"
-                        CornerRadius="{DynamicResource Radius.Control}"
-                        Padding="10,5">
-                  <TextBlock Name="PART_HoverText" Text="{TemplateBinding HoverText}" />
-                </Border>
-              </Popup>
-            </Panel>
-          </ControlTemplate>
-        </Setter>
-        <Style Selector="^:pointerover /template/ Border#PART_Glass">
-          <Setter Property="Background" Value="{DynamicResource Layer.ControlHover}" />
-        </Style>
-        <Style Selector="^:pointerover /template/ Path#PART_Magnifier">
-          <Setter Property="Stroke" Value="{DynamicResource Text.Primary}" />
-        </Style>
-        <Style Selector="^:finding /template/ Border#PART_Glass">
-          <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
-          <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
-        </Style>
-        <Style Selector="^:finding /template/ Path#PART_Magnifier">
-          <Setter Property="Stroke" Value="{DynamicResource Accent.Text}" />
-        </Style>
-      </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
 
