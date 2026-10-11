@@ -70,6 +70,11 @@ public sealed class AppearanceLink
     public void Attach(Window window)
     {
         ArgumentNullException.ThrowIfNull(window);
+        if (_windows.Contains(window))
+        {
+            return;
+        }
+
         _windows.Add(window);
         WindowBackdrop.Apply(window, Current);
         window.ActualThemeVariantChanged += (_, _) => WindowBackdrop.Paint(window, Current);

@@ -118,6 +118,15 @@ public sealed partial class App : Application
         var appearance = AppearanceLink.Follow(_services.GetRequiredService<Core.Config.SettingsStore>(), this);
         var window = _services.GetRequiredService<MainWindow>();
         appearance.Attach(window);
+        // Dialogs get the same backdrop (plan 0006 decision 14): every window with an owner, when it loads. Never the trail
+        // overlay (CLAUDE.md invariant 6): it has no owner, and it is excluded by type as well.
+        Control.LoadedEvent.AddClassHandler<Window>((dialog, _) =>
+        {
+            if (dialog.Owner is not null && dialog is not Overlay.TrailOverlayWindow)
+            {
+                appearance.Attach(dialog);
+            }
+        });
         HandOver(desktop, window, now: !lifetimeShowsWindow || (_launchEvent is null && launch is { Hidden: false }));
         if (OperatingSystem.IsMacOS())
         {
