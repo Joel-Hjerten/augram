@@ -21,6 +21,11 @@ Open [design/mockups/augram-glass-theme.html](../design/mockups/augram-glass-the
 
 **PC check passed (Joel, 2026-10-11), version 0.11.0.** The lead can start the dev build itself (Joel's allow rule; learnings 0008, "Running the dev build while working"). He installs it with `node scripts/package.mjs windows`. **Next: the same check on the Mac.** It covers the system glass, dragging by the title bar, double-click to maximize, Windows 11 snap layouts, and Options › Appearance live. Then a version bump and his install.
 
+**After 0.11.0, Joel's feedback rounds on the PC (2026-10-11), main at 0.11.6:**
+- 0.11.3–0.11.4: the step picker greys types a command cannot take (Core `StepOffer`); New command sits on the selected section's header.
+- 0.11.5: a step's grip only drags, and a header click opens or closes the step; **Change to…** in the step menu; a group renames only by a double click on its name.
+- 0.11.6: **Uncategorized is an ordinary Global category** (`CategoryRules.Normalised` makes it, with a fixed id so two machines get one; app groups say "No category"). A Mac on an older build can show its old null bucket beside the real category until it updates. Joel's config was copied to `augram.before-0.11.6.json` first.
+
 **Not run on a desktop yet.** Run the dev build with `--no-engine`, after telling Joel; it asks to take over the installed Augram. Plan 0005's Mac check is independent of this and can go first on the Mac.
 
 ### NOW: plan 0005 (button triggers, Also in, Exclusions) as 0.10.0 on the PC, Joel's check (written 2026-10-11, PC session)
