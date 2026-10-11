@@ -91,7 +91,7 @@ public sealed class ImportPlan
         var matched = ImportMatcher.Match(file, current.Gestures, current.Mapping, options.MatchShapes);
         var mapping = matched.Mapping ?? MappingDocument.Empty;
         var global = SyncItemKey.ForGroup(GroupId.Global);
-        bool globalIsShell = mapping.Groups.FirstOrDefault(group => group.IsGlobal) is not { } fileGlobal || TransferContents.IsShell(fileGlobal);
+        bool globalIsShell = mapping.Groups.FirstOrDefault(group => group.IsGlobal) is not { } fileGlobal || fileGlobal.IsShell;
         var items = new SyncItemSet(SyncItemSet.From(matched.Gestures, mapping).Where(item => !(globalIsShell && item.Key == global)));
         return new ImportPlan(file, current, items, matched.Matches, options.SourceName);
     }

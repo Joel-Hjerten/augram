@@ -77,7 +77,7 @@ public abstract class SyncItem
         public GroupItem(AppGroup group)
             : base(SyncItemKey.ForGroup(group.Id), group.Name, SyncItemJson.GroupHeader(group))
         {
-            Header = group with { Commands = [], Categories = [], HoldRemaps = [] };
+            Header = group.HeaderOnly();
         }
 
         public AppGroup Header { get; }

@@ -93,6 +93,15 @@ public sealed record AppGroup(
 
     public bool IsGlobal => Id == GroupId.Global;
 
+    /// <summary>
+    /// The group's header alone, without its commands, categories and hold remaps: what a sync group item holds
+    /// (<c>Sync/SyncItem.GroupItem</c>), and the Global shell an export writes when Global was not selected.
+    /// </summary>
+    public AppGroup HeaderOnly() => this with { Commands = [], Categories = [], HoldRemaps = [] };
+
+    /// <summary>Nothing in it but its header (<see cref="HeaderOnly"/>): the Global shell of a file that did not export Global, which an import leaves out.</summary>
+    public bool IsShell => Commands.Count == 0 && Categories.Count == 0 && HoldRemaps.Count == 0;
+
     public CommandCategory? FindCategory(CategoryId id) => Categories.FirstOrDefault(category => category.Id == id);
 
     public Command? FindCommand(CommandId id)

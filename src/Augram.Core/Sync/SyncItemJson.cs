@@ -29,7 +29,7 @@ internal static class SyncItemJson
         => Write(writer => JsonSerializer.Serialize(writer, gesture, ConfigJsonContext.Default.Gesture));
 
     public static string GroupHeader(AppGroup group)
-        => Write(writer => MappingJsonWriter.WriteGroup(writer, group with { Commands = [], Categories = [], HoldRemaps = [] }));
+        => Write(writer => MappingJsonWriter.WriteGroup(writer, group.HeaderOnly()));
 
     /// <summary><c>{ "group", "id", "name" }</c>, plus <c>useOn</c> when the category is not on every platform (sync format 3).</summary>
     public static string Category(GroupId groupId, CommandCategory category)

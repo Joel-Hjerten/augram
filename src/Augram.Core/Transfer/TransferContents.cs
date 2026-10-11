@@ -6,7 +6,7 @@ namespace Augram.Core.Transfer;
 /// <summary>
 /// What a <see cref="TransferFile"/> holds, counted for the export dialog and the import review (plan 0003, decisions 16, 18).
 /// <see cref="AppGroups"/> leaves Global out; <see cref="HasGlobal"/> is true when the file's Global has commands or
-/// categories (an empty one is the shell every file has). <see cref="PrivateTextSteps"/> counts the steps, own versions
+/// categories (an empty one is the shell every file has, <see cref="AppGroup.IsShell"/>). <see cref="PrivateTextSteps"/> counts the steps, own versions
 /// included, whose type may hold private text (<see cref="Steps.IStepType.MayHoldPrivateText"/>): they travel as written.
 /// </summary>
 public sealed record TransferContents(
@@ -31,20 +31,13 @@ public sealed record TransferContents(
         return new TransferContents(
             file.Gestures.Count,
             mapping.Groups.Count(group => !group.IsGlobal),
-            mapping.Groups.Any(group => group.IsGlobal && !IsShell(group)),
+            mapping.Groups.Any(group => group.IsGlobal && !group.IsShell),
             mapping.Groups.Sum(group => group.Categories.Count),
             mapping.Groups.Sum(group => group.HoldRemaps.Count),
             commands.Length,
             mapping.Ignored.Count,
             file.Settings is not null,
             privateText);
-    }
-
-    /// <summary>True for a group with nothing in it but its header: the Global shell of a file that did not export Global.</summary>
-    public static bool IsShell(AppGroup group)
-    {
-        ArgumentNullException.ThrowIfNull(group);
-        return group.Commands.Count == 0 && group.Categories.Count == 0 && group.HoldRemaps.Count == 0;
     }
 
     /// <summary>"options, 90 gestures, Global, 19 app groups, 212 commands, 3 excluded apps": the parts that are there, for a dialog line and the log.</summary>
