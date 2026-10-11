@@ -417,7 +417,7 @@ table.rt{width:100%; border-collapse:collapse; font-size:12.5px}
 
   /* ---------- look state (remembered per viewer) ---------- */
   var look = { mode:"dark", material:"acrylic", tint:62, radius:12, wall:"dusk", os:"win", titles:"above", trail:"#F5C542", accentLinked:true, accent:"#5B9BFF" };
-  var COLOURS = [["Yellow","#F5C542"],["Green","#00FF40"],["Cyan","#36D6E7"],["Blue","#5B9BFF"],["Red","#FF5A4F"],["Orange","#FF8A3D"],["Purple","#A78BFA"]];
+  var COLOURS = [["Red","#FF5A4F"],["Orange","#FF8A3D"],["Yellow","#F5C542"],["Green","#00FF40"],["Cyan","#36D6E7"],["Blue","#5B9BFF"],["Purple","#A78BFA"]];
   try { var saved = JSON.parse(localStorage.getItem("augram-look-4") || "null"); if (saved) Object.assign(look, saved); } catch (e) {}
   function save(){ try { localStorage.setItem("augram-look-4", JSON.stringify(look)); } catch (e) {} }
 

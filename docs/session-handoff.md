@@ -11,7 +11,7 @@ Joel decided the app's look on an interactive mockup: **[plan 0006](plans/0006-g
 - folder tabs in the title bar, with sub-tab pills inside the page
 - dark by default, plus Light and Follow system
 - corner rounding as a setting, 12 px by default
-- the accent follows the trail colour, with a switch to set it separately; colours come from swatches or Custom…
+- the accent follows the trail colour, with a switch to set it separately; colours come from swatches in rainbow order or Custom…
 - a fresh install's trail is yellow `#F5C542`
 - Options gets sub-tabs: General · Strokes · Appearance · Sync · About
 
