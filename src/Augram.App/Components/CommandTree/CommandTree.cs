@@ -49,7 +49,7 @@ public sealed class CommandTree : TemplatedControl
 
     /// <summary>The platform filter toggle's tooltip (Joel, 0.11.9).</summary>
     public const string PlatformFilterHelp =
-        "Also lists what is off on this computer: groups, categories and commands whose Use on leaves it out, greyed, so you can find and change them.";
+        "Shows or hides groups, categories and commands from the other platform (PC or Mac).";
 
     public static readonly StyledProperty<string> NewSectionLabelProperty =
         AvaloniaProperty.Register<CommandTree, string>(nameof(NewSectionLabel), "New group");
