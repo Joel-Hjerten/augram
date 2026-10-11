@@ -1,9 +1,8 @@
-using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 using Augram.Core.Sync;
 using Xunit;
 
-namespace Augram.App.Tests.Sync;
+namespace Augram.Core.Tests.Sync;
 
 /// <summary><see cref="SyncFolders.Prepare"/>: which repository the clone and the state belong to, kept across restarts in <c>sync/repository-url.txt</c>.</summary>
 public sealed class SyncFoldersTests : IDisposable

@@ -17,8 +17,9 @@ namespace Augram.App.Hosting;
 /// repository set nothing runs, and automatic triggers wait while <see cref="SyncSettings.AutoSync"/> is off, a
 /// <see cref="SyncStatus.NeedsJoinChoice"/> report is waiting for the user, or the last run answered
 /// <see cref="SyncStatus.NeedsUpdate"/> (a newer Augram wrote to the repo; only a restart on a newer build, a new URL or
-/// Sync now runs again, and Sync now only checks) (<see cref="IsPaused"/>). Before every run
-/// the worker lets <see cref="SyncFolders"/> reset the state and move the clone aside when the URL changed.
+/// Sync now runs again, and Sync now only checks) (<see cref="IsPaused"/>). Each run is one
+/// <see cref="SyncCoordinator.Run"/> with the job's join answer and resolutions; before it runs, the coordinator lets
+/// <see cref="SyncFolders"/> reset the state and move the clone aside when the URL changed.
 /// <see cref="Changed"/> is raised on the worker when a run starts and when it ends; consumers marshal. The store
 /// handlers run on the stores' (UI) thread; the timers' callbacks on pool threads; everything shared is under one
 /// lock. <see cref="Dispose"/> stops the store thread first (nothing is applied after it), wakes the worker and waits
@@ -37,7 +38,6 @@ public sealed class SyncService : IDisposable
     private readonly GestureLibrary _gestures;
     private readonly MappingStore _mapping;
     private readonly SyncBaseStore _bases;
-    private readonly SyncFolders _folders;
     private readonly SyncStoreThread _storeThread;
     private readonly IClock _clock;
     private readonly IEventLog _log;
@@ -55,7 +55,6 @@ public sealed class SyncService : IDisposable
     private SyncJoin? _join;
     private bool _running;
     private bool _paused;
-    private bool _stateCleared;
     private IDisposable? _changeTimer;
     private IDisposable? _pollTimer;
     private SyncReport? _last;
@@ -70,7 +69,6 @@ public sealed class SyncService : IDisposable
         GestureLibrary gestures,
         MappingStore mapping,
         SyncBaseStore bases,
-        SyncFolders folders,
         SyncStoreThread storeThread,
         IClock clock,
         IEventLog log,
@@ -81,7 +79,6 @@ public sealed class SyncService : IDisposable
         _gestures = gestures ?? throw new ArgumentNullException(nameof(gestures));
         _mapping = mapping ?? throw new ArgumentNullException(nameof(mapping));
         _bases = bases ?? throw new ArgumentNullException(nameof(bases));
-        _folders = folders ?? throw new ArgumentNullException(nameof(folders));
         _storeThread = storeThread ?? throw new ArgumentNullException(nameof(storeThread));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -119,19 +116,8 @@ public sealed class SyncService : IDisposable
     /// <summary>How many runs have finished (tests and diagnostics).</summary>
     public int RunCount => Locked(() => _runs);
 
-    /// <summary>Every conflict waiting for the user; none while sync is off or right after the repository changed. Safe from any thread.</summary>
-    public IReadOnlyList<SyncConflict> PendingConflicts()
-    {
-        lock (_gate)
-        {
-            if (_stateCleared || !IsConfigured)
-            {
-                return [];
-            }
-        }
-
-        return _coordinator.PendingConflicts();
-    }
+    /// <summary>Every conflict waiting for the user; none while sync is off or once the repository changed (the coordinator forgets them with the state). Safe from any thread.</summary>
+    public IReadOnlyList<SyncConflict> PendingConflicts() => IsConfigured ? _coordinator.PendingConflicts() : [];
 
     /// <summary>Starts the worker and, when a repository is set and automatic sync is on, the start-up run. Called once, from <c>SyncModule.Start</c>.</summary>
     public void Start()
@@ -270,7 +256,6 @@ public sealed class SyncService : IDisposable
                 _lastTrigger = job.Trigger;
                 _otherMachines = others;
                 _paused = report.Status is SyncStatus.NeedsJoinChoice or SyncStatus.NeedsUpdate;
-                _stateCleared &= report.Status == SyncStatus.Off;
                 _runs++;
                 if (_disposed)
                 {
@@ -288,41 +273,7 @@ public sealed class SyncService : IDisposable
     {
         try
         {
-            var url = _settings.Current.Sync.RepositoryUrl;
-            var reset = _folders.Prepare(url, _bases);
-            if (reset.Reset)
-            {
-                lock (_gate)
-                {
-                    _stateCleared = true;
-                }
-
-                _log.Info(LogSources.Sync, "Sync state cleared: the repository changed", ("host", SyncSettingsRules.Host(url)), ("old clone kept", reset.MovedTo is not null));
-            }
-
-            if (url is null)
-            {
-                return _coordinator.Run();
-            }
-
-            var notes = new List<string>();
-            foreach (var resolution in job.Resolutions)
-            {
-                var resolved = _coordinator.Resolve(resolution.Conflict, resolution.Choice);
-                notes.AddRange(resolved.Notes);
-                if (resolved.Status == SyncStatus.Failed)
-                {
-                    return resolved with { Notes = notes };
-                }
-            }
-
-            var report = _coordinator.Run(job.Join);
-            return notes.Count == 0 ? report : report with { Notes = [.. notes, .. report.Notes] };
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            _log.Warning(LogSources.Sync, "Sync folder could not be prepared", ("error", exception.Message));
-            return Failed($"The old sync folder could not be moved aside: {exception.Message}");
+            return _coordinator.Run(job.Join, job.Resolutions);
         }
         catch (Exception exception)
         {

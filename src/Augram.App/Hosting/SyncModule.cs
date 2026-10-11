@@ -51,14 +51,14 @@ public static class SyncModule
             sp.GetRequiredService<SyncBaseStore>(),
             Clock(sp),
             sp.GetRequiredService<IEventLog>(),
-            sp.GetRequiredService<SyncStoreThread>().Run));
+            sp.GetRequiredService<SyncStoreThread>().Run,
+            folders: sp.GetRequiredService<SyncFolders>()));
         services.AddSingleton(sp => new SyncService(
             sp.GetRequiredService<SyncCoordinator>(),
             sp.GetRequiredService<SettingsStore>(),
             sp.GetRequiredService<GestureLibrary>(),
             sp.GetRequiredService<MappingStore>(),
             sp.GetRequiredService<SyncBaseStore>(),
-            sp.GetRequiredService<SyncFolders>(),
             sp.GetRequiredService<SyncStoreThread>(),
             Clock(sp),
             sp.GetRequiredService<IEventLog>(),

@@ -1,4 +1,3 @@
-using Augram.App.Hosting;
 using Augram.App.ViewModels;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;

@@ -2,7 +2,9 @@
 
 Machine-to-machine sync (requirements F8, "Sync between machines", Joel 2026-10-07): gestures and the mapping (groups, categories, commands, ignored apps) travel between Joel's machines through a private git repo; settings never do. Each machine writes only its own file, `machines/<machineId>.json` (format: "Sync file" below), so git never merges content. Augram merges, item by item, here. The git side is the `ISyncRepository` port (`../Abstractions/`), implemented by `Augram.Sync.Git`.
 
-Everything in this folder is pure except `SyncBaseStore` (local files) and `SyncCoordinator` (calls the port and the stores).
+Everything in this folder is pure except `SyncBaseStore` and `SyncFolders` (local files) and `SyncCoordinator` (calls the port and the stores).
+
+**Where the one merge decision is:** `ThreeWayMerge.Decide`, the merge table below. The Augram import (`../Transfer/`) is that table with no base: `ImportPlan`'s New / Same / Different are its rows with the base column empty (added there, the same, both added differently), and the import's choices are applied by the sync's own `ConflictResolution`.
 
 ## Types
 
@@ -17,12 +19,13 @@ Everything in this folder is pure except `SyncBaseStore` (local files) and `Sync
 | `SyncConflict`, `SyncRepair` + `SyncRepairKind`, `SyncCounts` + `SyncKindCounts` | what a merge reports; `SyncCounts.Phrase(pick)` is "1 gesture, 2 app groups and 8 commands" for Options › Sync and the import summary |
 | `SyncItemNouns` | the one noun table for the kinds: `Count(kind, n)` ("2 app groups", "1 command's own steps"), `Heading` ("App group", "Own steps": a conflict's and a match line's kind), `LogPlural` ("groups", for `SyncCounts.ToString`), `ReadingOrder`; also used by `Transfer/TransferContents` and the import review |
 | `SyncMachineState`, `SyncPublished`, `SyncBaseStore` (+ internal `SyncStateJson`) | the local state under `<configFolder>/sync/state/` |
+| `SyncFolders`, `SyncFolderReset` | which repository the clone and the state belong to: `sync/repository-url.txt`; `Prepare(url, bases)` resets both when the URL changes or is cleared (below, Limits) |
 | `SyncPlanner` (internal) | one run's merges, pure |
 | `SyncChoiceRules` | which choices a conflict offers (`Allowed`: Keep both only for a gesture or command on both sides; the conflict dialog and the import review show it) and the choice actually applied (`Effective`, the nearest one with a note) |
 | `ConflictResolution` (internal) | what answering conflicts does to the document, pure: a list of answers (theirs, or null for a deletion, with an effective choice), then `SyncDocumentBuilder.Build`. The sync passes one conflict; the Augram import passes every item of the file it adds or changes, with its two extras (arriving commands bound to the copy of a gesture kept both; own steps following their command) |
 | `SyncCoordinator` (+ internal `SyncStoreWriter`, `SyncPublisher`, `SyncRepositoryFiles`) | a run and a resolution, end to end; `SyncStoreWriter.StillHolds` and `Replace` are the store-thread apply the Augram import uses too |
 | `Files/`: `SyncFile`, `SyncAcknowledgement`, `SyncFileHeader`, `SyncFileSerializer` | one machine's file in the sync repo ("Sync file" below); `TryRead` never throws: a broken file is an error line |
-| `SyncReport`, `SyncStatus`, `SyncJoin`, `SyncChoice`, `SyncApplied`, `SyncMachineSummary`, `SyncNewerMachine` | the App's side of it |
+| `SyncReport`, `SyncStatus`, `SyncJoin`, `SyncChoice`, `SyncResolution`, `SyncApplied`, `SyncMachineSummary`, `SyncNewerMachine` | the App's side of it |
 
 ## Items
 
@@ -98,6 +101,7 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 
 ## The run (`SyncCoordinator.Run`)
 
+0. With the `SyncFolders` (the App passes them): the folders are made to belong to the URL in the settings (Limits, below). Then the job's resolutions (`Run(join, resolutions)`, the conflict dialog's answers) are applied in order, as `Resolve` does, stopping at the first that fails; their notes lead the report.
 1. Sync off (no repository) → `Off`. The machine id is generated on first use (`SettingsStore.EnsureMachineId`, on the store thread).
 2. `Prepare(url)`, `Pull()`, `ReadMachineFiles()`; a failure → `Failed`, stores and state untouched.
 3. Read the files (`SyncRepositoryFiles`): this machine's own (only its revision matters) and the others, in machine-id order. A file that does not parse, breaks a rule, sits under another id, or has steps this build cannot read is skipped with a note (merging the last kind would delete those steps everywhere; the note says to update Augram here).
@@ -153,7 +157,7 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 
 ## Threading
 
-`Run` and `Resolve` are for the **sync worker** (they take a lock; calling them on the store thread would deadlock on `onStoreThread`). `PendingConflicts()` is safe from any thread: a snapshot as of construction or the last run or resolution. The git calls, the merge and the state files run there. Every store mutation goes through the `onStoreThread` delegate the host passes (`Func<Func<SyncApplied>, SyncApplied>`: run the function on the stores' thread and return its result; tests pass `f => f()`). The worker merges against `GestureLibrary.All` and `MappingStore.Current` read as snapshots; the store-thread function applies only if both are still the same instances, else returns `SyncApplied.Moved` and the worker merges again (at most `MaxAttempts`), so an edit made meanwhile is never lost. The stores raise `Changed` there, so `ConfigSession` saves and the engine swaps as for any edit. After `Resolve`, the next `Run` publishes; the App's change-triggered sync does that.
+`Run` and `Resolve` are for the **sync worker** (they take a lock; calling them on the store thread would deadlock on `onStoreThread`). `PendingConflicts()` is safe from any thread: a snapshot as of construction, the last run or resolution, or a folder reset (which empties it). The git calls, the merge and the state files run there. Every store mutation goes through the `onStoreThread` delegate the host passes (`Func<Func<SyncApplied>, SyncApplied>`: run the function on the stores' thread and return its result; tests pass `f => f()`). The worker merges against `GestureLibrary.All` and `MappingStore.Current` read as snapshots; the store-thread function applies only if both are still the same instances, else returns `SyncApplied.Moved` and the worker merges again (at most `MaxAttempts`), so an edit made meanwhile is never lost. The stores raise `Changed` there, so `ConfigSession` saves and the engine swaps as for any edit. After `Resolve`, the next `Run` publishes; the App's change-triggered sync does that.
 
 ## State files (`<configFolder>/sync/state/`)
 
@@ -167,6 +171,6 @@ An unreadable state file is reported and treated as absent (no base: conflicts r
 ## Limits
 
 - Contents are compared as text: a release that changes how an item is written makes items here look changed once (they are kept and published, not lost); a format change needs a schema version and a migration (`../Config/ConfigMigrations`), and any change to what an item holds raises the sync format version.
-- The state belongs to one repository and Core does not know which. `SyncBaseStore.Clear()` forgets it (every machine's state, the published revisions, the pending-publish flag, the published format); the App calls it when the repository URL changes or is cleared, so the next run asks the join question again (`src/Augram.App/README.md`, Sync).
+- The state belongs to one repository, the one `SyncFolders` remembers in `sync/repository-url.txt` (a URL string and a folder; Core still knows nothing of git). Before every run the coordinator calls `SyncFolders.Prepare(url)`: no marker yet → remember the URL (an existing clone is taken as this URL's); a different URL or none → move `sync/repo` aside to `sync/repo-old-<yyyyMMdd-HHmmss>` (never deleted; the git adapter refuses a clone of another URL), `SyncBaseStore.Clear()` (every machine's state, the published revisions, the pending-publish flag, the published format), remember the new URL (or delete the marker), forget the pending conflicts with the state, and log "Sync state cleared: the repository changed" (host only). The next run asks the join question again; a URL changed just before quitting is reset at the next start. A clone that cannot be moved (a file open in it) fails the run ("The old sync folder could not be moved aside: …", logged as "Sync folder could not be prepared") and nothing changes.
 
-**May reference:** `Abstractions` (`ISyncRepository`, `IClock`, `IEventLog`), `Config` (settings; the config file's writers, readers and migrations, which the sync file and item JSON go through), `Diagnostics`, `Gestures`, `Mapping`, `Steps`. **Referenced by:** the composition root, the Options › Sync view model, and `Transfer` (an import is this merge without a base: it reuses the items, `SyncConflict`, `SyncChoice`, `SyncChoiceRules`, `ConflictResolution` with its two extras, `SyncDocumentBuilder` with its repairs, `SyncStoreWriter`'s store-thread apply, and `SyncCounts`; a change to any of them changes imports too, `../Transfer/README.md`).
+**May reference:** `Abstractions` (`ISyncRepository`, `IClock`, `IEventLog`), `Config` (settings; the config file's writers, readers and migrations, which the sync file and item JSON go through), `Diagnostics`, `Gestures`, `Mapping`, `Steps`. **Referenced by:** the App's sync (`Hosting/SyncModule`, `SyncService`, `SyncStoreThread`, `SyncHealthContributor`; `Sync/SyncPrompter`, the conflict presenter; `Tray/SyncTrayItem`; the view models `SyncViewModel`, `SyncConflictsViewModel`, `SyncJoinViewModel`), and `Transfer` (an import is this merge without a base: it reuses the items, `SyncConflict`, `SyncChoice`, `SyncChoiceRules`, `ConflictResolution` with its two extras, `SyncDocumentBuilder` with its repairs, `SyncStoreWriter`'s store-thread apply, and `SyncCounts`; a change to any of them changes imports too, `../Transfer/README.md`).

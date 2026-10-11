@@ -1,4 +1,3 @@
-using Augram.App.Hosting;
 using Augram.App.Sync;
 using Augram.Core.Sync;
 
