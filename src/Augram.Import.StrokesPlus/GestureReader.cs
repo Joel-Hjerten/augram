@@ -22,7 +22,7 @@ internal sealed class GestureReader
 
     public IReadOnlyList<Gesture> Read(JsonElement root)
     {
-        if (!root.TryGetProperty(StrokesPlusJson.Gestures, out var gestures) || gestures.ValueKind != JsonValueKind.Array)
+        if (!JsonRead.TryArray(root, StrokesPlusJson.Gestures, out var gestures))
         {
             _warnings.Add(new ImportWarning(ImportSeverity.Warning, StrokesPlusJson.Gestures, "No Gestures array found; nothing to import."));
             return [];
@@ -64,22 +64,20 @@ internal sealed class GestureReader
             _warnings.Add(new ImportWarning(ImportSeverity.Info, sourceName, "Looks like a stock StrokesPlus.net gesture (2-point template)."));
         }
 
-        var isActive = !element.TryGetProperty(StrokesPlusJson.Gesture.Active, out var active) || active.ValueKind != JsonValueKind.False;
+        var isActive = JsonRead.Flag(element, StrokesPlusJson.Gesture.Active, whenAbsent: true);
         return new Gesture(GestureId.New(), _names.Claim(sourceName), isActive, samples);
     }
 
     private static string ReadName(JsonElement element, int index)
     {
-        var name = element.TryGetProperty(StrokesPlusJson.Gesture.Name, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()!.Trim()
-            : string.Empty;
+        var name = JsonRead.Text(element, StrokesPlusJson.Gesture.Name);
         return name.Length == 0 ? FallbackName + " " + index : name;
     }
 
     private List<GestureSample> ReadSamples(JsonElement gesture, string sourceName)
     {
         var samples = new List<GestureSample>();
-        if (!gesture.TryGetProperty(StrokesPlusJson.Gesture.PointPatterns, out var patterns) || patterns.ValueKind != JsonValueKind.Array)
+        if (!JsonRead.TryArray(gesture, StrokesPlusJson.Gesture.PointPatterns, out var patterns))
         {
             return samples;
         }
@@ -115,7 +113,7 @@ internal sealed class GestureReader
     private static List<GesturePoint> ReadPoints(JsonElement pattern)
     {
         var points = new List<GesturePoint>();
-        if (!pattern.TryGetProperty(StrokesPlusJson.PointPattern.Points, out var array) || array.ValueKind != JsonValueKind.Array)
+        if (!JsonRead.TryArray(pattern, StrokesPlusJson.PointPattern.Points, out var array))
         {
             return points;
         }
