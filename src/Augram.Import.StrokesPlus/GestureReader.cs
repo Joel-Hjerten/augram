@@ -12,11 +12,12 @@ internal sealed class GestureReader
 {
     private const string FallbackName = "Unnamed gesture";
     private readonly List<ImportWarning> _warnings;
-    private readonly HashSet<string> _seenNames = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ImportedNames _names;
 
     public GestureReader(List<ImportWarning> warnings)
     {
         _warnings = warnings;
+        _names = new ImportedNames("gesture", warnings);
     }
 
     public IReadOnlyList<Gesture> Read(JsonElement root)
@@ -64,7 +65,7 @@ internal sealed class GestureReader
         }
 
         var isActive = !element.TryGetProperty(StrokesPlusJson.Gesture.Active, out var active) || active.ValueKind != JsonValueKind.False;
-        return new Gesture(GestureId.New(), UniqueName(sourceName), isActive, samples);
+        return new Gesture(GestureId.New(), _names.Claim(sourceName), isActive, samples);
     }
 
     private static string ReadName(JsonElement element, int index)
@@ -73,25 +74,6 @@ internal sealed class GestureReader
             ? value.GetString()!.Trim()
             : string.Empty;
         return name.Length == 0 ? FallbackName + " " + index : name;
-    }
-
-    private string UniqueName(string name)
-    {
-        if (_seenNames.Add(name))
-        {
-            return name;
-        }
-
-        var n = 2;
-        var candidate = name + " (" + n + ")";
-        while (!_seenNames.Add(candidate))
-        {
-            n++;
-            candidate = name + " (" + n + ")";
-        }
-
-        _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, "Duplicate gesture name; imported as '" + candidate + "'."));
-        return candidate;
     }
 
     private List<GestureSample> ReadSamples(JsonElement gesture, string sourceName)

@@ -6,8 +6,9 @@ namespace Augram.Core.Sync;
 /// The names already taken in one scope (the gestures, the groups, one group's categories or hold remaps, one command's
 /// siblings: <see cref="CommandNames.SiblingNames"/>), compared like the rules compare them (<see cref="MappingRules.NameComparer"/>).
 /// The first claim of a name keeps it; a later one gets the first free " (2)", " (3)"… suffix (F8 sync: name clashes are renamed).
+/// Public because the StrokesPlus.net importer renames a repeated source name by the same rule (its <c>ImportedNames</c>).
 /// </summary>
-internal sealed class SyncNames
+public sealed class SyncNames
 {
     private readonly HashSet<string> _taken;
 

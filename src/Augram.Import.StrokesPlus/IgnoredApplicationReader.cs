@@ -14,11 +14,12 @@ internal sealed class IgnoredApplicationReader
     private const string FallbackName = "Ignored app";
 
     private readonly List<ImportWarning> _warnings;
-    private readonly HashSet<string> _names = new(MappingRules.NameComparer);
+    private readonly ImportedNames _names;
 
     public IgnoredApplicationReader(List<ImportWarning> warnings)
     {
         _warnings = warnings;
+        _names = new ImportedNames("ignored app", warnings);
     }
 
     public IReadOnlyList<IgnoredApp> Read(JsonElement root)
@@ -48,7 +49,7 @@ internal sealed class IgnoredApplicationReader
     private IgnoredApp ReadApp(JsonElement application, int index)
     {
         var description = JsonRead.Text(application, StrokesPlusJson.Application.Description);
-        var name = UniqueName(description.Length == 0 ? FallbackName + " " + index : description);
+        var name = _names.Claim(description.Length == 0 ? FallbackName + " " + index : description);
         var matcher = MatcherReader.Read(application, name, _warnings);
         var isActive = JsonRead.Flag(application, StrokesPlusJson.Application.Active, whenAbsent: true);
         if (matcher.IsEmpty)
@@ -59,24 +60,5 @@ internal sealed class IgnoredApplicationReader
 
         var disableEntirely = JsonRead.Flag(application, StrokesPlusJson.Application.DisableOnFocus);
         return new IgnoredApp(GroupId.New(), name, isActive, matcher, disableEntirely);
-    }
-
-    private string UniqueName(string name)
-    {
-        if (_names.Add(name))
-        {
-            return name;
-        }
-
-        var n = 2;
-        var candidate = name + " (" + n + ")";
-        while (!_names.Add(candidate))
-        {
-            n++;
-            candidate = name + " (" + n + ")";
-        }
-
-        _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, "Duplicate ignored app name; imported as '" + candidate + "'."));
-        return candidate;
     }
 }
