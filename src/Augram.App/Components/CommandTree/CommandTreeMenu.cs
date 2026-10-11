@@ -24,8 +24,9 @@ internal static class CommandTreeMenu
     /// <summary>
     /// Labels the new-section entry as the host does and shows or disables the entries that depend on the
     /// selection, as the section allows: rename, delete and copy per <see cref="SectionItem"/>, New hold remap only where
-    /// the section offers it (an app group, plan 0002), and Export… only on a section header that exports (an app group or a
-    /// Global category, plan 0003); a command can always be renamed, deleted and copied.
+    /// the section offers it (an app group, plan 0002), Export… only on a section header that exports (an app group or a
+    /// Global category, plan 0003), and New command only with a section to put it in (Joel, 2026-10-11: nothing selected makes
+    /// nothing); a command can always be renamed, deleted and copied.
     /// </summary>
     public static void Refresh(ContextMenu menu, SectionItem? section, CommandItem? command, string newSectionLabel)
     {
@@ -39,6 +40,9 @@ internal static class CommandTreeMenu
                     break;
                 case CommandTreeAction.NewHoldRemap or CommandTreeAction.Export:
                     item.IsVisible = Allows((CommandTreeAction)item.Tag, section, command);
+                    break;
+                case CommandTreeAction.NewCommand:
+                    item.IsEnabled = section is not null;
                     break;
                 case CommandTreeAction.Rename:
                     item.IsEnabled = command is not null || section is { CanRename: true };

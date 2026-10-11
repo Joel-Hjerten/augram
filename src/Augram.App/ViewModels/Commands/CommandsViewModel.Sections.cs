@@ -66,6 +66,11 @@ public sealed partial class CommandsViewModel
 
     private Task DeleteSectionAsync(SectionItem section)
     {
+        if (Scope == CommandsScope.Global && section.Id == SectionId.Uncategorized)
+        {
+            return DeleteUncategorizedAsync();
+        }
+
         if (section.Id.HoldRemapId is { } holdRemap)
         {
             return DeleteHoldRemapAsync(section.Id.GroupId, holdRemap);

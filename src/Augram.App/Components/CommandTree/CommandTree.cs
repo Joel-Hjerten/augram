@@ -12,8 +12,10 @@ namespace Augram.App.Components.CommandTree;
 /// by the host: app groups on the Apps tab, categories on the Global tab), one
 /// <see cref="CommandTreeActionEventArgs"/> out per user intent. Rendered as one flat list
 /// (<c>PART_Rows</c>, built by <see cref="CommandTreeRows"/>) of <see cref="SectionRow"/>s with a
-/// <see cref="CommandRow"/> under each expanded section; the toolbar buttons <c>PART_NewSection</c>
-/// (labelled <see cref="NewSectionLabel"/>) and <c>PART_NewCommand</c>, the right-click menu and the keymap
+/// <see cref="CommandRow"/> under each expanded section; the toolbar button <c>PART_NewSection</c>
+/// (labelled <see cref="NewSectionLabel"/>), the New command button on the header of the section
+/// <see cref="SelectedSectionId"/> names (<see cref="SectionRow.ShowsNewCommand"/>; no longer on the toolbar since Joel,
+/// 2026-10-11: a section is chosen first, then a command made in it), the right-click menu and the keymap
 /// (undo and redo are keys only since 2026-10-07: deletes ask first) all end in that event. It never asks which tab it is on: each
 /// <see cref="SectionItem"/> says what its header can do and the host supplies the words. Selection
 /// follows <see cref="SelectedCommandId"/> / <see cref="SelectedSectionId"/> from the host and survives a
@@ -73,7 +75,7 @@ public sealed class CommandTree : TemplatedControl
         set => SetValue(SelectedCommandIdProperty, value);
     }
 
-    /// <summary>The selected section row, or the section of the selected command; the target of "New command" and Paste.</summary>
+    /// <summary>The selected section row, or the section of the selected command; the target of "New command" and Paste, whose header shows the New command button.</summary>
     public SectionId? SelectedSectionId
     {
         get => GetValue(SelectedSectionIdProperty);
@@ -169,7 +171,6 @@ public sealed class CommandTree : TemplatedControl
         }
 
         Wire(e, "PART_NewSection", CommandTreeAction.NewSection);
-        Wire(e, "PART_NewCommand", CommandTreeAction.NewCommand);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -233,12 +234,20 @@ public sealed class CommandTree : TemplatedControl
         }
     }
 
-    /// <summary>Selects the row the host asked for without raising Select back at it.</summary>
+    /// <summary>
+    /// Selects the row the host asked for without raising Select back at it, and shows the New command button on the header
+    /// of the section the host targets (<see cref="SelectedSectionId"/>) and on no other: none while nothing is selected.
+    /// </summary>
     private void ApplySelection()
     {
         if (_list is not null)
         {
             Quietly(() => _list.SelectedItem = CommandTreeRows.Find(Rows, SelectedSectionId, SelectedCommandId));
+        }
+
+        foreach (var header in Rows.OfType<SectionRow>())
+        {
+            header.ShowsNewCommand = SelectedSectionId is { } target && header.Item?.Id == target;
         }
     }
 

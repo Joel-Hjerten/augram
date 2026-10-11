@@ -6,7 +6,8 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// The category half of <see cref="CommandsViewModel"/> (the Global tab's sections, Joel 2026-10-07;
 /// SP.net's Global categories): "New category N" renamed in place, rename, and delete with confirmation,
-/// whose commands move to Uncategorized in the same undo step. Each is one
+/// whose commands move to Uncategorized in the same undo step; deleting Uncategorized deletes its commands (Joel,
+/// 2026-10-11: it would not go, unlike every other section). Each is one
 /// <see cref="MappingStore.UpdateGroup"/> of the Global group; the rules (names unique within the group)
 /// answer through their message.
 /// </summary>
@@ -69,6 +70,46 @@ public sealed partial class CommandsViewModel
                 Commands = [.. current.Commands.Select(command => command.CategoryId == id ? command with { CategoryId = null } : command)],
             });
             Message = $"Deleted '{category.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
+        });
+    }
+
+    /// <summary>
+    /// Asks, then deletes the commands Uncategorized shows (those used here, or all with Show other platforms on) in one
+    /// <see cref="MappingStore.UpdateGroup"/>, so one undo brings them all back; the section goes with its last command, as when
+    /// it is emptied any other way. A command already gone meanwhile is skipped.
+    /// </summary>
+    private async Task DeleteUncategorizedAsync()
+    {
+        var commands = Sections.FirstOrDefault(section => section.Id == SectionId.Uncategorized)?.Commands ?? [];
+        if (commands.Count == 0)
+        {
+            Message = "Uncategorized has no commands.";
+            return;
+        }
+
+        var (title, question) = commands.Count == 1
+            ? ("Delete command", $"Delete the uncategorized command '{commands[0].Name}'?")
+            : ("Delete commands", $"Delete the {commands.Count} uncategorized commands?");
+        if (!await _confirm.ConfirmAsync(title, question, "Delete").ConfigureAwait(true))
+        {
+            return;
+        }
+
+        var ids = commands.Select(command => command.Id).ToHashSet();
+        Guard(() =>
+        {
+            var current = _store.Global;
+            var removed = current.Commands.Where(command => ids.Contains(command.Id)).ToList();
+            if (removed.Count == 0)
+            {
+                Message = "Those commands no longer exist.";
+                return;
+            }
+
+            _store.UpdateGroup(current with { Commands = [.. current.Commands.Where(command => !ids.Contains(command.Id))] });
+            Message = removed.Count == 1
+                ? $"Deleted '{removed[0].Name}'. {CommandsKeymap.Current.Undo} undoes it."
+                : $"Deleted {removed.Count} uncategorized commands. {CommandsKeymap.Current.Undo} undoes it.";
         });
     }
 }

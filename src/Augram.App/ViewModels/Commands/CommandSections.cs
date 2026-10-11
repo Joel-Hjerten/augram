@@ -165,7 +165,8 @@ internal static class CommandSections
     }
 
     /// <summary>
-    /// Uncategorized (always everywhere: it has no settings), then each category by name; a category not used here
+    /// Uncategorized (always everywhere: it has no settings and no name of its own; deleting it deletes the commands it shows,
+    /// Joel 2026-10-11), then each category by name; a category not used here
     /// (Joel, 2026-10-08) is left out unless <paramref name="showOtherPlatforms"/>, then greyed with "Windows only", and its
     /// commands go with it: hidden, or greyed. Each command carries what its Not in and Also in rows say.
     /// </summary>
@@ -187,7 +188,7 @@ internal static class CommandSections
         var uncategorized = items.Where(item => item.Section == SectionId.Uncategorized).ToList();
         if (uncategorized.Count > 0)
         {
-            sections.Add(new SectionItem(SectionId.Uncategorized, CategoryChoice.UncategorizedName, global.IsActive, expanded.Contains(SectionId.Uncategorized), uncategorized) { CanExport = true });
+            sections.Add(new SectionItem(SectionId.Uncategorized, CategoryChoice.UncategorizedName, global.IsActive, expanded.Contains(SectionId.Uncategorized), uncategorized) { CanDelete = true, CanExport = true });
         }
 
         foreach (var category in Sorted(global))

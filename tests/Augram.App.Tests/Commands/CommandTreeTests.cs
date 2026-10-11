@@ -51,15 +51,18 @@ public sealed class CommandTreeTests
     public void ToolbarButtonsCarryTheHostsWordsAndRaiseTheirActions()
     {
         var (tree, actions, _) = Show();
-        var buttons = tree.GetVisualDescendants().OfType<Button>().Where(button => button.Classes.Contains("toolbar")).ToDictionary(button => (string)button.Content!);
+        var buttons = tree.GetVisualDescendants().OfType<Button>()
+            .Where(button => button.Classes.Contains("toolbar") && button.FindAncestorOfType<SectionRow>() is null)
+            .ToDictionary(button => (string)button.Content!);
 
         Click(buttons["New group"]);
-        Click(buttons["New command"]);
         Click(buttons["Show other platforms"]);
         Click(tree.Rows.OfType<SectionRow>().Last().GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("expander")));
 
-        Assert.Equal([CommandTreeAction.NewSection, CommandTreeAction.NewCommand, CommandTreeAction.ToggleOtherPlatforms, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
-        Assert.Equal(["New group", "New command", "Show other platforms"], buttons.Keys);
+        Assert.Equal([CommandTreeAction.NewSection, CommandTreeAction.ToggleOtherPlatforms, CommandTreeAction.ToggleExpanded], actions.Select(action => action.Action));
+
+        // New command left the toolbar (Joel, 2026-10-11): it sits on the targeted section's header.
+        Assert.Equal(["New group", "Show other platforms"], buttons.Keys);
         Assert.Equal("Photoshop", actions[^1].Section!.Name);
 
         var (global, _, _) = Show(CommandsScope.Global);
@@ -207,17 +210,88 @@ public sealed class CommandTreeTests
         Assert.Equal(CommandTreeAction.ToggleActive, toggle.Action);
         Assert.Equal("Close tab", toggle.Command!.Name);
 
+        // Uncategorized deletes too since Joel's 2026-10-11 report (its commands; the host asks first).
         var (global, globalActions, globalVm) = Show(CommandsScope.Global);
         var globalWindow = (Window)TopLevel.GetTopLevel(global)!;
         global.SelectedSectionId = SectionId.Uncategorized;
         FocusSelectedRow(global);
         globalWindow.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
-        Assert.Empty(globalActions);
+        Assert.Equal(SectionId.Uncategorized, Assert.Single(globalActions).Section!.Id);
 
+        globalActions.Clear();
         global.SelectedSectionId = Section(globalVm, "Media").Id;
         FocusSelectedRow(global);
         globalWindow.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
         Assert.Equal("Media", Assert.Single(globalActions).Section!.Name);
+    }
+
+    [AvaloniaFact]
+    public void NewCommandShowsOnTheTargetedSectionsHeaderOnly_NoneWithNothingSelected()
+    {
+        var (tree, _, vm) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+
+        Assert.Empty(ShowingNewCommand(tree));
+        Assert.All(tree.Rows.OfType<SectionRow>(), row => Assert.False(NewCommandButton(row).IsVisible));
+        var chrome = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
+        var height = chrome.Bounds.Height;
+
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        window.UpdateLayout();
+        Assert.Equal(["Chrome"], ShowingNewCommand(tree));
+        Assert.True(NewCommandButton(chrome).IsVisible);
+
+        // Inside the row line at the row's control size (the theme fixes its height, as the expander's), so the header is no
+        // taller with it (the Row rule). Headless text is small, so the fixed height is what proves it, not the bounds alone.
+        Assert.Equal(Application.Current!.FindResource("Row.ControlSize"), NewCommandButton(chrome).Height);
+        Assert.Equal(height, chrome.Bounds.Height);
+
+        // A selected command's section, which a rebuild keeps.
+        tree.SelectedSectionId = Section(vm, "Photoshop").Id;
+        tree.SelectedCommandId = Item(vm, "Brush").Id;
+        Assert.Equal(["Photoshop"], ShowingNewCommand(tree));
+        tree.Sections = vm.Sections.ToList();
+        window.UpdateLayout();
+        Assert.Equal(["Photoshop"], ShowingNewCommand(tree));
+        Assert.Equal(["Photoshop"], tree.Rows.OfType<SectionRow>().Where(row => NewCommandButton(row).IsVisible).Select(row => row.NameText));
+
+        tree.SelectedCommandId = null;
+        tree.SelectedSectionId = null;
+        Assert.Empty(ShowingNewCommand(tree));
+
+        // The context menu's New command needs a section too.
+        var menu = tree.GetVisualDescendants().OfType<ListBox>().Single().ContextMenu!;
+        var entry = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Tag, CommandTreeAction.NewCommand));
+        CommandTreeMenu.Refresh(menu, tree.SelectedSection, tree.SelectedCommand, vm.NewSectionLabel);
+        Assert.False(entry.IsEnabled);
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        CommandTreeMenu.Refresh(menu, tree.SelectedSection, tree.SelectedCommand, vm.NewSectionLabel);
+        Assert.True(entry.IsEnabled);
+    }
+
+    [AvaloniaFact]
+    public void ClickingTheHeadersNewCommandRaisesItForThatSection_NeitherAToggleNorARename()
+    {
+        var (tree, actions, vm) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        window.UpdateLayout();
+        var chrome = tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome");
+
+        ClickAt(window, NewCommandButton(chrome));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        var request = Assert.Single(actions, action => action.Action == CommandTreeAction.NewCommand);
+        Assert.Equal("Chrome", request.Section!.Name);
+        Assert.Null(request.Command);
+        Assert.DoesNotContain(actions, action => action.Action is CommandTreeAction.ToggleExpanded or CommandTreeAction.Select);
+
+        actions.Clear();
+        DoubleClickAt(window, NewCommandButton(chrome));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.All(actions, action => Assert.Equal(CommandTreeAction.NewCommand, action.Action));
+        Assert.False(chrome.IsEditing);
     }
 
     [AvaloniaFact]
@@ -285,6 +359,12 @@ public sealed class CommandTreeTests
 
         Assert.True(tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome").IsEditing);
     }
+
+    private static List<string> ShowingNewCommand(CommandTree tree)
+        => [.. tree.Rows.OfType<SectionRow>().Where(row => row.ShowsNewCommand).Select(row => row.NameText)];
+
+    private static Button NewCommandButton(SectionRow row)
+        => row.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PART_NewCommand");
 
     private static void DoubleClickAt(Window window, Visual target)
     {

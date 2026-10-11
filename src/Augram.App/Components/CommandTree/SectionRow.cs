@@ -8,9 +8,10 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// Lookless header row of a section in the <see cref="CommandTree"/> (F5a): expander
-/// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count and, when the item
-/// allows it, the active toggle (<see cref="CanToggleActive"/>). Marked <c>:collapsed</c> while its
-/// commands are hidden, <c>:pinned</c> for a section that can be neither renamed nor deleted
+/// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count, the New command button
+/// (<c>PART_NewCommand</c>, raising <see cref="NewCommandRequested"/>) while <see cref="ShowsNewCommand"/> (the tree sets it on
+/// the one section New command targets) and, when the item allows it, the active toggle (<see cref="CanToggleActive"/>).
+/// Marked <c>:collapsed</c> while its commands are hidden, <c>:pinned</c> for a section that cannot be renamed
 /// (Uncategorized), <c>:elsewhere</c> for a group or category used only on the other platform (F8) and <c>:nested</c> for a
 /// section inside another one (a hold remap in its app group, indented as a command is). What the header offers comes from
 /// the <see cref="SectionItem"/>, never from the tab.
@@ -30,12 +31,18 @@ public sealed class SectionRow : ItemRow
     public static readonly StyledProperty<bool> CanToggleActiveProperty =
         AvaloniaProperty.Register<SectionRow, bool>(nameof(CanToggleActive));
 
+    public static readonly StyledProperty<bool> ShowsNewCommandProperty =
+        AvaloniaProperty.Register<SectionRow, bool>(nameof(ShowsNewCommand));
+
     public SectionRow()
     {
         Tapped += OnHeaderTapped;
     }
 
     public event EventHandler? ExpandToggled;
+
+    /// <summary>Raised when the user clicks the row's New command button; the tree asks its host for a command in this section.</summary>
+    public event EventHandler? NewCommandRequested;
 
     public SectionItem? Item
     {
@@ -63,6 +70,16 @@ public sealed class SectionRow : ItemRow
         private set => SetValue(CanToggleActiveProperty, value);
     }
 
+    /// <summary>
+    /// Shows the New command button at the row's right end (Joel, 2026-10-11: "it only shows on the currently selected group"): the
+    /// tree sets it on the section New command targets, the selected one or the selected command's, and on no other row.
+    /// </summary>
+    public bool ShowsNewCommand
+    {
+        get => GetValue(ShowsNewCommandProperty);
+        set => SetValue(ShowsNewCommandProperty, value);
+    }
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
@@ -70,12 +87,17 @@ public sealed class SectionRow : ItemRow
         {
             expander.Click += (_, _) => ExpandToggled?.Invoke(this, EventArgs.Empty);
         }
+
+        if (e.NameScope.Find<Button>("PART_NewCommand") is { } newCommand)
+        {
+            newCommand.Click += (_, _) => NewCommandRequested?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     /// <summary>
     /// A tap anywhere on the header toggles it, not only on the expander (Joel, 2026-10-07); the row is selected as
     /// well, as a click on any row is. A tap that lands on a button (the expander raises its own toggle, the active
-    /// box is a toggle button) or in the name editor belongs to that control. The second click of a double click
+    /// box is a toggle button, New command adds a command) or in the name editor belongs to that control. The second click of a double click
     /// toggles nothing: a double click renames (<c>CommandTree</c>), and the tree puts back the first click's toggle.
     /// </summary>
     private void OnHeaderTapped(object? sender, TappedEventArgs e)
@@ -98,7 +120,7 @@ public sealed class SectionRow : ItemRow
             CanRename = item?.CanRename ?? false;
             CanToggleActive = item?.CanToggleActive ?? false;
             CountText = item?.CountText ?? string.Empty;
-            PseudoClasses.Set(":pinned", item is { CanRename: false, CanDelete: false });
+            PseudoClasses.Set(":pinned", item is { CanRename: false });
             PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });
             PseudoClasses.Set(":nested", item is { IsNested: true });
         }

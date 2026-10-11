@@ -31,11 +31,29 @@ public static class CommandGalleryPages
 {
     private static readonly IReadOnlyList<Gesture> Starter = StarterGestures.All();
 
-    /// <summary>The Global sub-tab over a throwaway store: Uncategorized, then the categories Media and Window; New category… names one in place.</summary>
-    public static ScreenDeclaration GlobalWorkbenchPage() => WorkbenchPage(CommandsScope.Global);
+    /// <summary>
+    /// The Global sub-tab over a throwaway store: Uncategorized, then the categories Media and Window; New category names one in
+    /// place. Window is open and selected, so its header shows New command and the side panel its form.
+    /// </summary>
+    public static ScreenDeclaration GlobalWorkbenchPage()
+    {
+        var vm = WorkbenchViewModel(CommandsScope.Global, out _);
+        var window = vm.Sections.Single(section => section.Name == "Window");
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, window));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, window));
+        return Screens.CommandsScreen.Declare(vm);
+    }
 
-    /// <summary>The Apps sub-tab over the same fake mapping: Chrome, Photoshop (category tags, the header's Category dropdown), Steam games.</summary>
-    public static ScreenDeclaration AppsWorkbenchPage() => WorkbenchPage(CommandsScope.Apps);
+    /// <summary>
+    /// The Apps sub-tab over the same fake mapping: Chrome, Photoshop (category tags, the header's Category dropdown), Steam games.
+    /// Chrome's Close tab is selected, so Chrome's header shows New command.
+    /// </summary>
+    public static ScreenDeclaration AppsWorkbenchPage()
+    {
+        var vm = WorkbenchViewModel(CommandsScope.Apps, out var store);
+        vm.ShowCommand(store.Current.AllCommands().Single(pair => pair.Group.Name == "Chrome" && pair.Command.Name == "Close tab").Command.Id);
+        return Screens.CommandsScreen.Declare(vm);
+    }
 
     /// <summary>
     /// The Apps sub-tab with Blender's Space hold remap open and Orbit selected (F9, plan 0002): the hold remap nested in its
@@ -116,9 +134,7 @@ public static class CommandGalleryPages
         return header;
     }
 
-    /// <summary>A whole sub-tab over a throwaway store: tree, header, step list, with dialogs that answer at once.</summary>
-    private static ScreenDeclaration WorkbenchPage(CommandsScope scope) => Screens.CommandsScreen.Declare(WorkbenchViewModel(scope, out _));
-
+    /// <summary>A whole sub-tab's view model over a throwaway store (tree, header, step list), with dialogs that answer at once.</summary>
     private static CommandsViewModel WorkbenchViewModel(CommandsScope scope, out MappingStore store)
     {
         var library = new GestureLibrary(Starter);
