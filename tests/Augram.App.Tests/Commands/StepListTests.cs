@@ -178,8 +178,13 @@ public sealed class StepListTests
         Assert.DoesNotContain(":dragging", list.Rows[0].Classes);
         window.MouseMove(to);
         Assert.Contains(":dragging", list.Rows[0].Classes);
-        Assert.Contains(":drop-target", list.Rows[2].Classes);
         Assert.False(list.Rows[0].IsExpanded);
+
+        // The order a release gives shows at once (Joel, 0.11.11): the dragged step follows the pointer down, the two it passed move up.
+        Assert.True(list.Rows[0].DragOffset > 0);
+        Assert.True(list.Rows[1].DragOffset < 0);
+        Assert.Equal(list.Rows[1].DragOffset, list.Rows[2].DragOffset);
+        Assert.Empty(actions);
         window.MouseUp(to, MouseButton.Left);
 
         var reorder = Assert.Single(actions);
@@ -188,7 +193,27 @@ public sealed class StepListTests
         Assert.Equal(2, reorder.TargetIndex);
         Assert.Equal(-1, list.SelectedIndex);
         Assert.DoesNotContain(":dragging", list.Rows[0].Classes);
-        Assert.DoesNotContain(":drop-target", list.Rows[2].Classes);
+        Assert.All(list.Rows, row => Assert.Equal(0, row.DragOffset));
+    }
+
+    [AvaloniaFact]
+    public void ADragBroughtBackToItsPlaceMovesNothing_TheRowsGoBack()
+    {
+        var (list, actions, _) = Show(echoSelect: true);
+        var window = WindowOf(list);
+        Render();
+        var from = Centre(Part(list.Rows[0], "PART_Name"), window);
+        var to = Centre(list.Rows[2], window);
+
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(to);
+        Assert.True(list.Rows[2].DragOffset < 0);
+        window.MouseMove(from);
+        Assert.All(list.Rows.Skip(1), row => Assert.Equal(0, row.DragOffset));
+        window.MouseUp(from, MouseButton.Left);
+
+        Assert.Empty(actions);
+        Assert.All(list.Rows, row => Assert.Equal(0, row.DragOffset));
     }
 
     [AvaloniaFact]
@@ -209,11 +234,11 @@ public sealed class StepListTests
         Assert.False(list.Rows[0].IsExpanded);
         Assert.Null(list.Rows[0].Form);
 
-        // The rows moved up when the form closed; the drop target is the row under the pointer now.
+        // The rows moved up when the form closed; the order follows the pointer from there.
         Render();
         var to = Centre(list.Rows[2], window);
         window.MouseMove(to);
-        Assert.Contains(":drop-target", list.Rows[2].Classes);
+        Assert.True(list.Rows[2].DragOffset < 0);
         window.MouseUp(to, MouseButton.Left);
 
         Assert.Equal([StepListAction.Select, StepListAction.Reorder], actions.Select(action => action.Action));

@@ -897,9 +897,6 @@
           <Setter Property="Opacity" Value="{StaticResource Opacity.Dragging}" />
         </Style>
         <!-- The frame's thickness never changes, only its colour, so marking a drop target cannot shift the list. -->
-        <Style Selector="^:drop-target /template/ Border#PART_Frame">
-          <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
-        </Style>
       </ControlTheme>
 
       <ControlTheme x:Key="{x:Type picker:StepTypePicker}" TargetType="picker:StepTypePicker">

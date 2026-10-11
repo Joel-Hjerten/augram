@@ -1141,9 +1141,6 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
   </Style>
-  <Style Selector="steps|StepRow:drop-target /template/ Border.row">
-    <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
-  </Style>
   <Style Selector="steps|StepRow:dragging /template/ Border.row">
     <Setter Property="Opacity" Value="{StaticResource Opacity.Dragging}" />
   </Style>

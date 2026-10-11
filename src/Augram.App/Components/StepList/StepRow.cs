@@ -14,14 +14,14 @@ namespace Augram.App.Components.StepList;
 /// <summary>
 /// Lookless row of the <see cref="StepList"/> (F5a): position, summary, type name, the F8 marker and
 /// the active toggle; the selected row is <c>:expanded</c> and shows its type's parameter
-/// <see cref="Form"/> in place (accordion). <c>:dragging</c> and <c>:drop-target</c> mark a reorder
-/// in progress. The list remembers which step the form was built from and what it last emitted, so
+/// <see cref="Form"/> in place (accordion). <c>:dragging</c> marks the row being dragged, and
+/// <see cref="DragOffset"/> how far a drag has moved it on screen. The list remembers which step the form was built from and what it last emitted, so
 /// an edit does not rebuild the form under the user's hands while an undo does. Two parts tell the list
 /// where a press landed: <c>PART_Grip</c> (the drag handle and the number, <see cref="IsOnGrip"/>) and
 /// <c>PART_FormHost</c> (around the form, <see cref="IsInForm"/>); the rest of the card is its header.
 /// <c>PART_Header</c>, the header line, is where the list anchors the "Change to…" picker (<see cref="HeaderPart"/>).
 /// </summary>
-[PseudoClasses(":expanded", ":dragging", ":drop-target")]
+[PseudoClasses(":expanded", ":dragging")]
 public sealed class StepRow : ItemRow
 {
     public static readonly StyledProperty<StepItem?> ItemProperty =
@@ -116,7 +116,8 @@ public sealed class StepRow : ItemRow
 
     public void SetDragging(bool dragging) => PseudoClasses.Set(":dragging", dragging);
 
-    public void SetDropTarget(bool target) => PseudoClasses.Set(":drop-target", target);
+    /// <summary>How far a drag in progress shows this row from its place, in pixels (the dragged row under the pointer, the others making room); 0 at rest.</summary>
+    public double DragOffset { get; internal set; }
 
     /// <summary>
     /// Whether a press landed on the grip: on the header line, left of where <c>PART_Grip</c> (the drag handle and the
