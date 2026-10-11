@@ -325,7 +325,7 @@
                     <TextBlock Classes="help-icon" ToolTip.Tip="Right-click a tile for the menu. Rename in place with the rename key; Delete removes without asking and Undo brings it back." />
                   </StackPanel>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
-                    <Button Name="PART_New" Classes="toolbar" Content="Add new gesture…" />
+                    <Button Name="PART_New" Classes="toolbar primary" Content="Add new gesture…" />
                     <Button Name="PART_Import" Classes="toolbar" Content="Import from StrokesPlus.net…" />
                     <Button Name="PART_Export" Classes="toolbar" Content="Export…" />
                     <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
@@ -461,7 +461,7 @@
                   </StackPanel>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
                     <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
-                    <Button Name="PART_NewCommand" Classes="toolbar" Content="New command" />
+                    <Button Name="PART_NewCommand" Classes="toolbar primary" Content="New command" />
                     <ToggleButton Name="PART_OtherPlatforms"
                                   Classes="toolbar"
                                   Content="{TemplateBinding PlatformFilterLabel}"
@@ -589,7 +589,7 @@
                                    IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                       </StackPanel>
                       <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
-                        <Button Name="PART_New" Classes="toolbar" Content="{TemplateBinding NewLabel}" />
+                        <Button Name="PART_New" Classes="toolbar primary" Content="{TemplateBinding NewLabel}" />
                       </WrapPanel>
                     </Grid>
                     <ListBox Name="PART_Rows"
