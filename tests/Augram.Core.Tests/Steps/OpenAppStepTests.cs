@@ -75,7 +75,7 @@ public sealed class OpenAppStepTests
 
         var started = Run(new OpenAppStep(false, "chrome.exe", "Google Chrome"), launcher, new FakeActivator(AppActivation.NotRunning), new FakeAppWindow());
         Assert.Equal(StepOutcome.Done, started.Outcome);
-        Assert.Equal([OpenAppStepTypeAccess.Here == HostPlatform.MacOS ? "Google Chrome" : "chrome.exe"], launcher.Launches.Select(launch => launch.File));
+        Assert.Equal([RunningPlatform.Current == HostPlatform.MacOS ? "Google Chrome" : "chrome.exe"], launcher.Launches.Select(launch => launch.File));
 
         var refused = Run(new OpenAppStep(false, "chrome.exe", "Google Chrome"), new FakeProcessLauncher(), new FakeActivator(AppActivation.Failed("no")), new FakeAppWindow());
         Assert.Equal((StepOutcome.Failed, "no"), (refused.Outcome, refused.Reason));
@@ -86,11 +86,6 @@ public sealed class OpenAppStepTests
 
     private static StepResult Run(OpenAppStep step, FakeProcessLauncher launcher, FakeActivator activator, FakeAppWindow window)
         => Type.Execute(step, StepContexts.Create(log: NullEventLog.Instance) with { Processes = launcher, Apps = activator, AppWindow = window });
-
-    private static class OpenAppStepTypeAccess
-    {
-        public static HostPlatform Here => OperatingSystem.IsMacOS() ? HostPlatform.MacOS : HostPlatform.Windows;
-    }
 
     private sealed class FakeActivator(AppActivation answer) : IAppActivator
     {

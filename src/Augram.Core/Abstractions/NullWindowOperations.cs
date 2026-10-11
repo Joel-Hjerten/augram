@@ -9,7 +9,7 @@ public sealed class NullWindowOperations : IWindowOperations
     {
     }
 
-    public HostPlatform Platform => OperatingSystem.IsMacOS() ? HostPlatform.MacOS : HostPlatform.Windows;
+    public HostPlatform Platform => RunningPlatform.Current;
 
     public bool Supports(WindowOperation operation) => false;
 

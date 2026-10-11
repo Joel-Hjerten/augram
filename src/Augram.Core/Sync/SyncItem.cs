@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Gestures;
 using Augram.Core.HoldRemaps;
@@ -130,7 +131,7 @@ public abstract class SyncItem
     public sealed class VersionItem : SyncItem
     {
         public VersionItem(CommandId commandId, string? commandName, CommandVersion version)
-            : base(SyncItemKey.ForCommandVersion(commandId), $"{commandName ?? "A command"} ({PlatformName(version)} steps)", SyncItemJson.Version(commandId, version))
+            : base(SyncItemKey.ForCommandVersion(commandId), $"{commandName ?? "A command"} ({version.Platform.DisplayName()} steps)", SyncItemJson.Version(commandId, version))
         {
             CommandId = commandId;
             Version = version;
@@ -139,8 +140,6 @@ public abstract class SyncItem
         public CommandId CommandId { get; }
 
         public CommandVersion Version { get; }
-
-        private static string PlatformName(CommandVersion version) => version.Platform == Abstractions.HostPlatform.MacOS ? "macOS" : "Windows";
     }
 
     public sealed class IgnoredItem : SyncItem

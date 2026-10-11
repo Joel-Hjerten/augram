@@ -135,7 +135,7 @@ internal static class CommandSections
             return StepPlatformMarker.Only(group.UseOn);
         }
 
-        return group.Matcher is { HasProcessNames: true } matcher && matcher.EffectiveProcessNames(here).Count == 0 ? $"no {StepPlatformMarker.Name(here)} name" : null;
+        return group.Matcher is { HasProcessNames: true } matcher && matcher.EffectiveProcessNames(here).Count == 0 ? $"no {here.DisplayName()} name" : null;
     }
 
     /// <summary>

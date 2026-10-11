@@ -53,7 +53,11 @@ Hold remaps are decided the same way, from their own shadow, before any of the a
 | `HoldRemapShadow` | the hook's mirror of `HoldRemapMachine` (below, "Hold remaps"): the hold in progress, owed input buttons and whether their set holds a button output (`HoldsButtonOutput`, worked out when the set changes), claimed and replayed keys, keys kept in order, the pending replay count; `DecideButton`, `DecideWheel`, `DecideKey` (`HoldKeyDecision`: what to post, the phase, whether the worker injects for it), `Save`/`Restore` |
 | `HookHealthMonitor` | owns the source lifecycle: install, reinstall on `Lost` or on the watchdog (no event for 15 s while `ICursorProbe` saw the cursor move in 4 polls), exponential retry when a reinstall throws, system events logged and the silence clock restarted, `ResetRequested` after reinstall / resume / unlock, health contributor (`HookAliveSince`, `HookReinstallCount`, `EventsLastMinute`) |
 
+The engine's only two `OperatingSystem.IsMacOS()` checks are SharpHook quirks and stay in these adapters: `SharpHookInputSource.Start` turns libuiohook's typed-character events off on macOS (each costs a synchronous trip to the main thread), and `SharpHookInputSimulator.Scroll` picks the macOS wheel unit (`Notch`). Everything else asks `EnginePorts.Platform` (below).
+
 ## Hosting
+
+The engine learns its platform from `EnginePorts.Platform` (which steps a command plans, which app group names match, whether a Win or Alt held before a press is masked); unset, it is the `IWindowOperations` adapter's `Platform`, so the App's real adapter decides and the null one follows Core's `RunningPlatform.Current`.
 
 | Type | Role |
 |---|---|

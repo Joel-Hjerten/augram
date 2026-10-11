@@ -25,12 +25,12 @@ public static class StepPlatformMarker
             return new StepRowText(original, null);
         }
 
-        var from = $"from {Name(step.AuthoredOn)}";
+        var from = $"from {step.AuthoredOn.DisplayName()}";
         var planned = step.ForPlatform(here);
         return planned.Kind switch
         {
             StepConversionKind.Converted => new StepRowText($"{original} → {planned.Step!.SummaryOn(here)}", $"{from} · converted"),
-            StepConversionKind.NotConvertible => new StepRowText(original, $"{from} · needs a {Name(here)} version"),
+            StepConversionKind.NotConvertible => new StepRowText(original, $"{from} · needs a {here.DisplayName()} version"),
             _ => new StepRowText(original, step.Step.Type.IsPlatformNeutral ? null : from),
         };
     }
@@ -42,8 +42,8 @@ public static class StepPlatformMarker
         {
             var stale = command.IsOwnVersionStale;
             return own.Platform == here
-                ? $"own {Name(here)} version" + (stale ? $" · {Name(Other(here))} original changed" : string.Empty)
-                : $"has {Name(own.Platform)} version" + (stale ? " · check it there" : string.Empty);
+                ? $"own {here.DisplayName()} version" + (stale ? $" · {here.Other().DisplayName()} original changed" : string.Empty)
+                : $"has {own.Platform.DisplayName()} version" + (stale ? " · check it there" : string.Empty);
         }
 
         return ForSteps(command.Steps, here);
@@ -59,18 +59,16 @@ public static class StepPlatformMarker
             return null;
         }
 
-        var marker = $"from {Name(elsewhere[0].AuthoredOn)}";
+        var marker = $"from {elsewhere[0].AuthoredOn.DisplayName()}";
         var plans = elsewhere.Select(step => step.ForPlatform(here)).ToList();
         var missing = plans.Count(plan => plan.Kind == StepConversionKind.NotConvertible);
         if (missing > 0)
         {
-            return $"{marker} · {missing} need{(missing == 1 ? "s" : string.Empty)} a {Name(here)} version";
+            return $"{marker} · {missing} need{(missing == 1 ? "s" : string.Empty)} a {here.DisplayName()} version";
         }
 
         return plans.Any(plan => plan.Kind == StepConversionKind.Converted) ? $"{marker} · converted" : marker;
     }
-
-    public static string Name(HostPlatform platform) => platform == HostPlatform.MacOS ? "macOS" : "Windows";
 
     /// <summary>A "Use on" set in a few words (F8): "Windows only", "macOS only", "used nowhere", "every platform".</summary>
     public static string Only(PlatformSet set) => set switch
@@ -80,6 +78,4 @@ public static class StepPlatformMarker
         PlatformSet.MacOS => "macOS only",
         _ => "every platform",
     };
-
-    private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 }

@@ -1,5 +1,5 @@
 using Augram.App.Hosting;
-using Augram.Core.Steps.Hotkey;
+using Augram.Core.Abstractions;
 using Avalonia;
 using Velopack;
 
@@ -28,8 +28,8 @@ internal static class Program
             return;
         }
 
-        // Hotkeys read with this platform's key names (Cmd and Opt on a Mac); stored values are the same everywhere.
-        HotkeyText.Names = CommandsModule.CurrentPlatform;
+        // The process reads as the platform it runs on, hotkeys with its key names too (Cmd and Opt on a Mac); stored values are the same everywhere.
+        RunningPlatform.UseThisMachine();
         using var services = CompositionRoot.Build(app);
         BuildAvaloniaApp(services, startup).StartWithClassicDesktopLifetime(args);
     }

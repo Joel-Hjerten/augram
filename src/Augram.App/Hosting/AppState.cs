@@ -42,9 +42,6 @@ public sealed class AppState : ObservableObject, IDisposable
         settings.Changed += OnSettingsChanged;
     }
 
-    /// <summary>The platform whose wording the state notes use (Task Manager or System Settings).</summary>
-    public static HostPlatform Platform => OperatingSystem.IsMacOS() ? HostPlatform.MacOS : HostPlatform.Windows;
-
     /// <summary>This build: its channel decides whether start at login is this process's to manage.</summary>
     public AppInfo App { get; }
 
@@ -124,7 +121,7 @@ public sealed class AppState : ObservableObject, IDisposable
         _log.Warning(LogSource, "Start at login was turned off outside Augram; the setting follows", ("status", status));
         // The change brings the OS in step like any other (OnChange: whatever is left is removed), then says why it is off.
         Change(general => general with { StartAtLogin = false });
-        StartAtLoginNote = StartupPolicy.FollowedNote(status, Platform);
+        StartAtLoginNote = StartupPolicy.FollowedNote(status, RunningPlatform.Current);
     }
 
     public void Dispose() => _settings.Changed -= OnSettingsChanged;

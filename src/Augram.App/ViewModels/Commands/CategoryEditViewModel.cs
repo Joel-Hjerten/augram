@@ -61,8 +61,8 @@ public sealed partial class CategoryEditViewModel : ObservableObject
             new TogglesField(
                 "Use on",
                 [
-                    new ToggleOption("Windows", new DelegateBinding<bool>(() => UseOnWindows, value => UseOnWindows = value, this)),
-                    new ToggleOption("macOS", new DelegateBinding<bool>(() => UseOnMac, value => UseOnMac = value, this)),
+                    new ToggleOption(HostPlatform.Windows.DisplayName(), new DelegateBinding<bool>(() => UseOnWindows, value => UseOnWindows = value, this)),
+                    new ToggleOption(HostPlatform.MacOS.DisplayName(), new DelegateBinding<bool>(() => UseOnMac, value => UseOnMac = value, this)),
                 ],
                 "Applies to every command in the category: a platform left unticked never fires them and hides the category unless Show other platforms is on. Each command keeps its own Use on for when the category takes the platform back."),
         ]),

@@ -27,7 +27,7 @@ internal static class OpenAppExecutor
 
         if (step.AppFor(platform) is not { } app)
         {
-            return (StepResult.Skipped(step.IsSet ? $"no app set for {(platform == HostPlatform.MacOS ? "macOS" : "Windows")} and no guess" : "no app set"), "none");
+            return (StepResult.Skipped(step.IsSet ? $"no app set for {platform.DisplayName()} and no guess" : "no app set"), "none");
         }
 
         var activation = context.Apps.BringToFront(app);

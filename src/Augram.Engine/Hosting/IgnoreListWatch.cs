@@ -75,7 +75,7 @@ internal sealed class IgnoreListWatch : IDisposable
         _cursor = ports.CursorProbe;
         _systemEvents = ports.SystemEvents;
         _pauseChanged = pauseChanged;
-        _lookup = new IgnoreLookup(ports.Windows, ports.WindowOperations.Platform, ports.Clock, SlowLookupInterval);
+        _lookup = new IgnoreLookup(ports.Windows, ports.Platform, ports.Clock, SlowLookupInterval);
         _thread = new Thread(Run) { IsBackground = true, Name = "augram-ignore-watch" };
     }
 

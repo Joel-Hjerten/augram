@@ -2,7 +2,6 @@ using Augram.App.Components.MasterDetail;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.WindowFinder;
 using Augram.App.Declarations;
-using Augram.App.Hosting;
 using Augram.App.Tests.Commands;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
@@ -131,23 +130,23 @@ public sealed class AppMatcherFinderFormTests
     {
         var steam = new IgnoredApp(GroupId.New(), "Steam games", IsActive: true, new AppMatcher { ProcessPath = @"^C:\\Steam\\.+$", ProcessPathIsRegex = true, MacProcessPath = "^/Games/", MacProcessPathIsRegex = true }, DisableEntirely: false);
         var store = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal], [steam]));
-        var vm = new IgnoredViewModel(store, new FakeFormDialogPresenter(), new FakeConfirmPresenter(), CommandsModule.CurrentPlatform);
+        var vm = new IgnoredViewModel(store, new FakeFormDialogPresenter(), new FakeConfirmPresenter(), RunningPlatform.Current);
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, vm.Items.Single()));
         var (window, rows) = Show(vm.Detail!);
 
         Drag(window, Finder(rows, "Executable"));
-        Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
+        Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(RunningPlatform.Current));
 
         Drag(window, Finder(rows, "Executable path"));
-        Assert.Equal((AppMatcherFinderTests.Chrome.ProcessPath, false), Stored().PathFor(CommandsModule.CurrentPlatform));
+        Assert.Equal((AppMatcherFinderTests.Chrome.ProcessPath, false), Stored().PathFor(RunningPlatform.Current));
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));
-        Assert.Equal(steam.Matcher.PathFor(CommandsModule.CurrentPlatform), Stored().PathFor(CommandsModule.CurrentPlatform));
-        Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
-        Assert.Equal(steam.Matcher.PathFor(CommandsModule.CurrentPlatform).Path ?? string.Empty, Box(rows, "Executable path").Text ?? string.Empty);
+        Assert.Equal(steam.Matcher.PathFor(RunningPlatform.Current), Stored().PathFor(RunningPlatform.Current));
+        Assert.Equal(["chrome.exe"], Stored().ProcessNamesFor(RunningPlatform.Current));
+        Assert.Equal(steam.Matcher.PathFor(RunningPlatform.Current).Path ?? string.Empty, Box(rows, "Executable path").Text ?? string.Empty);
 
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));
-        Assert.Empty(Stored().ProcessNamesFor(CommandsModule.CurrentPlatform));
+        Assert.Empty(Stored().ProcessNamesFor(RunningPlatform.Current));
 
         AppMatcher Stored() => store.FindIgnored(steam.Id)!.Matcher;
     }

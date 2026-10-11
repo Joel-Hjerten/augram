@@ -28,7 +28,7 @@ internal static class RunConversion
             return StepConversion.Same(step);
         }
 
-        var platform = to == HostPlatform.MacOS ? "macOS" : "Windows";
+        var platform = to.DisplayName();
         return StepConversion.None(scheme is null
             ? $"{step.Target} needs a {platform} version: a program and its path belong to one platform"
             : $"{step.Target} needs a {platform} version: {scheme}: links open on one platform only");

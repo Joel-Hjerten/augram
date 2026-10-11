@@ -113,7 +113,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
             var parts = new[] { HostPlatform.Windows, HostPlatform.MacOS }
                 .Select(platform => (platform, guess: GuessFor(matcher, platform)))
                 .Where(entry => entry.guess.Length > 0)
-                .Select(entry => $"{PlatformName(entry.platform)}: {entry.guess}")
+                .Select(entry => $"{entry.platform.DisplayName()}: {entry.guess}")
                 .ToList();
             return parts.Count == 0 ? _noneNeeded : string.Join(" · ", parts);
         }
@@ -189,7 +189,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
         [
             new Section(SectionTitle,
             [
-                new ButtonRadioField<HostPlatform>(PlatformSwitchLabel, [new("Windows", HostPlatform.Windows), new("macOS", HostPlatform.MacOS)],
+                new ButtonRadioField<HostPlatform>(PlatformSwitchLabel, [new(HostPlatform.Windows.DisplayName(), HostPlatform.Windows), new(HostPlatform.MacOS.DisplayName(), HostPlatform.MacOS)],
                     new DelegateBinding<HostPlatform>(() => View.Shown, value => View.Shown = value, View),
                     "Each platform has its own fields: a Windows field never applies on a Mac, nor a macOS one on Windows."),
                 new PatternField("Executable",
@@ -233,8 +233,6 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
         var guess = matcher.EffectiveProcessNames(platform);
         return guess.Count > 0 ? $"{string.Join(", ", guess)} (guessed)" : $"no guess; {_noGuessAdvice}";
     }
-
-    private static string PlatformName(HostPlatform platform) => platform == HostPlatform.MacOS ? "macOS" : "Windows";
 
     private static string[] Split(string names) => names.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 

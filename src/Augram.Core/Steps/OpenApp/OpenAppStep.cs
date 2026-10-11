@@ -18,18 +18,18 @@ public sealed record OpenAppStep(bool IsAugram, string WindowsApp, string MacApp
 
     public bool IsSet => IsAugram || WindowsApp.Trim().Length > 0 || MacApp.Trim().Length > 0;
 
-    public string Summary => SummaryOn(OpenAppStepType.CurrentPlatform);
+    public string Summary => SummaryOn(RunningPlatform.Current);
 
     public string SummaryOn(HostPlatform platform)
         => IsAugram ? AugramText
             : AppFor(platform) is { } app ? $"Open {app}"
-            : IsSet ? $"Open app (none for {(platform == HostPlatform.MacOS ? "macOS" : "Windows")})"
+            : IsSet ? $"Open app (none for {platform.DisplayName()})"
             : "Open app (no app set)";
 
     /// <summary>The app to open on <paramref name="platform"/>: its own name, else the guess from the other platform's; null when neither gives one.</summary>
     public string? AppFor(HostPlatform platform)
     {
-        var (own, other) = platform == HostPlatform.MacOS ? (MacApp, WindowsApp) : (WindowsApp, MacApp);
+        var (own, other) = (NameOn(platform), NameOn(platform.Other()));
         if (own.Trim().Length > 0)
         {
             return own.Trim();
@@ -37,4 +37,6 @@ public sealed record OpenAppStep(bool IsAugram, string WindowsApp, string MacApp
 
         return other.Trim().Length > 0 && KnownApps.Guess([other.Trim()], platform) is [var guess, ..] ? guess : null;
     }
+
+    private string NameOn(HostPlatform platform) => platform == HostPlatform.MacOS ? MacApp : WindowsApp;
 }

@@ -4,6 +4,7 @@ using Augram.App.Navigation;
 using Augram.App.Screens;
 using Augram.App.UsedBy;
 using Augram.App.ViewModels.Ignored;
+using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -59,7 +60,7 @@ public static class IgnoredModule
         sp.GetRequiredService<MappingStore>(),
         sp.GetRequiredService<IFormDialogPresenter>(),
         sp.GetRequiredService<IConfirmPresenter>(),
-        CommandsModule.CurrentPlatform,
+        RunningPlatform.Current,
         scope,
         sp.GetService<ICommandLocator>());
 }

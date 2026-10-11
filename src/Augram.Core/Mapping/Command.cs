@@ -79,7 +79,7 @@ public sealed partial record Command(
     /// The platform the original steps were authored on: the other one than the own version's, else the first step's;
     /// null for a command with no steps and no own version (its first step makes this platform the origin).
     /// </summary>
-    public HostPlatform? Origin => OwnVersion is { } own ? Other(own.Platform) : Steps.Count > 0 ? Steps[0].AuthoredOn : null;
+    public HostPlatform? Origin => OwnVersion is { } own ? own.Platform.Other() : Steps.Count > 0 ? Steps[0].AuthoredOn : null;
 
     /// <summary>True when the original changed after the own version was made or last checked: its fingerprint moved on.</summary>
     public bool IsOwnVersionStale => OwnVersion is { } own && own.BasedOn != Fingerprint(Steps);
@@ -145,6 +145,4 @@ public sealed partial record Command(
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())).AsSpan(0, 8));
     }
-
-    private static HostPlatform Other(HostPlatform platform) => platform == HostPlatform.MacOS ? HostPlatform.Windows : HostPlatform.MacOS;
 }

@@ -47,7 +47,7 @@ public sealed class RemapStepForm : IStepForm
         new("Right (sideways)", ScrollDirection.Right),
     ];
 
-    // Built per form, not once per type: the key names follow HotkeyText.Names, which the App sets at startup.
+    // Built per form, not once per type: the key names follow HotkeyText.Names, which follows RunningPlatform once the App sets it at startup.
     private static IReadOnlyList<Choice<KeyCode>> Keys =>
         [.. Enum.GetValues<KeyCode>().Select(key => new Choice<KeyCode>(key == KeyCode.None ? HotkeyCaptureBox.EmptyText : HotkeyText.KeyName(key), key))];
 

@@ -34,10 +34,10 @@ public static class HotkeyText
     ];
 
     /// <summary>
-    /// Whose key names a call without an explicit platform uses. Windows by default; the App sets it once at startup
-    /// to the platform it runs on, so Core and its tests read the same on every machine.
+    /// Whose key names a call without an explicit platform uses: <see cref="RunningPlatform.Current"/> once something has set
+    /// it (the App at startup, a test), Windows until then, so Core and its tests read the same on every machine.
     /// </summary>
-    public static HostPlatform Names { get; set; } = HostPlatform.Windows;
+    public static HostPlatform Names => RunningPlatform.Chosen ?? HostPlatform.Windows;
 
     /// <summary>
     /// "Ctrl+Shift+T", "RCtrl+RShift+P"; the modifiers alone ("Ctrl+Shift") when <paramref name="key"/> is
