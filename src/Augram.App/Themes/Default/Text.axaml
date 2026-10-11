@@ -141,13 +141,10 @@
     <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
   </Style>
 
-  <!-- ===== States: colour (or slant) only, after the roles they change. ===== -->
-  <!-- An inactive row's or gesture's name is muted; a pinned section's (Uncategorized) slanted. -->
+  <!-- ===== States: colour only, after the roles they change. ===== -->
+  <!-- An inactive row's or gesture's name is muted. -->
   <Style Selector="tree|SectionRow:inactive /template/ TextBlock#PART_Name, tree|CommandRow:inactive /template/ TextBlock#PART_Name, md|MasterRow:inactive /template/ TextBlock#PART_Name, steps|StepRow:inactive /template/ TextBlock#PART_Name, grid|GestureTile:inactive /template/ TextBlock#PART_Name">
     <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="tree|SectionRow:pinned /template/ TextBlock#PART_Name">
-    <Setter Property="FontStyle" Value="Italic" />
   </Style>
   <Style Selector="TextBlock.help-icon:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />

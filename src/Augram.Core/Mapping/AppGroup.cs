@@ -50,7 +50,7 @@ public sealed record AppGroup(
 
     /// <summary>
     /// The platforms the group and the command's category or hold remap leave the command: the group's (every platform for
-    /// Global) ANDed with its category's (every platform for Uncategorized) and its hold remap's (F9; every platform for an
+    /// Global) ANDed with its category's (every platform for none) and its hold remap's (F9; every platform for an
     /// ordinary command). A platform outside it is set by one of them, whatever the command's own value says.
     /// </summary>
     public PlatformSet UseOnLimitFor(Command command)
@@ -79,7 +79,7 @@ public sealed record AppGroup(
         return null;
     }
 
-    /// <summary>The category <paramref name="command"/> is sorted into; null for Uncategorized, or for a category this group does not have.</summary>
+    /// <summary>The category <paramref name="command"/> is sorted into; null for none, or for a category this group does not have.</summary>
     public CommandCategory? CategoryOf(Command command)
     {
         ArgumentNullException.ThrowIfNull(command);

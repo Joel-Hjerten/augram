@@ -13,7 +13,10 @@ public sealed record UsedByRow(GroupId GroupId, string Group, CommandId CommandI
 {
     public const string Separator = " › ";
 
-    /// <summary>"Global › Media › Volume up", "Global › Minimize", "Chrome › Close tab": the F5a vocabulary, as the delete warning lists it.</summary>
+    /// <summary>
+    /// "Global › Media › Volume up", "Global › Uncategorized › Minimize", "Chrome › Close tab": the F5a vocabulary, as the delete
+    /// warning lists it ("Global › Minimize" only for a Global command outside the store, which has no category yet).
+    /// </summary>
     public string Label => Category is null
         ? Group + Separator + Command
         : Group + Separator + Category + Separator + Command;

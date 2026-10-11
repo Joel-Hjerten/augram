@@ -4,18 +4,15 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// One collapsible section of the <see cref="CommandTree"/> (F5a; Global/Apps split, Joel 2026-10-07): an
-/// app group on the Apps tab, a category or Uncategorized on the Global tab, or a hold remap (F9, plan 0002) nested in its
-/// app group's section (<see cref="IsNested"/>, listed right after it). The item says what its header offers, so the tree
-/// never asks which tab it is on: <see cref="CanRename"/>, <see cref="CanDelete"/>, <see cref="CanEditDefinition"/> (the app
-/// group form), <see cref="CanToggleActive"/>, <see cref="CanCopy"/>, <see cref="CanAddHoldRemap"/> and <see cref="CanExport"/>. It carries all its
-/// commands, sorted by the store; the tree hides them while the section (or the section it is nested in) is collapsed.
+/// app group on the Apps tab, a category on the Global tab (Uncategorized included, an ordinary category since Joel's
+/// 2026-10-11), or a hold remap (F9, plan 0002) nested in its app group's section (<see cref="IsNested"/>, listed right after
+/// it). Every section can be renamed and deleted. The item says what else its header offers, so the tree never asks which tab
+/// it is on: <see cref="CanEditDefinition"/> (the app group form), <see cref="CanToggleActive"/>, <see cref="CanCopy"/>,
+/// <see cref="CanAddHoldRemap"/> and <see cref="CanExport"/>. It carries all its commands, sorted by the store; the tree hides
+/// them while the section (or the section it is nested in) is collapsed.
 /// </summary>
 public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool IsExpanded, IReadOnlyList<CommandItem> Commands)
 {
-    public bool CanRename { get; init; }
-
-    public bool CanDelete { get; init; }
-
     /// <summary>The app group form in the side panel: app groups only.</summary>
     public bool CanEditDefinition { get; init; }
 

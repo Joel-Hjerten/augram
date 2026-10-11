@@ -34,7 +34,7 @@ public sealed class CommandsViewModelHoldRemapTests
         Assert.Equal(SectionId.ForHoldRemap(Blender(store).Id, Space(store).Id), space.Id);
         Assert.Equal(blender.Id, space.Id.Parent);
         Assert.Equal("hold remap · 4 commands", space.CountText);
-        Assert.True(space is { CanRename: true, CanDelete: true, CanToggleActive: true, CanCopy: true, CanEditDefinition: false, CanAddHoldRemap: false });
+        Assert.True(space is { CanToggleActive: true, CanCopy: true, CanEditDefinition: false, CanAddHoldRemap: false });
         Assert.Equal(["Grab", "Orbit", "Pan", "Zoom both"], space.Commands.Select(command => command.Name));
         Assert.Equal(["W", "Left", "Right", "Left + Right"], space.Commands.Select(command => command.TriggerText));
         Assert.Equal(["Remap to G", "Remap to Middle", "Remap to Shift + Middle", "Remap to Ctrl + Middle"], space.Commands.Select(command => command.StepSummary));

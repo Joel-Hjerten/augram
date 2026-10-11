@@ -35,7 +35,7 @@ public sealed class ImportPlanTests
         var blender = GroupNamed(result.Mapping, "Blender");
         Assert.Equal("Space", Assert.Single(blender.HoldRemaps).Name);
         Assert.All(blender.Commands, command => Assert.Equal(blender.HoldRemaps[0].Id, command.HoldRemapId));
-        Assert.Equal(result.Mapping.Global.Categories.Single().Id, CommandNamed(result.Mapping, AppGroup.GlobalName, "Minimize").CategoryId);
+        Assert.Equal(result.Mapping.Global.Categories.Single(category => category.Name == "Window").Id, CommandNamed(result.Mapping, AppGroup.GlobalName, "Minimize").CategoryId);
     }
 
     [Fact]
@@ -60,7 +60,11 @@ public sealed class ImportPlanTests
         var plan = ImportPlan.Create(Exported(theirs, ExportScope.Everything), mine);
 
         Assert.True(plan.IsEmpty);
-        Assert.All(plan.Entries.Where(entry => entry.Key != SyncItemKey.ForGroup(GroupId.Global)), entry => Assert.NotNull(entry.Match));
+
+        // Global and its Uncategorized have the same fixed ids on every machine (Joel, 2026-10-11), so they are the same items by id.
+        var uncategorized = SyncItemKey.ForCategory(GroupId.Global, CategoryRules.UncategorizedId);
+        Assert.Equal(ImportStatus.Same, plan.Entries.Single(entry => entry.Key == uncategorized).Status);
+        Assert.All(plan.Entries.Where(entry => entry.Key != SyncItemKey.ForGroup(GroupId.Global) && entry.Key != uncategorized), entry => Assert.NotNull(entry.Match));
         Assert.Equal(ImportMatchKind.HoldKey, plan.Entries.Single(entry => entry.Kind == SyncItemKind.HoldRemap).Match!.By);
         Assert.All(plan.Entries.Where(entry => entry.Kind != SyncItemKind.HoldRemap && entry.Match is not null), entry => Assert.Equal(ImportMatchKind.Name, entry.Match!.By));
     }

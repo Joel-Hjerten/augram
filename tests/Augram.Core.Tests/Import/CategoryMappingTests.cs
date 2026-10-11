@@ -31,7 +31,7 @@ public sealed class CategoryMappingTests
     {
         var global = Full.Mapping.Global;
 
-        Assert.Equal(["Synthetic Media", "Synthetic Programs", "Synthetic Stray", "Synthetic Window"], global.Categories.Select(category => category.Name));
+        Assert.Equal(["Synthetic Media", "Synthetic Programs", "Synthetic Stray", "Synthetic Window", "Uncategorized"], global.Categories.Select(category => category.Name));
         Assert.Equal("Synthetic Window", CategoryOf(global, "Synthetic Close"));
         Assert.Equal("Synthetic Window", CategoryOf(global, "Synthetic Alt Tab"));
         Assert.Equal("Synthetic Media", CategoryOf(global, "Synthetic Volume Down"));
@@ -39,10 +39,10 @@ public sealed class CategoryMappingTests
     }
 
     [Fact]
-    public void ActionsWithoutACategoryImportUncategorized()
+    public void GlobalActionsWithoutACategoryImportIntoUncategorized()
     {
-        Assert.Null(CategoryOf(Full.Mapping.Global, "Synthetic Dangling"));
-        Assert.Null(CategoryOf(Full.Mapping.Global, "Synthetic Close (2)"));
+        Assert.Equal("Uncategorized", CategoryOf(Full.Mapping.Global, "Synthetic Dangling"));
+        Assert.Equal("Uncategorized", CategoryOf(Full.Mapping.Global, "Synthetic Close (2)"));
     }
 
     [Fact]
@@ -84,11 +84,12 @@ public sealed class CategoryMappingTests
     }
 
     [Fact]
-    public void EveryImportedCategoryHasAFreshDistinctId()
+    public void EveryImportedCategoryHasAFreshDistinctId_AndUncategorizedItsFixedOne()
     {
         var ids = Full.Mapping.Groups.SelectMany(group => group.Categories).Select(category => category.Id).ToList();
 
-        Assert.Equal(6, ids.Count);
+        Assert.Equal(CategoryRules.UncategorizedId, CategoryRules.Uncategorized(Full.Mapping.Global)!.Id);
+        Assert.Equal(7, ids.Count);
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.DoesNotContain(default, ids);
     }
@@ -98,8 +99,8 @@ public sealed class CategoryMappingTests
     {
         var result = Read("{ \"Categories\": [ \"General\" ], \"Actions\": [ " + Action("Synthetic A", "general") + ", " + Action("Synthetic B", null) + " ] }");
 
-        Assert.Empty(result.Mapping.Global.Categories);
-        Assert.All(result.Mapping.Global.Commands, command => Assert.Null(command.CategoryId));
+        Assert.Equal(["Uncategorized"], result.Mapping.Global.Categories.Select(category => category.Name));
+        Assert.All(result.Mapping.Global.Commands, command => Assert.Equal(CategoryRules.UncategorizedId, command.CategoryId));
         Assert.DoesNotContain(result.Warnings, warning => warning.Severity == ImportSeverity.Info);
     }
 
@@ -115,11 +116,11 @@ public sealed class CategoryMappingTests
     }
 
     [Fact]
-    public void NoCategoriesAnywhereImportsNone()
+    public void NoCategoriesAnywhere_ImportsNoneButUncategorized()
     {
         var result = Read("{ \"Categories\": [ \"Synthetic Listed\" ], \"Actions\": [ " + Action("Synthetic A", null) + " ] }");
 
-        Assert.Empty(result.Mapping.Global.Categories);
-        Assert.Null(Assert.Single(result.Mapping.Global.Commands).CategoryId);
+        Assert.Equal(["Uncategorized"], result.Mapping.Global.Categories.Select(category => category.Name));
+        Assert.Equal(CategoryRules.UncategorizedId, Assert.Single(result.Mapping.Global.Commands).CategoryId);
     }
 }

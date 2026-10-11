@@ -49,7 +49,10 @@ internal sealed class CommandPlacement
         return placed.ToDictionary(pair => pair.Key, pair => Unique(pair.Key, pair.Value));
     }
 
-    /// <summary>The command's group, or Global (uncategorized, out of its hold remap) when its group is gone; a displaced command counts as incoming.</summary>
+    /// <summary>
+    /// The command's group, or Global (without a category, so the rules put it in Uncategorized; out of its hold remap) when its
+    /// group is gone; a displaced command counts as incoming.
+    /// </summary>
     private (GroupId Group, Command Command, bool Incoming) Located(SyncItem.CommandItem item, bool isIncoming)
     {
         if (_groupNames.ContainsKey(item.GroupId))
@@ -57,7 +60,7 @@ internal sealed class CommandPlacement
             return (item.GroupId, item.Command, isIncoming);
         }
 
-        _repairs.Add(new(item.Key, SyncRepairKind.MovedToGlobal, $"Command '{item.Command.Name}' moved to Global: its app group is gone."));
+        _repairs.Add(new(item.Key, SyncRepairKind.MovedToGlobal, $"Command '{item.Command.Name}' moved to Global, in {CategoryRules.UncategorizedName}: its app group is gone."));
         return (GroupId.Global, HoldRemapRules.Detached(item.Command) with { CategoryId = null }, true);
     }
 
@@ -78,7 +81,9 @@ internal sealed class CommandPlacement
 
         if (command.CategoryId is { } category && !_categories[groupId].Any(candidate => candidate.Id == category))
         {
-            _repairs.Add(new(key, SyncRepairKind.CategoryCleared, $"Command '{command.Name}' in '{_groupNames[groupId]}' is now uncategorized: its category is gone."));
+            // On Global the rules then put it in Uncategorized (CategoryRules.Normalised).
+            var now = groupId == GroupId.Global ? $"is in {CategoryRules.UncategorizedName} now" : "has no category now";
+            _repairs.Add(new(key, SyncRepairKind.CategoryCleared, $"Command '{command.Name}' in '{_groupNames[groupId]}' {now}: its category is gone."));
             command = command with { CategoryId = null };
         }
 

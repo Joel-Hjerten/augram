@@ -66,10 +66,11 @@ public sealed class CommandHeaderTests
         var combo = Combo(header, "PART_Category");
 
         Assert.True(header.HasCategories);
-        Assert.Equal(["Uncategorized", "Media", "Window"], combo.ItemsSource!.Cast<string>());
+        // Global: its categories by name, no empty choice (Joel, 2026-10-11: every Global command is in one).
+        Assert.Equal(["Media", "Uncategorized", "Window"], combo.ItemsSource!.Cast<string>());
         Assert.Equal(2, header.CategoryIndex);
 
-        combo.SelectedIndex = 1;
+        combo.SelectedIndex = 0;
 
         var move = Assert.Single(actions);
         Assert.Equal(CommandTreeAction.SetCategory, move.Action);
@@ -81,16 +82,18 @@ public sealed class CommandHeaderTests
         Assert.Single(actions);
 
         header.Item = Item(vm, "Three steps");
-        Assert.Equal(0, header.CategoryIndex);
+        Assert.Equal(1, header.CategoryIndex);
 
-        // An app group without categories has no dropdown; Photoshop has one, with its own categories.
+        // An app group without categories has no dropdown; Photoshop has one, with its own categories after "No category".
         var (apps, _, _, _) = Create();
         header.Item = Item(apps, "Close tab");
         Assert.False(header.HasCategories);
         header.Item = Item(apps, "Brush");
         Assert.True(header.HasCategories);
-        Assert.Equal(["Uncategorized", "Blend Mode Normal", "General"], combo.ItemsSource!.Cast<string>());
+        Assert.Equal(["No category", "Blend Mode Normal", "General"], combo.ItemsSource!.Cast<string>());
         Assert.Equal(2, header.CategoryIndex);
+        header.Item = Item(apps, "Plain");
+        Assert.Equal(0, header.CategoryIndex);
     }
 
     [AvaloniaFact]

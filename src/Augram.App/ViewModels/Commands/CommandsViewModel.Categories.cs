@@ -6,10 +6,10 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// The category half of <see cref="CommandsViewModel"/> (the Global tab's sections, Joel 2026-10-07;
 /// SP.net's Global categories): "New category N" renamed in place, rename, and delete with confirmation,
-/// whose commands move to Uncategorized in the same undo step; deleting Uncategorized deletes its commands (Joel,
-/// 2026-10-11: it would not go, unlike every other section). Each is one
-/// <see cref="MappingStore.UpdateGroup"/> of the Global group; the rules (names unique within the group)
-/// answer through their message.
+/// whose commands move to Uncategorized in the same undo step (the rules make it when it is missing); deleting Uncategorized
+/// itself deletes its commands, which have nowhere else to go (Joel, 2026-10-11: Uncategorized is an ordinary category,
+/// renamed and deleted like any other). Each is one <see cref="MappingStore.UpdateGroup"/> of the Global group; the rules
+/// (names unique within the group) answer through their message.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -40,6 +40,11 @@ public sealed partial class CommandsViewModel
         });
     }
 
+    /// <summary>
+    /// Asks, then removes the category in one <see cref="MappingStore.UpdateGroup"/>, so one undo brings it back: its commands
+    /// (every one, those other platforms use included) move to Uncategorized, or, when it is Uncategorized
+    /// (<see cref="CategoryRules.Uncategorized"/>), go with it.
+    /// </summary>
     private async Task DeleteCategoryAsync(CategoryId id)
     {
         var global = _store.Global;
@@ -50,11 +55,14 @@ public sealed partial class CommandsViewModel
         }
 
         var count = global.Commands.Count(command => command.CategoryId == id);
-        var question = count switch
+        var takesCommands = CategoryRules.Uncategorized(global)?.Id == id;
+        var question = (count, takesCommands) switch
         {
-            0 => $"Delete category '{category.Name}'? It has no commands.",
-            1 => $"Delete category '{category.Name}'? Its command moves to Uncategorized.",
-            _ => $"Delete category '{category.Name}'? Its {count} commands move to Uncategorized.",
+            (0, _) => $"Delete category '{category.Name}'? It has no commands.",
+            (1, true) => $"Delete category '{category.Name}' and its command?",
+            (_, true) => $"Delete category '{category.Name}' and its {count} commands?",
+            (1, false) => $"Delete category '{category.Name}'? Its command moves to {CategoryRules.UncategorizedName}.",
+            _ => $"Delete category '{category.Name}'? Its {count} commands move to {CategoryRules.UncategorizedName}.",
         };
         if (!await _confirm.ConfirmAsync("Delete category", question, "Delete").ConfigureAwait(true))
         {
@@ -64,52 +72,15 @@ public sealed partial class CommandsViewModel
         Guard(() =>
         {
             var current = _store.Global;
+            var commands = takesCommands
+                ? current.Commands.Where(command => command.CategoryId != id)
+                : current.Commands.Select(command => command.CategoryId == id ? command with { CategoryId = null } : command);
             _store.UpdateGroup(current with
             {
                 Categories = [.. current.Categories.Where(existing => existing.Id != id)],
-                Commands = [.. current.Commands.Select(command => command.CategoryId == id ? command with { CategoryId = null } : command)],
+                Commands = [.. commands],
             });
             Message = $"Deleted '{category.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
-        });
-    }
-
-    /// <summary>
-    /// Asks, then deletes the commands Uncategorized shows (those used here, or all with Show other platforms on) in one
-    /// <see cref="MappingStore.UpdateGroup"/>, so one undo brings them all back; the section goes with its last command, as when
-    /// it is emptied any other way. A command already gone meanwhile is skipped.
-    /// </summary>
-    private async Task DeleteUncategorizedAsync()
-    {
-        var commands = Sections.FirstOrDefault(section => section.Id == SectionId.Uncategorized)?.Commands ?? [];
-        if (commands.Count == 0)
-        {
-            Message = "Uncategorized has no commands.";
-            return;
-        }
-
-        var (title, question) = commands.Count == 1
-            ? ("Delete command", $"Delete the uncategorized command '{commands[0].Name}'?")
-            : ("Delete commands", $"Delete the {commands.Count} uncategorized commands?");
-        if (!await _confirm.ConfirmAsync(title, question, "Delete").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        var ids = commands.Select(command => command.Id).ToHashSet();
-        Guard(() =>
-        {
-            var current = _store.Global;
-            var removed = current.Commands.Where(command => ids.Contains(command.Id)).ToList();
-            if (removed.Count == 0)
-            {
-                Message = "Those commands no longer exist.";
-                return;
-            }
-
-            _store.UpdateGroup(current with { Commands = [.. current.Commands.Where(command => !ids.Contains(command.Id))] });
-            Message = removed.Count == 1
-                ? $"Deleted '{removed[0].Name}'. {CommandsKeymap.Current.Undo} undoes it."
-                : $"Deleted {removed.Count} uncategorized commands. {CommandsKeymap.Current.Undo} undoes it.";
         });
     }
 }

@@ -23,10 +23,10 @@ internal static class CommandTreeMenu
 
     /// <summary>
     /// Labels the new-section entry as the host does and shows or disables the entries that depend on the
-    /// selection, as the section allows: rename, delete and copy per <see cref="SectionItem"/>, New hold remap only where
-    /// the section offers it (an app group, plan 0002), Export… only on a section header that exports (an app group or a
-    /// Global category, plan 0003), and New command only with a section to put it in (Joel, 2026-10-11: nothing selected makes
-    /// nothing); a command can always be renamed, deleted and copied.
+    /// selection, as the section allows: rename and delete for any section or command, copy per <see cref="SectionItem"/>,
+    /// New hold remap only where the section offers it (an app group, plan 0002), Export… only on a section header that exports
+    /// (an app group or a Global category, plan 0003), and New command only with a section to put it in (Joel, 2026-10-11:
+    /// nothing selected makes nothing); a command can always be renamed, deleted and copied.
     /// </summary>
     public static void Refresh(ContextMenu menu, SectionItem? section, CommandItem? command, string newSectionLabel)
     {
@@ -44,10 +44,7 @@ internal static class CommandTreeMenu
                 case CommandTreeAction.NewCommand:
                     item.IsEnabled = section is not null;
                     break;
-                case CommandTreeAction.Rename:
-                    item.IsEnabled = command is not null || section is { CanRename: true };
-                    break;
-                case CommandTreeAction.Delete or CommandTreeAction.Copy:
+                case CommandTreeAction.Rename or CommandTreeAction.Delete or CommandTreeAction.Copy:
                     item.IsEnabled = Allows((CommandTreeAction)item.Tag, section, command);
                     break;
             }
@@ -55,13 +52,13 @@ internal static class CommandTreeMenu
     }
 
     /// <summary>
-    /// Whether the selection allows the action at all: a section only as its <see cref="SectionItem"/> says; Copy needs a
-    /// command or a section that copies itself (a hold remap); New hold remap an app group's section; Export a section
-    /// header that exports, with no command selected.
+    /// Whether the selection allows the action at all: a section only as its <see cref="SectionItem"/> says; Rename and Delete
+    /// need a command or a section (every section has both); Copy a command or a section that copies itself (a hold remap);
+    /// New hold remap an app group's section; Export a section header that exports, with no command selected.
     /// </summary>
     public static bool Allows(CommandTreeAction action, SectionItem? section, CommandItem? command) => action switch
     {
-        CommandTreeAction.Delete => command is not null || section is { CanDelete: true },
+        CommandTreeAction.Rename or CommandTreeAction.Delete => command is not null || section is not null,
         CommandTreeAction.ToggleActive => command is not null || section is { CanToggleActive: true },
         CommandTreeAction.Copy => command is not null || section is { CanCopy: true },
         CommandTreeAction.NewHoldRemap => section is { CanAddHoldRemap: true },

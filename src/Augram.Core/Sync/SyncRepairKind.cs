@@ -15,7 +15,7 @@ public enum SyncRepairKind
     /// <summary>The command's gesture is gone, so it is now unbound.</summary>
     TriggerCleared,
 
-    /// <summary>The command's category is gone, so it is now Uncategorized.</summary>
+    /// <summary>The command's category is gone, so it is in Uncategorized now (on Global) or has none (in an app group).</summary>
     CategoryCleared,
 
     /// <summary>The category's app group is gone, so the category was dropped.</summary>

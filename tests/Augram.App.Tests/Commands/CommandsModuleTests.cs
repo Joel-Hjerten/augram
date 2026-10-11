@@ -34,7 +34,7 @@ public sealed class CommandsModuleTests
         Assert.Equal((CommandsScope.Global, CommandsScope.Apps), (global.Scope, apps.Scope));
         Assert.Same(global, provider.GetRequiredKeyedService<CommandsViewModel>(CommandsScope.Global));
         Assert.Same(store, provider.GetRequiredService<MappingStore>());
-        Assert.Equal(["Uncategorized", "Media", "Window"], Names(global));
+        Assert.Equal(["Media", "Uncategorized", "Window"], Names(global));
         Assert.Equal(["Apple", "Chrome", "Photoshop"], Names(apps));
         Assert.NotEmpty(provider.GetRequiredService<GestureLibrary>().All);
         Assert.IsType<GesturePickerPresenter>(provider.GetRequiredService<IGesturePickerPresenter>());
@@ -74,7 +74,7 @@ public sealed class CommandsModuleTests
         Assert.Single(apps.StepsPart!.Rows);
 
         var global = Show(entry.SubEntries[0]);
-        Assert.Equal(["Uncategorized", "Media", "Window"], global.TreePart!.Rows.OfType<SectionRow>().Select(row => row.NameText));
+        Assert.Equal(["Media", "Uncategorized", "Window"], global.TreePart!.Rows.OfType<SectionRow>().Select(row => row.NameText));
         Assert.Equal(("Global commands", "New category"), (global.TreePart.Heading, global.TreePart.NewSectionLabel));
         Assert.False(global.HasCommand);
     }

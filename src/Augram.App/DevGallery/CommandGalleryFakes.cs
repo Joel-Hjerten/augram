@@ -20,9 +20,10 @@ namespace Augram.App.DevGallery;
 /// <summary>
 /// The fake mapping and the instant-answer presenters behind the Commands gallery pages: Global with the
 /// categories Window and Media, "PC tools" (Use on Windows only: its command's header shows the macOS box disabled
-/// with "Set by category") and "Mac tools" (macOS only: listed greyed with Show other platforms), and one
-/// uncategorized command; Chrome (with trigger combinations: Right + wheel up, Shift + gesture, Ctrl + Left + click),
-/// Steam games (an override to nothing), Photoshop with categories and Blender with its Space hold remap (plan 0002), so every
+/// with "Set by category") and "Mac tools" (macOS only: listed greyed with Show other platforms), and one command
+/// without a category (the store puts it in Uncategorized); Chrome (with trigger combinations: Right + wheel up, Shift +
+/// gesture, Ctrl + Left + click), Steam games (an override to nothing), Photoshop with categories (and one command with
+/// "No category") and Blender with its Space hold remap (plan 0002), so every
 /// section kind, tag, marker, trigger badge and input has a case.
 /// </summary>
 public static class CommandGalleryFakes

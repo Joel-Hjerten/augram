@@ -105,7 +105,7 @@ public sealed class CommandsViewModelSharedTests
         global.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, Section(global, "Media")));
         Assert.True(Section(apps, "Chrome").IsExpanded);
         Assert.True(Section(global, "Media").IsExpanded);
-        Assert.Equal([false, true, false], global.Sections.Select(section => section.IsExpanded));
+        Assert.Equal([true, false, false], global.Sections.Select(section => section.IsExpanded));
 
         // A store change re-projects both tabs; what the user opened stays open on each.
         apps.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleActive, Section(apps, "Apple")));
@@ -127,7 +127,7 @@ public sealed class CommandsViewModelSharedTests
         Assert.False(apps.ShowCommand(three.Id));
         Assert.True(global.ShowCommand(three.Id));
         Assert.True(Section(global, "Uncategorized").IsExpanded);
-        Assert.Equal(SectionId.Uncategorized, global.SelectedSectionId);
+        Assert.Equal(Section(global, "Uncategorized").Id, global.SelectedSectionId);
         Assert.False(apps.ShowCommand(CommandId.New()));
     }
 }

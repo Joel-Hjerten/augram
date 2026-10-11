@@ -76,7 +76,7 @@ public sealed class CategoryUseOnTests
     }
 
     [Fact]
-    public void AnUncategorizedCommandAndOneNamingAMissingCategoryAreLimitedByNoCategory_AndGlobalByNoGroup()
+    public void ACommandWithoutACategoryAndOneNamingAMissingCategoryAreLimitedByNoCategory_AndGlobalByNoGroup()
     {
         var command = NewCommand("Act", Up) with { UseOn = PlatformSet.MacOS };
         var global = NewGlobal(command) with { UseOn = PlatformSet.Windows };

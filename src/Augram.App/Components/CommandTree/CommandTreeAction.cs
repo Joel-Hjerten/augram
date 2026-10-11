@@ -4,7 +4,7 @@ namespace Augram.App.Components.CommandTree;
 /// The intents a <see cref="CommandTree"/> (and the <see cref="CommandHeader"/>) raises for the host
 /// view model (F5a list editing). The event args say which section and command they apply to: an
 /// action with a command set acts on the command, one with only a section set acts on the section.
-/// A section is an app group on the Apps tab and a category (or Uncategorized) on the Global tab; what
+/// A section is an app group on the Apps tab and a category on the Global tab; what
 /// a section's header offers is on its <see cref="SectionItem"/>.
 /// </summary>
 public enum CommandTreeAction
@@ -48,7 +48,10 @@ public enum CommandTreeAction
     /// <summary>Rename the section or command to the name typed in place.</summary>
     Rename,
 
-    /// <summary>Delete the section (an app group or a hold remap with its commands, a category whose commands move to Uncategorized) or the command; the host asks first.</summary>
+    /// <summary>
+    /// Delete the section (an app group or a hold remap with its commands, a category whose commands move to Uncategorized, or
+    /// Uncategorized with its commands) or the command; the host asks first.
+    /// </summary>
     Delete,
 
     ToggleActive,
@@ -92,7 +95,7 @@ public enum CommandTreeAction
     /// </summary>
     TakeTrigger,
 
-    /// <summary>Move the command into another category of its group (the header's Category dropdown); Uncategorized clears it.</summary>
+    /// <summary>Move the command into another category of its group (the header's Category dropdown); an app group's "No category" clears it.</summary>
     SetCategory,
 
     /// <summary>Open the Select Gesture picker for the command (the header's glyph button).</summary>

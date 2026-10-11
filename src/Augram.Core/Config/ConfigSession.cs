@@ -184,7 +184,7 @@ public sealed class ConfigSession : IDisposable
 
     /// <summary>
     /// The group without its commands, categories and hold remaps first, then each category, each hold remap, each command: a
-    /// bad category costs only itself (its commands load Uncategorized), and so does a bad hold remap (its commands load as
+    /// bad category costs only itself (its commands load without it: on Global, in Uncategorized), and so does a bad hold remap (its commands load as
     /// ordinary commands without their input).
     /// </summary>
     private void LoadGroup(MappingStore store, AppGroup group)

@@ -25,7 +25,7 @@ public sealed class CommandsViewModelTests
         Assert.All(vm.Sections, section =>
         {
             Assert.False(section.IsExpanded);
-            Assert.True(section is { CanRename: true, CanDelete: true, CanEditDefinition: true, CanToggleActive: true });
+            Assert.True(section is { CanEditDefinition: true, CanToggleActive: true, CanExport: true });
         });
         Assert.Equal("no commands", Section(vm, "Apple").CountText);
 
@@ -43,7 +43,7 @@ public sealed class CommandsViewModelTests
         var photoshop = Section(vm, "Photoshop").Commands;
         Assert.Equal(["Brush", "Plain"], photoshop.Select(command => command.Name));
         Assert.Equal(["General", null], photoshop.Select(command => command.CategoryLabel));
-        Assert.Equal(["Uncategorized", "Blend Mode Normal", "General"], photoshop[0].Categories.Select(choice => choice.Name));
+        Assert.Equal(["No category", "Blend Mode Normal", "General"], photoshop[0].Categories.Select(choice => choice.Name));
         Assert.Null(photoshop[0].Categories[0].Id);
         Assert.False(vm.CanUndo);
         Assert.Null(vm.SelectedCommand);

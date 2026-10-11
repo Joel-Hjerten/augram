@@ -21,7 +21,7 @@ public sealed class UsedByWindowTests
 
         Assert.Equal("Used by: Down", window.Title);
         Assert.False(window.IsEmpty);
-        Assert.Equal(["Global › Minimize", "Chrome › Close tab", "Steam › Nothing"], window.Rows.Select(row => row.Label));
+        Assert.Equal(["Global › Uncategorized › Minimize", "Chrome › Close tab", "Steam › Nothing"], window.Rows.Select(row => row.Label));
         Assert.Equal(["Wait 30 ms", "Wait 30 ms", "(override to nothing)"], window.Rows.Select(row => row.Steps));
         Assert.Equal("Close tab (inactive)", window.Rows[1].CommandText);
         var list = window.GetVisualDescendants().OfType<ItemList>().Single();

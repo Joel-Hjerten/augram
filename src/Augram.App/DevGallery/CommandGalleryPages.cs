@@ -32,8 +32,9 @@ public static class CommandGalleryPages
     private static readonly IReadOnlyList<Gesture> Starter = StarterGestures.All();
 
     /// <summary>
-    /// The Global sub-tab over a throwaway store: Uncategorized, then the categories Media and Window; New category names one in
-    /// place. Window is open and selected, so its header shows New command and the side panel its form.
+    /// The Global sub-tab over a throwaway store: the categories Media, Uncategorized (an ordinary one, made for the command
+    /// without a category) and Window; New category names one in place. Window is open and selected, so its header shows New
+    /// command and the side panel its form.
     /// </summary>
     public static ScreenDeclaration GlobalWorkbenchPage()
     {

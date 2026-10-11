@@ -97,9 +97,9 @@ public sealed class ExportTests
         var file = Exported(config, ExportScope.Of([GroupId.Global]));
 
         var global = file.Mapping!.Global;
-        Assert.Equal(["Window"], global.Categories.Select(category => category.Name));
+        Assert.Equal(["Uncategorized", "Window"], global.Categories.Select(category => category.Name));
         Assert.Equal(["Close", "Minimize"], global.Commands.Select(command => command.Name));
-        Assert.Equal(global.Categories[0].Id, CommandNamed(file.Mapping, AppGroup.GlobalName, "Minimize").CategoryId);
+        Assert.Equal([global.Categories[0].Id, global.Categories[1].Id], global.Commands.Select(command => command.CategoryId));
         Assert.Equal(["Up", "Down"], file.Gestures.Select(gesture => gesture.Name));
         Assert.True(TransferContents.Of(file).HasGlobal);
     }
@@ -165,7 +165,7 @@ public sealed class ExportTests
     {
         var contents = TransferContents.Of(Exporter.Export(ExportScope.Everything, SampleConfig()));
 
-        Assert.Equal(new TransferContents(3, 2, HasGlobal: true, 1, 1, 13, 1, HasSettings: true, PrivateTextSteps: 0), contents);
+        Assert.Equal(new TransferContents(3, 2, HasGlobal: true, 2, 1, 13, 1, HasSettings: true, PrivateTextSteps: 0), contents);
         Assert.Equal("options, 3 gestures, Global, 2 app groups, 1 hold remap, 13 commands, 1 excluded app", contents.ToString());
         Assert.Equal("1 gesture", TransferContents.Of(new TransferFile([Flick("Up")], null)).ToString());
     }

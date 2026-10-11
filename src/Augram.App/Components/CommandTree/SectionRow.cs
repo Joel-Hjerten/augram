@@ -12,12 +12,11 @@ namespace Augram.App.Components.CommandTree;
 /// (<c>PART_Expander</c>, raising <see cref="ExpandToggled"/>), name, command count, the New command button
 /// (<c>PART_NewCommand</c>, raising <see cref="NewCommandRequested"/>) while <see cref="ShowsNewCommand"/> (the tree sets it on
 /// the one section New command targets) and, when the item allows it, the active toggle (<see cref="CanToggleActive"/>).
-/// Marked <c>:collapsed</c> while its commands are hidden, <c>:pinned</c> for a section that cannot be renamed
-/// (Uncategorized), <c>:elsewhere</c> for a group or category used only on the other platform (F8) and <c>:nested</c> for a
-/// section inside another one (a hold remap in its app group, indented as a command is). What the header offers comes from
-/// the <see cref="SectionItem"/>, never from the tab.
+/// Marked <c>:collapsed</c> while its commands are hidden, <c>:elsewhere</c> for a group or category used only on the other
+/// platform (F8) and <c>:nested</c> for a section inside another one (a hold remap in its app group, indented as a command
+/// is). What the header offers comes from the <see cref="SectionItem"/>, never from the tab.
 /// </summary>
-[PseudoClasses(":collapsed", ":pinned", ":elsewhere", ":nested")]
+[PseudoClasses(":collapsed", ":elsewhere", ":nested")]
 public sealed class SectionRow : ItemRow
 {
     public static readonly StyledProperty<SectionItem?> ItemProperty =
@@ -139,10 +138,9 @@ public sealed class SectionRow : ItemRow
             NameText = item?.Name ?? string.Empty;
             IsActive = item?.IsActive ?? true;
             IsExpanded = item?.IsExpanded ?? true;
-            CanRename = item?.CanRename ?? false;
+            CanRename = item is not null;
             CanToggleActive = item?.CanToggleActive ?? false;
             CountText = item?.CountText ?? string.Empty;
-            PseudoClasses.Set(":pinned", item is { CanRename: false });
             PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });
             PseudoClasses.Set(":nested", item is { IsNested: true });
         }

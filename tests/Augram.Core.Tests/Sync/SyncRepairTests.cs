@@ -116,7 +116,8 @@ public sealed class SyncRepairTests
 
         Assert.Null(result.Mapping.Groups.SingleOrDefault(group => group.Id == chrome.Id));
         Assert.Equal(added.Id, Assert.Single(result.Mapping.Global.Commands).Id);
-        AssertRepair(result, SyncRepairKind.MovedToGlobal, SyncItemKey.ForCommand(added.Id), "moved to Global");
+        Assert.Equal(Uncategorized.Id, result.Mapping.Global.Commands[0].CategoryId);
+        AssertRepair(result, SyncRepairKind.MovedToGlobal, SyncItemKey.ForCommand(added.Id), "moved to Global, in Uncategorized");
     }
 
     [Fact]
@@ -145,7 +146,7 @@ public sealed class SyncRepairTests
     }
 
     [Fact]
-    public void ACommandWhoseCategoryIsGoneIsUncategorized()
+    public void AGlobalCommandWhoseCategoryIsGoneIsInUncategorized()
     {
         var media = NewCategory("Media");
         var @base = Set([], NewGlobal() with { Categories = [media] });
@@ -154,9 +155,26 @@ public sealed class SyncRepairTests
 
         var result = ThreeWayMerge.Merge(@base, local, Set([], NewGlobal()));
 
-        Assert.Empty(result.Mapping.Global.Categories);
-        Assert.Null(result.Mapping.Global.FindCommand(play.Id)!.CategoryId);
-        AssertRepair(result, SyncRepairKind.CategoryCleared, SyncItemKey.ForCommand(play.Id), "uncategorized");
+        Assert.Equal([Uncategorized], result.Mapping.Global.Categories);
+        Assert.Equal(Uncategorized.Id, result.Mapping.Global.FindCommand(play.Id)!.CategoryId);
+        AssertRepair(result, SyncRepairKind.CategoryCleared, SyncItemKey.ForCommand(play.Id), "'Play' in 'Global' is in Uncategorized now: its category is gone.");
+    }
+
+    [Fact]
+    public void AnAppCommandWhoseCategoryIsGoneHasNone()
+    {
+        var media = NewCategory("Media");
+        var chrome = NewGroup("Chrome") with { Categories = [media] };
+        var play = NewCommand("Play").In(media);
+        var @base = Set([], NewGlobal(), chrome);
+        var local = Set([], NewGlobal(), chrome with { Commands = [play] });
+
+        var result = ThreeWayMerge.Merge(@base, local, Set([], NewGlobal(), chrome with { Categories = [] }));
+
+        var merged = result.Mapping.Groups.Single(group => group.Id == chrome.Id);
+        Assert.Empty(merged.Categories);
+        Assert.Null(merged.FindCommand(play.Id)!.CategoryId);
+        AssertRepair(result, SyncRepairKind.CategoryCleared, SyncItemKey.ForCommand(play.Id), "'Play' in 'Chrome' has no category now: its category is gone.");
     }
 
     [Fact]

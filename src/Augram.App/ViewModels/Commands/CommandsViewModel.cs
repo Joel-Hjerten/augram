@@ -101,7 +101,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 
     /// <summary>The help line under the tree.</summary>
     public string Help => Scope == CommandsScope.Global
-        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories (select one to rename it, choose where it is used, or add a command with New command on its row); Uncategorized holds the rest. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
+        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories (select one to rename it, choose where it is used, or add a command with New command on its row); a command left without one goes into Uncategorized. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
         : "One section per app group; its commands win over Global in that app. Select a group, and New command on its row adds a command to it. A group's hold remaps sit inside it with their commands (right-click a group: New hold remap). Right-click a row for the menu; rename with the rename key. Deleting a group, a hold remap or a command asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
 
     [ObservableProperty]
@@ -122,7 +122,7 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// The side panel's form for the selected section header: an app group's on the Apps tab, a category's (name, Use on) on
-    /// the Global tab; null while a command, Uncategorized or nothing is selected.
+    /// the Global tab; null while a command or nothing is selected.
     /// </summary>
     [ObservableProperty]
     public partial FormScreen? GroupForm { get; private set; }

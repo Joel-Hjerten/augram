@@ -103,7 +103,7 @@ public sealed class MappingImportTests
 
         var result = MappingImport.Merge(existing, Doc([GlobalOf(Cmd("close", Trigger.ForGesture(G2)))]));
 
-        Assert.Equal(close, Assert.Single(result.Document.Global.Commands));
+        Assert.Equal(Assert.Single(existing.Global.Commands), Assert.Single(result.Document.Global.Commands));
         Assert.Equal(0, result.CommandsAdded);
         Assert.Equal(1, result.CommandsSkipped);
     }

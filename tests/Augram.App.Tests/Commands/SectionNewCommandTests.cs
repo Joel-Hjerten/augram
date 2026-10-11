@@ -48,8 +48,8 @@ public sealed class SectionNewCommandTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized")));
         ClickNewCommand(bench, window, "Uncategorized");
 
-        Assert.Null(Find(store, "New command 3").CategoryId);
-        Assert.Equal(SectionId.Uncategorized, vm.SelectedSectionId);
+        Assert.Equal(Category(store, "Uncategorized").Id, Find(store, "New command 3").CategoryId);
+        Assert.Equal(Section(vm, "Uncategorized").Id, vm.SelectedSectionId);
     }
 
     [AvaloniaFact]

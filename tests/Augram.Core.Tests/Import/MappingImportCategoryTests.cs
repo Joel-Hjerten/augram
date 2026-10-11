@@ -42,11 +42,11 @@ public sealed class MappingImportCategoryTests
         var result = MappingImport.Merge(existing, new([GlobalOf([window], Cmd("Close", window), Cmd("Loose"))], []));
 
         var global = result.Document.Global;
-        Assert.Equal(["Media", "Window"], global.Categories.Select(category => category.Name));
+        Assert.Equal(["Media", "Uncategorized", "Window"], global.Categories.Select(category => category.Name));
         Assert.Equal(window.Id, global.FindCategory(window.Id)!.Id);
         Assert.Equal("Window", CategoryOf(global, "Close"));
-        Assert.Null(CategoryOf(global, "Loose"));
-        Assert.Null(CategoryOf(global, "Play"));
+        Assert.Equal("Uncategorized", CategoryOf(global, "Loose"));
+        Assert.Equal("Uncategorized", CategoryOf(global, "Play"));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class MappingImportCategoryTests
         var result = MappingImport.Merge(existing, new([GlobalOf([window], Cmd("Close", window))], []));
 
         Assert.Equal(1, result.CommandsSkipped);
-        Assert.Empty(result.Document.Global.Categories);
+        Assert.Equal(["Uncategorized"], result.Document.Global.Categories.Select(category => category.Name));
     }
 
     [Fact]

@@ -42,11 +42,11 @@ public sealed class CategorySerializationTests
         Assert.Contains($"\"matcher\": null,\n        \"categories\": [\n          {{\n            \"id\": \"{media.Id}\",\n            \"name\": \"Media\"\n          }},", json, StringComparison.Ordinal);
         Assert.Contains($"\"isActive\": true,\n            \"category\": \"{media.Id}\",\n            \"steps\": [", json, StringComparison.Ordinal);
         Assert.Equal(1, Occurrences(json, "\"categories\""));
-        Assert.Equal(2, Occurrences(json, "\"category\""));
+        Assert.Equal(3, Occurrences(json, "\"category\""));
     }
 
     [Fact]
-    public void MissingMembersReadAsNoCategoriesAndUncategorized()
+    public void MissingMembersReadAsNoCategories_AndTheStorePutsAGlobalCommandInUncategorized()
     {
         var back = ConfigSerializer.Read($$"""
             { "schemaVersion": 1, "mapping": { "groups": [ { "id": "{{GlobalId}}", "name": "Global",
@@ -55,6 +55,11 @@ public sealed class CategorySerializationTests
 
         Assert.Empty(back.Mapping.Global.Categories);
         Assert.Null(Assert.Single(back.Mapping.Global.Commands).CategoryId);
+        var migrated = new MappingStore(back.Mapping).Current;
+        Assert.Equal([Uncategorized], migrated.Global.Categories);
+        Assert.Equal(Uncategorized.Id, migrated.Global.Commands[0].CategoryId);
+        var json = ConfigSerializer.Write(back with { Mapping = migrated });
+        Assert.Contains($"\"category\": \"{Uncategorized.Id}\"", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -74,27 +79,27 @@ public sealed class CategorySerializationTests
                 "Category 4 of app group 'Global' dropped: it has no name.",
             ],
             _notices);
-        Assert.Null(new MappingStore(back).Global.Commands[0].CategoryId);
+        Assert.Equal(Uncategorized.Id, new MappingStore(back).Global.Commands[0].CategoryId);
     }
 
     [Fact]
-    public void ACategoryReferenceToNoCategoryOfTheGroupIsClearedSilently()
+    public void ACategoryReferenceToNoCategoryOfTheGroupIsClearedSilently_IntoUncategorizedOnGlobal()
     {
         var back = Read($$"""[ { "id": "{{MediaId}}", "name": "Media" } ]""", "\"category\": \"6d1e7f3a-0000-4000-8000-0000000000ff\"");
 
         Assert.Empty(_notices);
-        Assert.Null(new MappingStore(back).Global.Commands[0].CategoryId);
+        Assert.Equal(Uncategorized.Id, new MappingStore(back).Global.Commands[0].CategoryId);
     }
 
     [Theory]
     [InlineData("\"category\": 7")]
     [InlineData("\"category\": \"media\"")]
-    public void ACategoryReferenceThatIsNotAGuidReadsAsUncategorizedWithANotice(string member)
+    public void ACategoryReferenceThatIsNotAGuidReadsAsNoneWithANotice(string member)
     {
         var back = Read($$"""[ { "id": "{{MediaId}}", "name": "Media" } ]""", member);
 
         Assert.Null(back.Global.Commands[0].CategoryId);
-        Assert.Equal(["The category of command 'Close' in 'Global' dropped: 'category' must be a Guid string; the command is uncategorized."], _notices);
+        Assert.Equal(["The category of command 'Close' in 'Global' dropped: 'category' must be a Guid string."], _notices);
     }
 
     [Fact]
@@ -116,7 +121,7 @@ public sealed class CategorySerializationTests
             FakeStepType.Registry,
             _notices.Add).Mapping;
 
-    /// <summary>Global with two categories and one command in each plus one Uncategorized; Chrome with none.</summary>
+    /// <summary>Global with two categories and one command in each plus one without, which the rules put in Uncategorized; Chrome with none.</summary>
     private static MappingDocument Categorised()
     {
         var media = NewCategory("Media");

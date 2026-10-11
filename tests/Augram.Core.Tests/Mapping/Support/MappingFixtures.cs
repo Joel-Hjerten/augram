@@ -36,6 +36,9 @@ internal static class MappingFixtures
 
     public static CommandCategory NewCategory(string name) => new(CategoryId.New(), name);
 
+    /// <summary>The category the rules make first for a Global command without one (Joel, 2026-10-11).</summary>
+    public static CommandCategory Uncategorized { get; } = new(CategoryRules.UncategorizedId, CategoryRules.UncategorizedName);
+
     /// <summary>The command, sorted into the category.</summary>
     public static Command In(this Command command, CommandCategory category) => command with { CategoryId = category.Id };
 
