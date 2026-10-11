@@ -418,16 +418,21 @@
                                   HelpText="{TemplateBinding TreeHelp}" />
                 <GridSplitter Grid.Column="1" Theme="{StaticResource Lists.Splitter}" ResizeDirection="Columns" />
                 <Panel Grid.Column="2">
-                  <DockPanel IsVisible="{TemplateBinding ShowsCommandPanel}">
-                    <tree:CommandHeader Name="PART_Header" DockPanel.Dock="Top" Margin="0,0,0,10" Item="{TemplateBinding SelectedCommand}" />
-                    <steps:StepList Name="PART_Steps"
-                                    Steps="{TemplateBinding Steps}"
-                                    SelectedIndex="{TemplateBinding SelectedStepIndex}"
-                                    StepTypes="{TemplateBinding StepTypes}"
-                                    HasCommand="{TemplateBinding HasCommand}"
-                                    UnderHoldRemap="{TemplateBinding OffersRemapStep}"
-                                    FormContext="{TemplateBinding StepFormContext}" />
-                  </DockPanel>
+                  <!-- The command's column is laid out and scrolls as a form does (SectionForm: one scroll, the same margins and width,
+                       each section's title above its card), so it matches the group form beside it and every other detail column
+                       (Joel, 0.11.0: the header stayed put while only the steps scrolled, and its title sat inside its card). -->
+                  <ScrollViewer Name="PART_CommandScroll" IsVisible="{TemplateBinding ShowsCommandPanel}" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="12,8,12,12" MaxWidth="{StaticResource Form.MaxWidth}">
+                      <tree:CommandHeader Name="PART_Header" Item="{TemplateBinding SelectedCommand}" />
+                      <steps:StepList Name="PART_Steps"
+                                      Steps="{TemplateBinding Steps}"
+                                      SelectedIndex="{TemplateBinding SelectedStepIndex}"
+                                      StepTypes="{TemplateBinding StepTypes}"
+                                      HasCommand="{TemplateBinding HasCommand}"
+                                      UnderHoldRemap="{TemplateBinding OffersRemapStep}"
+                                      FormContext="{TemplateBinding StepFormContext}" />
+                    </StackPanel>
+                  </ScrollViewer>
                   <form:SectionForm Name="PART_GroupForm"
                                     Screen="{TemplateBinding GroupForm}"
                                     IsVisible="{TemplateBinding HasGroupForm}" />
@@ -643,157 +648,165 @@
       <ControlTheme x:Key="{x:Type tree:CommandHeader}" TargetType="tree:CommandHeader">
         <Setter Property="Template">
           <ControlTemplate>
-            <Border Background="{DynamicResource Layer.Panel}"
-                    BorderBrush="{DynamicResource Layer.Edge}"
-                    BorderThickness="1"
-                    CornerRadius="{DynamicResource Radius.Panel}"
-                    Padding="14,10,14,12">
+            <StackPanel Margin="0,0,0,10">
+              <!-- The command's name above its card, as a form section's title (Joel, 0.11.0: the same in every detail column). -->
+              <StackPanel Orientation="Horizontal" Margin="4,4,4,8" IsVisible="{TemplateBinding HasCommand}">
+                <TextBlock Classes="section-heading" Text="{TemplateBinding NameText}" />
+              </StackPanel>
               <Panel>
-                <TextBlock Classes="panel-empty-inline"
-                           Text="Select a command to edit its trigger and steps."
-                           IsVisible="{TemplateBinding HasCommand, Converter={x:Static BoolConverters.Not}}" />
-                <StackPanel Spacing="6" IsVisible="{TemplateBinding HasCommand}">
-                  <TextBlock Classes="bench-title" Text="{TemplateBinding NameText}" />
-                  <!-- A command under a hold remap (F9, plan 0002): its input in place of the trigger kind and the While holding boxes. -->
-                  <StackPanel Spacing="6" IsVisible="{TemplateBinding IsInputCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
-                      <TextBlock Classes="bench-label bench-label-column" Text="Input" />
-                      <ComboBox Name="PART_InputKind" Classes="field-editor" />
-                      <ComboBox Name="PART_InputWheel" Classes="field-editor" IsVisible="{TemplateBinding IsWheelInput}" />
-                      <StackPanel Name="PART_InputButtons" Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding IsButtonsInput}" />
-                      <Button Name="PART_AddButton"
-                              Classes="toolbar"
-                              Content="Add button…"
-                              IsVisible="{TemplateBinding IsButtonsInput}"
-                              IsEnabled="{TemplateBinding IsDetecting, Converter={x:Static BoolConverters.Not}}"
-                              ToolTip.Tip="Then press the mouse button; add several for buttons held together." />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsKeyInput}">
-                      <TextBlock Classes="bench-label bench-label-column" Text="" />
-                      <hk:HotkeyCaptureBox Name="PART_InputKey" />
-                    </StackPanel>
-                    <TextBlock Classes="bench-note"
-                               Text="{TemplateBinding InputStatus}"
-                               IsVisible="{TemplateBinding InputStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                    <TextBlock Classes="bench-note"
-                               Text="{TemplateBinding TriggerHint}"
-                               IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
-                    <TextBlock Classes="bench-label bench-label-column" Text="Trigger" />
-                    <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
-                    <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
-                    <!-- Plan 0005: a button trigger's pressed button (Left in Right + Left); the buttons held are the While holding boxes. -->
-                    <ComboBox Name="PART_TriggerButton" Classes="field-editor" IsVisible="{TemplateBinding IsButtonKind}" />
-                    <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
+                <Border Background="{DynamicResource Layer.Panel}"
+                        BorderBrush="{DynamicResource Layer.Edge}"
+                        BorderThickness="{StaticResource Border.Hairline}"
+                        CornerRadius="{DynamicResource Radius.Panel}"
+                        Padding="14,10,14,12">
+                  <Panel>
+                    <TextBlock Classes="panel-empty-inline"
+                               Text="Select a command to edit its trigger and steps."
+                               IsVisible="{TemplateBinding HasCommand, Converter={x:Static BoolConverters.Not}}" />
+                    <StackPanel Spacing="6" IsVisible="{TemplateBinding HasCommand}">
+                      <!-- A command under a hold remap (F9, plan 0002): its input in place of the trigger kind and the While holding boxes. -->
+                      <StackPanel Spacing="6" IsVisible="{TemplateBinding IsInputCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                          <TextBlock Classes="bench-label bench-label-column" Text="Input" />
+                          <ComboBox Name="PART_InputKind" Classes="field-editor" />
+                          <ComboBox Name="PART_InputWheel" Classes="field-editor" IsVisible="{TemplateBinding IsWheelInput}" />
+                          <StackPanel Name="PART_InputButtons" Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding IsButtonsInput}" />
+                          <Button Name="PART_AddButton"
+                                  Classes="toolbar"
+                                  Content="Add button…"
+                                  IsVisible="{TemplateBinding IsButtonsInput}"
+                                  IsEnabled="{TemplateBinding IsDetecting, Converter={x:Static BoolConverters.Not}}"
+                                  ToolTip.Tip="Then press the mouse button; add several for buttons held together." />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsKeyInput}">
+                          <TextBlock Classes="bench-label bench-label-column" Text="" />
+                          <hk:HotkeyCaptureBox Name="PART_InputKey" />
+                        </StackPanel>
+                        <TextBlock Classes="bench-note"
+                                   Text="{TemplateBinding InputStatus}"
+                                   IsVisible="{TemplateBinding InputStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <TextBlock Classes="bench-note"
+                                   Text="{TemplateBinding TriggerHint}"
+                                   IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
+                        <TextBlock Classes="bench-label bench-label-column" Text="Trigger" />
+                        <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
+                        <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
+                        <!-- Plan 0005: a button trigger's pressed button (Left in Right + Left); the buttons held are the While holding boxes. -->
+                        <ComboBox Name="PART_TriggerButton" Classes="field-editor" IsVisible="{TemplateBinding IsButtonKind}" />
+                        <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
+                          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                            <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />
+                            <TextBlock Classes="bench-value" Text="{TemplateBinding TriggerText}" VerticalAlignment="Center" />
+                            <TextBlock Classes="bench-action" Text="Change…" VerticalAlignment="Center" />
+                          </StackPanel>
+                        </Button>
+                        <!-- How the trigger fires, as an ⓘ (Joel, 2026-10-11: the line ran off the side panel; the help rule). -->
+                        <TextBlock Classes="help-icon"
+                                   ToolTip.Tip="{TemplateBinding TriggerHint}"
+                                   VerticalAlignment="Center"
+                                   IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </StackPanel>
+                      <!-- F1 combinations (Joel, 2026-10-09): the buttons, then the keys (Ctrl / Alt / Shift / Win, Opt and Cmd on a Mac), then when they must go down. -->
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
+                        <TextBlock Classes="bench-label bench-label-column" Text="While holding" />
+                        <CheckBox Name="PART_HoldStroke" Classes="toggle-option" Content="Stroke button" />
+                        <CheckBox Name="PART_HoldLeft" Classes="toggle-option" Content="Left" />
+                        <CheckBox Name="PART_HoldRight" Classes="toggle-option" Content="Right" />
+                        <CheckBox Name="PART_HoldMiddle" Classes="toggle-option" Content="Middle" />
+                        <CheckBox Name="PART_HoldX1" Classes="toggle-option" Content="X1" />
+                        <CheckBox Name="PART_HoldX2" Classes="toggle-option" Content="X2" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
+                        <TextBlock Classes="bench-label bench-label-column" Text="" />
+                        <CheckBox Name="PART_KeyControl" Classes="toggle-option" />
+                        <CheckBox Name="PART_KeyAlt" Classes="toggle-option" />
+                        <CheckBox Name="PART_KeyShift" Classes="toggle-option" />
+                        <CheckBox Name="PART_KeyMeta" Classes="toggle-option" />
+                        <ComboBox Name="PART_Capture" Classes="field-editor" IsVisible="{TemplateBinding HasHoldMembers}" />
+                      </StackPanel>
+                      <!-- Plan 0004: how far a held-back button's press (Right in Right + wheel) may move before it goes to the app as a drag; the Options value or the command's own. -->
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding ShowsDragDistance}">
+                        <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
+                          <TextBlock Classes="bench-label" Text="Drag distance" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.DragDistanceHelp}" />
+                        </StackPanel>
+                        <ComboBox Name="PART_DragDistanceMode" Classes="field-editor" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasOwnDragDistance}">
+                          <NumericUpDown Name="PART_DragDistance" Classes="field-editor" />
+                          <TextBlock Classes="bench-label" Text="px" />
+                        </StackPanel>
+                      </StackPanel>
+                      <!-- A combination the rules refuse waits as a draft (Joel, 2026-10-09): what is wrong and how to fix it. Below the boxes, so they never move under the pointer.
+                           When another command uses it here, the note's box offers Take it and, beside it, Swap (Joel, 2026-10-10). -->
+                      <Border Classes="warning-note" IsVisible="{TemplateBinding DraftNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <StackPanel Spacing="{StaticResource Space.M}">
+                          <TextBlock Name="PART_DraftNote" Classes="bench-error" Text="{TemplateBinding DraftNote}" />
+                          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasConflictActions}">
+                            <Button Name="PART_TakeTrigger"
+                                    Classes="toolbar"
+                                    Content="{TemplateBinding TakeText}"
+                                    ToolTip.Tip="{TemplateBinding TakeTip}"
+                                    IsVisible="{TemplateBinding CanTakeTrigger}" />
+                            <Button Name="PART_SwapTrigger"
+                                    Classes="toolbar"
+                                    Content="{TemplateBinding SwapText}"
+                                    ToolTip.Tip="{TemplateBinding SwapTip}"
+                                    IsVisible="{TemplateBinding CanSwapTrigger}" />
+                          </StackPanel>
+                        </StackPanel>
+                      </Border>
+                      <TextBlock Classes="bench-note"
+                                 Text="{TemplateBinding AnchorWarning}"
+                                 IsVisible="{TemplateBinding AnchorWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      <TextBlock Classes="bench-note"
+                                 Text="{TemplateBinding TriggerNote}"
+                                 IsVisible="{TemplateBinding TriggerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
+                        <TextBlock Classes="bench-label bench-label-column" Text="Category" />
+                        <ComboBox Name="PART_Category" Classes="field-editor" />
+                      </StackPanel>
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
-                        <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />
-                        <TextBlock Classes="bench-value" Text="{TemplateBinding TriggerText}" VerticalAlignment="Center" />
-                        <TextBlock Classes="bench-action" Text="Change…" VerticalAlignment="Center" />
+                        <TextBlock Classes="bench-label bench-label-column" Text="Use on" />
+                        <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
+                        <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
+                        <TextBlock Classes="bench-note"
+                                   Text="{TemplateBinding UseOnNote}"
+                                   VerticalAlignment="Center"
+                                   IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                       </StackPanel>
-                    </Button>
-                    <!-- How the trigger fires, as an ⓘ (Joel, 2026-10-11: the line ran off the side panel; the help rule). -->
-                    <TextBlock Classes="help-icon"
-                               ToolTip.Tip="{TemplateBinding TriggerHint}"
-                               VerticalAlignment="Center"
-                               IsVisible="{TemplateBinding TriggerHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  </StackPanel>
-                  <!-- F1 combinations (Joel, 2026-10-09): the buttons, then the keys (Ctrl / Alt / Shift / Win, Opt and Cmd on a Mac), then when they must go down. -->
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
-                    <TextBlock Classes="bench-label bench-label-column" Text="While holding" />
-                    <CheckBox Name="PART_HoldStroke" Classes="toggle-option" Content="Stroke button" />
-                    <CheckBox Name="PART_HoldLeft" Classes="toggle-option" Content="Left" />
-                    <CheckBox Name="PART_HoldRight" Classes="toggle-option" Content="Right" />
-                    <CheckBox Name="PART_HoldMiddle" Classes="toggle-option" Content="Middle" />
-                    <CheckBox Name="PART_HoldX1" Classes="toggle-option" Content="X1" />
-                    <CheckBox Name="PART_HoldX2" Classes="toggle-option" Content="X2" />
-                  </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding IsInputCommand, Converter={x:Static BoolConverters.Not}}">
-                    <TextBlock Classes="bench-label bench-label-column" Text="" />
-                    <CheckBox Name="PART_KeyControl" Classes="toggle-option" />
-                    <CheckBox Name="PART_KeyAlt" Classes="toggle-option" />
-                    <CheckBox Name="PART_KeyShift" Classes="toggle-option" />
-                    <CheckBox Name="PART_KeyMeta" Classes="toggle-option" />
-                    <ComboBox Name="PART_Capture" Classes="field-editor" IsVisible="{TemplateBinding HasHoldMembers}" />
-                  </StackPanel>
-                  <!-- Plan 0004: how far a held-back button's press (Right in Right + wheel) may move before it goes to the app as a drag; the Options value or the command's own. -->
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding ShowsDragDistance}">
-                    <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
-                      <TextBlock Classes="bench-label" Text="Drag distance" />
-                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.DragDistanceHelp}" />
-                    </StackPanel>
-                    <ComboBox Name="PART_DragDistanceMode" Classes="field-editor" />
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasOwnDragDistance}">
-                      <NumericUpDown Name="PART_DragDistance" Classes="field-editor" />
-                      <TextBlock Classes="bench-label" Text="px" />
-                    </StackPanel>
-                  </StackPanel>
-                  <!-- A combination the rules refuse waits as a draft (Joel, 2026-10-09): what is wrong and how to fix it. Below the boxes, so they never move under the pointer.
-                       When another command uses it here, the note's box offers Take it and, beside it, Swap (Joel, 2026-10-10). -->
-                  <Border Classes="warning-note" IsVisible="{TemplateBinding DraftNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                    <StackPanel Spacing="{StaticResource Space.M}">
-                      <TextBlock Name="PART_DraftNote" Classes="bench-error" Text="{TemplateBinding DraftNote}" />
-                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasConflictActions}">
-                        <Button Name="PART_TakeTrigger"
-                                Classes="toolbar"
-                                Content="{TemplateBinding TakeText}"
-                                ToolTip.Tip="{TemplateBinding TakeTip}"
-                                IsVisible="{TemplateBinding CanTakeTrigger}" />
-                        <Button Name="PART_SwapTrigger"
-                                Classes="toolbar"
-                                Content="{TemplateBinding SwapText}"
-                                ToolTip.Tip="{TemplateBinding SwapTip}"
-                                IsVisible="{TemplateBinding CanSwapTrigger}" />
+                      <!-- Plan 0004: the Exclusions › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
+                      <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
+                        <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                          <TextBlock Classes="bench-label" Text="Not in" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.NotInHelp}" />
+                        </StackPanel>
+                        <Button DockPanel.Dock="Left" Name="PART_NotInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
+                        <TextBlock Name="PART_NotInText" Classes="bench-value" Text="{TemplateBinding NotInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                      </DockPanel>
+                      <!-- Plan 0005 decision 7: the Exclusions › Global entries a command whose trigger holds no stroke button still works over. Laid out as Not in. -->
+                      <DockPanel IsVisible="{TemplateBinding CanSetAlsoIn}">
+                        <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                          <TextBlock Classes="bench-label" Text="Also in" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.AlsoInHelp}" />
+                        </StackPanel>
+                        <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
+                        <TextBlock Name="PART_AlsoInText" Classes="bench-value" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                      </DockPanel>
+                      <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Classes="bench-note" Text="{TemplateBinding VersionText}" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
+                          <Button Name="PART_UseConverted" Classes="toolbar" Content="Use the converted original" IsVisible="{TemplateBinding HasOwnVersionHere}" />
+                          <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
+                        </StackPanel>
                       </StackPanel>
                     </StackPanel>
-                  </Border>
-                  <TextBlock Classes="bench-note"
-                             Text="{TemplateBinding AnchorWarning}"
-                             IsVisible="{TemplateBinding AnchorWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  <TextBlock Classes="bench-note"
-                             Text="{TemplateBinding TriggerNote}"
-                             IsVisible="{TemplateBinding TriggerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
-                    <TextBlock Classes="bench-label bench-label-column" Text="Category" />
-                    <ComboBox Name="PART_Category" Classes="field-editor" />
-                  </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
-                    <TextBlock Classes="bench-label bench-label-column" Text="Use on" />
-                    <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
-                    <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
-                    <TextBlock Classes="bench-note"
-                               Text="{TemplateBinding UseOnNote}"
-                               VerticalAlignment="Center"
-                               IsVisible="{TemplateBinding UseOnNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  </StackPanel>
-                  <!-- Plan 0004: the Exclusions › Per command entries a command (not under a hold remap) is not used over. Change… sits before the names, so a longer list never moves it. -->
-                  <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
-                    <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                      <TextBlock Classes="bench-label" Text="Not in" />
-                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.NotInHelp}" />
-                    </StackPanel>
-                    <Button DockPanel.Dock="Left" Name="PART_NotInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
-                    <TextBlock Name="PART_NotInText" Classes="bench-value" Text="{TemplateBinding NotInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
-                  </DockPanel>
-                  <!-- Plan 0005 decision 7: the Exclusions › Global entries a command whose trigger holds no stroke button still works over. Laid out as Not in. -->
-                  <DockPanel IsVisible="{TemplateBinding CanSetAlsoIn}">
-                    <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                      <TextBlock Classes="bench-label" Text="Also in" />
-                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.AlsoInHelp}" />
-                    </StackPanel>
-                    <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
-                    <TextBlock Name="PART_AlsoInText" Classes="bench-value" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
-                  </DockPanel>
-                  <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                    <TextBlock Classes="bench-note" Text="{TemplateBinding VersionText}" />
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
-                      <Button Name="PART_UseConverted" Classes="toolbar" Content="Use the converted original" IsVisible="{TemplateBinding HasOwnVersionHere}" />
-                      <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
-                    </StackPanel>
-                  </StackPanel>
-                </StackPanel>
+                  </Panel>
+                </Border>
+                <Border BorderBrush="{DynamicResource Layer.EdgeTop}" BorderThickness="0,1,0,0" CornerRadius="{DynamicResource Radius.Panel}" IsHitTestVisible="False" />
               </Panel>
-            </Border>
+            </StackPanel>
           </ControlTemplate>
         </Setter>
       </ControlTheme>
@@ -802,27 +815,30 @@
       <ControlTheme x:Key="{x:Type steps:StepList}" TargetType="steps:StepList">
         <Setter Property="Template">
           <ControlTemplate>
-            <Border Background="{DynamicResource Layer.Panel}"
-                    BorderBrush="{DynamicResource Layer.Edge}"
-                    BorderThickness="1"
-                    CornerRadius="{DynamicResource Radius.Panel}">
-              <DockPanel>
-                <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
-                  <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
-                    <TextBlock Classes="title" Text="Steps" VerticalAlignment="Center" />
+            <StackPanel>
+              <!-- A form section's layout (Joel, 0.11.0): the title line above the card, its one button at the line's end. -->
+              <Grid Margin="4,4,4,8" ColumnDefinitions="Auto,*">
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <TextBlock Classes="section-heading" Text="Steps" VerticalAlignment="Center" />
                     <TextBlock Classes="help-icon" ToolTip.Tip="Steps run top to bottom; drag one to reorder. Duplicate places the copy below it, Paste adds at the bottom. Delete asks nothing; Undo brings it back." />
                   </StackPanel>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
                     <Button Name="PART_New" Classes="toolbar" Content="New step…" IsEnabled="{TemplateBinding HasCommand}" />
                   </WrapPanel>
-                </Grid>
+              </Grid>
+              <Panel>
+                <Border Background="{DynamicResource Layer.Panel}"
+                        BorderBrush="{DynamicResource Layer.Edge}"
+                        BorderThickness="{StaticResource Border.Hairline}"
+                        CornerRadius="{DynamicResource Radius.Panel}">
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
                          ItemContainerTheme="{StaticResource Lists.Step}"
                          Background="Transparent"
                          BorderThickness="0"
                          Padding="0"
-                         Margin="10,0,10,4"
+                         Margin="10,8,10,8"
+                         AutoScrollToSelectedItem="False"
                          SelectionMode="Single">
                   <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -830,8 +846,10 @@
                     </ItemsPanelTemplate>
                   </ListBox.ItemsPanel>
                 </ListBox>
-              </DockPanel>
-            </Border>
+                </Border>
+                <Border BorderBrush="{DynamicResource Layer.EdgeTop}" BorderThickness="0,1,0,0" CornerRadius="{DynamicResource Radius.Panel}" IsHitTestVisible="False" />
+              </Panel>
+            </StackPanel>
           </ControlTemplate>
         </Setter>
       </ControlTheme>

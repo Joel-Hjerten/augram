@@ -55,6 +55,13 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 - **Stopping it:** closing the window only hides it to the tray. Quit it from the tray, or the lead stops the process it started (`Stop-Process` on the one whose path is `src\Augram.App\bin\…`). With `--no-engine` nothing is left held.
 - **While it runs, it locks `src/Augram.App/bin`,** so the tests and UiShots cannot build. `-p:OutDir=<elsewhere>` lets UiShots build beside it, but not the tests: they find the repository and their fixtures by walking up from their own folder, and fail in bulk (20 at once, none real). Quit the dev build before running the tests.
 
+## One detail column, one behaviour (Joel, after 0.11.0)
+
+- **The Commands workbench's command column had a layout of its own:** the header pinned, only the steps scrolling, the title inside the card. It differed from every `SectionForm` beside it. Now it is a `ScrollViewer` (`PART_CommandScroll`) around the header and the step list, with the form's margins and width.
+- **A list inside a scrolling column** needs `AutoScrollToSelectedItem="False"`. Otherwise selecting a step from code scrolls the whole column, and opening a command jumps past its settings.
+- **Reset the column to the top on a change of `SelectedCommandId`, never of `SelectedCommand`.** The item is rebuilt on every edit, so resetting on it would throw the user to the top while they edit.
+- **Before building a column, check whether a form already does it.** Joel spots a one-off at once.
+
 ## Smaller ones
 
 - **`GlyphStroke` draws one segment at a time with round caps.** At 3 px, or with a translucent colour, the overlaps show as beads. Keep gesture strokes at 2 px and opaque (inactive glyphs use opaque greys).

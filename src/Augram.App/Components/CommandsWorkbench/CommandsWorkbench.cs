@@ -230,6 +230,12 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public SectionForm.SectionForm? GroupFormPart { get; private set; }
 
+    /// <summary>
+    /// The command column's scroller, when the template scrolls the header and the steps as one (the Default theme, plan
+    /// 0006): it goes back to the top when another command is selected, never on an edit of the same one.
+    /// </summary>
+    public ScrollViewer? CommandScrollPart { get; private set; }
+
     /// <summary>Selects the command in the tree and starts renaming it in place (a fresh "New command N").</summary>
     public void BeginRename(CommandId id) => TreePart?.BeginRename(id);
 
@@ -243,6 +249,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         HeaderPart = e.NameScope.Find<CommandHeader>("PART_Header");
         StepsPart = e.NameScope.Find<StepList.StepList>("PART_Steps");
         GroupFormPart = e.NameScope.Find<SectionForm.SectionForm>("PART_GroupForm");
+        CommandScrollPart = e.NameScope.Find<ScrollViewer>("PART_CommandScroll");
         if (GroupFormPart is not null)
         {
             Region.Mark(GroupFormPart, "App group, hold remap or category form");
@@ -282,6 +289,10 @@ public sealed class CommandsWorkbench : TemplatedControl
             {
                 StepFormContext = context;
             }
+        }
+        else if (change.Property == SelectedCommandIdProperty && !Equals(change.OldValue, change.NewValue))
+        {
+            CommandScrollPart?.ScrollToHome();
         }
         else if (change.Property == GroupFormProperty)
         {
