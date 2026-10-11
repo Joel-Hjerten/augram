@@ -1149,9 +1149,11 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
   </Style>
+  <!-- A row's second line (a command's steps, an excluded app's mode and match, a step's type) is the faint grey of a section's
+       count: the name carries the row, the subtext is quiet (Joel, 2026-10-11: the same in Commands and Exclusions). -->
   <Style Selector="TextBlock.row-summary">
     <Setter Property="FontSize" Value="{StaticResource Font.S}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
     <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
