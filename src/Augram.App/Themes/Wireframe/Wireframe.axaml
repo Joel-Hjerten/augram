@@ -395,6 +395,7 @@
                                   NewSectionLabel="{TemplateBinding NewSectionLabel}"
                                   PlatformFilterLabel="{TemplateBinding PlatformFilterLabel}"
                                   ShowsOtherPlatforms="{TemplateBinding ShowsOtherPlatforms}"
+                                  PlatformFilterNudges="{TemplateBinding PlatformFilterNudges}"
                                   HelpText="{TemplateBinding TreeHelp}" />
                 <GridSplitter Grid.Column="1" Width="4" Background="{StaticResource Brush.Border}" ResizeDirection="Columns" />
                 <Panel Grid.Column="2">
@@ -443,6 +444,7 @@
                       <ToggleButton Name="PART_OtherPlatforms"
                                     Classes="toolbar"
                                     Content="{TemplateBinding PlatformFilterLabel}"
+                                    ToolTip.Tip="{x:Static tree:CommandTree.PlatformFilterHelp}"
                                     IsVisible="{TemplateBinding PlatformFilterLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     </StackPanel>
                   </StackPanel>

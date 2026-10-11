@@ -99,6 +99,14 @@ public sealed partial class CommandsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool ShowOtherPlatforms { get; private set; }
 
+    /// <summary>
+    /// Counts the edits that hid the selected row behind the platform filter (its Use on, or its category's or group's, left this
+    /// platform out while <see cref="ShowOtherPlatforms"/> is off); the tree blinks the toggle at each, so the user sees where it
+    /// went (Joel, 0.11.9). A row that was deleted, or one the user hid by turning the filter off, does not count.
+    /// </summary>
+    [ObservableProperty]
+    public partial int PlatformFilterNudges { get; private set; }
+
     /// <summary>The help line under the tree.</summary>
     public string Help => Scope == CommandsScope.Global
         ? "Global commands fire over every app unless the app's group overrides them. Sections are categories (select one to rename it, choose where it is used, or add a command with New command on its row); a command left without one goes into Uncategorized. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."

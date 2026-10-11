@@ -14,6 +14,7 @@ namespace Augram.App.ViewModels.Commands;
 public sealed partial class CommandsViewModel
 {
     private MouseButton? _strokeButton;
+    private bool _projectingEdit;
     private int _optionsDragDistancePx = CaptureThresholds.Default.ButtonDragDistancePx;
 
     private void Select(SectionId? section, CommandId? command)
@@ -26,11 +27,11 @@ public sealed partial class CommandsViewModel
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            Project();
+            ProjectEdit();
         }
         else
         {
-            Dispatcher.UIThread.Post(Project);
+            Dispatcher.UIThread.Post(ProjectEdit);
         }
     }
 
@@ -65,6 +66,20 @@ public sealed partial class CommandsViewModel
                 _optionsDragDistancePx = value;
                 OnStoreChanged(this, EventArgs.Empty);
             }
+        }
+    }
+
+    /// <summary><see cref="Project"/> after a store change, the one kind of change that nudges the platform filter (<see cref="PlatformFilterNudges"/>).</summary>
+    private void ProjectEdit()
+    {
+        _projectingEdit = true;
+        try
+        {
+            Project();
+        }
+        finally
+        {
+            _projectingEdit = false;
         }
     }
 
@@ -115,6 +130,18 @@ public sealed partial class CommandsViewModel
         };
     }
 
+    /// <summary>Whether the command (else the section) is still there and only the platform filter keeps it out of the list.</summary>
+    private bool HiddenByPlatformFilter(SectionId? section, CommandId? command)
+    {
+        if (ShowOtherPlatforms)
+        {
+            return false;
+        }
+
+        var all = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform, showOtherPlatforms: true, StrokeButton);
+        return command is { } id ? all.SelectMany(item => item.Commands).Any(item => item.Id == id) : section is { } sectionId && all.Any(item => item.Id == sectionId);
+    }
+
     /// <summary>The selected command's row in the current projection; null without one.</summary>
     private CommandItem? SelectedRow()
         => SelectedCommandId is { } id ? Sections.SelectMany(section => section.Commands).FirstOrDefault(command => command.Id == id) : null;
@@ -126,6 +153,7 @@ public sealed partial class CommandsViewModel
     /// </summary>
     private void ProjectSelection()
     {
+        var (hadSection, hadCommand) = (SelectedSectionId, SelectedCommandId);
         var selected = SelectedRow();
         if (selected is null)
         {
@@ -139,6 +167,12 @@ public sealed partial class CommandsViewModel
         if (SelectedSectionId is { } sectionId && Sections.All(section => section.Id != sectionId))
         {
             SelectedSectionId = null;
+        }
+
+        if (_projectingEdit && ((hadCommand is not null && SelectedCommandId is null) || (hadSection is not null && SelectedSectionId is null))
+            && HiddenByPlatformFilter(hadSection, hadCommand))
+        {
+            PlatformFilterNudges++;
         }
 
         SelectedCommand = HeaderItem(selected);

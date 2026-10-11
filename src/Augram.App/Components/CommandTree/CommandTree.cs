@@ -44,6 +44,13 @@ public sealed class CommandTree : TemplatedControl
     public static readonly StyledProperty<bool> ShowsOtherPlatformsProperty =
         AvaloniaProperty.Register<CommandTree, bool>(nameof(ShowsOtherPlatforms));
 
+    public static readonly StyledProperty<int> PlatformFilterNudgesProperty =
+        AvaloniaProperty.Register<CommandTree, int>(nameof(PlatformFilterNudges));
+
+    /// <summary>The platform filter toggle's tooltip (Joel, 0.11.9).</summary>
+    public const string PlatformFilterHelp =
+        "Also lists what is off on this computer: groups, categories and commands whose Use on leaves it out, greyed, so you can find and change them.";
+
     public static readonly StyledProperty<string> NewSectionLabelProperty =
         AvaloniaProperty.Register<CommandTree, string>(nameof(NewSectionLabel), "New group");
 
@@ -138,6 +145,16 @@ public sealed class CommandTree : TemplatedControl
         set => SetValue(ShowsOtherPlatformsProperty, value);
     }
 
+    /// <summary>
+    /// Bumped by the host when an edit hid the selected row behind the platform filter (its Use on left this platform out); each
+    /// bump blinks the toggle twice (its <c>nudge</c> class on, off, on, off), so the user sees how to get the row back (Joel, 0.11.9).
+    /// </summary>
+    public int PlatformFilterNudges
+    {
+        get => GetValue(PlatformFilterNudgesProperty);
+        set => SetValue(PlatformFilterNudgesProperty, value);
+    }
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
@@ -188,6 +205,33 @@ public sealed class CommandTree : TemplatedControl
         {
             _otherPlatforms.IsChecked = ShowsOtherPlatforms;
         }
+        else if (change.Property == PlatformFilterNudgesProperty && change.GetNewValue<int>() > change.GetOldValue<int>())
+        {
+            BlinkPlatformFilter();
+        }
+    }
+
+    /// <summary>On for 180 ms, off, on, off: two blinks of the toggle's <c>nudge</c> class.</summary>
+    private void BlinkPlatformFilter()
+    {
+        if (_otherPlatforms is not { } toggle)
+        {
+            return;
+        }
+
+        var step = 0;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        timer.Tick += (_, _) =>
+        {
+            step++;
+            toggle.Classes.Set("nudge", step == 2);
+            if (step >= 3)
+            {
+                timer.Stop();
+            }
+        };
+        toggle.Classes.Set("nudge", true);
+        timer.Start();
     }
 
     private void Wire(TemplateAppliedEventArgs e, string part, CommandTreeAction action)

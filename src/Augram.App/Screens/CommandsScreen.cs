@@ -39,6 +39,7 @@ public static class CommandsScreen
         bench.Bind(CommandsWorkbench.StepsProperty, new Binding(nameof(CommandsViewModel.Steps)));
         bench.Bind(CommandsWorkbench.GroupFormProperty, new Binding(nameof(CommandsViewModel.GroupForm)));
         bench.Bind(CommandsWorkbench.ShowsOtherPlatformsProperty, new Binding(nameof(CommandsViewModel.ShowOtherPlatforms)));
+        bench.Bind(CommandsWorkbench.PlatformFilterNudgesProperty, new Binding(nameof(CommandsViewModel.PlatformFilterNudges)));
         bench.Bind(CommandsWorkbench.SelectedStepIndexProperty, new Binding(nameof(CommandsViewModel.SelectedStepIndex)));
         bench.Bind(CommandsWorkbench.MessageProperty, new Binding(nameof(CommandsViewModel.Message)));
         bench.TreeActionRequested += (_, e) => vm.Handle(e);

@@ -85,6 +85,9 @@ public sealed class CommandsWorkbench : TemplatedControl
     public static readonly StyledProperty<bool> ShowsOtherPlatformsProperty =
         AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(ShowsOtherPlatforms));
 
+    public static readonly StyledProperty<int> PlatformFilterNudgesProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, int>(nameof(PlatformFilterNudges));
+
     public static readonly StyledProperty<string> TreeHelpProperty =
         AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(TreeHelp), string.Empty);
 
@@ -220,6 +223,13 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         get => GetValue(PlatformFilterLabelProperty);
         set => SetValue(PlatformFilterLabelProperty, value);
+    }
+
+    /// <summary>Each bump blinks the tree's platform filter toggle (<see cref="CommandTree.CommandTree.PlatformFilterNudges"/>).</summary>
+    public int PlatformFilterNudges
+    {
+        get => GetValue(PlatformFilterNudgesProperty);
+        set => SetValue(PlatformFilterNudgesProperty, value);
     }
 
     /// <summary>Groups used only on the other platform are listed (<see cref="CommandTree.CommandTree.ShowsOtherPlatforms"/>).</summary>
