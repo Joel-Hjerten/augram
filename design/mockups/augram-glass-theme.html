@@ -133,6 +133,8 @@ body{background:var(--page-bg); color:var(--page-fg); font-family:var(--ui); fon
 .tabs{display:flex; align-items:flex-end; gap:2px; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; min-width:0;
   --flare:calc(var(--r) * .75); --tab-r:calc(var(--r) * .85); padding:0 var(--flare)}
 .tabs::-webkit-scrollbar{display:none}
+.tabs.dragging{cursor:grabbing}
+.tabs.dragging .tab{pointer-events:none}
 .tab{position:relative; flex:none; height:36px; padding:0 4px; border:0; background:transparent; color:var(--m-muted); font-size:13px; border-radius:var(--tab-r) var(--tab-r) 0 0; cursor:pointer}
 .tab > span{display:block; padding:6px 12px; margin-bottom:4px; border-radius:calc(var(--tab-r) * .8)}
 .tab:hover > span{background:var(--m-hover); color:var(--m-fg)}
@@ -149,7 +151,7 @@ body{background:var(--page-bg); color:var(--page-fg); font-family:var(--ui); fon
 
 /* The tab's page (layer 1), sub-tab pills, content */
 .page{position:relative; flex:1; min-height:0; margin:0 8px 8px; background:var(--m-l1); border-radius:calc(var(--r) + 2px); display:flex; flex-direction:column}
-.subtabs{display:flex; gap:4px; padding:10px 12px 2px; overflow-x:auto; scrollbar-width:thin; flex:none}
+.subtabs{display:flex; flex-wrap:wrap; gap:4px; padding:10px 12px 2px; flex:none}
 .subtabs:empty{display:none}
 .pill{flex:none; border:0; background:transparent; color:var(--m-muted); font-size:12.5px; padding:6px 13px; border-radius:var(--rc); cursor:pointer; white-space:nowrap}
 .pill:hover{background:var(--m-hover); color:var(--m-fg)}
@@ -927,6 +929,27 @@ table.rt{width:100%; border-collapse:collapse; font-size:12.5px}
     if (t.tagName === "BUTTON" || t.tagName === "INPUT") return;
     if (t.matches('[role="button"],[role="checkbox"],[role="switch"]')){ e.preventDefault(); t.click(); }
   });
+
+  /* The title-bar tabs stay on one row: in a narrow window the wheel scrolls them sideways, and they can be dragged. */
+  var tabsEl = $("#tabs"), drag = null;
+  tabsEl.addEventListener("wheel", function(e){
+    if (tabsEl.scrollWidth <= tabsEl.clientWidth) return;
+    var d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    tabsEl.scrollLeft += d; e.preventDefault();
+  }, { passive:false });
+  tabsEl.addEventListener("pointerdown", function(e){
+    if (e.button !== 0 || tabsEl.scrollWidth <= tabsEl.clientWidth) return;
+    drag = { x:e.clientX, left:tabsEl.scrollLeft, id:e.pointerId, moved:false };
+  });
+  tabsEl.addEventListener("pointermove", function(e){
+    if (!drag) return;
+    var dx = e.clientX - drag.x;
+    if (!drag.moved && Math.abs(dx) > 5){ drag.moved = true; tabsEl.classList.add("dragging"); try { tabsEl.setPointerCapture(drag.id); } catch (err) {} }
+    if (drag.moved) tabsEl.scrollLeft = drag.left - dx;
+  });
+  function endDrag(){ if (drag && drag.moved) tabsEl.classList.remove("dragging"); drag = null; }
+  tabsEl.addEventListener("pointerup", endDrag);
+  tabsEl.addEventListener("pointercancel", endDrag);
 
   if (mq){ var onScheme = function(){ if (look.mode === "auto") applyLook(); }; if (mq.addEventListener) mq.addEventListener("change", onScheme); else if (mq.addListener) mq.addListener(onScheme); }
   new MutationObserver(function(){ if (look.mode === "auto") applyLook(); }).observe(document.documentElement, { attributes:true, attributeFilter:["data-theme"] });
