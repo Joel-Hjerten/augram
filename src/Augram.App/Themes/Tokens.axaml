@@ -155,7 +155,8 @@
   <x:Double x:Key="Font.L">16</x:Double>
 
   <!-- Layout -->
-  <GridLength x:Key="Form.LabelColumn">220</GridLength>
+  <!-- 180 since plan 0006 (Joel, 2026-10-11): at 220 a two-choice segment ran off the Exclusions form; the longest label fits, and a longer one wraps. -->
+  <GridLength x:Key="Form.LabelColumn">180</GridLength>
   <x:Double x:Key="Editor.MinWidth">180</x:Double>
   <!-- A text editor for long values (a repository address). -->
   <x:Double x:Key="Editor.WideMinWidth">420</x:Double>

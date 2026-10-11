@@ -452,14 +452,15 @@
                     BorderThickness="1"
                     CornerRadius="{DynamicResource Radius.Panel}">
               <DockPanel>
-                <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
-                  <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
+                <!-- Title on its own line, the buttons under it, wrapping sideways: beside the title they stacked into a column in a narrow tree (Joel, 2026-10-11). -->
+                <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" Spacing="8">
+                  <StackPanel Orientation="Horizontal" MinHeight="{StaticResource Lists.HeadLineHeight}">
                     <TextBlock Text="{TemplateBinding Heading}" FontSize="{StaticResource Font.M}" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
                     <TextBlock Classes="help-icon"
                                ToolTip.Tip="{TemplateBinding HelpText}"
                                IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
-                  <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
+                  <WrapPanel ItemSpacing="6" LineSpacing="4">
                     <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
                     <Button Name="PART_NewCommand" Classes="toolbar primary" Content="New command" />
                     <ToggleButton Name="PART_OtherPlatforms"
@@ -467,7 +468,7 @@
                                   Content="{TemplateBinding PlatformFilterLabel}"
                                   IsVisible="{TemplateBinding PlatformFilterLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </WrapPanel>
-                </Grid>
+                </StackPanel>
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
                          ItemContainerTheme="{StaticResource Lists.Row}"
@@ -1129,9 +1130,10 @@
   </Style>
 
   <!-- Row text: names, section names and counts, summaries, tags, badges, markers (.cmd-name, .cmd-sum, .sec-name, .count, .tag). -->
+  <!-- Names are semibold so they stand apart from the muted summary under them (Joel, 2026-10-11: "difficult to distinguish"). -->
   <Style Selector="TextBlock.row-name">
     <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
   </Style>
   <Style Selector="TextBlock.row-name.step-name">

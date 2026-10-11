@@ -23,7 +23,7 @@ public sealed class SectionFormTests
         Assert.Equal(8, rows.Count);
         Assert.IsType<CheckBox>(rows[0].Editor);
         Assert.IsType<ComboBox>(rows[1].Editor);
-        Assert.IsType<StackPanel>(rows[2].Editor);
+        Assert.IsType<WrapPanel>(rows[2].Editor);
         Assert.IsType<TextBox>(rows[3].Editor);
         Assert.IsType<NumericUpDown>(rows[4].Editor);
         Assert.IsType<ColorEditor>(rows[5].Editor);
@@ -77,7 +77,7 @@ public sealed class SectionFormTests
 
         ((CheckBox)rows[0].Editor!).IsChecked = false;
         ((ComboBox)rows[1].Editor!).SelectedIndex = 0;
-        ((StackPanel)rows[2].Editor!).Children.OfType<RadioButton>().First().IsChecked = true;
+        ((WrapPanel)rows[2].Editor!).Children.OfType<RadioButton>().First().IsChecked = true;
         ((TextBox)rows[3].Editor!).Text = "typed";
         ((NumericUpDown)rows[4].Editor!).Value = 42;
         ((ColorEditor)rows[5].Editor!).Red = 200;

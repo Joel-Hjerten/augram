@@ -363,7 +363,7 @@
       </ControlTheme>
 
       <!--
-        A segmented control (the mockup's .segm): a ButtonRadioField's radio buttons, side by side in their StackPanel,
+        A segmented control (the mockup's .segm): a ButtonRadioField's radio buttons, side by side in their WrapPanel,
         drawn as one framed strip. Each button draws its share of the frame: the first its left end, the last its right end,
         a lone one the whole frame. The checked segment is a raised pill inside the strip.
       -->

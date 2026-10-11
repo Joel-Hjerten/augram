@@ -70,7 +70,7 @@ public sealed class AppMatcherFinderFormTests
             var regex = line.GetVisualDescendants().OfType<CheckBox>().Single();
             var left = box.TranslatePoint(new Point(0, 0), row)!.Value.X;
             var right = regex.TranslatePoint(new Point(regex.Bounds.Width, 0), row)!.Value.X;
-            Assert.True(left >= 220, $"{label}'s box starts at {left}, over the label column");
+            Assert.True(left >= LabelColumn(), $"{label}'s box starts at {left}, over the label column");
             Assert.True(right <= row.Bounds.Width + 0.5, $"{label}'s Use Regex ends past the row");
             var boxRight = box.TranslatePoint(new Point(box.Bounds.Width, 0), row)!.Value.X;
             var regexLeft = regex.TranslatePoint(new Point(0, 0), row)!.Value.X;
@@ -183,4 +183,8 @@ public sealed class AppMatcherFinderFormTests
         window.MouseMove(OverChrome);
         window.MouseUp(OverChrome, MouseButton.Left);
     }
+
+    /// <summary>The active theme's label column (the Form.LabelColumn token), not a number copied from it.</summary>
+    private static double LabelColumn() =>
+        Avalonia.Application.Current!.TryFindResource("Form.LabelColumn", out var column) && column is Avalonia.Controls.GridLength length ? length.Value : 220;
 }

@@ -11,7 +11,8 @@ public sealed class ButtonRadioFieldRenderer : IFieldRenderer
     {
         var choices = ((IChoiceSource)field).AsChoices();
         var group = "radio-" + Guid.NewGuid().ToString("N");
-        var editor = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal };
+        // A WrapPanel, not a StackPanel: in a narrow panel the choices go onto a second line instead of past the window's edge.
+        var editor = new WrapPanel();
         editor.Classes.Add("field-editor");
         var buttons = new List<RadioButton>();
         for (var i = 0; i < choices.Labels.Count; i++)
