@@ -1196,16 +1196,16 @@
     <Setter Property="Padding" Value="8,6,8,8" />
   </Style>
 
-  <!-- The step type picker's entries: a category's title (Group) over its types (Body). -->
+  <!-- The step type picker's entries: a category's small label (Label) with room above it, over its types (Body), indented under it. -->
   <Style Selector="TextBlock.picker-category">
-    <Setter Property="Margin" Value="8,8,8,2" />
+    <Setter Property="Margin" Value="8,12,8,4" />
   </Style>
   <Style Selector="Button.picker-type">
     <Setter Property="Theme" Value="{StaticResource Lists.PickerItem}" />
     <Setter Property="MinWidth" Value="200" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="Margin" Value="0" />
-    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Padding" Value="16,5,8,5" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Left" />
     <Setter Property="Background" Value="Transparent" />

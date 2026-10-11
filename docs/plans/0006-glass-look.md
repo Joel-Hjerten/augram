@@ -54,10 +54,11 @@ On the PC and on the Mac (Joel):
     - Panels that stand side by side (the tree, the lists) keep their titles inside.
 13. **Unchanged:** the system font (Segoe UI Variable on Windows, SF on macOS); the ⓘ help rule; every screen's layout and declaration (the Commands workbench stays tree beside panel); the Row rule's one line height; the theme rule (components name tokens, never colours).
 14. **Dialogs get the same look.** The training window, form dialogs, sync conflicts and the import review get the same window background setting and layers as the main window (lead's call).
-15. **One type scale** (Joel, after his first run: "sets down a couple of font stylings and then reuse those instead of using different unique font stylings everywhere"). Every text takes one of seven roles, each defined once in `Themes/Default/Text.axaml`:
+15. **One type scale** (Joel, after his first run: "sets down a couple of font stylings and then reuse those instead of using different unique font stylings everywhere"). Every text takes one of eight roles, each defined once in `Themes/Default/Text.axaml`:
     - **Heading:** 16 px semibold, a command's name and dialog titles.
     - **Title:** 13 px semibold, panel titles and every name in a row.
     - **Group:** 13 px semibold muted, a section title above its card.
+    - **Label:** 11 px semibold muted, a small label over a group of choices or a column (the step type picker's categories, column titles; added after 0.11.1 when the picker's categories looked like its choices).
     - **Body:** 13 px.
     - **Secondary:** 11 px faint, a row's second line, counts and help lines.
     - **Badge:** 10 px semibold.

@@ -14,8 +14,10 @@
     Heading    Font.L   SemiBold   Text.Primary   the selected command's name in the command header; a dialog's title
     Title      Font.M   SemiBold   Text.Primary   a panel's title; every name in a row (command, section, app group,
                                                   hold remap, excluded app, step, gesture tile)
-    Group      Font.M   SemiBold   Text.Muted     a title above what it groups: a form section above its card, a list's
-                                                  column titles, the step type picker's categories
+    Group      Font.M   SemiBold   Text.Muted     a form section's title above its card
+    Label      Font.S   SemiBold   Text.Muted     a small label over a group of choices or a column: the step type
+                                                  picker's categories, a list's column titles (Joel, 2026-10-11: the
+                                                  picker's categories looked like its choices)
     Body       Font.M   Normal     Text.Primary   labels, values, notes, cells; every TextBlock without a role class; the
                                                   text of every standard control (buttons, tabs, pills, boxes, menus)
     Secondary  Font.S   Normal     Text.Faint     the line under a name, counts, help and captions, empty placeholders,
@@ -23,7 +25,7 @@
     Badge      Font.XS  SemiBold   Text.Muted     a trigger badge's words, small tags (category, platform, score)
     Mono       Font.S   Normal     (unchanged)    Diagnostics › Log's lines, in Font.Mono
 
-    A role is a class: heading, title, group, body, secondary, badge, mono. The older classes the templates and screens
+    A role is a class: heading, title, group, group-label, body, secondary, badge, mono. The older classes the templates and screens
     use (row-name, help, note…) are listed in their role's selector below, so a new text takes a role class, or an
     existing class that is listed here, and never a size or weight of its own.
     Colour modifiers combine with a role and change only its colour: muted, faint, danger, warn, ok, accent (links).
@@ -81,9 +83,15 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
   </Style>
-  <!-- Group: a form section's title above its card (section-heading), a list's column titles, the step type picker's categories. -->
-  <Style Selector="TextBlock.group, TextBlock.section-heading, TextBlock.column-header, TextBlock.picker-category">
+  <!-- Group: a form section's title above its card (section-heading). -->
+  <Style Selector="TextBlock.group, TextBlock.section-heading">
     <Setter Property="FontSize" Value="{StaticResource Font.M}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+  <!-- Label: a small label over a group of choices or a column (the step type picker's categories, a list's column titles). -->
+  <Style Selector="TextBlock.group-label, TextBlock.picker-category, TextBlock.column-header">
+    <Setter Property="FontSize" Value="{StaticResource Font.S}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
   </Style>

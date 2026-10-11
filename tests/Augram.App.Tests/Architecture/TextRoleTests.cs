@@ -15,7 +15,8 @@ public sealed partial class TextRoleTests
 {
     private const string UseARole =
         "Give the text a role class from Themes/Default/Text.axaml instead: heading (16 semibold: the command header's name, a dialog's title), "
-        + "title (13 semibold: a panel's title, a name in a row), group (13 semibold muted: a title above what it groups), "
+        + "title (13 semibold: a panel's title, a name in a row), group (13 semibold muted: a form section's title above its card), "
+        + "group-label (11 semibold muted: a small label over a group of choices or a column), "
         + "body (13: labels, values, notes; also every TextBlock without a class and every control's text), "
         + "secondary (11 faint: the line under a name, counts, help, placeholders), badge (10 semibold muted: tags), mono (the log); "
         + "a colour modifier (muted, faint, danger, warn, ok, accent) may follow the role.";
@@ -78,7 +79,7 @@ public sealed partial class TextRoleTests
     {
         var roles = RoleClasses();
 
-        Assert.Equal(["heading", "title", "group", "body", "secondary", "badge"], roles.Keys);
+        Assert.Equal(["heading", "title", "group", "group-label", "body", "secondary", "badge"], roles.Keys);
         var shared = roles.SelectMany(role => role.Value.Select(name => (name, role.Key))).GroupBy(entry => entry.name).Where(group => group.Count() > 1);
         Assert.Empty(shared.Select(group => $"{group.Key}: {string.Join(", ", group.Select(entry => entry.Key))}"));
     }
