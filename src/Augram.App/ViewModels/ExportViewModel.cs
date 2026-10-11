@@ -3,6 +3,7 @@ using Augram.App.Components.StepList;
 using Augram.App.Declarations;
 using Augram.Core.Config;
 using Augram.Core.Mapping;
+using Augram.Core.Text;
 using Augram.Core.Transfer;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -160,10 +161,10 @@ public sealed partial class ExportViewModel : ObservableObject
     /// <summary>"8 commands · 1 hold remap · Windows only".</summary>
     private static string GroupDetail(AppGroup group)
     {
-        var parts = new List<string> { Count(group.Commands.Count, "command") };
+        var parts = new List<string> { Sentence.Count(group.Commands.Count, "command") };
         if (group.HoldRemaps.Count > 0)
         {
-            parts.Add(Count(group.HoldRemaps.Count, "hold remap"));
+            parts.Add(Sentence.Count(group.HoldRemaps.Count, "hold remap"));
         }
 
         if (!group.IsGlobal && group.UseOn != PlatformSet.All)
@@ -173,7 +174,4 @@ public sealed partial class ExportViewModel : ObservableObject
 
         return string.Join(" · ", parts);
     }
-
-    private static string Count(int count, string noun)
-        => string.Create(CultureInfo.InvariantCulture, $"{count} {noun}{(count == 1 ? string.Empty : "s")}");
 }

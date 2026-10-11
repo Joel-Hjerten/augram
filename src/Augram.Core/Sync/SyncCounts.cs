@@ -1,3 +1,5 @@
+using Augram.Core.Text;
+
 namespace Augram.Core.Sync;
 
 /// <summary>What a sync did to this machine's gestures and mapping, per item kind (added, changed, deleted).</summary>
@@ -73,18 +75,20 @@ public sealed record SyncCounts(
     {
         var parts = Enum.GetValues<SyncItemKind>()
             .Where(kind => kind != SyncItemKind.CommandVersion && For(kind).Total > 0)
-            .Select(kind => $"{Label(kind)} {For(kind)}")
+            .Select(kind => $"{SyncItemNouns.LogPlural(kind)} {For(kind)}")
             .ToArray();
         return parts.Length == 0 ? "no changes" : string.Join(", ", parts);
     }
 
-    private static string Label(SyncItemKind kind) => kind switch
+    /// <summary>
+    /// "1 gesture, 2 app groups and 8 commands": the kinds whose <paramref name="pick"/>ed count is not zero, in
+    /// <see cref="SyncItemNouns.ReadingOrder"/> (own steps count as commands); empty when none.
+    /// </summary>
+    public string Phrase(Func<SyncKindCounts, int> pick)
     {
-        SyncItemKind.Gesture => "gestures",
-        SyncItemKind.Group => "groups",
-        SyncItemKind.Category => "categories",
-        SyncItemKind.HoldRemap => "hold remaps",
-        SyncItemKind.Command => "commands",
-        _ => "excluded apps",
-    };
+        ArgumentNullException.ThrowIfNull(pick);
+        return Sentence.List([.. SyncItemNouns.ReadingOrder
+            .Where(kind => kind != SyncItemKind.CommandVersion && pick(For(kind)) > 0)
+            .Select(kind => SyncItemNouns.Count(kind, pick(For(kind))))]);
+    }
 }

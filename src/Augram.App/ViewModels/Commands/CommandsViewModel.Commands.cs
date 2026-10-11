@@ -34,7 +34,7 @@ public sealed partial class CommandsViewModel
 
         var group = RequireGroup(section.GroupId);
         Expand(section);
-        var name = FreeNames.Next("New command", CommandNames.SiblingNames(group.Commands, section.HoldRemapId));
+        var name = FreeNames.Next("New command", CommandNames.SiblingNames(group.Commands, section.HoldRemapId), MappingRules.NameComparer);
         var command = new Command(CommandId.New(), name, Trigger.None, IsActive: true, Steps: [], CategoryId: section.CategoryId) { HoldRemapId = section.HoldRemapId };
         var stored = _store.AddCommand(group.Id, command);
         Select(section, stored.Id);

@@ -10,10 +10,6 @@ public sealed partial class AugramImportViewModel
     /// <summary>The matched items listed one per line before "…and 9 more.".</summary>
     public const int MatchLinesShown = 12;
 
-    /// <summary>Kinds in the order the review names them.</summary>
-    private static readonly SyncItemKind[] KindOrder =
-        [SyncItemKind.Gesture, SyncItemKind.Group, SyncItemKind.Category, SyncItemKind.HoldRemap, SyncItemKind.Command, SyncItemKind.CommandVersion, SyncItemKind.Ignored];
-
     /// <summary>"New: 1 app group, 8 commands · Same as yours: 2 gestures · Different: 1 command"; the statuses that have entries.</summary>
     public static string Counts(IReadOnlyList<ImportEntry> entries)
     {
@@ -48,12 +44,12 @@ public sealed partial class AugramImportViewModel
         ArgumentNullException.ThrowIfNull(fileName);
         ArgumentNullException.ThrowIfNull(result);
         var parts = new List<string>(3);
-        if (Changes(result.Counts, counts => counts.Added) is { Length: > 0 } added)
+        if (result.Counts.Phrase(counts => counts.Added) is { Length: > 0 } added)
         {
             parts.Add(added + " added");
         }
 
-        if (Changes(result.Counts, counts => counts.Changed) is { Length: > 0 } changed)
+        if (result.Counts.Phrase(counts => counts.Changed) is { Length: > 0 } changed)
         {
             parts.Add(changed + " changed");
         }
@@ -70,10 +66,10 @@ public sealed partial class AugramImportViewModel
 
     private static void AddStatus(List<string> parts, string label, IReadOnlyList<ImportEntry> entries, ImportStatus status)
     {
-        var kinds = KindOrder
+        var kinds = SyncItemNouns.ReadingOrder
             .Select(kind => (Kind: kind, Count: entries.Count(entry => entry.Status == status && entry.Kind == kind)))
             .Where(pair => pair.Count > 0)
-            .Select(pair => Noun(pair.Kind, pair.Count))
+            .Select(pair => SyncItemNouns.Count(pair.Kind, pair.Count))
             .ToList();
         if (kinds.Count > 0)
         {
@@ -85,35 +81,6 @@ public sealed partial class AugramImportViewModel
     {
         ImportMatchKind.Shape => string.Create(CultureInfo.InvariantCulture, $"Gesture '{entry.Match.FileName}' in the file has the shape of your '{entry.Name}' ({entry.Match.Score ?? 0:0})."),
         ImportMatchKind.HoldKey => $"Hold remap '{entry.Match.FileName}' in the file is your '{entry.Name}': the same hold key.",
-        _ => $"{SyncConflictsViewModel.KindLabel(entry.Kind)} '{entry.Match.FileName}' in the file is your '{entry.Name}'.",
+        _ => $"{SyncItemNouns.Heading(entry.Kind)} '{entry.Match.FileName}' in the file is your '{entry.Name}'.",
     };
-
-    /// <summary>"1 gesture, 2 app groups and 8 commands" for the kinds whose picked count is not zero; empty when none.</summary>
-    private static string Changes(SyncCounts counts, Func<SyncKindCounts, int> pick)
-    {
-        var parts = KindOrder
-            .Where(kind => kind != SyncItemKind.CommandVersion && pick(counts.For(kind)) > 0)
-            .Select(kind => Noun(kind, pick(counts.For(kind))))
-            .ToList();
-        return parts.Count switch
-        {
-            0 => string.Empty,
-            1 => parts[0],
-            _ => string.Join(", ", parts.Take(parts.Count - 1)) + " and " + parts[^1],
-        };
-    }
-
-    private static string Noun(SyncItemKind kind, int count) => kind switch
-    {
-        SyncItemKind.Gesture => Count(count, "gesture", "gestures"),
-        SyncItemKind.Group => Count(count, "app group", "app groups"),
-        SyncItemKind.Category => Count(count, "category", "categories"),
-        SyncItemKind.HoldRemap => Count(count, "hold remap", "hold remaps"),
-        SyncItemKind.Command => Count(count, "command", "commands"),
-        SyncItemKind.CommandVersion => Count(count, "command's own steps", "commands' own steps"),
-        _ => Count(count, "excluded app", "excluded apps"),
-    };
-
-    private static string Count(int count, string singular, string plural)
-        => string.Create(CultureInfo.InvariantCulture, $"{count} {(count == 1 ? singular : plural)}");
 }

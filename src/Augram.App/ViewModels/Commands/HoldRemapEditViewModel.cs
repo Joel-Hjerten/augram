@@ -120,7 +120,7 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
         }
 
         var given = MappingRules.NameComparer.Equals(Name, HoldRemap.DefaultName(oldValue))
-            || (oldValue == KeyCode.None && FreeNames.IsNumbered(HoldRemap.DefaultName(KeyCode.None), Name));
+            || (oldValue == KeyCode.None && FreeNames.IsNumbered(HoldRemap.DefaultName(KeyCode.None), Name, MappingRules.NameComparer));
         if (given)
         {
             Name = HoldRemap.DefaultName(newValue);

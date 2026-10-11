@@ -257,28 +257,7 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
     public static string Changes(SyncCounts counts)
     {
         ArgumentNullException.ThrowIfNull(counts);
-        var parts = new List<string>();
-        Add(parts, counts.Gestures.Total, "gesture");
-        Add(parts, counts.Groups.Total, "app group");
-        Add(parts, counts.Categories.Total, "category", "categories");
-        Add(parts, counts.HoldRemaps.Total, "hold remap");
-        Add(parts, counts.Commands.Total, "command");
-        Add(parts, counts.Ignored.Total, "excluded app");
-        if (parts.Count == 0)
-        {
-            return "nothing changed";
-        }
-
-        var list = parts.Count == 1 ? parts[0] : string.Join(", ", parts.Take(parts.Count - 1)) + " and " + parts[^1];
-        return list + " changed";
-    }
-
-    private static void Add(List<string> parts, int count, string singular, string? plural = null)
-    {
-        if (count > 0)
-        {
-            parts.Add(string.Create(CultureInfo.InvariantCulture, $"{count} {(count == 1 ? singular : plural ?? singular + "s")}"));
-        }
+        return counts.Phrase(kind => kind.Total) is { Length: > 0 } changed ? changed + " changed" : "nothing changed";
     }
 
     private static string From(IReadOnlyList<string> machines) => machines.Count == 0 ? string.Empty : " from " + string.Join(" and ", machines);

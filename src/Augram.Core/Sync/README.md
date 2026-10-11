@@ -13,7 +13,8 @@ Everything in this folder is pure except `SyncBaseStore` (local files) and `Sync
 | `SyncItemSet` | a document as items, in document order; `From(gestures, mapping)`, `Contents()`, `SameAs` |
 | `ThreeWayMerge` | `Merge(base, local, remote[, held])` → `SyncMergeResult` (gestures, mapping, conflicts, repairs, counts, items) |
 | `SyncDocumentBuilder` (+ `.HoldRemaps.cs`), `CommandPlacement` | rebuild merged items into a valid document, repairing (below) |
-| `SyncConflict`, `SyncRepair` + `SyncRepairKind`, `SyncCounts` + `SyncKindCounts` | what a merge reports |
+| `SyncConflict`, `SyncRepair` + `SyncRepairKind`, `SyncCounts` + `SyncKindCounts` | what a merge reports; `SyncCounts.Phrase(pick)` is "1 gesture, 2 app groups and 8 commands" for Options › Sync and the import summary |
+| `SyncItemNouns` | the one noun table for the kinds: `Count(kind, n)` ("2 app groups", "1 command's own steps"), `Heading` ("App group", "Own steps": a conflict's and a match line's kind), `LogPlural` ("groups", for `SyncCounts.ToString`), `ReadingOrder`; also used by `Transfer/TransferContents` and the import review |
 | `SyncMachineState`, `SyncPublished`, `SyncBaseStore` (+ internal `SyncStateJson`) | the local state under `<configFolder>/sync/state/` |
 | `SyncPlanner` (internal) | one run's merges, pure |
 | `ConflictResolution` (internal) | what a resolution does to the document, pure |

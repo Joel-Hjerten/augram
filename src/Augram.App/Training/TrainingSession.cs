@@ -1,9 +1,9 @@
-using System.Globalization;
 using Augram.App.Components.GestureDrawArea;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Gestures.Cleanup;
+using Augram.Core.Mapping;
 using Augram.Core.Recognition;
 using Avalonia.Threading;
 
@@ -190,18 +190,7 @@ public sealed class TrainingSession : ITrainingSession
     }
 
     /// <summary>"New gesture N" with the smallest N the library does not have yet.</summary>
-    public string NextName()
-    {
-        var taken = new HashSet<string>(_library.All.Select(gesture => gesture.Name), GestureRules.NameComparer);
-        for (var n = 1; ; n++)
-        {
-            var candidate = "New gesture " + n.ToString(CultureInfo.InvariantCulture);
-            if (!taken.Contains(candidate))
-            {
-                return candidate;
-            }
-        }
-    }
+    public string NextName() => FreeNames.Next("New gesture", _library.All.Select(gesture => gesture.Name), GestureRules.NameComparer);
 
     private void End(TrainingOutcome outcome)
     {

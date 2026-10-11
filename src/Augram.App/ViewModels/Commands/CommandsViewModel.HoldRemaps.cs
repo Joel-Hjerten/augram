@@ -24,9 +24,7 @@ public sealed partial class CommandsViewModel
         }
 
         var group = RequireGroup(section.Id.GroupId);
-        var stem = HoldRemap.DefaultName(KeyCode.None);
-        var names = group.HoldRemaps.Select(holdRemap => holdRemap.Name).ToList();
-        var name = names.Contains(stem, MappingRules.NameComparer) ? FreeNames.Next(stem, names) : stem;
+        var name = FreeNames.Next(HoldRemap.DefaultName(KeyCode.None), group.HoldRemaps.Select(holdRemap => holdRemap.Name), MappingRules.NameComparer, stemFirst: true);
         var holdRemap = new HoldRemap(HoldRemapId.New(), name, KeyCode.None);
         var id = SectionId.ForHoldRemap(group.Id, holdRemap.Id);
         Expand(id);

@@ -72,7 +72,7 @@ public sealed class SyncConflictsTests
 
         var entry = ViewModel(conflict).Entries.Single();
 
-        Assert.Equal("Hold remap", SyncConflictsViewModel.KindLabel(SyncItemKind.HoldRemap));
+        Assert.Equal("Hold remap", SyncItemNouns.Heading(SyncItemKind.HoldRemap));
         Assert.Equal(("Space", "Hold remap · with Mac"), (entry.Name, entry.Detail));
         Assert.Equal("Space: hold Space, tap 180 ms", entry.Mine.Text);
         Assert.Equal("Space: hold Space, tap 220 ms · Windows only (inactive)", entry.Theirs.Text);

@@ -1,6 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
+using Augram.Core.Text;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -68,7 +69,7 @@ public static class TriggerKindExtensions
             Trigger.GestureTrigger => held.Length == 0 ? gestureText : $"{held} + {gestureText}",
             Trigger.InputTrigger => InputKindExtensions.Text(trigger),
             Trigger.NoTrigger => "No trigger",
-            _ => held.Length == 0 ? Capitalised(trigger.KindPhrase) : $"{held} + {trigger.KindPhrase}",
+            _ => held.Length == 0 ? Sentence.Capitalised(trigger.KindPhrase) : $"{held} + {trigger.KindPhrase}",
         };
     }
 
@@ -160,13 +161,6 @@ public static class TriggerKindExtensions
         }
 
         parts.AddRange(hold.Physical.Buttons().Select(button => button.ToString()));
-        return parts.Count switch
-        {
-            0 => "the stroke button",
-            1 => parts[0],
-            _ => $"{string.Join(", ", parts.Take(parts.Count - 1))} and {parts[^1]}",
-        };
+        return parts.Count == 0 ? "the stroke button" : Sentence.List(parts);
     }
-
-    private static string Capitalised(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 }
