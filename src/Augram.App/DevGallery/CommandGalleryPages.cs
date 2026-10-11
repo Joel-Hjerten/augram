@@ -147,7 +147,7 @@ public static class CommandGalleryPages
         var steps = FakeSteps().Select((step, index) => StepItem.From(step, index, Hosting.CommandsModule.CurrentPlatform)).ToList();
         return new FormScreen("StepList",
         [
-            new Section("Four steps, the first expanded; drag to reorder, the check box toggles (local, no store)",
+            new Section("Four steps, the first expanded; a header click opens or closes, drag to reorder, the check box toggles (local, no store)",
             [
                 new CustomField("StepList", () => BuildLiveStepList(steps)),
             ]),
@@ -276,14 +276,14 @@ public static class CommandGalleryPages
             var items = list.Steps.Select(item => item.Step).ToList();
             switch (e.Action)
             {
-                case StepListAction.Select when e.Step is { } step:
-                    list.SelectedIndex = step.Index;
+                case StepListAction.Select:
+                    list.SelectedIndex = e.Step?.Index ?? -1;
                     return;
                 case StepListAction.Reorder when e.Step is { } step:
                     var moved = items[step.Index];
                     items.RemoveAt(step.Index);
                     items.Insert(e.TargetIndex, moved);
-                    list.SelectedIndex = e.TargetIndex;
+                    list.SelectedIndex = e.IndexAfterReorder(list.SelectedIndex);
                     break;
                 case StepListAction.Delete when e.Step is { } step:
                     items.RemoveAt(step.Index);

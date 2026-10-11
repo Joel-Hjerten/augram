@@ -12,8 +12,10 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Xunit;
+using MouseButton = Avalonia.Input.MouseButton;
 
 namespace Augram.App.Tests.Commands;
 
@@ -119,26 +121,153 @@ public sealed class StepListTests
     }
 
     [AvaloniaFact]
-    public void ALeftDragPastTheThresholdReordersOntoTheRowUnderThePointer()
+    public void AClickOnAHeaderOpensItsStepAndASecondClickClosesItButAClickInTheFormDoesNot()
     {
-        var (list, actions, _) = Show(selected: 0);
-        var window = (Window)TopLevel.GetTopLevel(list)!;
-        var from = Centre(list.Rows[0], window);
+        var (list, actions, _) = Show(echoSelect: true);
+        var window = WindowOf(list);
+
+        Click(window, () => Centre(Part(list.Rows[1], "PART_Name"), window));
+        Assert.Equal(1, list.SelectedIndex);
+        Assert.True(list.Rows[1].IsExpanded);
+        Assert.IsType<SectionForm>(list.Rows[1].Form);
+
+        // A field of the open form, and the form's own padding at its left edge (under the grip's column), keep it open.
+        Click(window, () => Centre(list.Rows[1].Form!.GetVisualDescendants().OfType<NumericUpDown>().Single(), window));
+        Click(window, () => Part(list.Rows[1], "PART_FormHost").TranslatePoint(new Point(2, 2), window)!.Value);
+        Assert.True(list.Rows[1].IsExpanded);
+
+        Click(window, () => Centre(Part(list.Rows[1], "PART_Name"), window));
+        Assert.Equal(-1, list.SelectedIndex);
+        Assert.False(list.Rows[1].IsExpanded);
+        Assert.Null(list.Rows[1].Form);
+        Assert.Null(list.GetVisualDescendants().OfType<ListBox>().Single().SelectedItem);
+        Assert.All(actions, action => Assert.Equal(StepListAction.Select, action.Action));
+        Assert.Equal([1, -1], actions.Select(action => action.Step?.Index ?? -1));
+    }
+
+    [AvaloniaFact]
+    public void AClickOnTheGripOrTheCardsEdgeBeforeItOpensAndClosesNothing()
+    {
+        var (list, actions, _) = Show(selected: 1, echoSelect: true);
+        var window = WindowOf(list);
+
+        Click(window, () => Centre(Part(list.Rows[0], "PART_Grip"), window));
+        Click(window, () => Centre(Part(list.Rows[1], "PART_Grip"), window));
+        Click(window, () => new Point(list.Rows[2].TranslatePoint(new Point(1, 0), window)!.Value.X, Centre(Part(list.Rows[2], "PART_Grip"), window).Y));
+
+        Assert.Empty(actions);
+        Assert.Equal(1, list.SelectedIndex);
+        Assert.Equal([false, true, false], list.Rows.Select(row => row.IsExpanded));
+    }
+
+    [AvaloniaFact]
+    public void APressOnAClosedStepsHeaderThatMovesDragsItClosedAndTheDropReorders()
+    {
+        var (list, actions, _) = Show(echoSelect: true);
+        var window = WindowOf(list);
+        Render();
+        var from = Centre(Part(list.Rows[0], "PART_Name"), window);
         var to = Centre(list.Rows[2], window);
 
-        window.MouseDown(from, Avalonia.Input.MouseButton.Left);
+        window.MouseDown(from, MouseButton.Left);
         window.MouseMove(new Point(from.X, from.Y + 2));
         Assert.DoesNotContain(":dragging", list.Rows[0].Classes);
         window.MouseMove(to);
         Assert.Contains(":dragging", list.Rows[0].Classes);
         Assert.Contains(":drop-target", list.Rows[2].Classes);
-        window.MouseUp(to, Avalonia.Input.MouseButton.Left);
+        Assert.False(list.Rows[0].IsExpanded);
+        window.MouseUp(to, MouseButton.Left);
 
-        var reorder = Assert.Single(actions, action => action.Action == StepListAction.Reorder);
+        var reorder = Assert.Single(actions);
+        Assert.Equal(StepListAction.Reorder, reorder.Action);
         Assert.Equal(0, reorder.Step!.Index);
         Assert.Equal(2, reorder.TargetIndex);
+        Assert.Equal(-1, list.SelectedIndex);
         Assert.DoesNotContain(":dragging", list.Rows[0].Classes);
         Assert.DoesNotContain(":drop-target", list.Rows[2].Classes);
+    }
+
+    [AvaloniaFact]
+    public void ADragByTheGripOrStartedOnTheOpenStepClosesItAndTheDropStillReorders()
+    {
+        var (list, actions, _) = Show(selected: 0, echoSelect: true);
+        var window = WindowOf(list);
+        Render();
+        var from = Centre(Part(list.Rows[0], "PART_Grip"), window);
+
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(new Point(from.X, from.Y + StepDragReorder.ThresholdPx + 2));
+        Assert.Contains(":dragging", list.Rows[0].Classes);
+        var close = Assert.Single(actions);
+        Assert.Equal(StepListAction.Select, close.Action);
+        Assert.Null(close.Step);
+        Assert.Equal(-1, list.SelectedIndex);
+        Assert.False(list.Rows[0].IsExpanded);
+        Assert.Null(list.Rows[0].Form);
+
+        // The rows moved up when the form closed; the drop target is the row under the pointer now.
+        Render();
+        var to = Centre(list.Rows[2], window);
+        window.MouseMove(to);
+        Assert.Contains(":drop-target", list.Rows[2].Classes);
+        window.MouseUp(to, MouseButton.Left);
+
+        Assert.Equal([StepListAction.Select, StepListAction.Reorder], actions.Select(action => action.Action));
+        Assert.Equal(0, actions[1].Step!.Index);
+        Assert.Equal(2, actions[1].TargetIndex);
+        Assert.Equal(-1, list.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void TheActiveBoxTogglesTheStepWithoutOpeningOrClosingAny()
+    {
+        var (list, actions, _) = Show(selected: 0, echoSelect: true);
+        var window = WindowOf(list);
+
+        Click(window, () => Centre(Part(list.Rows[1], "PART_Active"), window));
+        Click(window, () => Centre(Part(list.Rows[0], "PART_Active"), window));
+
+        Assert.Equal([StepListAction.ToggleActive, StepListAction.ToggleActive], actions.Select(action => action.Action));
+        Assert.Equal([1, 0], actions.Select(action => action.Step!.Index));
+        Assert.Equal(0, list.SelectedIndex);
+        Assert.Equal([true, false, false], list.Rows.Select(row => row.IsExpanded));
+    }
+
+    [Theory]
+    [InlineData(0, 2, 0, 2)]
+    [InlineData(0, 2, 1, 0)]
+    [InlineData(0, 2, 2, 1)]
+    [InlineData(2, 0, 0, 1)]
+    [InlineData(2, 0, 1, 2)]
+    [InlineData(2, 0, 2, 0)]
+    [InlineData(0, 1, 2, 2)]
+    [InlineData(1, 2, -1, -1)]
+    public void AReorderMovesTheOpenStepWithItsStep(int from, int to, int open, int expected)
+    {
+        var step = StepItem.From(new CommandStep(new DelayStep(10), HostPlatform.Windows), from, HostPlatform.Windows);
+
+        Assert.Equal(expected, new StepListActionEventArgs(StepListAction.Reorder, step, targetIndex: to).IndexAfterReorder(open));
+    }
+
+    private static Window WindowOf(StepList list) => (Window)TopLevel.GetTopLevel(list)!;
+
+    private static Control Part(StepRow row, string name)
+        => row.GetVisualDescendants().OfType<Control>().Single(control => control.Name == name);
+
+    /// <summary>Headless hit testing reads the last rendered frame, so lay out and render before every press.</summary>
+    private static void Render()
+    {
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+    }
+
+    /// <summary>A left click at a point taken after rendering, so it sees the layout the previous click left.</summary>
+    private static void Click(Window window, Func<Point> at)
+    {
+        Render();
+        var point = at();
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
     }
 
     private static Point Centre(Control row, Window window)
@@ -147,7 +276,8 @@ public sealed class StepListTests
     private static IReadOnlyList<StepItem> Replace(IReadOnlyList<CommandStep> steps, int index, IStep step)
         => steps.Select((item, i) => StepItem.From(i == index ? item with { Step = step } : item, i, HostPlatform.Windows)).ToList();
 
-    private static (StepList List, List<StepListActionEventArgs> Actions, IReadOnlyList<CommandStep> Steps) Show(int selected = -1)
+    /// <summary>The three steps in a window, the one at <paramref name="selected"/> open; with <paramref name="echoSelect"/> the host answers Select as the view model does (the step opens; none closes the open one).</summary>
+    private static (StepList List, List<StepListActionEventArgs> Actions, IReadOnlyList<CommandStep> Steps) Show(int selected = -1, bool echoSelect = false)
     {
         IReadOnlyList<CommandStep> steps =
         [
@@ -157,7 +287,14 @@ public sealed class StepListTests
         ];
         var actions = new List<StepListActionEventArgs>();
         var list = new StepList { Steps = steps.Select((step, index) => StepItem.From(step, index, HostPlatform.Windows)).ToList(), SelectedIndex = selected, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
-        list.ActionRequested += (_, e) => actions.Add(e);
+        list.ActionRequested += (_, e) =>
+        {
+            actions.Add(e);
+            if (echoSelect && e.Action == StepListAction.Select)
+            {
+                list.SelectedIndex = e.Step?.Index ?? -1;
+            }
+        };
         var window = new Window { Content = list, Width = 700, Height = 700 };
         window.Show();
         return (list, actions, steps);

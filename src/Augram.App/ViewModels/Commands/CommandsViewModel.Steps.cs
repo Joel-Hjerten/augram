@@ -52,6 +52,10 @@ public sealed partial class CommandsViewModel
             case StepListAction.Select when step is not null:
                 SelectedStepIndex = step.Index;
                 break;
+            case StepListAction.Select when e.Step is null:
+                // A click on the open step's header, or a drag starting on it, closes it (Joel, 0.11.4).
+                SelectedStepIndex = -1;
+                break;
             case StepListAction.Add when e.Type is { } type:
                 var added = NewStep(type, command);
                 if (Offered(command, added))
@@ -97,14 +101,15 @@ public sealed partial class CommandsViewModel
                 Message = $"Deleted step '{step.Summary}'. {CommandsKeymap.Current.Undo} undoes it.";
                 break;
             case StepListAction.ToggleActive when step is not null:
+                // The active box opens and closes nothing (Joel, 0.11.4).
                 steps[step.Index] = steps[step.Index] with { IsActive = !steps[step.Index].IsActive };
-                Commit(group, command, steps, step.Index);
+                Commit(group, command, steps, SelectedStepIndex);
                 break;
             case StepListAction.Reorder when step is not null && e.TargetIndex >= 0 && e.TargetIndex < steps.Count && e.TargetIndex != step.Index:
                 var moved = steps[step.Index];
                 steps.RemoveAt(step.Index);
                 steps.Insert(e.TargetIndex, moved);
-                Commit(group, command, steps, e.TargetIndex);
+                Commit(group, command, steps, e.IndexAfterReorder(SelectedStepIndex));
                 break;
         }
     }
