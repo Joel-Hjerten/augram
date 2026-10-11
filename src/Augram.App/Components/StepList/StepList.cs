@@ -15,7 +15,8 @@ namespace Augram.App.Components.StepList;
 /// <c>PART_Rows</c>; the row at <see cref="SelectedIndex"/> is expanded with its type's form from
 /// <see cref="Forms"/>. A click on a step's header asks to open it, or to close it when it is the open one
 /// (Select with no step); the grip only drags (Joel, 0.11.4). <c>PART_New</c> opens the <see cref="StepTypePicker"/>
-/// in a flyout; the menu, the keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event.
+/// in a flyout, and the menu's "Change to…" another at the selected step's header (<c>StepList.Picker.cs</c>); the menu, the
+/// keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event.
 /// Rows are reused when the count is unchanged, so a form survives the store echoing its own edit back.
 /// </summary>
 public sealed partial class StepList : TemplatedControl
@@ -298,6 +299,13 @@ public sealed partial class StepList : TemplatedControl
                 if (CanAddStep)
                 {
                     OpenTypePicker();
+                }
+
+                return;
+            case StepListAction.ChangeType:
+                if (step is not null)
+                {
+                    OpenChangePicker(step);
                 }
 
                 return;

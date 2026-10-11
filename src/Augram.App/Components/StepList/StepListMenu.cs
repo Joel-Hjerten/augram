@@ -5,13 +5,17 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.StepList;
 
-/// <summary>Builds the context menu and key bindings of a <see cref="StepList"/> (F5a); every entry ends in one <see cref="StepListAction"/>.</summary>
+/// <summary>
+/// Builds the context menu and key bindings of a <see cref="StepList"/> (F5a); every entry ends in one <see cref="StepListAction"/>.
+/// New step… and Change to… (Joel, 2026-10-11; no key) open the list's step type picker first, which raises Add or ChangeType.
+/// </summary>
 internal static class StepListMenu
 {
     public static ContextMenu Build(Action<StepListAction> request)
     {
         var menu = new ContextMenu();
         menu.Items.Add(Item("New step…", StepListAction.Add, request));
+        menu.Items.Add(Item("Change to…", StepListAction.ChangeType, request));
         menu.Items.Add(Item("Duplicate below", StepListAction.Duplicate, request));
         menu.Items.Add(Item("Copy", StepListAction.Copy, request));
         menu.Items.Add(Item("Paste at bottom", StepListAction.Paste, request));
@@ -19,13 +23,13 @@ internal static class StepListMenu
         return menu;
     }
 
-    /// <summary>Entries that need a selected step are disabled without one, and New step… while no type can be added (<see cref="StepList.CanAddStep"/>).</summary>
+    /// <summary>Entries that need a selected step (Change to…, Duplicate below, Copy, Delete) are disabled without one, and New step… while no type can be added (<see cref="StepList.CanAddStep"/>).</summary>
     public static void Refresh(ContextMenu menu, StepItem? selected, bool canAdd)
     {
         ArgumentNullException.ThrowIfNull(menu);
         foreach (var item in menu.Items.OfType<MenuItem>())
         {
-            if (item.Tag is StepListAction.Duplicate or StepListAction.Copy or StepListAction.Delete)
+            if (item.Tag is StepListAction.ChangeType or StepListAction.Duplicate or StepListAction.Copy or StepListAction.Delete)
             {
                 item.IsEnabled = selected is not null;
             }

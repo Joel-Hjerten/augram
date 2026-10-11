@@ -406,6 +406,7 @@
                                     StepTypes="{TemplateBinding StepTypes}"
                                     HasCommand="{TemplateBinding HasCommand}"
                                     StepRefusals="{TemplateBinding StepRefusals}"
+                                    ChangeRefusals="{TemplateBinding ChangeRefusals}"
                                     FormContext="{TemplateBinding StepFormContext}" />
                   </DockPanel>
                   <form:SectionForm Name="PART_GroupForm"
@@ -859,7 +860,8 @@
           <ControlTemplate>
             <Border Name="PART_Frame" Classes="row">
               <StackPanel>
-                <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto,Auto">
+                <!-- PART_Header: the header line, where the menu's "Change to…" opens its picker. -->
+                <Grid Name="PART_Header" Classes="row-line" ColumnDefinitions="Auto,*,Auto,Auto">
                   <!-- The grip: the handle and the number. A press there only drags; a click on the rest of the header opens or closes the step. -->
                   <StackPanel Grid.Column="0" Name="PART_Grip" Orientation="Horizontal">
                     <TextBlock Classes="drag-handle" Text="≡" />

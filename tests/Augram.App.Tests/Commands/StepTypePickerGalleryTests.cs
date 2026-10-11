@@ -15,7 +15,8 @@ namespace Augram.App.Tests.Commands;
 
 /// <summary>
 /// The gallery's StepTypePicker and StepList pages (gallery rule; Joel, 0.11.3): the picker with nothing refused, Remap greyed
-/// for an ordinary command, Remap offered under a hold remap, everything greyed for Magnifier; and Magnifier's "New step…" disabled.
+/// for an ordinary command, Remap offered under a hold remap, everything greyed for Magnifier, only Remap for "Change to…" on its
+/// Remap step; and Magnifier's "New step…" disabled.
 /// </summary>
 public sealed class StepTypePickerGalleryTests
 {
@@ -29,13 +30,18 @@ public sealed class StepTypePickerGalleryTests
 
         var pickers = form.GetVisualDescendants().OfType<StepTypePicker>().ToList();
 
-        Assert.Equal(4, pickers.Count);
+        Assert.Equal(5, pickers.Count);
         Assert.All(pickers, picker => Assert.Equal(12, picker.Listed.Count));
-        Assert.Equal([12, 11, 12, 0], pickers.Select(picker => picker.Offered.Count));
+        Assert.Equal([12, 11, 12, 0, 11], pickers.Select(picker => picker.Offered.Count));
         var remap = pickers[1].Entries.OfType<Button>().Single(button => button.Tag == RemapStepType.Instance);
         Assert.False(remap.IsEnabled);
         Assert.Equal(StepOffer.NotHere(RemapStepType.Instance), ToolTip.GetTip(remap));
         Assert.All(pickers[3].Entries.OfType<Button>(), button => Assert.Equal(OnlyStep, ToolTip.GetTip(button)));
+
+        // "Change to…" on Magnifier's Remap step (Joel, 2026-10-11): a replacement, so only its own type is greyed.
+        Assert.DoesNotContain(RemapStepType.Instance, pickers[4].Offered);
+        var own = pickers[4].Entries.OfType<Button>().Single(button => button.Tag == RemapStepType.Instance);
+        Assert.Equal("It is a Remap step already.", ToolTip.GetTip(own));
     }
 
     [AvaloniaFact]

@@ -19,6 +19,7 @@ namespace Augram.App.Components.StepList;
 /// an edit does not rebuild the form under the user's hands while an undo does. Two parts tell the list
 /// where a press landed: <c>PART_Grip</c> (the drag handle and the number, <see cref="IsOnGrip"/>) and
 /// <c>PART_FormHost</c> (around the form, <see cref="IsInForm"/>); the rest of the card is its header.
+/// <c>PART_Header</c>, the header line, is where the list anchors the "Change to…" picker (<see cref="HeaderPart"/>).
 /// </summary>
 [PseudoClasses(":expanded", ":dragging", ":drop-target")]
 public sealed class StepRow : ItemRow
@@ -104,6 +105,9 @@ public sealed class StepRow : ItemRow
         set => SetValue(FormProperty, value);
     }
 
+    /// <summary>The header line (<c>PART_Header</c>: grip, summary, marker, active box); null before the template is applied.</summary>
+    public Control? HeaderPart { get; private set; }
+
     /// <summary>The step <see cref="Form"/> was built from.</summary>
     public IStep? FormBuiltFor { get; set; }
 
@@ -147,6 +151,7 @@ public sealed class StepRow : ItemRow
         base.OnApplyTemplate(e);
         _grip = e.NameScope.Find<Control>("PART_Grip");
         _formHost = e.NameScope.Find<Control>("PART_FormHost");
+        HeaderPart = e.NameScope.Find<Control>("PART_Header");
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

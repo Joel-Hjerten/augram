@@ -9,6 +9,12 @@ public enum StepListAction
     /// <summary>Append a default step of the chosen type, select and expand it.</summary>
     Add,
 
+    /// <summary>
+    /// Replace the step with a default step of the chosen type (the menu's "Change to…"), keeping its on/off state and dropping its
+    /// settings; one undo step; select and expand it.
+    /// </summary>
+    ChangeType,
+
     /// <summary>The expanded step's form produced a new step record; one undo step per edit.</summary>
     Edit,
 

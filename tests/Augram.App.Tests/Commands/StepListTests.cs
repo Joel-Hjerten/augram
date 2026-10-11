@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.StepList;
@@ -6,12 +7,15 @@ using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.MediaKey;
+using Augram.Core.Steps.Remap;
 using Augram.Core.Steps.WindowOp;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Xunit;
@@ -231,6 +235,90 @@ public sealed class StepListTests
         Assert.Equal([1, 0], actions.Select(action => action.Step!.Index));
         Assert.Equal(0, list.SelectedIndex);
         Assert.Equal([true, false, false], list.Rows.Select(row => row.IsExpanded));
+    }
+
+    /// <summary>
+    /// "Change to…" (Joel, 2026-10-11): the menu's entry needs a selected step; it opens the step type picker at that step's header,
+    /// and a type chosen there raises ChangeType for that step. The host's new step rebuilds the open form for its type.
+    /// </summary>
+    [AvaloniaFact]
+    public void TheMenusChangeToNeedsASelectedStep_AndRaisesChangeTypeForItWithTheTypeChosen()
+    {
+        var (list, actions, steps) = Show();
+        var box = list.GetVisualDescendants().OfType<ListBox>().Single();
+        var menu = box.ContextMenu!;
+        var entry = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Tag, StepListAction.ChangeType));
+        Assert.Equal("Change to…", entry.Header);
+        Assert.Equal(1, menu.Items.IndexOf(entry));
+
+        box.RaiseEvent(new ContextRequestedEventArgs());
+        Assert.False(entry.IsEnabled);
+        menu.Close();
+
+        list.SelectedIndex = 1;
+        box.RaiseEvent(new ContextRequestedEventArgs());
+        Assert.True(entry.IsEnabled);
+        menu.Close();
+        entry.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+
+        var picker = list.ChangeTypePicker;
+        Assert.NotSame(list.TypePicker, picker);
+        var popup = picker.GetLogicalAncestors().OfType<Popup>().First();
+        Assert.True(popup.IsOpen);
+        Assert.NotNull(list.Rows[1].HeaderPart);
+        Assert.Same(list.Rows[1].HeaderPart, popup.PlacementTarget);
+        Assert.Equal(12, picker.Offered.Count);
+
+        picker.Choose(WindowOpStepType.Instance);
+
+        Assert.False(popup.IsOpen);
+        var change = Assert.Single(actions);
+        Assert.Equal(StepListAction.ChangeType, change.Action);
+        Assert.Equal(1, change.Step!.Index);
+        Assert.Same(WindowOpStepType.Instance, change.Type);
+
+        // The host puts a Window step in its place: the open step's form is rebuilt for it.
+        var form = list.Rows[1].Form!;
+        list.Steps = Replace(steps, 1, new WindowOpStep(WindowOperation.Minimize));
+        Assert.NotSame(form, list.Rows[1].Form);
+        list.UpdateLayout();
+        Assert.Empty(list.Rows[1].Form!.GetVisualDescendants().OfType<NumericUpDown>());
+        Assert.Equal("Window", list.Rows[1].TypeText);
+    }
+
+    /// <summary>The change picker greys what the host refuses for the step it changes (Core's, by step index), not "New step…"'s refusals.</summary>
+    [AvaloniaFact]
+    public void TheChangePickerGreysTheRefusalsOfTheStepItChanges()
+    {
+        var (list, actions, _) = Show(selected: 1);
+        const string Already = "It is a Delay step already.";
+        var notHere = StepOffer.NotHere(RemapStepType.Instance);
+        list.StepRefusals = new Dictionary<IStepType, string> { [RemapStepType.Instance] = notHere };
+        list.ChangeRefusals =
+        [
+            new Dictionary<IStepType, string> { [WindowOpStepType.Instance] = "It is a Window step already.", [RemapStepType.Instance] = notHere },
+            new Dictionary<IStepType, string> { [DelayStepType.Instance] = Already, [RemapStepType.Instance] = notHere },
+        ];
+
+        list.OpenChangePicker(list.Steps[1]);
+
+        var picker = list.ChangeTypePicker;
+        Assert.Equal(10, picker.Offered.Count);
+        Assert.DoesNotContain(DelayStepType.Instance, picker.Offered);
+        Assert.Contains(WindowOpStepType.Instance, picker.Offered);
+        var delay = picker.Entries.OfType<Button>().Single(button => button.Tag == DelayStepType.Instance);
+        Assert.False(delay.IsEnabled);
+        Assert.Equal(Already, ToolTip.GetTip(delay));
+        Assert.Equal(11, list.TypePicker.Offered.Count);
+        picker.Choose(DelayStepType.Instance);
+        Assert.Empty(actions);
+
+        // New refusals from the host follow while it is open; a step without an entry (the third) is offered every type.
+        list.ChangeRefusals = [ReadOnlyDictionary<IStepType, string>.Empty, ReadOnlyDictionary<IStepType, string>.Empty];
+        Assert.Equal(12, picker.Offered.Count);
+        list.ChangeRefusals = [];
+        list.OpenChangePicker(list.Steps[2]);
+        Assert.Equal(12, picker.Offered.Count);
     }
 
     [Theory]

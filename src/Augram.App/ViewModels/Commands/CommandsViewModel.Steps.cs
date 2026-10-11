@@ -10,7 +10,8 @@ namespace Augram.App.ViewModels.Commands;
 /// <c>UpdateCommand</c> on the selected command, one undo step each. The list edited is this platform's (F8): the
 /// original where it was authored, the own version where it has one, and otherwise the converted original, so the first
 /// edit on the other platform makes its own steps from what was running there (<see cref="Command.WithStepsFor"/>). A step
-/// added (new, duplicated or pasted) is first offered to Core's <see cref="StepOffer"/>, as "New step…" greys a type by.
+/// added (new, duplicated or pasted) or changed to another type is first offered to Core's <see cref="StepOffer"/>, as "New
+/// step…" and "Change to…" grey a type by.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -65,6 +66,18 @@ public sealed partial class CommandsViewModel
                 }
 
                 break;
+            case StepListAction.ChangeType when step is not null && e.Type is { } type:
+                // A default step of the new type, made here, in the step's place and with its on/off state; the old type's
+                // settings do not carry across. One store call, so one undo gives the old step back with all of them.
+                var changed = new CommandStep(NewStep(type, command), _platform, steps[step.Index].IsActive);
+                if (Offered(command, changed.Step, replacing: step.Index))
+                {
+                    steps[step.Index] = changed;
+                    Commit(group, command, steps, step.Index);
+                    Message ??= $"Changed step '{step.Summary}' to {type.DisplayName}. {CommandsKeymap.Current.Undo} undoes it.";
+                }
+
+                break;
             case StepListAction.Edit when step is not null && e.Edited is { } edited:
                 steps[step.Index] = steps[step.Index] with { Step = edited };
                 Commit(group, command, steps, step.Index);
@@ -115,18 +128,23 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// True when <paramref name="step"/> (a new one, a duplicate, a paste) may join the command's steps here (Core's
-    /// <see cref="StepOffer"/>, the rule "New step…" greys a type by); else the message line says why in the picker's words
-    /// ("A Remap step is a command's only step.") and nothing is stored.
+    /// True when <paramref name="step"/> (a new one, a duplicate, a paste) may join the command's steps here, or, with
+    /// <paramref name="replacing"/>, take the place of the step at that index ("Change to…"; Core's <see cref="StepOffer"/>, the
+    /// rule "New step…" and "Change to…" grey a type by); else the message line says why in the picker's words ("A Remap step is
+    /// a command's only step.") and nothing is stored.
     /// </summary>
-    private bool Offered(Command command, IStep step)
+    private bool Offered(Command command, IStep step, int? replacing = null)
     {
-        if (StepOffer.Check(step, command, _platform, DraftedTrigger(command.Id)) is not { } reason)
+        var drafted = DraftedTrigger(command.Id);
+        var refusal = replacing is { } index
+            ? StepOffer.CheckChange(step, command, index, _platform, drafted)
+            : StepOffer.Check(step, command, _platform, drafted);
+        if (refusal is null)
         {
             return true;
         }
 
-        Message = reason;
+        Message = refusal;
         return false;
     }
 

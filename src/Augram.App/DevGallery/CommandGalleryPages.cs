@@ -216,13 +216,20 @@ public static class CommandGalleryPages
             [
                 new CustomField("Picker", () => TypePicker(Magnifier())),
             ]),
+            new Section("Change to… on Magnifier's Remap step, judged as a replacement: only Remap greyed (it is one already)",
+            [
+                new CustomField("Picker", () => TypePickerRefusing(StepOffer.ChangeRefusals(StepRegistry.BuiltIn.All, Magnifier(), 0, HostPlatform.Windows))),
+            ]),
         ]);
 
     /// <summary>A picker over every built-in type, refusing what <paramref name="command"/> cannot take on Windows (nothing for null).</summary>
-    private static StepTypePicker TypePicker(Command? command) => new()
+    private static StepTypePicker TypePicker(Command? command)
+        => TypePickerRefusing(command is null ? new Dictionary<IStepType, string>() : StepOffer.Refusals(StepRegistry.BuiltIn.All, command, HostPlatform.Windows));
+
+    private static StepTypePicker TypePickerRefusing(IReadOnlyDictionary<IStepType, string> refusals) => new()
     {
         Types = StepRegistry.BuiltIn.All,
-        Refusals = command is null ? new Dictionary<IStepType, string>() : StepOffer.Refusals(StepRegistry.BuiltIn.All, command, HostPlatform.Windows),
+        Refusals = refusals,
         Width = 260,
     };
 

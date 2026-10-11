@@ -6,6 +6,7 @@ using Augram.Core.Capture;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Remap;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -215,6 +216,35 @@ public sealed class CommandsViewModelButtonTriggerTests
         Assert.Equal(OnlyStep, vm.Message);
         Assert.Single(Find(store, "Magnifier").Steps);
         Assert.False(store.CanUndo);
+    }
+
+    /// <summary>
+    /// "Change to…" (Joel, 2026-10-11) is judged as a replacement: the magnifier's only step, its Remap step, may become a Hotkey
+    /// step in place (adding one is refused), and a step among others on a button trigger may not become a Remap step.
+    /// </summary>
+    [AvaloniaFact]
+    public void TheMagnifiersRemapStepMayBecomeAHotkeyStep_AStepAmongOthersMayNotBecomeARemapStep()
+    {
+        const string OnlyStep = "A Remap step is a command's only step.";
+        var (vm, store) = GlobalWithSteps("Magnifier", RightLeft, new RemapStep(new RemapOutput.Key(KeyCode.X, KeyModifiers.Meta | KeyModifiers.Shift)));
+        Select(vm, "Magnifier");
+        var refusal = Assert.Single(Assert.Single(vm.SelectedCommand!.ChangeRefusals));
+        Assert.Equal((RemapStepType.Instance, "It is a Remap step already."), (refusal.Key, refusal.Value));
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[0], type: HotkeyStepType.Instance));
+
+        Assert.Equal(HotkeyStepType.Instance.CreateDefault(), Assert.Single(Find(store, "Magnifier").Steps).Step);
+        Assert.Equal(0, vm.SelectedStepIndex);
+        Assert.Equal(OnlyStep, Assert.Single(vm.SelectedCommand!.StepRefusals).Value);
+        Assert.DoesNotContain(RemapStepType.Instance, Assert.Single(vm.SelectedCommand.ChangeRefusals).Keys);
+
+        var (chordVm, chordStore) = GlobalWithSteps("Chord", RightMiddle, new DelayStep(10), new DelayStep(20));
+        Select(chordVm, "Chord");
+        Assert.Equal(OnlyStep, chordVm.SelectedCommand!.ChangeRefusals[0][RemapStepType.Instance]);
+        chordVm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, chordVm.Steps[0], type: RemapStepType.Instance));
+        Assert.Equal(OnlyStep, chordVm.Message);
+        Assert.All(Find(chordStore, "Chord").Steps, step => Assert.IsType<DelayStep>(step.Step));
+        Assert.False(chordStore.CanUndo);
     }
 
     [AvaloniaFact]
