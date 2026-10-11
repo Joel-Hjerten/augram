@@ -18,7 +18,7 @@ public sealed record EngineModuleOptions
     /// <summary>False registers the null adapters (no cursor probe, no system events, no Win32 styles, in-memory start-at-login) instead of the Platform ones.</summary>
     public bool PlatformAdapters { get; init; } = true;
 
-    /// <summary>Runs an action on the settings writer thread; null for <c>Dispatcher.UIThread.Post</c>.</summary>
+    /// <summary>Runs an action on the settings writer thread; null for <see cref="UiThread.Post"/>.</summary>
     public Action<Action>? Marshal { get; init; }
 
     public static EngineModuleOptions Default { get; } = new();

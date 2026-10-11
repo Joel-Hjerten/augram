@@ -2,7 +2,6 @@ using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
-using Avalonia.Threading;
 
 namespace Augram.App.ViewModels.Commands;
 
@@ -23,20 +22,10 @@ public sealed partial class CommandsViewModel
         SelectedCommandId = command;
     }
 
-    private void OnStoreChanged(object? sender, EventArgs e)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            ProjectEdit();
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(ProjectEdit);
-        }
-    }
+    protected override void OnStoreChangedOnUi() => ProjectEdit();
 
     /// <summary>
-    /// This machine's stroke button (Options › General), set by the composition root: a trigger naming it means the stroke
+    /// This machine's stroke button (Options › General), followed from the settings store: a trigger naming it means the stroke
     /// button here, and its header says so. Null (no such note) in tests and the gallery.
     /// </summary>
     public MouseButton? StrokeButton
@@ -53,7 +42,7 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// Options › Strokes › Capture's button drag distance, set by the composition root (plan 0004): what the header's Drag distance row
+    /// Options › Strokes › Capture's button drag distance, followed from the settings store (plan 0004): what the header's Drag distance row
     /// calls the Options value ("Options value (10 px)"), the distance of a trigger without its own. The default elsewhere.
     /// </summary>
     public int OptionsDragDistancePx
@@ -67,6 +56,12 @@ public sealed partial class CommandsViewModel
                 OnStoreChanged(this, EventArgs.Empty);
             }
         }
+    }
+
+    private void FollowSettings((MouseButton StrokeButton, int DragDistancePx) settings)
+    {
+        StrokeButton = settings.StrokeButton;
+        OptionsDragDistancePx = settings.DragDistancePx;
     }
 
     /// <summary><see cref="Project"/> after a store change, the one kind of change that nudges the platform filter (<see cref="PlatformFilterNudges"/>).</summary>

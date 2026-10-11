@@ -1,5 +1,5 @@
+using Augram.App.Hosting;
 using Augram.Core.Sync;
-using Avalonia.Threading;
 
 namespace Augram.App.Sync;
 
@@ -68,14 +68,14 @@ public sealed class SyncStoreThread
 
     private static SyncApplied OnUiThread(Func<SyncApplied> apply, CancellationToken stopping)
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        if (UiThread.IsCurrent)
         {
             return apply();
         }
 
         try
         {
-            return Dispatcher.UIThread.Invoke(apply, DispatcherPriority.Normal, stopping);
+            return UiThread.Invoke(apply, stopping);
         }
         catch (OperationCanceledException)
         {

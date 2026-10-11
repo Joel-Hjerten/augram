@@ -1,5 +1,4 @@
 using Augram.Core.Abstractions;
-using Avalonia.Threading;
 
 namespace Augram.App.Hosting;
 
@@ -12,10 +11,10 @@ public sealed class MainWindowOpener : IAppWindow
 {
     private readonly Action<Action> _post;
 
-    /// <param name="post">Runs an action on the UI thread; null is <see cref="Dispatcher.UIThread"/>'s Post.</param>
+    /// <param name="post">Runs an action on the UI thread; null is <see cref="UiThread.Post"/>.</param>
     public MainWindowOpener(Action<Action>? post = null)
     {
-        _post = post ?? (action => Dispatcher.UIThread.Post(action));
+        _post = post ?? UiThread.Post;
     }
 
     /// <summary>Opens and focuses the main window; set once by <c>App</c> when the window exists.</summary>

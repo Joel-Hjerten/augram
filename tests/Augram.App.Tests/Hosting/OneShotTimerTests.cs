@@ -3,13 +3,13 @@ using Xunit;
 
 namespace Augram.App.Tests.Hosting;
 
-public sealed class TimerSaveSchedulerTests
+public sealed class OneShotTimerTests
 {
     [Fact]
     public void RunsOnceAfterTheDelay_ThroughTheMarshal()
     {
         var marshalled = 0;
-        var scheduler = new TimerSaveScheduler(TimeSpan.FromMilliseconds(20), action =>
+        var timer = new OneShotTimer(action =>
         {
             marshalled++;
             action();
@@ -17,7 +17,7 @@ public sealed class TimerSaveSchedulerTests
         using var ran = new ManualResetEventSlim();
         var runs = 0;
 
-        scheduler.Schedule(() =>
+        timer.Schedule(TimeSpan.FromMilliseconds(20), () =>
         {
             runs++;
             ran.Set();
@@ -32,10 +32,10 @@ public sealed class TimerSaveSchedulerTests
     [Fact]
     public void DisposingBeforeTheDelayCancels()
     {
-        var scheduler = new TimerSaveScheduler(TimeSpan.FromMilliseconds(30));
+        var timer = new OneShotTimer();
         var runs = 0;
 
-        scheduler.Schedule(() => runs++).Dispose();
+        timer.Schedule(TimeSpan.FromMilliseconds(30), () => runs++).Dispose();
         Thread.Sleep(120);
 
         Assert.Equal(0, runs);
@@ -46,18 +46,39 @@ public sealed class TimerSaveSchedulerTests
     {
         Action? deferred = null;
         using var captured = new ManualResetEventSlim();
-        var scheduler = new TimerSaveScheduler(TimeSpan.Zero, action =>
+        var timer = new OneShotTimer(action =>
         {
             deferred = action;
             captured.Set();
         });
         var runs = 0;
 
-        var pending = scheduler.Schedule(() => runs++);
+        var pending = timer.Schedule(TimeSpan.Zero, () => runs++);
         Assert.True(captured.Wait(TimeSpan.FromSeconds(30)));
         pending.Dispose();
         deferred!();
 
         Assert.Equal(0, runs);
+    }
+
+    [Fact]
+    public void RestartingRunsOnlyTheLastRequest()
+    {
+        var timer = new OneShotTimer();
+        using var ran = new ManualResetEventSlim();
+        var first = 0;
+        var second = 0;
+
+        timer.Schedule(TimeSpan.FromMilliseconds(30), () => first++).Dispose();
+        timer.Schedule(TimeSpan.FromMilliseconds(30), () =>
+        {
+            second++;
+            ran.Set();
+        });
+
+        Assert.True(ran.Wait(TimeSpan.FromSeconds(30)));
+        Thread.Sleep(60);
+        Assert.Equal(0, first);
+        Assert.Equal(1, second);
     }
 }

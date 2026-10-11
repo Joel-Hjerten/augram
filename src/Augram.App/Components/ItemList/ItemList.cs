@@ -1,10 +1,10 @@
 using Augram.App.Declarations;
+using Augram.App.Hosting;
 using Augram.App.Inspector;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
-using Avalonia.Threading;
 
 namespace Augram.App.Components.ItemList;
 
@@ -173,7 +173,7 @@ public sealed class ItemList : TemplatedControl
 
     private void QueueRefresh()
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        if (UiThread.IsCurrent)
         {
             Refresh();
             return;
@@ -181,7 +181,7 @@ public sealed class ItemList : TemplatedControl
 
         if (Interlocked.Exchange(ref _refreshQueued, 1) == 0)
         {
-            Dispatcher.UIThread.Post(() =>
+            UiThread.Post(() =>
             {
                 Interlocked.Exchange(ref _refreshQueued, 0);
                 Refresh();

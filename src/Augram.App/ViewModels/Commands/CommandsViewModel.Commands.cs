@@ -149,18 +149,7 @@ public sealed partial class CommandsViewModel
     }
 
     private async Task DeleteCommandAsync(CommandItem command)
-    {
-        if (!await _confirm.ConfirmAsync("Delete command", $"Delete command '{command.Name}'?", "Delete").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        Guard(() =>
-        {
-            var removed = _store.RemoveCommand(command.Id);
-            Message = $"Deleted '{removed.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
-        });
-    }
+        => await DeleteAsync("Delete command", $"Delete command '{command.Name}'?", () => Deleted(_store.RemoveCommand(command.Id).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
 
     /// <summary>The header's Category dropdown; the section it lands in is expanded so the selected row stays in sight.</summary>
     private void SetCategory(CommandItem command, CategoryId? category)

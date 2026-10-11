@@ -1,7 +1,7 @@
+using Augram.App.Hosting;
 using Augram.App.Sync;
 using Augram.Core.Config;
 using Augram.Core.Sync;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Augram.App.ViewModels;
@@ -26,13 +26,13 @@ public sealed class SyncViewModel : ObservableObject, IDisposable
     private readonly ISyncConflictPresenter _conflicts;
     private readonly Action<Action> _marshal;
 
-    /// <remarks><c>marshal</c> runs the action on the UI thread; null is <c>Dispatcher.UIThread.Post</c>.</remarks>
+    /// <remarks><c>marshal</c> runs the action on the UI thread; null is <see cref="UiThread.Post"/>.</remarks>
     public SyncViewModel(SettingsStore settings, SyncService service, ISyncConflictPresenter conflicts, Action<Action>? marshal = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _conflicts = conflicts ?? throw new ArgumentNullException(nameof(conflicts));
-        _marshal = marshal ?? (action => Dispatcher.UIThread.Post(action));
+        _marshal = marshal ?? UiThread.Post;
         RepositoryUrl = new DraftText(
             () => Current.RepositoryUrl,
             text => string.IsNullOrWhiteSpace(text) ? null : SyncSettingsRules.UrlProblem(text),

@@ -4,7 +4,6 @@ using Augram.App.Dialogs;
 using Augram.App.Navigation;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Augram.App.ViewModels.Ignored;
@@ -20,11 +19,10 @@ namespace Augram.App.ViewModels.Ignored;
 /// <see cref="MappingRules"/>; only their messages show here. The engine follows every change through the store
 /// (<c>EngineSettingsLink</c>), so an edit here takes effect at once.
 /// </summary>
-public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
+public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
 {
     private readonly MappingStore _store;
     private readonly IFormDialogPresenter _dialogs;
-    private readonly IConfirmPresenter _confirm;
     private readonly HostPlatform _platform;
     private readonly ICommandLocator? _commands;
 
@@ -34,13 +32,12 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
     /// the gallery: the names show as plain text).
     /// </summary>
     public IgnoredViewModel(MappingStore store, IFormDialogPresenter dialogs, IConfirmPresenter confirm, HostPlatform platform, IgnoreScope scope = IgnoreScope.Global, ICommandLocator? commands = null)
+        : base(confirm, MappingRefusals)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(dialogs);
-        ArgumentNullException.ThrowIfNull(confirm);
         _store = store;
         _dialogs = dialogs;
-        _confirm = confirm;
         _platform = platform;
         _commands = commands;
         Scope = scope;
@@ -79,10 +76,6 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     public partial Guid? SelectedId { get; private set; }
-
-    /// <summary>Feedback for the last action: a rule message, or "Deleted 'X'. Ctrl+Z undoes it."</summary>
-    [ObservableProperty]
-    public partial string? Message { get; private set; }
 
     public void Handle(MasterDetailActionEventArgs e)
     {
@@ -151,29 +144,10 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
         var (title, question) = IsPerCommand
             ? ("Delete app", $"Delete '{item.Name}' from Per command?{UsersSentence(new GroupId(item.Id))}")
             : ("Delete excluded app", $"Delete excluded app '{item.Name}'? Augram works over it again.");
-        if (!await _confirm.ConfirmAsync(title, question, "Delete").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        Guard(() =>
-        {
-            var removed = _store.RemoveIgnored(new GroupId(item.Id));
-            Message = $"Deleted '{removed.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
-        });
+        await DeleteAsync(title, question, () => Deleted(_store.RemoveIgnored(new GroupId(item.Id)).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
     }
 
-    private void OnStoreChanged(object? sender, EventArgs e)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            Project();
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(Project);
-        }
-    }
+    protected override void OnStoreChangedOnUi() => Project();
 
     private void Project()
     {
@@ -218,20 +192,4 @@ public sealed partial class IgnoredViewModel : ObservableObject, IDisposable
     private IgnoredApp? Find(Guid id) => _store.FindIgnored(new GroupId(id));
 
     private IgnoredApp Require(Guid id) => Find(id) ?? throw new KeyNotFoundException("That excluded app no longer exists.");
-
-    private void Guard(Action action)
-    {
-        try
-        {
-            action();
-        }
-        catch (MappingValidationException exception)
-        {
-            Message = exception.Message;
-        }
-        catch (KeyNotFoundException exception)
-        {
-            Message = exception.Message;
-        }
-    }
 }

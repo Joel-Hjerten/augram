@@ -1,6 +1,6 @@
 using Augram.App.Declarations;
+using Augram.App.Hosting;
 using Avalonia.Controls;
-using Avalonia.Threading;
 
 namespace Augram.App.Components.Fields;
 
@@ -26,17 +26,7 @@ public static class BindingObserver
         ArgumentNullException.ThrowIfNull(binding);
         ArgumentNullException.ThrowIfNull(apply);
 
-        void OnChanged(object? sender, EventArgs e)
-        {
-            if (Dispatcher.UIThread.CheckAccess())
-            {
-                apply();
-            }
-            else
-            {
-                Dispatcher.UIThread.Post(apply);
-            }
-        }
+        void OnChanged(object? sender, EventArgs e) => UiThread.RunOrPost(apply);
 
         apply();
         editor.AttachedToVisualTree += (_, _) =>

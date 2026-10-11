@@ -45,16 +45,7 @@ public sealed partial class CommandsViewModel
         // Its commands and those of its hold remaps, which go with it.
         var count = Sections.Where(listed => listed.Id.GroupId == section.Id.GroupId).Sum(listed => listed.Commands.Count);
         var question = count == 1 ? $"Delete group '{section.Name}' and its command?" : $"Delete group '{section.Name}' and its {count} commands?";
-        if (!await _confirm.ConfirmAsync("Delete app group", question, "Delete").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        Guard(() =>
-        {
-            var removed = _store.RemoveGroup(section.Id.GroupId);
-            Message = $"Deleted '{removed.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
-        });
+        await DeleteAsync("Delete app group", question, () => Deleted(_store.RemoveGroup(section.Id.GroupId).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
     }
 
     private AppGroup RequireGroup(GroupId id) => _store.FindGroup(id) ?? throw new KeyNotFoundException("That app group no longer exists.");

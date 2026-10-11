@@ -8,7 +8,6 @@ using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Engine.Diagnostics;
 using Augram.Engine.Hosting;
-using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Augram.App;
@@ -32,6 +31,8 @@ internal static class CompositionRoot
     {
         var logs = logsFolder ?? AppPaths.LogsFolder;
         var services = new ServiceCollection();
+        // The one UI-thread marshal: every module, and every service built here, that hands work to the UI thread gets this one.
+        Action<Action> ui = UiThread.Post;
 
         // Diagnostics (N4): one channel log feeding the in-memory tail and the rolling file; disposed with the provider.
         services.AddSingleton<InMemorySink>();
@@ -49,19 +50,19 @@ internal static class CompositionRoot
         services.AddKeyedSingleton<IConfirmPresenter>(ConfirmPresenter.AloneKey, (_, _) => ConfirmPresenter.Alone());
 
         // Engine slice: config session and stores, Platform adapters, overlay, EngineHost (started in App.StartDesktop).
-        EngineModule.Register(services, new EngineModuleOptions { ConfigFolder = configFolder });
+        EngineModule.Register(services, new EngineModuleOptions { ConfigFolder = configFolder, Marshal = ui });
         // Gestures tab slice: training session, presenters ("Used by…", delete confirmation), view model.
         GesturesModule.Register(services);
         // Commands tab slice, after the Gestures one: pickers, navigator, view model and the ICommandLocator the "Used by…" popup jumps through.
         CommandsModule.Register(services);
         // Detect-to-assign for a hold remap command's buttons (plan 0002 step 4); App.StartDesktop publishes it once the engine runs.
-        services.AddSingleton<IButtonCapture>(sp => new EngineButtonCapture(sp.GetRequiredService<EngineHost>(), action => Dispatcher.UIThread.Post(action)));
+        services.AddSingleton<IButtonCapture>(sp => new EngineButtonCapture(sp.GetRequiredService<EngineHost>(), ui));
         // Exclusions tab slice (F5 ignore list), after the Commands one: its view model over the mapping store and the tab entry.
         IgnoredModule.Register(services);
         // Export and import of Augram files (plan 0003), after the Gestures and Commands slices: presenters, file picker, Options › Sync › Export and import.
         TransferModule.Register(services);
         // Sync slice (F8), after the engine's stores: git adapter, coordinator, the sync worker, dialogs, Options › Sync (started in App.StartDesktop).
-        SyncModule.Register(services, new SyncModuleOptions { ConfigFolder = configFolder });
+        SyncModule.Register(services, new SyncModuleOptions { ConfigFolder = configFolder, Marshal = ui });
 
         // View models: projections over the stores above (ADR-0002 §5a).
         services.AddSingleton<AppSettingsViewModel>();

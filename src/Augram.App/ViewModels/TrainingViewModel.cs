@@ -90,14 +90,8 @@ public sealed partial class TrainingViewModel : ObservableObject, IDisposable
     private void OnSessionChanged(object? sender, EventArgs e)
     {
         Message = null;
-        OnPropertyChanged(nameof(Title));
-        OnPropertyChanged(nameof(Name));
-        OnPropertyChanged(nameof(Stroke));
-        OnPropertyChanged(nameof(CleanedStroke));
-        OnPropertyChanged(nameof(CleanUp));
-        OnPropertyChanged(nameof(HasStroke));
-        OnPropertyChanged(nameof(BestMatchText));
-        OnPropertyChanged(nameof(CanAccept));
+        // Everything else reads the session: the empty name tells every binding to read again.
+        OnPropertyChanged(string.Empty);
     }
 
     private void OnSessionEnded(object? sender, TrainingOutcome outcome)

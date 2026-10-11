@@ -22,7 +22,7 @@ public sealed record SyncModuleOptions
     /// <summary>One-shot timers for the change delay and the poll; null for real timers.</summary>
     public Func<TimeSpan, Action, IDisposable>? Schedule { get; init; }
 
-    /// <summary>Posts an action to the UI thread (status, prompts, tray); null for <c>Dispatcher.UIThread.Post</c>.</summary>
+    /// <summary>Posts an action to the UI thread (status, prompts, tray); null for <see cref="UiThread.Post"/>.</summary>
     public Action<Action>? Marshal { get; init; }
 
     public static SyncModuleOptions Default { get; } = new();

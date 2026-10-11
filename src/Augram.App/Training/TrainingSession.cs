@@ -1,11 +1,11 @@
 using Augram.App.Components.GestureDrawArea;
+using Augram.App.Hosting;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Gestures.Cleanup;
 using Augram.Core.Mapping;
 using Augram.Core.Recognition;
-using Avalonia.Threading;
 
 namespace Augram.App.Training;
 
@@ -140,14 +140,7 @@ public sealed class TrainingSession : ITrainingSession
         var local = points.Select(canvas.ToLocal).ToArray();
         // Where a stroke-button stroke landed in the draw area (Joel, 2026-10-09: it showed in the corner): enough to see an offset.
         _log.Info(LogSources.Training, "Stroke drawn into the draw area", ("start", $"{startX},{startY}"), ("canvas", $"{canvas.Left:0},{canvas.Top:0} {canvas.Width:0}x{canvas.Height:0} ×{canvas.Scale}"), ("firstLocal", local.Length > 0 ? $"{local[0].X:0},{local[0].Y:0}" : "none"));
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            ReplaceStroke(local);
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(() => ReplaceStroke(local));
-        }
+        UiThread.RunOrPost(() => ReplaceStroke(local));
 
         return true;
     }

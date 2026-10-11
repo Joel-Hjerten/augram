@@ -57,16 +57,7 @@ public sealed partial class CommandsViewModel
             1 => $"Delete hold remap '{holdRemap.Name}' and its command?",
             _ => $"Delete hold remap '{holdRemap.Name}' and its {count} commands?",
         };
-        if (!await _confirm.ConfirmAsync("Delete hold remap", question, "Delete").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        Guard(() =>
-        {
-            var removed = _store.RemoveHoldRemap(groupId, id);
-            Message = $"Deleted '{removed.Name}'. {CommandsKeymap.Current.Undo} undoes it.";
-        });
+        await DeleteAsync("Delete hold remap", question, () => Deleted(_store.RemoveHoldRemap(groupId, id).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
     }
 
     private void CopyHoldRemap(GroupId groupId, HoldRemapId id)

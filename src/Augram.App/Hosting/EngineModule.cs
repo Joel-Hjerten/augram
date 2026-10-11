@@ -29,7 +29,6 @@ using Augram.Platform.Windows.Overlay;
 using Augram.Platform.Windows.Startup;
 using Augram.Platform.Windows.WindowSystem;
 using Avalonia;
-using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Augram.App.Hosting;
@@ -51,7 +50,7 @@ public static class EngineModule
     {
         ArgumentNullException.ThrowIfNull(services);
         options ??= EngineModuleOptions.Default;
-        var marshal = options.Marshal ?? (action => Dispatcher.UIThread.Post(action));
+        var marshal = options.Marshal ?? UiThread.Post;
 
         services.AddSingleton<IClock>(SystemClock.Instance);
         services.AddSingleton(sp => CreateSession(sp, options, marshal));
@@ -287,8 +286,8 @@ public static class EngineModule
         }
 
         var store = new FileConfigStore(options.ConfigFolder ?? AppPaths.ConfigFolder, Notice);
-        var scheduler = new TimerSaveScheduler(ConfigSession.SaveDelay, marshal);
-        var session = new ConfigSession(store, scheduler.Schedule, Notice);
+        var timer = new OneShotTimer(marshal);
+        var session = new ConfigSession(store, action => timer.Schedule(ConfigSession.SaveDelay, action), Notice);
         log.Info(LogSources.Config, "Configuration loaded", ("file", store.Location), ("gestures", session.Gestures.All.Count));
         UpgradeImportedSteps(session, log);
         if (!File.Exists(store.Location))
