@@ -769,11 +769,17 @@
                              TextWrapping="Wrap"
                              IsVisible="{TemplateBinding TriggerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
-                    <TextBlock Classes="field-label header-label" Text="Category" VerticalAlignment="Center" />
+                    <StackPanel Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Classes="field-label" Text="Category" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.CategoryHelp}" />
+                    </StackPanel>
                     <ComboBox Name="PART_Category" Classes="field-editor" />
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
-                    <TextBlock Classes="field-label header-label" Text="Use on" VerticalAlignment="Center" />
+                    <StackPanel Classes="header-label" Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Classes="field-label" Text="Use on" />
+                      <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.UseOnHelp}" />
+                    </StackPanel>
                     <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
                     <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
                     <TextBlock Classes="help"

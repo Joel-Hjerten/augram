@@ -97,11 +97,11 @@ public sealed class CommandHeaderTests
     }
 
     [AvaloniaFact]
-    public void AWheelTriggerSaysHowItFires_AGestureNeedsNoHint()
+    public void ATriggerSaysHowItFires_AGestureToo()
     {
         var (vm, _, _, _) = Create(CommandsScope.Global);
         var (header, _) = Show(Item(vm, "Close window"));
-        Assert.Null(header.TriggerHint);
+        Assert.Equal("Hold the stroke button and draw the gesture; it fires when you let go. Change… picks another gesture or draws a new one.", header.TriggerHint);
 
         header.Item = Item(vm, "Volume up");
 

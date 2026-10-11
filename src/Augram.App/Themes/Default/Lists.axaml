@@ -785,11 +785,17 @@
                                  Text="{TemplateBinding TriggerNote}"
                                  IsVisible="{TemplateBinding TriggerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
-                        <TextBlock Classes="bench-label bench-label-column" Text="Category" />
+                        <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
+                          <TextBlock Classes="bench-label" Text="Category" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.CategoryHelp}" />
+                        </StackPanel>
                         <ComboBox Name="PART_Category" Classes="field-editor" />
                       </StackPanel>
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
-                        <TextBlock Classes="bench-label bench-label-column" Text="Use on" />
+                        <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
+                          <TextBlock Classes="bench-label" Text="Use on" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.UseOnHelp}" />
+                        </StackPanel>
                         <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
                         <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
                         <TextBlock Classes="bench-note"

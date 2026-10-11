@@ -11,6 +11,12 @@ namespace Augram.App.Components.CommandTree;
 /// </summary>
 public sealed partial class CommandHeader
 {
+    /// <summary>The Use on row's ⓘ (Joel, 0.11.8).</summary>
+    public const string UseOnHelp = "Which computers run this command when your settings sync between them. A platform its category or app group leaves out stays off here, greyed.";
+
+    /// <summary>The Category row's ⓘ (Joel, 0.11.8).</summary>
+    public const string CategoryHelp = "Where the command sits in the list. A category can also keep all its commands off Windows or macOS (the category's own Use on).";
+
     private CheckBox? _useOnWindows;
     private CheckBox? _useOnMac;
 

@@ -121,6 +121,7 @@ public static class TriggerKindExtensions
         var holding = Holding(trigger.Hold, names);
         return trigger switch
         {
+            Trigger.GestureTrigger => $"Hold {holding} and draw the gesture; it fires when you let go. Change… picks another gesture or draws a new one.",
             Trigger.WheelTrigger wheel => $"Hold {holding} and turn the mouse wheel {(wheel.Direction == WheelDirection.Up ? "up" : "down")}; every notch fires.",
             Trigger.ClickTrigger => $"Click the stroke button while holding {holding}; with nothing else bound here the click goes to the app, keys and all.",
             Trigger.ButtonTrigger button when trigger.Hold.Physical != HeldButtons.None
