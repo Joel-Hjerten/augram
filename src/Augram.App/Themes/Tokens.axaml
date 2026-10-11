@@ -26,6 +26,15 @@
       <SolidColorBrush x:Key="Text.Primary" Color="#F2F1F5" />
       <SolidColorBrush x:Key="Text.Muted" Color="#A3F2F1F5" />
       <SolidColorBrush x:Key="Text.Faint" Color="#61F2F1F5" />
+      <SolidColorBrush x:Key="Text.Danger" Color="#FF7A70" />
+      <SolidColorBrush x:Key="Text.Ok" Color="#5BD18B" />
+      <SolidColorBrush x:Key="Text.Warn" Color="#F5B84A" />
+      <!-- A gesture tile or trigger badge; a control under the pointer; a segmented choice's selected segment; a slider. -->
+      <SolidColorBrush x:Key="Layer.Tile" Color="#0DFFFFFF" />
+      <SolidColorBrush x:Key="Layer.ControlHover" Color="#21FFFFFF" />
+      <SolidColorBrush x:Key="Layer.SegmentOn" Color="#24FFFFFF" />
+      <SolidColorBrush x:Key="Layer.Track" Color="#29FFFFFF" />
+      <SolidColorBrush x:Key="Layer.Thumb" Color="#E9E8EE" />
       <!-- Accent: what a root without Themes/AccentLink shows (tests, the previewer); the running app derives these from the trail colour. -->
       <SolidColorBrush x:Key="Accent.Fill" Color="#F5C542" />
       <SolidColorBrush x:Key="Accent.Soft" Color="#29F5C542" />
@@ -47,6 +56,14 @@
       <SolidColorBrush x:Key="Text.Primary" Color="#1D1C22" />
       <SolidColorBrush x:Key="Text.Muted" Color="#A31D1C22" />
       <SolidColorBrush x:Key="Text.Faint" Color="#661D1C22" />
+      <SolidColorBrush x:Key="Text.Danger" Color="#D93B30" />
+      <SolidColorBrush x:Key="Text.Ok" Color="#1E9E57" />
+      <SolidColorBrush x:Key="Text.Warn" Color="#A86A00" />
+      <SolidColorBrush x:Key="Layer.Tile" Color="#0A141428" />
+      <SolidColorBrush x:Key="Layer.ControlHover" Color="#FFFFFFFF" />
+      <SolidColorBrush x:Key="Layer.SegmentOn" Color="#FFFFFFFF" />
+      <SolidColorBrush x:Key="Layer.Track" Color="#21141428" />
+      <SolidColorBrush x:Key="Layer.Thumb" Color="#FFFFFF" />
       <SolidColorBrush x:Key="Accent.Fill" Color="#F5C542" />
       <SolidColorBrush x:Key="Accent.Soft" Color="#3DF5C542" />
       <SolidColorBrush x:Key="Accent.Line" Color="#99D09B0B" />
