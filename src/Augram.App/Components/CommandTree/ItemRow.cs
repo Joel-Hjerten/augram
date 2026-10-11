@@ -33,6 +33,7 @@ public abstract class ItemRow : TemplatedControl
 
     private TextBox? _editor;
     private CheckBox? _active;
+    private Control? _name;
 
     protected ItemRow()
     {
@@ -80,6 +81,30 @@ public abstract class ItemRow : TemplatedControl
         return false;
     }
 
+    /// <summary>
+    /// Whether the pointer is over the name text: the template's <c>PART_Name</c> as laid out, which the themes dock left and size
+    /// to its text. Judged by position, not by the event's source: a text block without a background is not hit at every point
+    /// of its bounds.
+    /// </summary>
+    internal bool IsOnName(PointerEventArgs e)
+        => _name is { IsEffectivelyVisible: true } name && new Rect(name.Bounds.Size).Contains(e.GetPosition(name));
+
+    /// <summary>
+    /// Whether a press is the second click of a double click that renames this row (the tree starts the editor): the left button,
+    /// on the row rather than on one of its own controls, while it can be renamed and is not being edited, and where
+    /// <see cref="RenamesAt"/> says. The one rule, so a header's press never both toggles and renames.
+    /// </summary>
+    internal bool IsRenameClick(PointerPressedEventArgs e)
+        => e.ClickCount == 2
+            && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            && CanRename
+            && !IsEditing
+            && !IsFromOwnControl(e.Source as Visual)
+            && RenamesAt(e);
+
+    /// <summary>Where on the row a double click renames it: anywhere on a command row; a section header narrows it to its name.</summary>
+    protected virtual bool RenamesAt(PointerEventArgs e) => true;
+
     /// <summary>False for a section that cannot be renamed (Uncategorized) and for steps.</summary>
     public bool CanRename
     {
@@ -103,6 +128,7 @@ public abstract class ItemRow : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+        _name = e.NameScope.Find<Control>("PART_Name");
         _editor = e.NameScope.Find<TextBox>("PART_NameEditor");
         if (_editor is not null)
         {

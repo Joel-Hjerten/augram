@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Threading;
 
 namespace Augram.App.Components.CommandTree;
 
@@ -37,6 +38,7 @@ public sealed class SectionRow : ItemRow
     public SectionRow()
     {
         Tapped += OnHeaderTapped;
+        PointerPressed += OnHeaderPressed;
     }
 
     public event EventHandler? ExpandToggled;
@@ -97,16 +99,36 @@ public sealed class SectionRow : ItemRow
     /// <summary>
     /// A tap anywhere on the header toggles it, not only on the expander (Joel, 2026-10-07); the row is selected as
     /// well, as a click on any row is. A tap that lands on a button (the expander raises its own toggle, the active
-    /// box is a toggle button, New command adds a command) or in the name editor belongs to that control. The second click of a double click
-    /// toggles nothing: a double click renames (<c>CommandTree</c>), and the tree puts back the first click's toggle.
+    /// box is a toggle button, New command adds a command) or in the name editor belongs to that control. Avalonia taps only
+    /// the odd clicks of a double click; the second is <see cref="OnHeaderPressed"/>'s.
     /// </summary>
     private void OnHeaderTapped(object? sender, TappedEventArgs e)
     {
-        if (!e.Handled && LastPressClickCount < 2 && !IsFromOwnControl(e.Source as Visual))
+        if (!e.Handled && LastPressClickCount % 2 == 1 && !IsFromOwnControl(e.Source as Visual))
         {
             ExpandToggled?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    /// <summary>
+    /// The second click of a double click toggles the header too, so a quick open-and-close works (Joel, 2026-10-11: "limit the
+    /// area triggering the rename to the actual group title text"). Avalonia raises no tap for it (none at all once the first
+    /// click's toggle has rebuilt the rows), so it is taken from the press, after the press has been handled. On the name of a
+    /// header that can be renamed it renames instead (<see cref="ItemRow.IsRenameClick"/>; the tree puts back the first click's toggle).
+    /// </summary>
+    private void OnHeaderPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.ClickCount % 2 == 0
+            && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            && !IsFromOwnControl(e.Source as Visual)
+            && !IsRenameClick(e))
+        {
+            Dispatcher.UIThread.Post(() => ExpandToggled?.Invoke(this, EventArgs.Empty));
+        }
+    }
+
+    /// <summary>A header renames by double click on its name text only; anywhere else a double click is two toggles.</summary>
+    protected override bool RenamesAt(PointerEventArgs e) => IsOnName(e);
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {

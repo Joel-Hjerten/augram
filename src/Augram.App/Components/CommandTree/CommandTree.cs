@@ -267,8 +267,10 @@ public sealed class CommandTree : TemplatedControl
 
     /// <summary>
     /// Right-click selects before the context menu opens, so the menu acts on the row under the pointer. A double click
-    /// on a row's name or body renames it (Joel, 2026-10-07). The count comes from the press, not from a double-tap
-    /// gesture: a header's first click toggles it, which rebuilds the rows, and the gesture needs both clicks on one element.
+    /// on a command row's name or body renames it (Joel, 2026-10-07); on a section header only one on its name text does
+    /// (Joel, 2026-10-11), elsewhere the header toggles on each click (<see cref="ItemRow.IsRenameClick"/>, the rule both
+    /// follow). The count comes from the press, not from a double-tap gesture: a header's first click toggles it, which
+    /// rebuilds the rows, and the gesture needs both clicks on one element.
     /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -277,12 +279,11 @@ public sealed class CommandTree : TemplatedControl
             return;
         }
 
-        var properties = e.GetCurrentPoint(row).Properties;
-        if (properties.IsRightButtonPressed)
+        if (e.GetCurrentPoint(row).Properties.IsRightButtonPressed)
         {
             _list.SelectedItem = row;
         }
-        else if (properties.IsLeftButtonPressed && e.ClickCount == 2 && row is ItemRow { CanRename: true, IsEditing: false } item && !item.IsFromOwnControl(e.Source as Visual))
+        else if (row is ItemRow item && item.IsRenameClick(e))
         {
             Dispatcher.UIThread.Post(() => RenameByDoubleClick(item));
         }
