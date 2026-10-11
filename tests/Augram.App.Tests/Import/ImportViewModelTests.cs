@@ -57,7 +57,7 @@ public sealed class ImportViewModelTests
         Assert.Equal(1, finished);
         Assert.Equal(2, mine.Find(lShape.Id)!.Samples.Count);
         Assert.Equal(circle, mine.Find(circle.Id));
-        Assert.Contains(mine.All, g => g.Name == "Synthetic Circle (imported)");
+        Assert.Contains(mine.All, g => g.Name == "Synthetic Circle (2)");
         Assert.Contains(mine.All, g => g.Name == "Synthetic Sleeper");
         Assert.Contains(mine.All, g => g.Name == "Keep");
         Assert.True(mine.CanUndo);
@@ -99,7 +99,7 @@ public sealed class ImportViewModelTests
         Assert.Contains("3 command(s) will be added; 0 command(s) already exist and are skipped", vm.PlanText, StringComparison.Ordinal);
 
         vm.ApplyCommand.Execute(null);
-        var imported = mine.All.Single(g => g.Name == "Synthetic Up Stock (imported)");
+        var imported = mine.All.Single(g => g.Name == "Synthetic Up Stock (2)");
         Assert.Equal(Trigger.ForGesture(imported.Id), mapping.Global.Commands.Single(c => c.Name == "Synthetic Close Window").Trigger);
         Assert.Equal(Trigger.ForGesture(upStock.Id), mapping.Global.Commands.Single(c => c.Name == "Existing Close").Trigger);
     }

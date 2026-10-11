@@ -17,6 +17,13 @@ internal static class JsonRead
             ? value.GetString()!.Trim()
             : string.Empty;
 
+    /// <summary>
+    /// The member as <see cref="Text"/> reads it, or "<paramref name="fallback"/> <paramref name="index"/>" ("Action 3") when that
+    /// is empty: SP.net leaves names and descriptions blank, and every imported item needs a name.
+    /// </summary>
+    public static string Name(JsonElement element, string member, string fallback, int index)
+        => Text(element, member) is { Length: > 0 } name ? name : fallback + " " + index;
+
     /// <summary>The member as a bool: true for <c>true</c>, false for <c>false</c>, <paramref name="whenAbsent"/> for anything else.</summary>
     public static bool Flag(JsonElement element, string member, bool whenAbsent = false)
     {

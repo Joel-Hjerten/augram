@@ -11,11 +11,30 @@ namespace Augram.Import.StrokesPlus;
 /// owner's, root's, parent's and control's window text to the title (the root owner's) and the root, parent and control
 /// titles, the four class names to the owner, root, parent and control classes, and <c>IgnoreFullScreen</c> to A21.
 /// <c>ControlID</c> has no Augram equivalent and is reported. A regex the engine refuses leaves its field empty, with a
-/// warning, rather than failing the group.
+/// warning, rather than failing the group. The entry's <c>Active</c> flag comes with it (<see cref="ReadWithActive"/>), because
+/// an entry whose matcher ends up empty would match nothing and is imported inactive.
 /// </summary>
 internal static class MatcherReader
 {
-    public static AppMatcher Read(JsonElement application, string item, List<ImportWarning> warnings)
+    public const string EmptyMatcherMessage = "No usable app definition; imported inactive (needs an app definition).";
+
+    /// <summary>
+    /// The matcher, and the entry's <c>Active</c> flag (absent is active), for an app group and an ignored app alike. A matcher
+    /// that ends up empty makes the entry inactive, with a warning naming <paramref name="item"/>.
+    /// </summary>
+    public static (AppMatcher Matcher, bool IsActive) ReadWithActive(JsonElement application, string item, List<ImportWarning> warnings)
+    {
+        var matcher = Read(application, item, warnings);
+        if (!matcher.IsEmpty)
+        {
+            return (matcher, JsonRead.Flag(application, StrokesPlusJson.Application.Active, whenAbsent: true));
+        }
+
+        warnings.Add(new ImportWarning(ImportSeverity.Warning, item, EmptyMatcherMessage));
+        return (matcher, false);
+    }
+
+    private static AppMatcher Read(JsonElement application, string item, List<ImportWarning> warnings)
     {
         ReportControlId(application, item, warnings);
         MatcherField? Field(string name) => ReadValidField(application, name, item, warnings);

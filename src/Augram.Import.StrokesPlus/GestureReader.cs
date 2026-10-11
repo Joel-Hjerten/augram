@@ -12,16 +12,17 @@ internal sealed class GestureReader
 {
     private const string FallbackName = "Unnamed gesture";
     private readonly List<ImportWarning> _warnings;
-    private readonly HashSet<string> _seenNames = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ImportedNames _names;
 
     public GestureReader(List<ImportWarning> warnings)
     {
         _warnings = warnings;
+        _names = new ImportedNames("gesture", warnings);
     }
 
     public IReadOnlyList<Gesture> Read(JsonElement root)
     {
-        if (!root.TryGetProperty(StrokesPlusJson.Gestures, out var gestures) || gestures.ValueKind != JsonValueKind.Array)
+        if (!JsonRead.TryArray(root, StrokesPlusJson.Gestures, out var gestures))
         {
             _warnings.Add(new ImportWarning(ImportSeverity.Warning, StrokesPlusJson.Gestures, "No Gestures array found; nothing to import."));
             return [];
@@ -50,7 +51,7 @@ internal sealed class GestureReader
 
     private Gesture? ReadGesture(JsonElement element, int index)
     {
-        var sourceName = ReadName(element, index);
+        var sourceName = JsonRead.Name(element, StrokesPlusJson.Gesture.Name, FallbackName, index);
         var samples = ReadSamples(element, sourceName);
         if (samples.Count == 0)
         {
@@ -63,41 +64,14 @@ internal sealed class GestureReader
             _warnings.Add(new ImportWarning(ImportSeverity.Info, sourceName, "Looks like a stock StrokesPlus.net gesture (2-point template)."));
         }
 
-        var isActive = !element.TryGetProperty(StrokesPlusJson.Gesture.Active, out var active) || active.ValueKind != JsonValueKind.False;
-        return new Gesture(GestureId.New(), UniqueName(sourceName), isActive, samples);
-    }
-
-    private static string ReadName(JsonElement element, int index)
-    {
-        var name = element.TryGetProperty(StrokesPlusJson.Gesture.Name, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()!.Trim()
-            : string.Empty;
-        return name.Length == 0 ? FallbackName + " " + index : name;
-    }
-
-    private string UniqueName(string name)
-    {
-        if (_seenNames.Add(name))
-        {
-            return name;
-        }
-
-        var n = 2;
-        var candidate = name + " (" + n + ")";
-        while (!_seenNames.Add(candidate))
-        {
-            n++;
-            candidate = name + " (" + n + ")";
-        }
-
-        _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, "Duplicate gesture name; imported as '" + candidate + "'."));
-        return candidate;
+        var isActive = JsonRead.Flag(element, StrokesPlusJson.Gesture.Active, whenAbsent: true);
+        return new Gesture(GestureId.New(), _names.Claim(sourceName), isActive, samples);
     }
 
     private List<GestureSample> ReadSamples(JsonElement gesture, string sourceName)
     {
         var samples = new List<GestureSample>();
-        if (!gesture.TryGetProperty(StrokesPlusJson.Gesture.PointPatterns, out var patterns) || patterns.ValueKind != JsonValueKind.Array)
+        if (!JsonRead.TryArray(gesture, StrokesPlusJson.Gesture.PointPatterns, out var patterns))
         {
             return samples;
         }
@@ -123,17 +97,14 @@ internal sealed class GestureReader
         return samples;
     }
 
-    private static int ReadOrder(JsonElement pattern, int position)
-    {
-        return pattern.TryGetProperty(StrokesPlusJson.PointPattern.Order, out var order) && order.TryGetInt32(out var value)
-            ? value
-            : position;
-    }
+    /// <summary>The sample's <c>Order</c>, or its place in the file when that is absent or not a number (null, "1").</summary>
+    private static long ReadOrder(JsonElement pattern, int position)
+        => JsonRead.Integer(pattern, StrokesPlusJson.PointPattern.Order) ?? position;
 
     private static List<GesturePoint> ReadPoints(JsonElement pattern)
     {
         var points = new List<GesturePoint>();
-        if (!pattern.TryGetProperty(StrokesPlusJson.PointPattern.Points, out var array) || array.ValueKind != JsonValueKind.Array)
+        if (!JsonRead.TryArray(pattern, StrokesPlusJson.PointPattern.Points, out var array))
         {
             return points;
         }

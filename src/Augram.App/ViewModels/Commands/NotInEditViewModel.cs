@@ -100,7 +100,7 @@ public sealed partial class NotInEditViewModel : ObservableObject
 
         var identification = new AppMatcherEditViewModel(() => PlatformSet.All, string.Empty, string.Empty) { Platform = _platform };
         identification.TakeExecutable(window);
-        var name = FreeNames.Free(AppMatcherEditViewModel.AppNameOf(window), _ignored.Concat(_added).Select(app => app.Name));
+        var name = NameScope.Free(AppMatcherEditViewModel.AppNameOf(window), _ignored.Concat(_added).Select(app => app.Name));
         var added = new IgnoredApp(GroupId.New(), name, IsActive: true, identification.ToMatcher(), DisableEntirely: false) { Scope = IgnoreScope.PerCommand };
         _added.Add(added);
         _entries.Add(added);

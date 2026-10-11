@@ -44,7 +44,7 @@ internal sealed class ActionReader
             return (commands, categories);
         }
 
-        var names = new HashSet<string>(MappingRules.NameComparer);
+        var names = new ImportedNames("command", _warnings);
         var index = 0;
         foreach (var element in actions.EnumerateArray())
         {
@@ -62,10 +62,9 @@ internal sealed class ActionReader
         return (commands, categories);
     }
 
-    private Command ReadAction(JsonElement action, int index, HashSet<string> names)
+    private Command ReadAction(JsonElement action, int index, ImportedNames names)
     {
-        var description = JsonRead.Text(action, StrokesPlusJson.Action.Description);
-        var name = UniqueName(description.Length == 0 ? FallbackName + " " + index : description, names);
+        var name = names.Claim(JsonRead.Name(action, StrokesPlusJson.Action.Description, FallbackName, index));
         var isActive = JsonRead.Flag(action, StrokesPlusJson.Action.Active, whenAbsent: true);
         var notes = new List<string>();
 
@@ -129,24 +128,5 @@ internal sealed class ActionReader
         return trigger is Trigger.GestureTrigger
             ? text.Replace(trigger.KindPhrase, $"gesture '{JsonRead.Text(action, StrokesPlusJson.Action.GestureName)}'", StringComparison.Ordinal)
             : text;
-    }
-
-    private string UniqueName(string name, HashSet<string> names)
-    {
-        if (names.Add(name))
-        {
-            return name;
-        }
-
-        var n = 2;
-        var candidate = name + " (" + n + ")";
-        while (!names.Add(candidate))
-        {
-            n++;
-            candidate = name + " (" + n + ")";
-        }
-
-        _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, "Duplicate command name; imported as '" + candidate + "'."));
-        return candidate;
     }
 }

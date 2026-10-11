@@ -72,6 +72,15 @@ public sealed class StepMappingTests
     }
 
     [Fact]
+    public void LongDelayClampsToTheStepsMaximumWithWarning()
+    {
+        var result = Read("{ \"Method\": \"Delay\", \"MethodParameters\": [ { \"Name\": \"milliseconds\", \"Value\": 90000 } ] }");
+
+        Assert.Equal(60_000, Assert.IsType<DelayStep>(Assert.Single(Probe(result).Steps).Step).Milliseconds);
+        Assert.Contains(result.Warnings, warning => warning.Item == "Synthetic Probe" && warning.Message == "Delay of 90000 ms clamped to 60000 ms.");
+    }
+
+    [Fact]
     public void FractionalDelayRounds()
     {
         Assert.Equal(60, Assert.IsType<DelayStep>(OnlyStep("{ \"Method\": \"Delay\", \"MethodParameters\": [ { \"Name\": \"milliseconds\", \"Value\": 59.6 } ] }").Step).Milliseconds);
@@ -165,6 +174,15 @@ public sealed class StepMappingTests
 
         Assert.Same(ImportedStep.NoParameters, step.Parameters);
         Assert.Equal("SendAltDown", step.Description);
+    }
+
+    [Fact]
+    public void ASendKeysStringThatMakesNoStepsStaysAPlaceholderWithoutAWarning()
+    {
+        var result = Read("{ \"Method\": \"SendKeys\", \"MethodParameters\": [ { \"Name\": \"sendKeysString\", \"Value\": \"{LEFT 0}\" } ] }");
+
+        Assert.Equal("SendKeys", Assert.IsType<ImportedStep>(Assert.Single(Probe(result).Steps).Step).SourceMethod);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Message.StartsWith("SendKeys:", StringComparison.Ordinal));
     }
 
     [Fact]

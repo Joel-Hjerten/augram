@@ -12,7 +12,7 @@ Everything in this folder is pure except `SyncBaseStore` (local files) and `Sync
 | `SyncItem` (+ nested `GestureItem`, `GroupItem`, `CategoryItem`, `HoldRemapItem`, `CommandItem`, `VersionItem`, `IgnoredItem`) | one item: key, name, model value and canonical `Content` |
 | `SyncItemSet` | a document as items, in document order; `From(gestures, mapping)`, `Contents()`, `SameAs` |
 | `ThreeWayMerge` | `Merge(base, local, remote[, held])` → `SyncMergeResult` (gestures, mapping, conflicts, repairs, counts, items) |
-| `SyncDocumentBuilder` (+ `.HoldRemaps.cs`), `CommandPlacement`, `SyncNames` (internal) | rebuild merged items into a valid document, repairing (below) |
+| `SyncDocumentBuilder` (+ `.HoldRemaps.cs`), `CommandPlacement` | rebuild merged items into a valid document, repairing (below) |
 | `SyncConflict`, `SyncRepair` + `SyncRepairKind`, `SyncCounts` + `SyncKindCounts` | what a merge reports |
 | `SyncMachineState`, `SyncPublished`, `SyncBaseStore` (+ internal `SyncStateJson`) | the local state under `<configFolder>/sync/state/` |
 | `SyncPlanner` (internal) | one run's merges, pure |

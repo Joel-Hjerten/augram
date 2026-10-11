@@ -88,6 +88,12 @@ public sealed class ScriptMappingTests
         Assert.Null(ScriptMapping.TryMap(script));
     }
 
+    [Fact]
+    public void SendKeysThatMakesNoStepsStaysAPlaceholder()
+    {
+        Assert.Null(ScriptMapping.TryMap("sp.SendKeys(\"{LEFT 0}\");"));
+    }
+
     [Theory]
     [InlineData("clip.Clear();")]
     [InlineData("// Clear the clipboard\r\nclip.Clear()")]

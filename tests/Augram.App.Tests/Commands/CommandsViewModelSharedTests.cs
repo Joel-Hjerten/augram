@@ -39,8 +39,8 @@ public sealed class CommandsViewModelSharedTests
         // Within Photoshop the copy keeps its category.
         apps.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, Section(apps, "Photoshop"), Item(apps, "Brush")));
         apps.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, Section(apps, "Photoshop")));
-        Assert.Equal(Find(store, "Brush").CategoryId, Find(store, "Brush copy").CategoryId);
-        Assert.Equal("General", Item(apps, "Brush copy").CategoryLabel);
+        Assert.Equal(Find(store, "Brush").CategoryId, Find(store, "Brush (2)").CategoryId);
+        Assert.Equal("General", Item(apps, "Brush (2)").CategoryLabel);
     }
 
     [AvaloniaFact]

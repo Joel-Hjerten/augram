@@ -171,5 +171,6 @@ public sealed class HotkeyMappingTests
         Assert.True(HotkeyMapping.IsMediaVirtualKey(173));
         Assert.True(HotkeyMapping.IsMediaVirtualKey(179));
         Assert.False(HotkeyMapping.IsMediaVirtualKey(180));
+        Assert.Equal(Enumerable.Range(173, 7), Enumerable.Range(-1, 258).Where(HotkeyMapping.IsMediaVirtualKey));
     }
 }

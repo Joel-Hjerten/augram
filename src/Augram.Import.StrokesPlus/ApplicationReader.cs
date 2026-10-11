@@ -13,17 +13,17 @@ namespace Augram.Import.StrokesPlus;
 /// </summary>
 internal sealed class ApplicationReader
 {
-    public const string EmptyMatcherMessage = "No usable app definition; imported inactive (needs an app definition).";
     private const string FallbackName = "App";
 
     private readonly List<ImportWarning> _warnings;
     private readonly ActionReader _actions;
-    private readonly HashSet<string> _names = new(MappingRules.NameComparer) { AppGroup.GlobalName };
+    private readonly ImportedNames _names;
 
     public ApplicationReader(List<ImportWarning> warnings, ActionReader actions)
     {
         _warnings = warnings;
         _actions = actions;
+        _names = new ImportedNames("app", warnings, AppGroup.GlobalName);
     }
 
     /// <summary>The Global group first, then the applications in file order.</summary>
@@ -65,38 +65,11 @@ internal sealed class ApplicationReader
 
     private AppGroup ReadApplication(JsonElement application, int index)
     {
-        var description = JsonRead.Text(application, StrokesPlusJson.Application.Description);
-        var name = UniqueName(description.Length == 0 ? FallbackName + " " + index : description);
-        var matcher = MatcherReader.Read(application, name, _warnings);
-        var isActive = JsonRead.Flag(application, StrokesPlusJson.Application.Active, whenAbsent: true);
-        if (matcher.IsEmpty)
-        {
-            _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, EmptyMatcherMessage));
-            isActive = false;
-        }
-
+        var name = _names.Claim(JsonRead.Name(application, StrokesPlusJson.Application.Description, FallbackName, index));
+        var (matcher, isActive) = MatcherReader.ReadWithActive(application, name, _warnings);
         var suppressGlobals = JsonRead.Flag(application, StrokesPlusJson.Application.NoGlobalActions);
         var (commands, categories) = _actions.ReadCommands(application, name);
         var group = new AppGroup(GroupId.New(), name, isActive, suppressGlobals, matcher, commands);
         return CategoryReader.Categorised(group, application, categories, _warnings);
-    }
-
-    private string UniqueName(string name)
-    {
-        if (_names.Add(name))
-        {
-            return name;
-        }
-
-        var n = 2;
-        var candidate = name + " (" + n + ")";
-        while (!_names.Add(candidate))
-        {
-            n++;
-            candidate = name + " (" + n + ")";
-        }
-
-        _warnings.Add(new ImportWarning(ImportSeverity.Warning, name, "Duplicate app name; imported as '" + candidate + "'."));
-        return candidate;
     }
 }

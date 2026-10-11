@@ -18,12 +18,12 @@ public sealed class NotInEditViewModelTests
 
         var added = edit.AddApp(FakeWindowSystem.Window("Spine.exe", "Spine 4.2"));
 
-        Assert.Equal(("Spine 2", true, true, false), (added.Name, added.IsPerCommand, added.IsActive, added.DisableEntirely));
+        Assert.Equal(("Spine (2)", true, true, false), (added.Name, added.IsPerCommand, added.IsActive, added.DisableEntirely));
         Assert.Equal(["Spine.exe"], added.Matcher.WindowsProcessNames);
         Assert.Equal([added], edit.Added);
         Assert.Equal([added], edit.Entries);
         Assert.Equal([added.Id], edit.NotIn);
-        Assert.Equal("Added 'Spine 2' (Spine.exe), ticked.", edit.AddStatus);
+        Assert.Equal("Added 'Spine (2)' (Spine.exe), ticked.", edit.AddStatus);
     }
 
     [Fact]
@@ -35,8 +35,8 @@ public sealed class NotInEditViewModelTests
         var added = edit.AddApp(FakeWindowSystem.Window("vmware.exe"));
 
         // Names compare as the rules compare them: "vmware" is taken by "VMware".
-        Assert.Equal("vmware 2", added.Name);
-        Assert.Equal("Added 'vmware 2' (vmware.exe), ticked. 'VMware' on Exclusions › Global stops all of Augram over it already.", edit.AddStatus);
+        Assert.Equal("vmware (2)", added.Name);
+        Assert.Equal("Added 'vmware (2)' (vmware.exe), ticked. 'VMware' on Exclusions › Global stops all of Augram over it already.", edit.AddStatus);
     }
 
     [Fact]

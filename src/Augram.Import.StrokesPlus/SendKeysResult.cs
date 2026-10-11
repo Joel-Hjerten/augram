@@ -11,4 +11,11 @@ public sealed record SendKeysResult(IReadOnlyList<IStep> Steps, IReadOnlyList<st
 {
     /// <summary>True when every part mapped as written.</summary>
     public bool IsClean => Warnings.Count == 0;
+
+    /// <summary>
+    /// True when the steps can stand in for the string: every part mapped and they are at least one step (<c>{LEFT 0}</c>
+    /// parses cleanly into none). A fresh import, the upgrade of a saved placeholder and a <c>sp.SendKeys</c> script all keep
+    /// the placeholder otherwise, so the same string always ends the same way.
+    /// </summary>
+    public bool IsComplete => IsClean && Steps.Count > 0;
 }

@@ -71,7 +71,7 @@ public static class PlaceholderUpgrade
             return [hotkey];
         }
 
-        if (TextMapping.TryUpgrade(placeholder) is { IsClean: true, Steps.Count: > 0 } text)
+        if (TextMapping.TryUpgrade(placeholder) is { IsComplete: true } text)
         {
             return text.Steps;
         }

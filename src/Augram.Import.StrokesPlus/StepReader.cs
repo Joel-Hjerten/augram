@@ -19,19 +19,7 @@ namespace Augram.Import.StrokesPlus;
 /// </summary>
 internal sealed class StepReader
 {
-    public const int MaxDelayMilliseconds = 60_000;
     private const string NoMethod = "(no method)";
-
-    private static readonly IReadOnlyDictionary<int, MediaKeyKind> MediaKeys = new Dictionary<int, MediaKeyKind>
-    {
-        [173] = MediaKeyKind.VolumeMute,
-        [174] = MediaKeyKind.VolumeDown,
-        [175] = MediaKeyKind.VolumeUp,
-        [176] = MediaKeyKind.NextTrack,
-        [177] = MediaKeyKind.PreviousTrack,
-        [178] = MediaKeyKind.Stop,
-        [179] = MediaKeyKind.PlayPause,
-    };
 
     private readonly List<ImportWarning> _warnings;
     private readonly Dictionary<string, int> _placeholders = new(StringComparer.Ordinal);
@@ -83,7 +71,7 @@ internal sealed class StepReader
             return null;
         }
 
-        if (!result.IsClean || result.Steps.Count == 0)
+        if (!result.IsComplete)
         {
             foreach (var warning in result.Warnings)
             {
@@ -173,7 +161,7 @@ internal sealed class StepReader
             return Placeholder(StrokesPlusJson.Method.Delay, description, parameters);
         }
 
-        var clamped = Math.Clamp(milliseconds, 0, MaxDelayMilliseconds);
+        var clamped = Math.Clamp(milliseconds, DelayStepType.MinMilliseconds, DelayStepType.MaxMilliseconds);
         if (clamped != milliseconds)
         {
             _warnings.Add(new ImportWarning(ImportSeverity.Warning, commandName, $"Delay of {milliseconds} ms clamped to {clamped} ms."));
@@ -184,7 +172,7 @@ internal sealed class StepReader
 
     private IStep VirtualKey(string description, IReadOnlyDictionary<string, string> parameters)
     {
-        if (MethodParameterReader.TryInt32(parameters, StrokesPlusJson.Method.VirtualKeyParameter, out var key) && MediaKeys.TryGetValue(key, out var kind))
+        if (MethodParameterReader.TryInt32(parameters, StrokesPlusJson.Method.VirtualKeyParameter, out var key) && HotkeyMapping.MediaKeyOf(key) is { } kind)
         {
             return new MediaKeyStep(kind);
         }

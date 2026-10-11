@@ -9,6 +9,6 @@ public enum MergeChoice
     /// <summary>Replace the existing gesture's name, samples and active flag; its id is kept so references stay valid.</summary>
     TakeTheirs,
 
-    /// <summary>Keep the existing gesture and add the imported one renamed "Name (imported)".</summary>
+    /// <summary>Keep the existing gesture and add the imported one, renamed "Name (2)" when the name is taken.</summary>
     KeepBoth,
 }

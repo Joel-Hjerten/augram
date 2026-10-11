@@ -151,7 +151,7 @@ internal sealed class SendKeysParser
         }
 
         FlushText();
-        IStep step = modifiers == KeyModifiers.None && MediaKind(key) is { } media
+        IStep step = modifiers == KeyModifiers.None && MediaKeyKindExtensions.FromKeyCode(key) is { } media
             ? new MediaKeyStep(media)
             : new HotkeyStep(modifiers, key);
         for (var n = 0; n < count; n++)
@@ -271,19 +271,6 @@ internal sealed class SendKeysParser
 
         argument = token[name.Length..].Trim();
         return true;
-    }
-
-    private static MediaKeyKind? MediaKind(KeyCode key)
-    {
-        foreach (var kind in Enum.GetValues<MediaKeyKind>())
-        {
-            if (kind.ToKeyCode() == key)
-            {
-                return kind;
-            }
-        }
-
-        return null;
     }
 
     private static string Describe(KeyModifiers modifiers) => HotkeyText.Format(modifiers, KeyCode.None, names: HostPlatform.Windows);

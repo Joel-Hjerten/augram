@@ -45,7 +45,7 @@ public static class ScriptMapping
 
         if (SendKeysText(tokens) is { } keys)
         {
-            return SendKeysSyntax.Parse(keys) is { IsClean: true, Steps.Count: > 0 } parsed ? parsed.Steps : null;
+            return SendKeysSyntax.Parse(keys) is { IsComplete: true } parsed ? parsed.Steps : null;
         }
 
         if (ScriptTokens.Same(tokens, ClearClipboardCall))

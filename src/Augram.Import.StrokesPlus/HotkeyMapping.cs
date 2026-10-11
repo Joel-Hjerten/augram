@@ -4,6 +4,7 @@ using System.Text.Json;
 using Augram.Core.Abstractions;
 using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.Imported;
+using Augram.Core.Steps.MediaKey;
 
 namespace Augram.Import.StrokesPlus;
 
@@ -118,7 +119,10 @@ public static class HotkeyMapping
     public static KeyCode FromVirtualKey(int virtualKey) => VirtualKeys.GetValueOrDefault(virtualKey, KeyCode.None);
 
     /// <summary>VK_VOLUME_MUTE (173) through VK_MEDIA_PLAY_PAUSE (179): what the step reader turns into a <c>MediaKeyStep</c>.</summary>
-    public static bool IsMediaVirtualKey(int virtualKey) => virtualKey is >= 0xAD and <= 0xB3;
+    public static bool IsMediaVirtualKey(int virtualKey) => MediaKeyOf(virtualKey) is not null;
+
+    /// <summary>The media key a virtual-key code names (<see cref="FromVirtualKey"/>, then <see cref="MediaKeyKindExtensions.FromKeyCode"/>); null for any other code.</summary>
+    internal static MediaKeyKind? MediaKeyOf(int virtualKey) => MediaKeyKindExtensions.FromKeyCode(FromVirtualKey(virtualKey));
 
     private static HotkeyStep? FromHotkeyObject(JsonElement hotkey)
     {

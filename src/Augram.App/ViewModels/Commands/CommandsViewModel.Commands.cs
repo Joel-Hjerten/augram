@@ -70,7 +70,7 @@ public sealed partial class CommandsViewModel
 
         var group = RequireGroup(section.GroupId);
         Expand(section);
-        var name = FreeNames.CopyOf(source.Name, CommandNames.SiblingNames(group.Commands, section.HoldRemapId));
+        var name = NameScope.Free(source.Name, CommandNames.SiblingNames(group.Commands, section.HoldRemapId));
         var copy = Placed(source with { Id = CommandId.New(), Name = name, CategoryId = PastedCategory(section, group, source), HoldRemapId = section.HoldRemapId }, section);
         Command stored;
         try

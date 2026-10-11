@@ -1,24 +1,24 @@
 using Augram.Core.Gestures;
+using Augram.Core.Mapping;
 using Augram.Core.Recognition;
 
 namespace Augram.Import.StrokesPlus;
 
 /// <summary>
-/// Pure merge policy for imported gestures (requirements F8): names clash case-insensitively, a
-/// shape that scores as a duplicate of an existing gesture is offered the same choices (A7: a
-/// re-import reuses the existing gesture rather than adding a copy), conflicts are resolved per entry,
-/// and existing ids never change. No UI, no store.
+/// Pure merge policy for imported gestures (requirements F8): names clash as the rules compare them
+/// (<see cref="GestureRules.NameComparer"/>, case-insensitive), a shape that scores as a duplicate of an
+/// existing gesture is offered the same choices (A7: a re-import reuses the existing gesture rather than
+/// adding a copy), conflicts are resolved per entry, and existing ids never change. A gesture added beside one of the same
+/// name is renamed by the one rule for a clash (<see cref="NameScope"/>: "Up (2)"). No UI, no store.
 /// </summary>
 public static class GestureMerge
 {
-    public const string KeepBothSuffix = " (imported)";
-
     /// <summary>Classifies by name only: <see cref="MergeKind.Add"/> or <see cref="MergeKind.Conflict"/>.</summary>
     public static MergePlan Plan(IReadOnlyList<Gesture> existing, IReadOnlyList<Gesture> imported)
     {
         ArgumentNullException.ThrowIfNull(existing);
         ArgumentNullException.ThrowIfNull(imported);
-        var byName = existing.ToDictionary(gesture => gesture.Name, StringComparer.OrdinalIgnoreCase);
+        var byName = existing.ToDictionary(gesture => gesture.Name, GestureRules.NameComparer);
         var entries = imported
             .Select(gesture => byName.TryGetValue(gesture.Name, out var clash)
                 ? new MergeEntry(gesture, MergeKind.Conflict, clash)
@@ -67,7 +67,7 @@ public static class GestureMerge
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(choices);
         var result = plan.Existing.ToList();
-        var names = new HashSet<string>(result.Select(gesture => gesture.Name), StringComparer.OrdinalIgnoreCase);
+        var names = new NameScope(result.Select(gesture => gesture.Name));
         var map = new Dictionary<GestureId, GestureId>();
 
         foreach (var entry in plan.Entries)
@@ -75,8 +75,7 @@ public static class GestureMerge
             var imported = entry.Imported;
             if (entry.Kind == MergeKind.Add)
             {
-                names.Add(imported.Name);
-                result.Add(imported);
+                result.Add(imported with { Name = names.Claim(imported.Name) });
                 map[imported.Id] = imported.Id;
                 continue;
             }
@@ -91,10 +90,7 @@ public static class GestureMerge
                     map[imported.Id] = existingId;
                     break;
                 case MergeChoice.KeepBoth:
-                    var wanted = entry.Kind == MergeKind.Conflict ? imported.Name + KeepBothSuffix : imported.Name;
-                    var renamed = UniqueName(wanted, names);
-                    names.Add(renamed);
-                    result.Add(imported with { Name = renamed });
+                    result.Add(imported with { Name = names.Claim(imported.Name) });
                     map[imported.Id] = imported.Id;
                     break;
                 case MergeChoice.KeepMine:
@@ -122,16 +118,5 @@ public static class GestureMerge
 
         var twin = existing.First(gesture => gesture.Id == best.GestureId);
         return new MergeEntry(entry.Imported, MergeKind.SameShape, twin, best.Score);
-    }
-
-    private static string UniqueName(string name, HashSet<string> taken)
-    {
-        var candidate = name;
-        for (var n = 2; taken.Contains(candidate); n++)
-        {
-            candidate = name + " " + n;
-        }
-
-        return candidate;
     }
 }
