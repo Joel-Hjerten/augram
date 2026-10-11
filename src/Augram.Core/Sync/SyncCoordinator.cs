@@ -14,11 +14,10 @@ namespace Augram.Core.Sync;
 /// host runs on the thread that owns the stores (tests pass <c>f =&gt; f()</c>), against a snapshot it re-checks
 /// (<see cref="SyncStoreWriter"/>). Applying is one <c>ReplaceAll</c> per store that changed, so one undo step per
 /// store, and the config file's backup-before-write keeps the previous file. Logs one line per run under
-/// <see cref="LogSource"/> with counts only: never content, never more of the URL than its host.
+/// <see cref="LogSources.Sync"/> with counts only: never content, never more of the URL than its host.
 /// </summary>
 public sealed class SyncCoordinator
 {
-    public const string LogSource = "sync";
     public const int MaxAttempts = 3;
 
     private readonly object _gate = new();
@@ -39,7 +38,7 @@ public sealed class SyncCoordinator
     /// <param name="mapping">Merged into, through <paramref name="onStoreThread"/>.</param>
     /// <param name="bases">The local sync state.</param>
     /// <param name="clock">Stamps files, reports and conflicts.</param>
-    /// <param name="log">One line per run, source <see cref="LogSource"/>.</param>
+    /// <param name="log">One line per run, source <see cref="LogSources.Sync"/>.</param>
     /// <param name="onStoreThread">Runs the function on the stores' thread and returns its result.</param>
     /// <param name="steps">The step types other machines' files may use; <see cref="StepRegistry.BuiltIn"/> by default.</param>
     public SyncCoordinator(
@@ -261,7 +260,7 @@ public sealed class SyncCoordinator
         if (report.Status == SyncStatus.NeedsUpdate)
         {
             _log.Warning(
-                LogSource,
+                LogSources.Sync,
                 $"{what} paused: a newer Augram wrote to the repository",
                 ("host", host),
                 ("newest format", report.NewerMachines.Max(machine => machine.FormatVersion)),
@@ -271,12 +270,12 @@ public sealed class SyncCoordinator
 
         if (report.Status == SyncStatus.Failed)
         {
-            _log.Warning(LogSource, $"{what} failed", ("host", host), ("error", report.Error));
+            _log.Warning(LogSources.Sync, $"{what} failed", ("host", host), ("error", report.Error));
             return;
         }
 
         _log.Info(
-            LogSource,
+            LogSources.Sync,
             $"{what}: {report.Status}",
             ("host", host),
             ("changes", report.Counts.ToString()),

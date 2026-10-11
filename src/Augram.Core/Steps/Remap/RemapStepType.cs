@@ -111,7 +111,7 @@ public sealed class RemapStepType : IStepType
     {
         ArgumentNullException.ThrowIfNull(context);
         var remap = StepParameters.Expect<RemapStep>(step, this);
-        context.Log.Debug("steps", "Remap", ("output", remap.Output.Describe(HotkeyText.Names)), ("outcome", StepOutcome.Skipped), ("reason", NotRunHere));
+        context.Log.Debug(LogSources.Steps, "Remap", ("output", remap.Output.Describe(HotkeyText.Names)), ("outcome", StepOutcome.Skipped), ("reason", NotRunHere));
         return StepResult.Skipped(NotRunHere);
     }
 }

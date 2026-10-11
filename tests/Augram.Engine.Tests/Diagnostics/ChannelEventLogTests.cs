@@ -91,7 +91,7 @@ public sealed class ChannelEventLogTests
 
         var report = Assert.Single(sink.DropReports);
         Assert.Equal(EventLevel.Warning, report.Level);
-        Assert.Equal(ChannelEventLog.Source, report.Source);
+        Assert.Equal(LogSources.Log, report.Source);
         Assert.Equal(log.DroppedCount, (long)report.Properties![0].Value!);
         Assert.Equal(log.DroppedCount, (long)report.Properties![1].Value!);
         Assert.Same(sink.Events[^1], report);

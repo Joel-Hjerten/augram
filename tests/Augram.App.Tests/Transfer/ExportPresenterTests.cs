@@ -61,7 +61,7 @@ public sealed class ExportPresenterTests : IDisposable
         Assert.Null(file.Settings);
         Assert.Equal([_picker.SavePath], Directory.GetFiles(_folder));
 
-        var logged = Assert.Single(_log.Events, e => e.Source == ExportPresenter.LogSource);
+        var logged = Assert.Single(_log.Events, e => e.Source == LogSources.Export);
         Assert.Equal((EventLevel.Info, ExportPresenter.LogMessage), (logged.Level, logged.Message));
         Assert.DoesNotContain(logged.Properties!, property => property.Value?.ToString()?.Contains("Blender", StringComparison.Ordinal) == true);
     }
@@ -101,7 +101,7 @@ public sealed class ExportPresenterTests : IDisposable
         Assert.Null(await Presenter(session).ExportAsync(ExportScope.Everything));
         Assert.Single(_picker.SuggestedNames);
         Assert.Empty(Directory.GetFiles(_folder));
-        Assert.DoesNotContain(_log.Events, e => e.Source == ExportPresenter.LogSource);
+        Assert.DoesNotContain(_log.Events, e => e.Source == LogSources.Export);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class ExportPresenterTests : IDisposable
 
         Assert.StartsWith("Could not save x.augram.json: ", outcome, StringComparison.Ordinal);
         Assert.Empty(Directory.GetFiles(_folder, "*", SearchOption.AllDirectories));
-        Assert.Contains(_log.Events, e => e.Source == ExportPresenter.LogSource && e.Level == EventLevel.Warning);
+        Assert.Contains(_log.Events, e => e.Source == LogSources.Export && e.Level == EventLevel.Warning);
     }
 
     [Fact]

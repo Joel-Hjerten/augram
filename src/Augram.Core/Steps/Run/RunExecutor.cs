@@ -22,7 +22,7 @@ internal static class RunExecutor
         var launched = Launch(step, context);
         var result = launched is null ? Unlaunched(step) : ToResult(step, launched);
         context.Log.Debug(
-            "steps",
+            LogSources.Steps,
             "Run",
             ("file", step.File.Trim()),
             ("elevated", step.Elevated),

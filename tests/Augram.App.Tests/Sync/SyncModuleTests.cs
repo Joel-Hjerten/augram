@@ -70,7 +70,7 @@ public sealed class SyncModuleTests : IDisposable
 
             SyncModule.Start(provider);
             Thread.Sleep(150);
-            Assert.True(log.Has(SyncService.LogSource, "Sync ready"));
+            Assert.True(log.Has(LogSources.Sync, "Sync ready"));
             Assert.Equal(0, service.RunCount);
             Assert.Empty(repository.PreparedUrls);
 

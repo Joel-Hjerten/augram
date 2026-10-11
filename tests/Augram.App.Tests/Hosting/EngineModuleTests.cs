@@ -48,7 +48,7 @@ public sealed class EngineModuleTests
                 Assert.Same(NullWindowOperations.Instance, provider.GetRequiredService<IWindowOperations>());
                 Assert.Same(NullProcessLauncher.Instance, provider.GetRequiredService<IProcessLauncher>());
                 Assert.NotNull(provider.GetRequiredService<StrokeButtonDetection>());
-                Assert.True(log.Has(EngineModule.ConfigLogSource, "Configuration loaded"));
+                Assert.True(log.Has(LogSources.Config, "Configuration loaded"));
 
                 EngineModule.Start(provider);
 

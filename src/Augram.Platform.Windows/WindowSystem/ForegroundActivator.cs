@@ -13,7 +13,6 @@ namespace Augram.Platform.Windows.WindowSystem;
 /// </summary>
 internal sealed class ForegroundActivator
 {
-    public const string Source = "window";
     private const int SettleMs = 50;
     private const int PollMs = 5;
     private static readonly string[] Techniques = ["set-foreground", "attach-thread-input", "alt-tap"];
@@ -43,15 +42,15 @@ internal sealed class ForegroundActivator
             if (SettledOn(target.RootHandle))
             {
                 var elapsed = (int)clock.ElapsedMilliseconds;
-                _log.Info(Source, "Window activated", ("technique", technique), ("elapsedMs", elapsed), ("process", target.ProcessName));
+                _log.Info(LogSources.Window, "Window activated", ("technique", technique), ("elapsedMs", elapsed), ("process", target.ProcessName));
                 return new ActivationResult(true, technique, elapsed);
             }
 
-            _log.Info(Source, "Activation attempt failed", ("technique", technique), ("elapsedMs", (int)clock.ElapsedMilliseconds), ("process", target.ProcessName));
+            _log.Info(LogSources.Window, "Activation attempt failed", ("technique", technique), ("elapsedMs", (int)clock.ElapsedMilliseconds), ("process", target.ProcessName));
         }
 
         var total = (int)clock.ElapsedMilliseconds;
-        _log.Warning(Source, "Activation failed", ("technique", "none"), ("elapsedMs", total), ("process", target.ProcessName));
+        _log.Warning(LogSources.Window, "Activation failed", ("technique", "none"), ("elapsedMs", total), ("process", target.ProcessName));
         return new ActivationResult(false, "none", total);
     }
 

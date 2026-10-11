@@ -19,7 +19,6 @@ namespace Augram.App.ViewModels;
 /// </summary>
 public sealed partial class AugramImportViewModel : ObservableObject
 {
-    public const string LogSource = "import";
     public const string LogMessage = "Imported Augram file";
     public const string Title = "Import Augram file";
     public const string ImportLabel = "Import";
@@ -205,7 +204,7 @@ public sealed partial class AugramImportViewModel : ObservableObject
         ResultText = Summary(FileName, result);
         ResultDetails = [.. result.Repairs.Select(repair => repair.Description), .. result.Notes];
         _log.Info(
-            LogSource,
+            LogSources.Import,
             LogMessage,
             ("counts", result.Counts.ToString()),
             ("options", result.SettingsChanged),

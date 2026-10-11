@@ -17,7 +17,7 @@ internal static class ClearClipboardExecutor
         var result = cleared.Succeeded ? StepResult.Done
             : cleared.IsSupported ? StepResult.Failed(cleared.Reason ?? "the clipboard could not be cleared")
             : StepResult.Skipped(cleared.Reason ?? NullClipboard.Reason);
-        context.Log.Debug("steps", step.Summary, ("outcome", result.Outcome), ("reason", result.Reason));
+        context.Log.Debug(LogSources.Steps, step.Summary, ("outcome", result.Outcome), ("reason", result.Reason));
         return result;
     }
 }

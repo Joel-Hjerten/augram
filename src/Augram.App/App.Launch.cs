@@ -83,7 +83,7 @@ public sealed partial class App
 
             decided = true;
             var launch = LaunchVisibility.Decide(args, loginItem);
-            log.Info(LogSource, "Launch window decided", [.. launch.LogProperties, ("event", launchEvent)]);
+            log.Info(LogSources.App, "Launch window decided", [.. launch.LogProperties, ("event", launchEvent)]);
             OpenAsLaunched(launch, showsItself: true);
         }
 
@@ -93,7 +93,7 @@ public sealed partial class App
             {
                 if (!decided)
                 {
-                    log.Warning(LogSource, "No launch event arrived; the window opens", ("waitedMs", (int)LaunchEventTimeout.TotalMilliseconds));
+                    log.Warning(LogSources.App, "No launch event arrived; the window opens", ("waitedMs", (int)LaunchEventTimeout.TotalMilliseconds));
                     Decide(loginItem: false, "none");
                 }
             },
@@ -116,7 +116,7 @@ public sealed partial class App
             if (e.Kind == ActivationKind.Reopen)
             {
                 // Raised from inside AppKit's handling of the reopen event; shown from the loop, as a second launch's request is.
-                log.Info(LogSource, "Asked to show the window by a reopen");
+                log.Info(LogSources.App, "Asked to show the window by a reopen");
                 Dispatcher.UIThread.Post(ShowMainWindow);
             }
         };

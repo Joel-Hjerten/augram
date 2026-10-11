@@ -8,6 +8,7 @@ The data side of N4 (observability): what a log event is, how to emit one cheapl
 |---|---|
 | `EventLevel` | `Trace`, `Debug`, `Info`, `Warning`, `Error`; ordered, so "minimum level" is one comparison |
 | `LogEvent` | `(Timestamp, Level, Source, Message, Properties?, Exception?)`, immutable record |
+| `LogSources` | every source the solution emits, one constant each (`App` = `app` … `Window` = `window`, `Execution` = `exec`), and `All` in alphabetical order |
 | `LogProperty` | `(Key, Value)`; written as a tuple at the call site, `("generation", 2)` |
 | `EventLogExtensions` | `log.Trace/Debug/Info/Warning/Error(source, message, params properties)`; `Error` has an overload taking the exception |
 | `NullEventLog` | `Instance`; never enabled, discards everything; the default for tests |
@@ -20,8 +21,8 @@ The data side of N4 (observability): what a log event is, how to emit one cheapl
 
 ## Contract
 
-- **Sources** are short lowercase component names the Diagnostics tab filters on: `hook`, `capture`, `recognition`, `exec` (command resolution, activation and the per-command summary), `ignore` (the ignore list's watch: pointer over an ignored app, pauses while a "disable while focused" app has focus), `steps` (one line per step execution), `config`, `overlay`, `import`, `app`, `window`, `log` (the log's own drop reports). Add to this list when a component gains a source; do not invent per-call variants.
-- **Properties carry the numbers, the message carries the sentence.** `log.Info("hook", "Hook installed", ("generation", 2), ("firstEventMs", 3.2))`, not string interpolation. The sinks render `key=value` invariantly, so an agent can grep for `firstEventMs=`.
+- **Sources** are short lowercase component names the Diagnostics tab filters on, and `LogSources` is the one list of them: a constant per source with what it covers, and `All`, which the Log tab's source filter shows. Every call site passes a `LogSources` constant, never a literal or a constant of its own. A component that needs a new source adds it there (constant and `All`; a test keeps the two equal); do not invent per-call variants.
+- **Properties carry the numbers, the message carries the sentence.** `log.Info(LogSources.Hook, "Hook installed", ("generation", 2), ("firstEventMs", 3.2))`, not string interpolation. The sinks render `key=value` invariantly, so an agent can grep for `firstEventMs=`.
 - **`Error(source, message, exception, props...)`** for anything caught; the sinks print the exception on indented lines after the event line.
 - **`RecognitionLog` is the store for the A15 panel; the same facts also go to `IEventLog` at Info** so the file and the panel agree. The Engine worker writes both; nothing else adds entries.
 - **`HealthRegistry` contributors read, never compute.** A contributor is `s => s with { HookAliveSince = _aliveSince }` over a volatile field the component already maintains; it runs on the reader's thread when the Diagnostics tab refreshes.

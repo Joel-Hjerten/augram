@@ -6,7 +6,7 @@ namespace Augram.Core.Diagnostics;
 /// Call-site sugar for <see cref="IEventLog"/>. Each method checks <see cref="IEventLog.IsEnabled"/>
 /// first and only then builds the <see cref="LogEvent"/>, so a disabled level costs one virtual call
 /// and no allocation. Properties arrive as a <c>params ReadOnlySpan</c>, which the compiler places on the
-/// stack, each written as a tuple: <c>log.Info("hook", "Hook installed", ("generation", 2))</c>. A value-type
+/// stack, each written as a tuple: <c>log.Info(LogSources.Hook, "Hook installed", ("generation", 2))</c>. A value-type
 /// property value is boxed at the call site regardless; on the hot path guard such calls with <c>IsEnabled</c> yourself.
 /// </summary>
 public static class EventLogExtensions

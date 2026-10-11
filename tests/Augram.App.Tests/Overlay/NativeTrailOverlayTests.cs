@@ -52,9 +52,9 @@ public sealed class NativeTrailOverlayTests
         Assert.True(overlay.IsVisible);
         Assert.False(overlay.IsParked);
         Assert.Same(TrailSettings.Default, surface.Style);
-        Assert.True(log.Has(NativeTrailOverlay.LogSource, "Overlay style verified"));
-        Assert.True(log.Has(NativeTrailOverlay.LogSource, "Overlay area"));
-        Assert.True(log.Has(NativeTrailOverlay.LogSource, "Trail first frame"));
+        Assert.True(log.Has(LogSources.Overlay, "Overlay style verified"));
+        Assert.True(log.Has(LogSources.Overlay, "Overlay area"));
+        Assert.True(log.Has(LogSources.Overlay, "Trail first frame"));
 
         OnWorker(() =>
         {
@@ -187,7 +187,7 @@ public sealed class NativeTrailOverlayTests
 
         Assert.False(surface.IsOrderedIn);
         Assert.False(overlay.IsVisible);
-        Assert.True(log.Has(NativeTrailOverlay.LogSource, "Overlay visible without a stroke, hidden"));
+        Assert.True(log.Has(LogSources.Overlay, "Overlay visible without a stroke, hidden"));
     }
 
     [AvaloniaFact]

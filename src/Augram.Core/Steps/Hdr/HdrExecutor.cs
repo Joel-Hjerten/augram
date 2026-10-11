@@ -16,7 +16,7 @@ internal static class HdrExecutor
         DisplayInfo? display = null;
         var result = Run(step, context, ref display);
         context.Log.Debug(
-            "steps",
+            LogSources.Steps,
             "HDR",
             ("action", step.Action),
             ("display", display?.Name),

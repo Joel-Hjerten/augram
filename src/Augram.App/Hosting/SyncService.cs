@@ -27,8 +27,6 @@ namespace Augram.App.Hosting;
 /// </summary>
 public sealed class SyncService : IDisposable
 {
-    public const string LogSource = SyncCoordinator.LogSource;
-
     public static readonly TimeSpan ChangeDelay = TimeSpan.FromSeconds(20);
     public static readonly TimeSpan PollInterval = TimeSpan.FromMinutes(5);
     public static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
@@ -299,7 +297,7 @@ public sealed class SyncService : IDisposable
                     _stateCleared = true;
                 }
 
-                _log.Info(LogSource, "Sync state cleared: the repository changed", ("host", SyncSettingsRules.Host(url)), ("old clone kept", reset.MovedTo is not null));
+                _log.Info(LogSources.Sync, "Sync state cleared: the repository changed", ("host", SyncSettingsRules.Host(url)), ("old clone kept", reset.MovedTo is not null));
             }
 
             if (url is null)
@@ -323,13 +321,13 @@ public sealed class SyncService : IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _log.Warning(LogSource, "Sync folder could not be prepared", ("error", exception.Message));
+            _log.Warning(LogSources.Sync, "Sync folder could not be prepared", ("error", exception.Message));
             return Failed($"The old sync folder could not be moved aside: {exception.Message}");
         }
         catch (Exception exception)
         {
             // A bug must not end the worker: report it and keep serving requests.
-            _log.Error(LogSource, "Sync failed unexpectedly", exception);
+            _log.Error(LogSources.Sync, "Sync failed unexpectedly", exception);
             return Failed($"Sync failed unexpectedly: {exception.Message}");
         }
     }
@@ -429,7 +427,7 @@ public sealed class SyncService : IDisposable
         catch (Exception exception)
         {
             // A handler's bug must not end the worker thread (and with it the process).
-            _log.Error(LogSource, "A sync status handler failed", exception);
+            _log.Error(LogSources.Sync, "A sync status handler failed", exception);
         }
     }
 

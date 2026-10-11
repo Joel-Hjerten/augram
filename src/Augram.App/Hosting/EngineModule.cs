@@ -47,8 +47,6 @@ namespace Augram.App.Hosting;
 /// </summary>
 public static class EngineModule
 {
-    public const string ConfigLogSource = "config";
-
     public static IServiceCollection Register(IServiceCollection services, EngineModuleOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -280,24 +278,24 @@ public static class EngineModule
         {
             if (line.StartsWith("Could not", StringComparison.Ordinal) || line.StartsWith("Settings reset", StringComparison.Ordinal) || line.Contains("skipped", StringComparison.Ordinal))
             {
-                log.Warning(ConfigLogSource, line);
+                log.Warning(LogSources.Config, line);
             }
             else
             {
-                log.Info(ConfigLogSource, line);
+                log.Info(LogSources.Config, line);
             }
         }
 
         var store = new FileConfigStore(options.ConfigFolder ?? AppPaths.ConfigFolder, Notice);
         var scheduler = new TimerSaveScheduler(ConfigSession.SaveDelay, marshal);
         var session = new ConfigSession(store, scheduler.Schedule, Notice);
-        log.Info(ConfigLogSource, "Configuration loaded", ("file", store.Location), ("gestures", session.Gestures.All.Count));
+        log.Info(LogSources.Config, "Configuration loaded", ("file", store.Location), ("gestures", session.Gestures.All.Count));
         UpgradeImportedSteps(session, log);
         if (!File.Exists(store.Location))
         {
             // First run: write the defaults and starter gestures now, so the file exists to look at and back up before any edit.
             session.Store.Save(session.Document);
-            log.Info(ConfigLogSource, "Configuration created", ("file", store.Location));
+            log.Info(LogSources.Config, "Configuration created", ("file", store.Location));
         }
 
         return session;
@@ -320,7 +318,7 @@ public static class EngineModule
         session.Mapping.ClearHistory();
         session.Flush();
         var methods = string.Join(", ", upgrade.Methods.Select(method => $"{method.Key} {method.Value}"));
-        log.Info(ConfigLogSource, "Imported steps upgraded", ("steps", upgrade.Count), ("methods", methods));
+        log.Info(LogSources.Config, "Imported steps upgraded", ("steps", upgrade.Count), ("methods", methods));
     }
 
     private static EngineHost CreateHost(IServiceProvider sp)

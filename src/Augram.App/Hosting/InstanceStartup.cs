@@ -19,7 +19,6 @@ namespace Augram.App.Hosting;
 /// </summary>
 public sealed class InstanceStartup : IDisposable
 {
-    public const string LogSource = "app";
     public const string SameInstallReason = "same install";
     public const string CancelledReason = "take-over cancelled";
     public const string ConfirmLabel = "Quit it and start this one";
@@ -176,7 +175,7 @@ public sealed class InstanceStartup : IDisposable
         ArgumentNullException.ThrowIfNull(log);
         foreach (var (message, properties) in _notes)
         {
-            log.Info(LogSource, message, properties);
+            log.Info(LogSources.App, message, properties);
         }
 
         _notes.Clear();

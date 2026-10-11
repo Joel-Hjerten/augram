@@ -102,7 +102,7 @@ public sealed class AugramImportPresenterTests : IDisposable
         Assert.StartsWith("future.augram.json was not imported. The file was written by a newer Augram", outcome, StringComparison.Ordinal);
         Assert.Equal(outcome, Assert.Single(_windows.Messages).Message);
         Assert.Empty(_windows.Reviews);
-        Assert.Contains(_log.Events, e => e.Source == AugramImportViewModel.LogSource && e.Level == EventLevel.Warning);
+        Assert.Contains(_log.Events, e => e.Source == LogSources.Import && e.Level == EventLevel.Warning);
     }
 
     [Fact]

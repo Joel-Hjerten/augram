@@ -1,6 +1,7 @@
 using Augram.App.Tests.Architecture;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
+using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Import.StrokesPlus;
@@ -69,7 +70,7 @@ public sealed class ImportViewModelTests
         Assert.Equal(Trigger.None, mapping.Global.Commands.Single(c => c.Name == "Synthetic Dangling Reference").Trigger);
         Assert.True(mapping.CanUndo);
 
-        var entry = Assert.Single(log.Events, e => e.Source == ImportViewModel.LogSource);
+        var entry = Assert.Single(log.Events, e => e.Source == LogSources.Import);
         Assert.Equal(ImportViewModel.LogMessage, entry.Message);
         Assert.Contains(entry.Properties!, p => p.Key == "replaced" && Equals(p.Value, 1));
         Assert.Contains(entry.Properties!, p => p.Key == "kept" && Equals(p.Value, 0));
@@ -122,7 +123,7 @@ public sealed class ImportViewModelTests
         Assert.Equal(5, mapping.Current.Groups.Count);
         Assert.Equal(16, mapping.Global.Commands.Count);
         Assert.Equal(2, mapping.Current.Ignored.Count);
-        var entry = Assert.Single(log.Events, e => e.Source == ImportViewModel.LogSource);
+        var entry = Assert.Single(log.Events, e => e.Source == LogSources.Import);
         Assert.Contains(entry.Properties!, p => p.Key == "groupsAdded" && Equals(p.Value, 4));
         Assert.Contains(entry.Properties!, p => p.Key == "commandsAdded" && Equals(p.Value, 27));
         Assert.Contains(entry.Properties!, p => p.Key == "ignoredAdded" && Equals(p.Value, 2));

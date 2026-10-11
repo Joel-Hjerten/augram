@@ -1,5 +1,6 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.Diagnostics;
 using Augram.Engine.Hosting;
 using Xunit;
 

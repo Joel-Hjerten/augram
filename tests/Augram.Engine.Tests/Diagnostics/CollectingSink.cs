@@ -32,9 +32,9 @@ internal sealed class CollectingSink : ILogSink
     }
 
     /// <summary>Events the test itself logged, excluding the channel's own drop reports.</summary>
-    public IReadOnlyList<LogEvent> Logged => Events.Where(e => e.Source != ChannelEventLog.Source).ToList();
+    public IReadOnlyList<LogEvent> Logged => Events.Where(e => e.Source != LogSources.Log).ToList();
 
-    public IReadOnlyList<LogEvent> DropReports => Events.Where(e => e.Source == ChannelEventLog.Source).ToList();
+    public IReadOnlyList<LogEvent> DropReports => Events.Where(e => e.Source == LogSources.Log).ToList();
 
     public void Write(LogEvent e)
     {

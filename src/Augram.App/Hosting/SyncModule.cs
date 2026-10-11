@@ -40,7 +40,7 @@ public static class SyncModule
         services.AddSingleton(sp =>
         {
             var log = sp.GetRequiredService<IEventLog>();
-            return new SyncBaseStore(sp.GetRequiredService<SyncFolders>().ConfigFolder, line => log.Warning(SyncService.LogSource, line));
+            return new SyncBaseStore(sp.GetRequiredService<SyncFolders>().ConfigFolder, line => log.Warning(LogSources.Sync, line));
         });
         services.AddSingleton(_ => new SyncStoreThread(options.StoreThread));
         services.AddSingleton(sp => new SyncCoordinator(
@@ -83,7 +83,7 @@ public static class SyncModule
         services.GetRequiredService<SyncHealthContributor>();
         var service = services.GetRequiredService<SyncService>();
         services.GetRequiredService<IEventLog>().Info(
-            SyncService.LogSource,
+            LogSources.Sync,
             "Sync ready",
             ("repository", SyncSettingsRules.Host(services.GetRequiredService<SettingsStore>().Current.Sync.RepositoryUrl)),
             ("automatic", services.GetRequiredService<SettingsStore>().Current.Sync.AutoSync));

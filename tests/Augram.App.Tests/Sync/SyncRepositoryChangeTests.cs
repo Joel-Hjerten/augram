@@ -1,5 +1,6 @@
 using Augram.App.Hosting;
 using Augram.App.Tests.Sync.Support;
+using Augram.Core.Diagnostics;
 using Augram.Core.Sync;
 using Xunit;
 
@@ -33,7 +34,7 @@ public sealed class SyncRepositoryChangeTests : SyncTestBase
         Assert.False(Directory.Exists(home.Folders.RepositoryFolder));
         var old = Assert.Single(Directory.GetDirectories(home.Folders.Root, SyncFolders.OldRepositoryPrefix + "*"));
         Assert.Equal(head, File.ReadAllText(Path.Combine(old, ".git", "HEAD")));
-        Assert.True(home.Log.Has(SyncService.LogSource, "Sync state cleared: the repository changed"));
+        Assert.True(home.Log.Has(LogSources.Sync, "Sync state cleared: the repository changed"));
     }
 
     [Fact]

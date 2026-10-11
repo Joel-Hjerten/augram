@@ -14,7 +14,7 @@ internal static class MediaKeyExecutor
     {
         var code = step.Key.ToKeyCode();
         var result = Run(code, context.Input);
-        context.Log.Debug("steps", "Media key", ("key", step.Key), ("code", code), ("outcome", result.Outcome), ("reason", result.Reason));
+        context.Log.Debug(LogSources.Steps, "Media key", ("key", step.Key), ("code", code), ("outcome", result.Outcome), ("reason", result.Reason));
         return result;
     }
 

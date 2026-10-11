@@ -14,7 +14,7 @@ internal static class OpenAppExecutor
     public static StepResult Execute(OpenAppStep step, StepExecutionContext context, HostPlatform platform)
     {
         var (result, how) = Run(step, context, platform);
-        context.Log.Debug("steps", "Open app", ("app", step.IsAugram ? "Augram" : step.AppFor(platform)), ("how", how), ("outcome", result.Outcome), ("reason", result.Reason));
+        context.Log.Debug(LogSources.Steps, "Open app", ("app", step.IsAugram ? "Augram" : step.AppFor(platform)), ("how", how), ("outcome", result.Outcome), ("reason", result.Reason));
         return result;
     }
 

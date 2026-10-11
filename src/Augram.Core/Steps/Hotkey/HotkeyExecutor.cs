@@ -17,7 +17,7 @@ internal static class HotkeyExecutor
     public static StepResult Execute(HotkeyStep step, StepExecutionContext context)
     {
         var result = Run(step, context.Input);
-        context.Log.Debug("steps", "Hotkey", ("keys", step.Summary), ("outcome", result.Outcome), ("reason", result.Reason));
+        context.Log.Debug(LogSources.Steps, "Hotkey", ("keys", step.Summary), ("outcome", result.Outcome), ("reason", result.Reason));
         return result;
     }
 
