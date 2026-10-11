@@ -25,7 +25,7 @@ The **Hotkey** step (key `hotkey`, category Keyboard, **platform-bound**): press
 
 Some apps treat plain Alt and Ctrl differently from the right-hand keys, which is why 8 of Joel's 199 SP.net hotkeys use RAlt or RControl (RAlt+F9, RAlt+F10, RControl+RShift+P, RControl+0). A hotkey records, shows, stores and sends the right-hand key when that is what was pressed or imported; it is never folded into the plain modifier.
 
-- `RightHand` is a second `KeyModifiers` set, not new enum bits: `KeyModifiers` stays four bits because `Config.IgnoreKeys` shares it bit for bit.
+- `RightHand` is a second `KeyModifiers` set, not new enum bits: `KeyModifiers` stays four bits: the ignore-key setting (`Config.GeneralSettings.IgnoreKey`) is a `KeyModifiers` too, written by four names.
 - A positional record cannot validate in its constructor, so `RightHand` may carry bits outside `Modifiers` in memory. They mean nothing: `HotkeyText` and the executor ignore them, and `Read`, `Write`, the App's form and capture field and the importer normalise (`Normalized()`).
 - Held on both sides at once, a modifier is plain. The importer does the same for `LAlt` and `RAlt` both true.
 - AltGr layouts (Joel's Swedish one): Windows reports AltGr as a synthesised LeftControl plus RightAlt, so the capture field records "Ctrl+RAlt+…", and replaying it sends what Windows saw. An imported `RAlt` alone stays RAlt, the key SP.net sent.

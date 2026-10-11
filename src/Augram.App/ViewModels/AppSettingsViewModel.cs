@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Augram.App.Hosting;
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Recognition;
@@ -43,7 +44,7 @@ public sealed class AppSettingsViewModel : ObservableObject, IDisposable
         set => Apply(s => s with { General = s.General with { StrokeButton = value } });
     }
 
-    public IgnoreKeys IgnoreKey
+    public KeyModifiers IgnoreKey
     {
         get => Current.General.IgnoreKey;
         set => Apply(s => s with { General = s.General with { IgnoreKey = value } });

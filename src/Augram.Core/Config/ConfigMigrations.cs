@@ -31,39 +31,10 @@ public static class ConfigMigrations
     {
         switch (version)
         {
-            case 1:
-                // 1 → 2 (trigger combinations): every new member is optional and absent means what version 1 meant (the stroke
-                // button alone, the converted original trigger), so a version 1 tree is already a valid version 2 tree. The bump
-                // exists so that a version 1 build refuses a version 2 file instead of dropping its combinations.
-                break;
-            case 2:
-                // 2 → 3 (the StrokesPlus.net app definition's fields, each with Use Regex, Joel 2026-10-09): the new matcher
-                // members are optional and absent means not consulted, as in version 2. The bump exists so that a version 2
-                // build refuses a version 3 file instead of ignoring a root title or a class and matching too many windows.
-                break;
-            case 3:
-                // 3 → 4 (hold remaps, F9, 2026-10-10): a group's holdRemaps, a command's holdRemap and the input trigger are
-                // optional and absent means no hold remaps, as in version 3. The bump exists so that a version 3 build refuses a
-                // version 4 file instead of reading the commands under a hold remap as ordinary ones and saving them back so.
-                break;
-            case 4:
-                // 4 → 5 (plan 0004, 2026-10-10): a trigger hold's dragDistancePx and a command's notIn are optional and absent
-                // means the Options value and no "Not in", as in version 4. The bump exists so that a version 4 build refuses a
-                // version 5 file instead of ignoring a command's own drag distance and its "Not in" and saving it back without them.
-                break;
-            case 5:
-                // 5 → 6 (plan 0004 revised, 2026-10-10): an ignored app's scope is optional and absent means Global, the only list
-                // version 5 had. A command's notIn keeps its shape but now names Ignored › Per command entries; a version 5 notIn
-                // named app groups, so its ids name no Per command entry and MappingRules drops them when the file is validated.
-                // That is accepted (plan 0004, decision 6: the 0.8.0 ticks are dropped; Joel had made none), so no node changes.
-                // The bump exists so that a version 5 build refuses a version 6 file instead of reading a Per command entry as an
-                // ignore of the whole app.
-                break;
-            case 6:
-                // 6 → 7 (plan 0005, 2026-10-10): the button trigger { "button": … } and a command's alsoIn are new and optional;
-                // absent means no button trigger and no "Also in", as in version 6. The bump exists so that a version 6 build
-                // refuses a version 7 file by its version, rather than failing at its first button trigger or ignoring a command's
-                // "Also in" and saving the file back without it.
+            case 1 or 2 or 3 or 4 or 5 or 6:
+                // 1 → 2 up to 6 → 7 change no node: every member each bump added is optional and its absence means what the older
+                // version meant (a schema 5 notIn names no Per command entry, so MappingRules drops it on load, plan 0004 decision
+                // 6). Each bump exists so an older build refuses the newer file. What each added: Config/README.md, "Schema history".
                 break;
             default:
                 throw new ConfigFormatException($"No migration from schema version {version} to {version + 1} exists.");

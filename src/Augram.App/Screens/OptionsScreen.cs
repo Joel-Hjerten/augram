@@ -124,13 +124,13 @@ public static class OptionsScreen
     /// </summary>
     private static TogglesField IgnoreKeyToggles(AppSettingsViewModel vm)
     {
-        ToggleOption Key(IgnoreKeys key) => new(
-            HotkeyText.Format((KeyModifiers)(int)key, KeyCode.None),
+        ToggleOption Key(KeyModifiers key) => new(
+            HotkeyText.Format(key, KeyCode.None),
             new DelegateBinding<bool>(() => vm.IgnoreKey.HasFlag(key), on => vm.IgnoreKey = on ? vm.IgnoreKey | key : vm.IgnoreKey & ~key, vm));
 
         return new TogglesField(
             "Ignore keys",
-            [Key(IgnoreKeys.Control), Key(IgnoreKeys.Alt), Key(IgnoreKeys.Shift), Key(IgnoreKeys.Win)],
+            [Key(KeyModifiers.Control), Key(KeyModifiers.Alt), Key(KeyModifiers.Shift), Key(KeyModifiers.Meta)],
             IgnoreKeysHelp);
     }
 

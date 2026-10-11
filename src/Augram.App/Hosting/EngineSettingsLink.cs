@@ -1,4 +1,3 @@
-using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Mapping;
 using Augram.Engine.Hosting;
@@ -35,9 +34,6 @@ public sealed class EngineSettingsLink : IDisposable
         mapping.Changed += OnMappingChanged;
     }
 
-    /// <summary>The ignore-key set as the engine's modifier mask; the two enums share their bits.</summary>
-    public static KeyModifiers ToModifiers(IgnoreKeys keys) => (KeyModifiers)(int)keys;
-
     public void Dispose()
     {
         _settings.Changed -= OnChanged;
@@ -64,7 +60,7 @@ public sealed class EngineSettingsLink : IDisposable
 
         if (next.General.IgnoreKey != last.General.IgnoreKey)
         {
-            _host.IgnoreKey = ToModifiers(next.General.IgnoreKey);
+            _host.IgnoreKey = next.General.IgnoreKey;
         }
 
         if (next.Capture != last.Capture)

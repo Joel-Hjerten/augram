@@ -329,7 +329,7 @@ public static class EngineModule
         var initial = new EngineHostOptions(
             current.General.StrokeButton,
             current.Capture,
-            EngineSettingsLink.ToModifiers(current.General.IgnoreKey),
+            current.General.IgnoreKey,
             current.General.Enabled);
         return new EngineHost(BuildPorts(sp), () => gestures.All, () => settings.Current.Recognition, initial);
     }

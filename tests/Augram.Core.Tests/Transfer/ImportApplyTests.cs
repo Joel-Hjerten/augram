@@ -61,7 +61,7 @@ public sealed class ImportApplyTests
         Assert.False(plan.Preview.SettingsChanged);
         Assert.True(taken.SettingsChanged);
         var options = taken.Settings;
-        Assert.Equal((MouseButton.Middle, IgnoreKeys.Control | IgnoreKeys.Alt), (options.General.StrokeButton, options.General.IgnoreKey));
+        Assert.Equal((MouseButton.Middle, KeyModifiers.Control | KeyModifiers.Alt), (options.General.StrokeButton, options.General.IgnoreKey));
         Assert.Equal((theirs.Settings.Capture, theirs.Settings.Trail, theirs.Settings.Recognition, theirs.Settings.NoMatch), (options.Capture, options.Trail, options.Recognition, options.NoMatch));
         Assert.Equal((false, true, false), (options.General.StartAtLogin, options.General.Enabled, options.General.ColourMenuBarIcon));
         Assert.Same(mine.Settings.Sync, options.Sync);

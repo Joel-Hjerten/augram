@@ -203,15 +203,15 @@ public sealed class AppSettingsViewModelTests
         var keys = Assert.Single(general.Fields.OfType<TogglesField>(), field => field.Label == "Ignore keys");
 
         Assert.Equal(
-            new[] { IgnoreKeys.Control, IgnoreKeys.Alt, IgnoreKeys.Shift, IgnoreKeys.Win }.Select(key => HotkeyText.Format((KeyModifiers)(int)key, KeyCode.None)),
+            new[] { KeyModifiers.Control, KeyModifiers.Alt, KeyModifiers.Shift, KeyModifiers.Meta }.Select(key => HotkeyText.Format(key, KeyCode.None)),
             keys.Options.Select(option => option.Caption));
 
         keys.Options[0].Value.Set(true);
         keys.Options[3].Value.Set(true);
-        Assert.Equal(IgnoreKeys.Control | IgnoreKeys.Win, engine.Settings.Current.General.IgnoreKey);
+        Assert.Equal(KeyModifiers.Control | KeyModifiers.Meta, engine.Settings.Current.General.IgnoreKey);
 
         keys.Options[0].Value.Set(false);
-        Assert.Equal(IgnoreKeys.Win, engine.Settings.Current.General.IgnoreKey);
+        Assert.Equal(KeyModifiers.Meta, engine.Settings.Current.General.IgnoreKey);
         Assert.False(keys.Options[0].Value.Get());
         Assert.True(keys.Options[3].Value.Get());
     }
