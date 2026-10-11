@@ -97,12 +97,9 @@ internal sealed class GestureReader
         return samples;
     }
 
-    private static int ReadOrder(JsonElement pattern, int position)
-    {
-        return pattern.TryGetProperty(StrokesPlusJson.PointPattern.Order, out var order) && order.TryGetInt32(out var value)
-            ? value
-            : position;
-    }
+    /// <summary>The sample's <c>Order</c>, or its place in the file when that is absent or not a number (null, "1").</summary>
+    private static long ReadOrder(JsonElement pattern, int position)
+        => JsonRead.Integer(pattern, StrokesPlusJson.PointPattern.Order) ?? position;
 
     private static List<GesturePoint> ReadPoints(JsonElement pattern)
     {

@@ -1,4 +1,5 @@
 using System.Text;
+using Augram.Core.Gestures;
 using Augram.Import.StrokesPlus;
 using Xunit;
 
@@ -102,6 +103,22 @@ public sealed class ImportToleranceTests
             "{ \"Gestures\": [ { \"Name\": " + name + ", \"PointPatterns\": [ { \"Points\": [ { \"X\": 0, \"Y\": 0 }, { \"X\": 5, \"Y\": 5 } ] } ] } ] }");
 
         Assert.Equal("Unnamed gesture 1", Assert.Single(result.Gestures).Name);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"9\"")]
+    [InlineData("true")]
+    public void AnOrderThatIsNotANumberKeepsTheSampleInItsPlace(string order)
+    {
+        // A sample's Order read as a number used to throw on anything else and fail the whole import.
+        var result = StrokesPlusImporter.ReadGestures(
+            "{ \"Gestures\": [ { \"Name\": \"Synthetic Order\", \"PointPatterns\": [ "
+            + "{ \"Order\": " + order + ", \"Points\": [ { \"X\": 0, \"Y\": 0 }, { \"X\": 5, \"Y\": 5 } ] }, "
+            + "{ \"Order\": 3, \"Points\": [ { \"X\": 0, \"Y\": 0 }, { \"X\": 9, \"Y\": 1 } ] } ] } ] }");
+
+        var gesture = Assert.Single(result.Gestures);
+        Assert.Equal([new GesturePoint(5, 5), new GesturePoint(9, 1)], gesture.Samples.Select(sample => sample[1]));
     }
 
     [Fact]
