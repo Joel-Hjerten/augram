@@ -19,7 +19,7 @@ Open [design/mockups/augram-glass-theme.html](../design/mockups/augram-glass-the
 
 **Built (2026-10-11):** everything in the plan's steps 2–6 is on main, CI green, and the app runs on the Default theme. To see the look without launching Augram, use `tools/UiShots` (headless PNGs, dark and light; safe from agents). Read [learnings 0008](learnings/0008-the-glass-look.md) before touching a theme file.
 
-**PC check passed (Joel, 2026-10-11), version 0.11.0.** He installs it with `node scripts/package.mjs windows`. **Next: the same check on the Mac.** It covers the system glass, dragging by the title bar, double-click to maximize, Windows 11 snap layouts, and Options › Appearance live. Then a version bump and his install.
+**PC check passed (Joel, 2026-10-11), version 0.11.0.** The lead can start the dev build itself (Joel's allow rule; learnings 0008, "Running the dev build while working"). He installs it with `node scripts/package.mjs windows`. **Next: the same check on the Mac.** It covers the system glass, dragging by the title bar, double-click to maximize, Windows 11 snap layouts, and Options › Appearance live. Then a version bump and his install.
 
 **Not run on a desktop yet.** Run the dev build with `--no-engine`, after telling Joel; it asks to take over the installed Augram. Plan 0005's Mac check is independent of this and can go first on the Mac.
 

@@ -97,7 +97,8 @@
       "PowerShell(Start-Process -FilePath .\\src\\Augram.App\\bin\\*)",
       "PowerShell(Start-Process -FilePath \"$env:LOCALAPPDATA\\Augram\\Augram.exe\")",
       "PowerShell(Start-Process -FilePath artifacts\\releases\\win-x64\\Augram-win-Setup.exe*)",
-      "PowerShell(Stop-Process*)"
+      "PowerShell(Stop-Process*)",
+      "PowerShell(dotnet run --project src/Augram.App/Augram.App.csproj -- --no-engine)"
     ],
     "ask": [
       "Bash(git push --force:*)",

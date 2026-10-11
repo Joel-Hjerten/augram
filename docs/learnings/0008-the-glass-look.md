@@ -49,6 +49,12 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 - **A drag area must leave its children's presses alone.** A TabControl selects in its own handler, which sits above the title bar in the bubble route. So `WindowDragArea` skips presses that land on a tab, button, text box or list item.
 - **A test that sets `SelectedKey` from code proves nothing about clicking.** `ShellTitleBarTests` now clicks a real tab through the headless input.
 
+## Running the dev build while working
+
+- **Starting it:** the lead may start it with exactly `dotnet run --project src/Augram.App/Augram.App.csproj -- --no-engine`. Joel added that allow rule to `.claude/settings.json` on 2026-10-11; the auto mode classifier blocks any other launch. It asks Joel to take over the installed Augram, and he restarts that one afterwards.
+- **Stopping it:** closing the window only hides it to the tray. Quit it from the tray, or the lead stops the process it started (`Stop-Process` on the one whose path is `src\Augram.App\bin\…`). With `--no-engine` nothing is left held.
+- **While it runs, it locks `src/Augram.App/bin`,** so the tests and UiShots cannot build. `-p:OutDir=<elsewhere>` lets UiShots build beside it, but not the tests: they find the repository and their fixtures by walking up from their own folder, and fail in bulk (20 at once, none real). Quit the dev build before running the tests.
+
 ## Smaller ones
 
 - **`GlyphStroke` draws one segment at a time with round caps.** At 3 px, or with a translucent colour, the overlaps show as beads. Keep gesture strokes at 2 px and opaque (inactive glyphs use opaque greys).

@@ -51,6 +51,20 @@ On the PC and on the Mac (Joel):
 12. **Section titles: above the card in Options, inside everywhere else** (Joel: titles outside give the sections "a little bit of space between them naturally"; "it's only Options that uses this; everything else has basically the title inside each group"). A `SectionForm` puts each section's title on the page above its card. Panels with their own buttons (`ItemList`, `CommandTree`, `MasterDetail`, the gesture grid, the log, dialogs) keep the title in their header row, beside the buttons.
 13. **Unchanged:** the system font (Segoe UI Variable on Windows, SF on macOS); the ⓘ help rule; every screen's layout and declaration (the Commands workbench stays tree beside panel); the Row rule's one line height; the theme rule (components name tokens, never colours).
 14. **Dialogs get the same look.** The training window, form dialogs, sync conflicts and the import review get the same window background setting and layers as the main window (lead's call).
+15. **One type scale** (Joel, after his first run: "sets down a couple of font stylings and then reuse those instead of using different unique font stylings everywhere"). Every text takes one of seven roles, each defined once in `Themes/Default/Text.axaml`:
+    - **Heading:** 16 px semibold, a command's name and dialog titles.
+    - **Title:** 13 px semibold, panel titles and every name in a row.
+    - **Group:** 13 px semibold muted, a section title above its card.
+    - **Body:** 13 px.
+    - **Secondary:** 11 px faint, a row's second line, counts and help lines.
+    - **Badge:** 10 px semibold.
+    - **Mono:** 11 px, the log.
+
+    Colour modifiers sit on top: muted, faint, danger, warn, ok, accent. `Architecture/TextRoleTests` fails on any other font size or weight (the App README's Text rule).
+16. **Rows and narrow panels** (Joel, first run):
+    - A row's name stands out and its second line stays quiet, the same in Commands and Exclusions ("the subtext or second line text is not that important").
+    - The Commands tree's buttons go on their own row under the title, not stacked beside it.
+    - The form label column is 180 px, and a segmented choice wraps rather than run past the window's edge.
 
 ## Steps
 

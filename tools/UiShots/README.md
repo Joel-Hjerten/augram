@@ -15,4 +15,8 @@ dotnet run --project tools/UiShots -- [options] [tab keys...]
 | `--gallery` | With no keys given, also render every dev gallery page (Debug builds have the Gallery tab). |
 | keys | Tab or sub-tab keys (`commands.global`, `options`, `diagnostics.log`, a gallery page's key). Default: every tab's leaf, gallery left out. |
 
+Tips:
+- A gallery page shows dark and light side by side, each half the window wide. To see one half at a real window's width, render at double width (`--size 2410x850` for a 1205 px window).
+- While a dev build of Augram runs, it locks `src/Augram.App/bin`. Build the tool elsewhere: `dotnet run --project tools/UiShots -p:OutDir=<folder>\ -- …`.
+
 What it cannot show: the system's glass (Acrylic, Mica, the macOS blur) is drawn by the OS behind a real window, so the shots show the solid fallback; and the system's caption buttons or traffic lights, whose room in the title bar stays empty.
