@@ -47,6 +47,49 @@ public sealed class AppSettingsViewModelTests
     }
 
     [Fact]
+    public void TheAppearanceSetters_CommitOneStoreChangeEach()
+    {
+        using var engine = new EngineFixture(start: false);
+        using var vm = Create(engine);
+
+        vm.Theme = AppTheme.Light;
+        vm.WindowBackground = WindowBackground.WallpaperTint;
+        vm.TintPercent = 40.4;
+        vm.CornerRadiusPx = 6;
+        vm.AccentFollowsTrail = false;
+        vm.Accent = new RgbColor(91, 155, 255);
+        vm.Theme = AppTheme.Light;
+
+        var expected = new AppearanceSettings
+        {
+            Theme = AppTheme.Light,
+            WindowBackground = WindowBackground.WallpaperTint,
+            TintPercent = 40,
+            CornerRadiusPx = 6,
+            AccentFollowsTrail = false,
+            Accent = new RgbColor(91, 155, 255),
+        };
+        Assert.Equal(expected, engine.Settings.Current.Appearance);
+        Assert.Equal((AppTheme.Light, WindowBackground.WallpaperTint, 40d, 6d, false), (vm.Theme, vm.WindowBackground, vm.TintPercent, vm.CornerRadiusPx, vm.AccentFollowsTrail));
+        Assert.Equal(expected.Accent, vm.Accent);
+        Assert.Equal(6, engine.Settings.Version);
+    }
+
+    [Fact]
+    public void AnOutOfRangeCornerRounding_LeavesTheStoreAlone_AndReportsWhy()
+    {
+        using var engine = new EngineFixture(start: false);
+        using var vm = Create(engine);
+
+        vm.CornerRadiusPx = 30;
+
+        Assert.Equal(12, vm.CornerRadiusPx);
+        Assert.Equal(0, engine.Settings.Version);
+        Assert.NotNull(vm.LastError);
+        Assert.Contains("Corner rounding", vm.LastError, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AStoreChangeFromOutsideRefreshesEveryBinding()
     {
         using var engine = new EngineFixture(start: false);

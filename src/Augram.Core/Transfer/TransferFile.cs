@@ -19,8 +19,9 @@ public sealed record TransferFile(IReadOnlyList<Gesture> Gestures, MappingDocume
     public const string Extension = ".augram.json";
 
     /// <summary>
-    /// The options in the file, null when it has none (only "everything" carries them). Never this machine's sync settings:
-    /// the writer leaves the <c>sync</c> member out and the reader drops it, so it is always <see cref="SyncSettings.Default"/> here.
+    /// The options in the file, null when it has none (only "everything" carries them). Never this machine's sync settings or
+    /// its appearance (plan 0006): the writer leaves the <c>sync</c> and <c>appearance</c> members out and the reader drops
+    /// them, so they are always <see cref="SyncSettings.Default"/> and <see cref="AppearanceSettings.Default"/> here.
     /// </summary>
     public Settings? Settings { get; init; }
 
@@ -32,4 +33,7 @@ public sealed record TransferFile(IReadOnlyList<Gesture> Gestures, MappingDocume
 
     /// <summary>The mapping, or just the Global shell when the file has none.</summary>
     public MappingDocument MappingOrEmpty => Mapping ?? MappingDocument.Empty;
+
+    /// <summary><paramref name="settings"/> as a file carries them: this machine's sections (sync, appearance) at their defaults.</summary>
+    internal static Settings Portable(Settings settings) => settings with { Sync = SyncSettings.Default, Appearance = AppearanceSettings.Default };
 }

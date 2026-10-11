@@ -33,6 +33,16 @@ public static class SettingsRules
         Require(recognition.Threshold is >= 0 and <= 100, "Threshold must be between 0 and 100.");
 
         SyncSettingsRules.EnsureValid(settings.Sync);
+
+        var appearance = settings.Appearance;
+        Require(Enum.IsDefined(appearance.Theme), "Theme must be Dark, Light or System.");
+        Require(Enum.IsDefined(appearance.WindowBackground), "Window background must be Frosted glass, Wallpaper tint or Solid.");
+        Require(
+            appearance.TintPercent is >= 0 and <= AppearanceSettings.MaxTintPercent,
+            $"Tint must be between 0 and {AppearanceSettings.MaxTintPercent} %.");
+        Require(
+            appearance.CornerRadiusPx is >= AppearanceSettings.MinCornerRadiusPx and <= AppearanceSettings.MaxCornerRadiusPx,
+            $"Corner rounding must be between {AppearanceSettings.MinCornerRadiusPx} and {AppearanceSettings.MaxCornerRadiusPx} px.");
     }
 
     private static void Require(bool condition, string message)

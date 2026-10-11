@@ -93,9 +93,22 @@ public sealed class ConfigSerializerTests
         var json = ConfigSerializer.Write(SampleDocuments.Full());
 
         Assert.Contains("\"colour\": \"#0A141E\"", json, StringComparison.Ordinal);
-        Assert.True(RgbColor.TryParse("#00ff40", out var parsed));
+        Assert.True(RgbColor.TryParse("#f5c542", out var parsed));
         Assert.Equal(TrailSettings.Default.Colour, parsed);
-        Assert.False(RgbColor.TryParse("#00ff4", out _));
+        Assert.False(RgbColor.TryParse("#f5c54", out _));
+    }
+
+    [Fact]
+    public void AFreshInstallsTrailIsYellow_AndAFileWithAColourKeepsIt()
+    {
+        var fresh = ConfigSerializer.Write(ConfigDocument.Default);
+        var green = ConfigSerializer.Read("{ \"schemaVersion\": 7, \"settings\": { \"trail\": { \"colour\": \"#00FF40\" } } }");
+        var noColour = ConfigSerializer.Read("{ \"schemaVersion\": 7, \"settings\": { \"trail\": { \"widthPx\": 7 } } }");
+
+        Assert.Equal(new RgbColor(245, 197, 66), TrailSettings.Default.Colour);
+        Assert.Contains("\"colour\": \"#F5C542\"", fresh, StringComparison.Ordinal);
+        Assert.Equal(new RgbColor(0, 255, 64), green.Settings.Trail.Colour);
+        Assert.Equal(new RgbColor(245, 197, 66), noColour.Settings.Trail.Colour);
     }
 
     [Fact]

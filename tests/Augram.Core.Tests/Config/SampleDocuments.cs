@@ -16,6 +16,15 @@ internal static class SampleDocuments
         Trail = new TrailSettings { WidthPx = 3.5, Opacity = 0.25, Colour = new RgbColor(10, 20, 30) },
         Recognition = new RecognitionOptions(Precision: 64, Threshold: 80.5, ScoringMode.Corrected, SampleAggregation.Best),
         NoMatch = NoMatchBehaviour.ReplayClick,
+        Appearance = new AppearanceSettings
+        {
+            Theme = AppTheme.Light,
+            WindowBackground = WindowBackground.WallpaperTint,
+            TintPercent = 40,
+            CornerRadiusPx = 6,
+            AccentFollowsTrail = false,
+            Accent = new RgbColor(91, 155, 255),
+        },
     };
 
     /// <summary>Three gestures, two samples each; the third is inactive.</summary>

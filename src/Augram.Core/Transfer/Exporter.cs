@@ -8,7 +8,7 @@ namespace Augram.Core.Transfer;
 /// <summary>
 /// Builds what an export writes from the current configuration (plan 0003, decisions 1, 4, 13–15). Pure: the caller hands in
 /// <see cref="ConfigSession.Document"/> and writes the result with <see cref="TransferSerializer"/>. "Everything" is the
-/// options (never the sync section), every gesture and the whole mapping; "gestures only" the library alone; a selection is
+/// options (never the sync or appearance section), every gesture and the whole mapping; "gestures only" the library alone; a selection is
 /// its app groups whole (header, categories, hold remaps, commands with their own versions), its ignored apps, and the
 /// gestures those commands' triggers name, original and own version, in library order. A selection without Global still
 /// writes Global, as an empty shell, because every Augram file has one; an import ignores the shell. A selection also takes
@@ -27,7 +27,7 @@ public static class Exporter
         {
             ExportScope.GesturesScope => new TransferFile(current.Gestures, Mapping: null),
             ExportScope.Selection selection => Selected(selection, current),
-            _ => new TransferFile(current.Gestures, current.Mapping) { Settings = current.Settings with { Sync = SyncSettings.Default } },
+            _ => new TransferFile(current.Gestures, current.Mapping) { Settings = TransferFile.Portable(current.Settings) },
         };
     }
 
