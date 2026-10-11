@@ -1,8 +1,7 @@
 // GitHub Actions status for this repo, through the public REST API (no token needed for a public repo).
 //
 //   node scripts/ci-status.mjs [count]      the latest runs; for a failed or running run, each job (one per runner OS)
-//                                           and, for a failed job, its failing tests (from GitHubActionsTestLogger);
-//                                           for any finished job, the code the push copies (scripts/duplicates.mjs)
+//                                           and, for a failed job, its failing tests (from GitHubActionsTestLogger)
 //   node scripts/ci-status.mjs --wait [sha] waits for the run of a commit (default HEAD) to finish, one call a minute,
 //                                           then prints its jobs; exit 0 green, 1 red, 2 unknown (rate limited, no run
 //                                           appeared, or still running after 30 minutes)
@@ -47,21 +46,17 @@ async function api(path) {
 const shortSha = (sha) => sha.slice(0, 7);
 const outcome = (item) => item.conclusion ?? item.status;
 
-/** One line per job (its name carries the runner OS); under a finished job, its failing tests and the code the push
- *  copies (scripts/duplicates.mjs warnings, which do not fail a run). */
+/** One line per job (its name carries the runner OS); the failing tests under each failed job. */
 async function printJobs(run) {
   const { jobs } = await api(`/actions/runs/${run.id}/jobs`);
   for (const job of jobs) {
     console.log(`    ${job.name}: ${outcome(job)}`);
-    if (job.status !== "completed") continue;
-    const annotations = await api(`/check-runs/${job.id}/annotations?per_page=50`);
+    if (job.conclusion !== "failure") continue;
+    const annotations = await api(`/check-runs/${job.id}/annotations`);
     for (const a of annotations) {
-      if (a.annotation_level === "failure") {
-        console.log(`      ${a.title ?? ""}`.trimEnd());
-        console.log(`        ${a.message.split("\n").slice(0, 6).join("\n        ")}`);
-      } else if (a.title === "Duplicated code") {
-        console.log(`      Duplicated code: ${a.path}:${a.start_line}-${a.end_line}: ${a.message}`);
-      }
+      if (a.annotation_level !== "failure") continue;
+      console.log(`      ${a.title ?? ""}`.trimEnd());
+      console.log(`        ${a.message.split("\n").slice(0, 6).join("\n        ")}`);
     }
   }
 }

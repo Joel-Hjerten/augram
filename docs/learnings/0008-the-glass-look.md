@@ -16,9 +16,10 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 ## Theme layering (Default on top of Wireframe)
 
 - **Resources:** a `Styles` object looks in its own `Resources` first, then in its children from last to first. So `Default.axaml`'s own resources, and an include added after the Wireframe include, win over Wireframe's.
-- **Styles:** Avalonia has no selector specificity. Of two equal setters the later style wins. The include order is Wireframe, `Forms.axaml`, `Lists.axaml`; Lists comes last so its row metrics and list text colours win.
+- **Styles:** Avalonia has no selector specificity. Of two equal setters the later style wins. The include order is Wireframe, `Forms.axaml`, `Lists.axaml`, `Text.axaml`; Lists comes after Forms so its row metrics win, and the text roles come last.
 - **Every theme file merges `Tokens.axaml` into its own resources.** A file's top-level setters resolve while it loads, before a sibling include exists, so a missing token is a load-time XAML error.
 - **Wireframe's global `TextBlock { Foreground = {StaticResource Brush.Text} }` beats inherited colours.** A label inside a tab or pill ignored its parent's foreground and stayed light grey: invisible in the light theme. The Default theme overrides the global rule with `{DynamicResource Text.Primary}`. A template that must show its parent's colour binds it locally (`Foreground="{Binding $parent[TabItem].Foreground}"`), because a local value beats any style.
+- **Text roles (`Text.axaml`, included last):** a button's, check box's or segment's label is an `AccessText` (its presenter recognises access keys), which a `TextBlock` type selector does not match, so it inherits its control's font size: Fluent's 14 px showed on every check box and segment until one rule gave those controls Body's size. And because the roles come last, a colour-only state (an inactive name, the log's columns) must come after them in that file, or the role's colour wins.
 - **Fluent sets some values on its own template parts** (the dropdown frame, the arrow, the colour picker's tabs), and a plain style cannot override those. The Forms agent used selectors with an always-true condition while the part shows (`:dropdownopen`, `:not(:disabled)`, the flyout's `nopadding` class).
 
 ## Switching theme while the window is open
@@ -33,12 +34,11 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 - **The system does the blur and keeps its strength to itself.** Avalonia takes a `TransparencyLevelHint` list and uses the first level the platform supports: Acrylic or Mica first, `None` last.
 - **When `ActualTransparencyLevel` is `None`** (Solid, transparency effects off, battery saver, an unfocused Mica window), the window's tint must be painted opaque. Otherwise the window is see-through with nothing behind it (`Themes/WindowBackdrop`).
 - **Dialogs get the backdrop** through a `Control.LoadedEvent` class handler on `Window`, only for windows with an owner, and never the trail overlay, which has no owner and is excluded by type as well (CLAUDE.md invariant 6).
-- **Still to learn from Joel's first real-window run:**
-  - how Avalonia 11.3's Acrylic and Mica look on Windows 11 and macOS;
-  - whether the title bar drags natively or through `Components/Shell/WindowDragArea`;
-  - whether snap layouts appear on the maximize button.
-
-  Add the answers here.
+- **Windows 11, Joel's first real-window run (2026-10-11):**
+  - The frosted glass shows: the desktop is blurred behind the tint, and Windows draws its own caption buttons over the extended title bar (`PreferSystemChrome`).
+  - Dragging by an empty part of the title bar works, and a double click maximizes and restores.
+  - Snap layouts appear on the maximize button, and Wallpaper tint (Mica) works and looks good (Joel's second run).
+  - macOS: not run yet.
 
 ## Clicks (Joel's first real-window run: no top-level tab could be clicked)
 
@@ -48,6 +48,12 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
   - A headless check can't see this unless it renders a frame first: hit testing uses the last rendered frame, so call `Dispatcher.UIThread.RunJobs()` and `AvaloniaHeadlessPlatform.ForceRenderTimerTick()` before `window.MouseDown`.
 - **A drag area must leave its children's presses alone.** A TabControl selects in its own handler, which sits above the title bar in the bubble route. So `WindowDragArea` skips presses that land on a tab, button, text box or list item.
 - **A test that sets `SelectedKey` from code proves nothing about clicking.** `ShellTitleBarTests` now clicks a real tab through the headless input.
+
+## Running the dev build while working
+
+- **Starting it:** the lead may start it with exactly `dotnet run --project src/Augram.App/Augram.App.csproj -- --no-engine`. Joel added that allow rule to `.claude/settings.json` on 2026-10-11; the auto mode classifier blocks any other launch. It asks Joel to take over the installed Augram, and he restarts that one afterwards.
+- **Stopping it:** closing the window only hides it to the tray. Quit it from the tray, or the lead stops the process it started (`Stop-Process` on the one whose path is `src\Augram.App\bin\…`). With `--no-engine` nothing is left held.
+- **While it runs, it locks `src/Augram.App/bin`,** so the tests and UiShots cannot build. `-p:OutDir=<elsewhere>` lets UiShots build beside it, but not the tests: they find the repository and their fixtures by walking up from their own folder, and fail in bulk (20 at once, none real). Quit the dev build before running the tests.
 
 ## Smaller ones
 

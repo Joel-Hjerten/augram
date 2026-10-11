@@ -9,9 +9,7 @@
     The glass look's forms, text and standard controls (plan 0006 step 4; visual reference
     design/mockups/augram-glass-theme.html, its .frow, .opt-title, .btn, .input, .select, .num, .segm, .switch, .box,
     .slider-field, .info and .link rules). Included by Default.axaml right after the Wireframe theme, so its ControlThemes
-    and styles win over Wireframe's:
-    - text: the global TextBlock rule and the generic text roles (section-title, field-label, help-icon, help, note, error,
-      column-header, link) in the Text.* and Accent.Text tokens, so the light theme is readable;
+    and styles win over Wireframe's. Text sizes, weights and colours are not here: they are the text roles in Text.axaml.
     - forms: SectionForm, SectionView (the title above its card, decision 12), FieldRow (rows split by a faint divider),
       TextPanel, and the field editors' classes;
     - the standard controls app-wide: Button (and the primary button: class primary, or IsDefault), ToggleButton, TextBox,
@@ -91,7 +89,7 @@
                           Orientation="Horizontal"
                           Margin="4,4,4,8"
                           IsVisible="{TemplateBinding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                <TextBlock Classes="section-title section-heading" Text="{TemplateBinding Title}" />
+                <TextBlock Classes="section-heading" Text="{TemplateBinding Title}" />
                 <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
               </StackPanel>
               <!-- A panel: a step lighter than the page, a faint edge and a faint highlight along its top (decision 1). -->
@@ -182,7 +180,6 @@
         <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
         <Setter Property="Padding" Value="{StaticResource Control.Padding}" />
-        <Setter Property="FontSize" Value="{StaticResource Font.M}" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -692,7 +689,7 @@
                         CornerRadius="{DynamicResource Radius.Control}"
                         Padding="{StaticResource Input.Padding}"
                         Cursor="Hand">
-                  <TextBlock Name="PART_Text" Text="{TemplateBinding DisplayText}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                  <TextBlock Name="PART_Text" Classes="body" Text="{TemplateBinding DisplayText}" VerticalAlignment="Center" />
                 </Border>
                 <Button Name="PART_Capture" Classes="toolbar" Content="Capture" />
                 <Button Name="PART_Accept" Classes="toolbar primary" Content="Accept" />
@@ -731,107 +728,19 @@
         </Setter>
         <Style Selector="^ /template/ ToggleButton#PART_Right">
           <Setter Property="Padding" Value="6,1" />
-          <Setter Property="FontSize" Value="{StaticResource Font.S}" />
         </Style>
       </ControlTheme>
 
-      <!-- The window finder (F5 app identification): a small magnifier button; while dragging, the feedback line in a popup above it. -->
-      <ControlTheme x:Key="{x:Type wf:WindowFinder}" TargetType="wf:WindowFinder">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Template">
-          <ControlTemplate>
-            <Panel>
-              <Border Name="PART_Glass"
-                      Width="{StaticResource Editor.Height}"
-                      Height="{StaticResource Editor.Height}"
-                      Background="{DynamicResource Layer.Control}"
-                      BorderBrush="{DynamicResource Layer.Edge}"
-                      BorderThickness="{StaticResource Border.Hairline}"
-                      CornerRadius="{DynamicResource Radius.Control}">
-                <Path Name="PART_Magnifier"
-                      Data="M 10,6 A 4,4 0 1 1 2,6 A 4,4 0 1 1 10,6 Z M 9,9 L 14,14"
-                      Stroke="{DynamicResource Text.Muted}"
-                      StrokeThickness="1.5"
-                      StrokeLineCap="Round"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center" />
-              </Border>
-              <Popup Name="PART_Feedback"
-                     IsOpen="{TemplateBinding IsFinding}"
-                     Placement="Top"
-                     VerticalOffset="-4"
-                     IsLightDismissEnabled="False">
-                <Border Background="{DynamicResource Layer.Popup}"
-                        BorderBrush="{DynamicResource Accent.Line}"
-                        BorderThickness="{StaticResource Border.Hairline}"
-                        CornerRadius="{DynamicResource Radius.Control}"
-                        Padding="10,5">
-                  <TextBlock Name="PART_HoverText" Text="{TemplateBinding HoverText}" />
-                </Border>
-              </Popup>
-            </Panel>
-          </ControlTemplate>
-        </Setter>
-        <Style Selector="^:pointerover /template/ Border#PART_Glass">
-          <Setter Property="Background" Value="{DynamicResource Layer.ControlHover}" />
-        </Style>
-        <Style Selector="^:pointerover /template/ Path#PART_Magnifier">
-          <Setter Property="Stroke" Value="{DynamicResource Text.Primary}" />
-        </Style>
-        <Style Selector="^:finding /template/ Border#PART_Glass">
-          <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
-          <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
-        </Style>
-        <Style Selector="^:finding /template/ Path#PART_Magnifier">
-          <Setter Property="Stroke" Value="{DynamicResource Accent.Text}" />
-        </Style>
-      </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
 
-  <!-- ===== Text: the global rule and the generic roles, in the per-theme text tokens (Wireframe's are fixed greys). ===== -->
-  <Style Selector="TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <!-- A panel's or a dialog's title (the mockup's .ititle). -->
-  <Style Selector="TextBlock.section-title">
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <!-- A form section's title on the page above its card (decision 12; the mockup's .opt-title). -->
-  <Style Selector="TextBlock.section-title.section-heading">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="TextBlock.field-label">
-    <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
+  <!-- ===== The ⓘ's place beside its label (its look is the Secondary text role, Text.axaml). ===== -->
   <Style Selector="TextBlock.help-icon">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
     <Setter Property="Margin" Value="6,0,0,0" />
-  </Style>
-  <Style Selector="TextBlock.help-icon:pointerover">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="TextBlock.help">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-  </Style>
-  <Style Selector="TextBlock.note">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <Style Selector="TextBlock.error">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Danger}" />
-  </Style>
-  <Style Selector="TextBlock.column-header">
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
   </Style>
   <!-- A link (the mockup's .link): accent text, no frame; under the pointer, the primary text colour. -->
   <Style Selector="Button.link">
     <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
@@ -853,7 +762,6 @@
     <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Text.Primary}" />
     <Setter Property="MinHeight" Value="{StaticResource Editor.Height}" />
     <Setter Property="Padding" Value="{StaticResource Input.Padding}" />
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
   </Style>
   <Style Selector="ComboBox">
     <Setter Property="Background" Value="{DynamicResource Layer.Control}" />
@@ -863,7 +771,6 @@
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="MinHeight" Value="{StaticResource Editor.Height}" />
     <Setter Property="Padding" Value="10,5,6,5" />
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
     <Setter Property="PlaceholderForeground" Value="{DynamicResource Text.Faint}" />
   </Style>
   <Style Selector="ComboBoxItem">
@@ -871,7 +778,6 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="Padding" Value="{StaticResource Input.Padding}" />
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
   </Style>
   <Style Selector="NumericUpDown">
     <Setter Property="Background" Value="{DynamicResource Layer.Input}" />
@@ -881,7 +787,6 @@
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="MinHeight" Value="{StaticResource Editor.Height}" />
     <Setter Property="Padding" Value="{StaticResource Input.Padding}" />
-    <Setter Property="FontSize" Value="{StaticResource Font.M}" />
   </Style>
   <!-- A number field's own text box has no frame or fill of its own: the spinner draws them. -->
   <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox">
@@ -906,12 +811,12 @@
     <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
     <Setter Property="Padding" Value="{StaticResource Control.Padding}" />
   </Style>
-  <!-- The primary button (the mockup's .btn.primary): the accent fill, its text colour and a thin deeper edge. A dialog's default button is one. -->
+  <!-- The primary button (the mockup's .btn.primary): the accent fill, its text colour and a thin deeper edge; its text is Body
+       like every button's (Text.axaml). A dialog's default button is one. -->
   <Style Selector="Button.primary, Button[IsDefault=True]">
     <Setter Property="Background" Value="{DynamicResource Accent.Fill}" />
     <Setter Property="Foreground" Value="{DynamicResource Accent.OnFill}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Accent.Edge}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button[IsDefault=True]:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Accent.Fill}" />
@@ -941,9 +846,6 @@
   <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement">
     <Setter Property="Background" Value="{DynamicResource Layer.Input}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Layer.Edge}" />
-  </Style>
-  <Style Selector="TextBox /template/ TextBlock#PART_Watermark, TextBox:focus /template/ TextBlock#PART_Watermark, TextBox:pointerover /template/ TextBlock#PART_Watermark">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
   </Style>
   <Style Selector="TextBox[IsReadOnly=True]">
     <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
@@ -1059,9 +961,6 @@
   </Style>
   <Style Selector="MenuItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter, MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter">
     <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-  </Style>
-  <Style Selector="MenuItem /template/ TextBlock#PART_InputGestureText">
-    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
   </Style>
   <Style Selector="ContextMenu Separator, MenuFlyoutPresenter Separator">
     <Setter Property="Background" Value="{DynamicResource Layer.Edge}" />

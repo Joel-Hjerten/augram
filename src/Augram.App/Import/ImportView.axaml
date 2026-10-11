@@ -37,7 +37,7 @@
           <DataTemplate x:DataType="import:ImportConflictItem">
             <Grid ColumnDefinitions="*,Auto" Classes="list-row dialog-row">
               <StackPanel Grid.Column="0">
-                <TextBlock Classes="field-label" Text="{Binding Name}" />
+                <TextBlock Classes="row-name" Text="{Binding Name}" />
                 <TextBlock Classes="help" Text="{Binding Summary}" />
               </StackPanel>
               <ComboBox Grid.Column="1" Classes="field-editor" ItemsSource="{x:Static import:ImportConflictItem.Choices}" DisplayMemberBinding="{Binding Label}" SelectedItem="{Binding SelectedChoice}" VerticalAlignment="Center" />

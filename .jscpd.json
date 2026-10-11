@@ -1,7 +1,0 @@
-{
-  "path": ["src", "tests", "tools"],
-  "format": ["csharp", "markup"],
-  "formatsExts": { "markup": ["axaml", "xaml"] },
-  "ignore": ["**/bin/**", "**/obj/**"],
-  "minTokens": 50
-}
