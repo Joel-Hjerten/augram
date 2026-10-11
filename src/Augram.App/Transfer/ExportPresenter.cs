@@ -1,5 +1,6 @@
 using Augram.App.Components.FormDialog;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
 using Augram.Core.Config;

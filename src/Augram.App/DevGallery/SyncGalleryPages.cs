@@ -2,6 +2,7 @@
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.SyncConflictList;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.Sync;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
@@ -57,7 +58,12 @@ public static class SyncGalleryPages
     }
 
     private static FormDialog JoinDialog(IReadOnlyList<SyncMachineSummary> machines)
-        => new() { Message = SyncJoinViewModel.Message, Screen = new SyncJoinViewModel(machines).Declare(), ConfirmLabel = SyncJoinViewModel.ConfirmLabel, Width = SyncJoinPresenter.WindowWidth };
+    {
+        var request = SyncJoinPresenter.Request(new SyncJoinViewModel(machines));
+        var dialog = FormDialogPresenter.Build(request);
+        dialog.Width = request.Width ?? DialogSize.Width(DialogSize.Form);
+        return dialog;
+    }
 
     private static MappingDocument Mapping()
     {

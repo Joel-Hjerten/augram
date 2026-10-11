@@ -1,11 +1,11 @@
-using Augram.App.UsedBy;
+using Augram.App.Dialogs;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Xunit;
 
-namespace Augram.App.Tests.UsedBy;
+namespace Augram.App.Tests.Dialogs;
 
 public sealed class ConfirmDialogTests
 {

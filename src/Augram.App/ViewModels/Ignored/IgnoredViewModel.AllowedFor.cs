@@ -1,6 +1,6 @@
 using Augram.App.Components.CommandTree;
-using Augram.App.Components.FormDialog;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Ignored;

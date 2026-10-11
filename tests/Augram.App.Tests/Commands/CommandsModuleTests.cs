@@ -1,11 +1,10 @@
 using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
-using Augram.App.Components.FormDialog;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.Hosting;
 using Augram.App.Navigation;
-using Augram.App.UsedBy;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;

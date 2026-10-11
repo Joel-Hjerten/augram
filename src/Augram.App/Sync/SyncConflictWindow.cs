@@ -1,57 +1,31 @@
 using Augram.App.Components.SyncConflictList;
+using Augram.App.Dialogs;
 using Augram.App.ViewModels;
-using Avalonia.Controls;
-using Avalonia.Input;
 
 namespace Augram.App.Sync;
 
 /// <summary>
-/// The conflict dialog (F8 sync): a title line ("2 conflicts with Mac"), a help line, the
+/// The conflict dialog (F8 sync): in the <see cref="DialogShell"/>, a heading ("2 conflicts with Mac") with its ⓘ, the
 /// <see cref="SyncConflictList"/> over <see cref="SyncConflictsViewModel.Entries"/> (a choice per conflict, kept by
-/// the view model) and Cancel / Apply, built from themed pieces like the "Used by…" popup. Apply sets
-/// <see cref="Applied"/> and closes; Cancel, Escape and the close box leave every conflict pending.
+/// the view model) and Cancel / Apply. Apply sets <see cref="Applied"/> and closes; Cancel, Escape and the close box leave
+/// every conflict pending.
 /// </summary>
-public sealed class SyncConflictWindow : Window
+public sealed class SyncConflictWindow : DialogWindow
 {
     public SyncConflictWindow(SyncConflictsViewModel viewModel)
+        : base(DialogSize.Conflicts)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         Title = "Sync conflicts";
-        Width = 960;
-        Height = 480;
-        MinWidth = 640;
-        MinHeight = 280;
         CanResize = true;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         List = new SyncConflictList { Entries = viewModel.Entries };
         List.ChoiceChanged += (_, e) => viewModel.Choose(e.Index, e.Choice);
-        var title = new TextBlock { Text = viewModel.Summary };
-        title.Classes.Add("section-title");
         // The help is an (i) after the summary, its text in the tooltip (App README, help rule).
-        var help = new TextBlock();
-        help.Classes.Add("help-icon");
-        ToolTip.SetTip(help, viewModel.Help);
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
-        cancel.Classes.Add("toolbar");
-        cancel.Click += (_, _) => Close();
-        var apply = new Button { Content = "Apply", IsDefault = true };
-        apply.Classes.Add("toolbar");
-        apply.Click += (_, _) => Apply();
-        var buttons = new StackPanel();
-        buttons.Classes.Add("dialog-buttons");
-        buttons.Children.Add(cancel);
-        buttons.Children.Add(apply);
-
-        var panel = new DockPanel();
-        panel.Classes.Add("dialog");
-        var heading = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Children = { title, help } };
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        DockPanel.SetDock(heading, Dock.Top);
-        panel.Children.Add(buttons);
-        panel.Children.Add(heading);
-        panel.Children.Add(List);
-        Content = panel;
+        var shell = new DialogShell { Heading = viewModel.Summary, Help = viewModel.Help, Content = List, ConfirmLabel = "Apply" };
+        shell.Confirmed += (_, _) => Apply();
+        shell.Cancelled += (_, _) => Close();
+        Content = shell;
     }
 
     public SyncConflictList List { get; }
@@ -63,17 +37,5 @@ public sealed class SyncConflictWindow : Window
     {
         Applied = true;
         Close();
-    }
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        if (e.Key == Key.Escape)
-        {
-            Close();
-            e.Handled = true;
-            return;
-        }
-
-        base.OnKeyDown(e);
     }
 }

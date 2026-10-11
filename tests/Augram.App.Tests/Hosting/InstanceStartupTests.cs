@@ -144,13 +144,13 @@ public sealed class InstanceStartupTests
                 running.Dispose();
             });
         };
-        var presenter = new FakeTakeOverPresenter { Answer = true };
+        var presenter = new FakeConfirmPresenter { Answer = true };
         using var startup = new InstanceStartup(name, Dev);
         Assert.Equal(InstanceStartupStep.Choose, startup.Begin());
 
         Assert.True(await startup.ChooseAsync(presenter));
 
-        var (title, message, confirm) = Assert.Single(presenter.Questions);
+        var (title, message, confirm) = Assert.Single(presenter.Requests);
         Assert.Equal("Augram (Dev)", title);
         Assert.Equal(InstanceStartup.Question(Installed, Dev), message);
         Assert.Equal("Quit it and start this one", confirm);
@@ -184,7 +184,7 @@ public sealed class InstanceStartupTests
             shown.Set();
         };
         running.QuitRequested += (_, _) => Interlocked.Increment(ref quits);
-        var presenter = new FakeTakeOverPresenter { Answer = false };
+        var presenter = new FakeConfirmPresenter { Answer = false };
         using var startup = new InstanceStartup(name, Dev);
         Assert.Equal(InstanceStartupStep.Choose, startup.Begin());
 
@@ -206,7 +206,7 @@ public sealed class InstanceStartupTests
         Assert.NotNull(running);
         using var quitAsked = new ManualResetEventSlim();
         running.QuitRequested += (_, _) => quitAsked.Set();
-        var presenter = new FakeTakeOverPresenter { Answer = true };
+        var presenter = new FakeConfirmPresenter { Answer = true };
         using var startup = new InstanceStartup(name, Dev, quitTimeout: TimeSpan.FromMilliseconds(300));
         Assert.Equal(InstanceStartupStep.Choose, startup.Begin());
 

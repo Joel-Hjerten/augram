@@ -1,6 +1,7 @@
 #if DEBUG
 using Augram.App.Components.FormDialog;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.Transfer;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
@@ -22,10 +23,6 @@ namespace Augram.App.DevGallery;
 /// </summary>
 public static class TransferGalleryPages
 {
-    public const double DialogWidth = 560;
-    public const double ReviewWidth = 960;
-    public const double ReviewHeight = 640;
-
     public static ScreenDeclaration Page()
     {
         var current = Configuration();
@@ -117,7 +114,7 @@ public static class TransferGalleryPages
     private static FormDialog ExportDialog(ConfigDocument current, ExportScope start)
     {
         var dialog = FormDialogPresenter.Build(ExportPresenter.Request(new ExportViewModel(current, start)));
-        dialog.Width = DialogWidth;
+        dialog.Width = DialogSize.Width(DialogSize.Form);
         return dialog;
     }
 
@@ -125,7 +122,7 @@ public static class TransferGalleryPages
     private static AugramImportView Review(ConfigDocument current, TransferFile file, string fileName)
     {
         var session = new ConfigSession(new GalleryConfigStore(current), _ => NoSave.Instance);
-        return new AugramImportView(new AugramImportViewModel(session, file, fileName, NullEventLog.Instance)) { Width = ReviewWidth, Height = ReviewHeight };
+        return new AugramImportView(new AugramImportViewModel(session, file, fileName, NullEventLog.Instance)) { Width = DialogSize.Width(DialogSize.Import), Height = DialogSize.Height(DialogSize.Import) };
     }
 
     /// <summary>A configuration in memory that never saves.</summary>

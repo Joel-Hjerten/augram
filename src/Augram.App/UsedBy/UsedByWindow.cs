@@ -1,10 +1,10 @@
 using Augram.App.Components.ItemList;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.App.Navigation;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Avalonia.Controls;
-using Avalonia.Input;
 
 namespace Augram.App.UsedBy;
 
@@ -13,9 +13,10 @@ namespace Augram.App.UsedBy;
 /// an <see cref="ItemList"/> over a declared <see cref="ListSpec"/> so the theme styles it without a
 /// theme change. The list follows the mapping store while the window is open. A row's "Go to command"
 /// (toolbar, or double-click) hands the command to <see cref="ICommandLocator"/> and closes the
-/// window; without a locator (no Commands tab registered) the rows are read-only. Escape closes.
+/// window; without a locator (no Commands tab registered) the rows are read-only. In the <see cref="DialogShell"/> with
+/// one button, Close; Escape closes (<see cref="DialogWindow"/>).
 /// </summary>
-public sealed class UsedByWindow : Window
+public sealed class UsedByWindow : DialogWindow
 {
     private const string EmptyText = "No command uses this gesture.";
     private const string HelpText = "Commands bound to this gesture. Double-click a row, or select it and press Go to command, to jump to it on the Commands tab.";
@@ -28,6 +29,7 @@ public sealed class UsedByWindow : Window
     private readonly TextBlock _empty;
 
     public UsedByWindow(GestureId gestureId, string gestureName, MappingStore mapping, ICommandLocator? locator)
+        : base(DialogSize.UsedBy)
     {
         ArgumentNullException.ThrowIfNull(gestureName);
         ArgumentNullException.ThrowIfNull(mapping);
@@ -37,11 +39,6 @@ public sealed class UsedByWindow : Window
         _source = new ListSource<UsedByRow>(() => UsedByRow.For(_mapping, _gestureId));
 
         Title = "Used by: " + gestureName;
-        Width = 560;
-        Height = 360;
-        MinWidth = 400;
-        MinHeight = 240;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
         CanResize = true;
 
         _list = new ItemList { Spec = BuildSpec() };
@@ -50,23 +47,16 @@ public sealed class UsedByWindow : Window
         _empty.Classes.Add("note");
         var help = new TextBlock { Text = HelpText };
         help.Classes.Add("help");
-        var close = new Button { Content = "Close" };
-        close.Classes.Add("toolbar");
-        close.Click += (_, _) => Close();
-        var buttons = new StackPanel();
-        buttons.Classes.Add("dialog-buttons");
-        buttons.Children.Add(close);
 
-        var panel = new DockPanel();
-        panel.Classes.Add("dialog");
-        DockPanel.SetDock(buttons, Dock.Bottom);
+        var body = new DockPanel();
         DockPanel.SetDock(help, Dock.Top);
         DockPanel.SetDock(_empty, Dock.Top);
-        panel.Children.Add(buttons);
-        panel.Children.Add(help);
-        panel.Children.Add(_empty);
-        panel.Children.Add(_list);
-        Content = panel;
+        body.Children.Add(help);
+        body.Children.Add(_empty);
+        body.Children.Add(_list);
+        var shell = new DialogShell { Content = body, CancelLabel = "Close", ConfirmLabel = null };
+        shell.Cancelled += (_, _) => Close();
+        Content = shell;
 
         _mapping.Changed += OnMappingChanged;
         Closed += (_, _) => _mapping.Changed -= OnMappingChanged;
@@ -89,18 +79,6 @@ public sealed class UsedByWindow : Window
 
         _locator.ShowCommand(row.CommandId);
         Close();
-    }
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        if (e.Key == Key.Escape)
-        {
-            Close();
-            e.Handled = true;
-            return;
-        }
-
-        base.OnKeyDown(e);
     }
 
     private ListSpec BuildSpec() => new(

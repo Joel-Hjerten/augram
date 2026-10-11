@@ -1,8 +1,7 @@
 using Augram.App.Components.GestureGrid;
+using Augram.App.Dialogs;
 using Augram.App.Training;
 using Augram.Core.Gestures;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Augram.App.Components.GesturePicker;
 
@@ -50,17 +49,7 @@ public sealed class GesturePickerPresenter : IGesturePickerPresenter
             answer.TrySetResult(GesturePickerResult.Cancelled);
         };
 
-        var owner = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-        if (owner is not null && owner.IsVisible)
-        {
-            window.Show(owner);
-        }
-        else
-        {
-            window.Show();
-        }
-
-        window.Activate();
+        DialogHost.Show(window);
         return await answer.Task.ConfigureAwait(true);
     }
 

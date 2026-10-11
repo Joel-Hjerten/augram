@@ -1,4 +1,5 @@
 using Augram.App.Components.ButtonDetect;
+using Augram.App.Dialogs;
 using Augram.App.Hosting;
 using Augram.App.Navigation;
 using Augram.App.ViewModels;
@@ -25,7 +26,7 @@ internal static class CompositionRoot
     /// <param name="configFolder">Overrides <see cref="AppPaths.ConfigFolder"/>; tests point it at a temp folder so they never touch the real config.</param>
     /// <remarks>
     /// Building creates nothing: services come to life when first resolved. A launch that must first settle with another
-    /// running Augram (<see cref="InstanceStartup"/>) resolves only <see cref="ITakeOverPresenter"/> until it may start.
+    /// running Augram (<see cref="InstanceStartup"/>) resolves only the take-over's <see cref="IConfirmPresenter"/> (keyed <see cref="ConfirmPresenter.AloneKey"/>) until it may start.
     /// </remarks>
     public static ServiceProvider Build(AppInfo? app = null, string? logsFolder = null, string? configFolder = null)
     {
@@ -45,7 +46,7 @@ internal static class CompositionRoot
         services.AddSingleton(app ?? AppInfo.Current);
         services.AddSingleton<AppState>();
         services.AddSingleton<IClipboardText, AppClipboard>();
-        services.AddSingleton<ITakeOverPresenter, TakeOverPresenter>();
+        services.AddKeyedSingleton<IConfirmPresenter>(ConfirmPresenter.AloneKey, (_, _) => ConfirmPresenter.Alone());
 
         // Engine slice: config session and stores, Platform adapters, overlay, EngineHost (started in App.StartDesktop).
         EngineModule.Register(services, new EngineModuleOptions { ConfigFolder = configFolder });

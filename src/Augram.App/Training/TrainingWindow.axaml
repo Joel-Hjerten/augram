@@ -5,10 +5,10 @@
         x:Class="Augram.App.Training.TrainingWindow"
         x:DataType="vm:TrainingViewModel"
         Title="{Binding Title}"
-        Width="520"
-        Height="560"
-        MinWidth="360"
-        MinHeight="400"
+        Width="{StaticResource Dialog.Training.Width}"
+        Height="{StaticResource Dialog.Training.Height}"
+        MinWidth="{StaticResource Dialog.Training.MinWidth}"
+        MinHeight="{StaticResource Dialog.Training.MinHeight}"
         WindowStartupLocation="CenterOwner"
         CanResize="True">
   <!-- The semi-large training popup (F3): hosts TrainingView; closes itself when the session ends. -->
