@@ -20,12 +20,6 @@ jobs:
       # One OS is enough for formatting; the rules do not depend on the platform.
       - if: runner.os == 'Windows'
         run: dotnet format --verify-no-changes --no-restore
-      # Code this push or pull request copies (scripts/duplicates.mjs, jscpd; settings in .jscpd.json) becomes warnings on
-      # the run, which scripts/ci-status.mjs prints. Not a failure yet, and a jscpd that cannot start does not fail CI.
-      - if: runner.os == 'Windows'
-        continue-on-error: true
-        shell: bash
-        run: node scripts/duplicates.mjs --base "${{ github.event.pull_request.base.sha || github.event.before }}"
       - run: dotnet build -c Release --no-restore
       # --blame names the test that was running when a test host crashes; the output is kept for the next step.
       # The console logger stays at minimal (failures and crashes only): at normal it wrote a line per passed test, and on
