@@ -35,7 +35,7 @@ Updated 2026-10-11, late. Step 1 (Wireframe fold, merged `4a022f1`) and step 2 (
 | S5 | merged (Fable-reviewed) | `8978606` | `ConflictResolution.Apply(list)`, `SyncStoreWriter.StillHolds/Replace`, `SyncChoiceRules`, `ImportApplier`, `AppGroup.HeaderOnly()/IsShell`, `ConfusionCheck.Duplicate`; `SyncFolders` in Core; sync-file types in `Core/Sync/Files/` |
 | S6 | merged (Fable-reviewed after) | `11ef93c` | `GestureMatcher.Best`, `CapturePointExtensions.ToGesturePoints`, `KeySet` on the hook (Engine `KeyBits` gone), `GesturePoint.DistanceTo` |
 | S8 | merged | `e81920b` | `Transfer/FileOpenRequest` + `ITransferFilePicker.PickOpenAsync` for every open dialog; SP.net mapping tables in `docs/reference/strokesplus-net-import-mapping.md` |
-| S9 | in Fable review (branch `worktree-agent-a75e365a0a0fb71b3`, tip `0bc931b`) | | `App/Sync/`: `SyncWorker`, `SyncScheduler`, `SyncService` facade, `SyncPhase`/`SyncSnapshot`/`SyncStatusText`, `SyncConflictSideText`; `ViewModels/DraftText` (does not fit `HoldRemapEditViewModel` or `CommandsViewModel.Steps`); `TimerSaveScheduler` stays in Hosting for S11's `OneShotTimer` |
+| S9 | merged (Fable-reviewed) | `059cc43` | `App/Sync/`: `SyncWorker`, `SyncScheduler`, `SyncService` facade, `SyncPhase`/`SyncSnapshot`/`SyncStatusText`, `SyncConflictSideText`; `ViewModels/DraftText` (does not fit `HoldRemapEditViewModel` or `CommandsViewModel.Steps`); `TimerSaveScheduler` stays in Hosting for S11's `OneShotTimer` |
 | S7 | running (worktree agent) | | Q7 default taken: "Window activated" logged once, by the executor |
 | S10–S15, S14b | not started (wave 4, one at a time, in the order listed) | | |
 | S16, S17 | not started (wave 5) | | S17 also: CLAUDE.md's read-first row for the SP.net import names the new mapping doc |
