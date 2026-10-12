@@ -10,7 +10,7 @@ F3: drawing a new gesture or another sample of one, in a small window. The sessi
 | What to train | `Core/Training/TrainingRequest` (`NewGesture`, `Redraw(id)`) | The outcome is a `TrainingOutcome`. |
 | Route the engine's strokes to training first | `Engine/Hosting/TrainingRouting` | The one line `EngineModule` wires as `EnginePorts.Intercept`; wheel ticks are never training input. |
 | Open the window | `ITrainingPresenter` / `TrainingPresenter` | One window at a time (`Dialogs/DialogSlot`); closing cancels the session. |
-| The window and its content | `TrainingWindow` + `TrainingView` | XAML; not on the dialog shell. |
+| The window and its content | `TrainingWindow` + `TrainingView` | A `DialogWindow` (code-only, `Dialog.Training` sizes) around the view (XAML) in the `DialogShell` (`Dialogs/README.md`). |
 
 ## Training (F3, A6)
 

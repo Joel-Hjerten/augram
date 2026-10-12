@@ -37,7 +37,8 @@ public static class CommandNames
     /// <summary>
     /// Where a command sits, the one label every list, message and log line uses (plan 0007 Q9): "Blender › Space › Orbit" for a
     /// command under a hold remap, "Global › Media › Volume up" for a Global command in its category, "Blender › Orbit" for an
-    /// ordinary app command ("Global › Minimize" for a Global command whose category is not in the group, as outside the store).
+    /// ordinary app command, and "Global › Minimize" for a Global command in Uncategorized (Joel, 2026-10-12: the segment says
+    /// nothing) or whose category is not in the group, as outside the store.
     /// </summary>
     public static string Label(AppGroup group, Command command)
     {
@@ -50,12 +51,20 @@ public static class CommandNames
     public static string Label(string group, string? parent, string command)
         => parent is null ? group + Separator + command : group + Separator + parent + Separator + command;
 
-    /// <summary>The middle part of a <see cref="Label(AppGroup, Command)"/>: the hold remap the command is under, else a Global command's category; null for neither.</summary>
+    /// <summary>
+    /// The middle part of a <see cref="Label(AppGroup, Command)"/>: the hold remap the command is under, else a Global command's
+    /// category other than Uncategorized (<see cref="CategoryRules.Uncategorized"/>, by id); null for none.
+    /// </summary>
     public static string? Parent(AppGroup group, Command command)
     {
         ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(command);
-        return group.HoldRemapOf(command)?.Name ?? (group.IsGlobal ? group.CategoryOf(command)?.Name : null);
+        if (group.HoldRemapOf(command) is { } holdRemap)
+        {
+            return holdRemap.Name;
+        }
+
+        return group.IsGlobal && group.CategoryOf(command) is { } category && category.Id != CategoryRules.Uncategorized(group)?.Id ? category.Name : null;
     }
 
     /// <summary>"under 'Space' in 'Blender'" for a command under a hold remap, "in 'Blender'" for an ordinary one: the rules' and the sync's sentences.</summary>

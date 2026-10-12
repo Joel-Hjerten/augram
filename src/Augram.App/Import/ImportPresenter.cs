@@ -13,11 +13,12 @@ namespace Augram.App.Import;
 /// The import flow as the user sees it: the shared open picker (<see cref="ITransferFilePicker"/>, asked with
 /// <see cref="OpenRequest"/>: it starts at SP.net's live config folder when this machine has one), the file read through
 /// <see cref="StrokesPlusImporter.ReadAll(Stream)"/> (<see cref="Read"/>), then <see cref="ImportDialog"/> over an
-/// <see cref="ImportViewModel"/>, modal to the main window. Nothing here decides what gets merged.
+/// <see cref="ImportViewModel"/>, modal to the main window (<see cref="DialogHost.ShowModalAsync"/>). Nothing here decides what gets merged.
 /// </summary>
 public sealed class ImportPresenter : IImportPresenter
 {
-    private const string Title = "Import from StrokesPlus.net";
+    /// <summary>The open dialog's, the import dialog's and its heading's title.</summary>
+    public const string Title = "Import from StrokesPlus.net";
     private const string SourceFileName = "StrokesPlus.net.json";
 
     private static readonly FilePickerFileType StrokesPlusFiles = new("StrokesPlus.net config") { Patterns = ["*.json"] };
@@ -67,7 +68,7 @@ public sealed class ImportPresenter : IImportPresenter
 
     public async Task OpenAsync()
     {
-        if (DialogHost.MainWindow is not { } owner)
+        if (DialogHost.MainWindow is null)
         {
             return;
         }
@@ -80,7 +81,7 @@ public sealed class ImportPresenter : IImportPresenter
 
         var viewModel = new ImportViewModel(_library, _mapping, _log);
         Read(viewModel, path);
-        await new ImportDialog(viewModel).ShowDialog(owner).ConfigureAwait(true);
+        await DialogHost.ShowModalAsync(new ImportDialog(viewModel), activateWhenAlone: true).ConfigureAwait(true);
     }
 
     /// <summary>Reads the file at <paramref name="path"/> into <paramref name="viewModel"/>; a file that cannot be read or is not SP.net JSON becomes its <see cref="ImportViewModel.Error"/>.</summary>

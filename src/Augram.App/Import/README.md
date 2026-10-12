@@ -7,7 +7,7 @@ The StrokesPlus.net import flow (F8): the App's dialog over the reader and merge
 | Job | Use | Notes |
 |---|---|---|
 | Pick, read and show the import | `IImportPresenter` / `ImportPresenter` | The shared open picker (`Transfer/ITransferFilePicker` with `ImportPresenter.OpenRequest`), `ImportPresenter.Read`, then the dialog. |
-| The dialog | `ImportDialog` + `ImportView` | Over `ViewModels/ImportViewModel`. |
+| The dialog | `ImportDialog` + `ImportView` | Over `ViewModels/ImportViewModel`: a `DialogWindow` (code-only, `Dialog.StrokesPlusImport` sizes) around the view (XAML) in the `DialogShell` (`Dialogs/README.md`). |
 | One clashing gesture and its choice | `ImportConflictItem` | Keep mine / Take theirs / Keep both. |
 
 ## Import from StrokesPlus.net (F8, M1 step 10)

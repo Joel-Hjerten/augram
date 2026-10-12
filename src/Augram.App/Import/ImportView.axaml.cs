@@ -5,7 +5,7 @@ using Avalonia.Controls;
 
 namespace Augram.App.Import;
 
-/// <summary>Content of the import dialog; the only code is the "apply to all" button forwarding its combo's choice.</summary>
+/// <summary>Content of the import dialog; the only code is the "apply to all" button forwarding its combo's choice and the shell's two buttons.</summary>
 public sealed partial class ImportView : UserControl
 {
     public ImportView()
@@ -19,5 +19,9 @@ public sealed partial class ImportView : UserControl
                 viewModel.ApplyToAll(choice.Value);
             }
         };
+        Shell.Confirmed += (_, _) => ViewModel?.Apply();
+        Shell.Cancelled += (_, _) => ViewModel?.Cancel();
     }
+
+    private ImportViewModel? ViewModel => DataContext as ImportViewModel;
 }

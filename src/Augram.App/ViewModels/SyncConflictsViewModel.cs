@@ -1,6 +1,7 @@
 using Augram.App.Components.SyncConflictList;
 using Augram.App.Declarations;
 using Augram.App.Sync;
+using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
@@ -30,15 +31,18 @@ public sealed class SyncConflictsViewModel
     private readonly SyncChoice[] _choices;
     private readonly SyncConflictSideText _sides;
 
-    /// <summary><c>help</c> is the dialog's instructions (its ⓘ): the sync's (<see cref="SyncHelp"/>) unless the host has its own.</summary>
-    public SyncConflictsViewModel(IReadOnlyList<SyncConflict> conflicts, IReadOnlyList<Gesture> gestures, MappingDocument mapping, StepRegistry? steps = null, string? help = null)
+    /// <summary>
+    /// <c>help</c> is the dialog's instructions (its ⓘ): the sync's (<see cref="SyncHelp"/>) unless the host has its own.
+    /// <c>platform</c> words what app groups and exclusions match (<see cref="RunningPlatform.Current"/> unless given).
+    /// </summary>
+    public SyncConflictsViewModel(IReadOnlyList<SyncConflict> conflicts, IReadOnlyList<Gesture> gestures, MappingDocument mapping, StepRegistry? steps = null, string? help = null, HostPlatform? platform = null)
     {
         ArgumentNullException.ThrowIfNull(conflicts);
         ArgumentNullException.ThrowIfNull(gestures);
         ArgumentNullException.ThrowIfNull(mapping);
         _conflicts = [.. conflicts];
         _choices = [.. conflicts.Select(_ => SyncChoice.KeepMine)];
-        _sides = new SyncConflictSideText(gestures, mapping, steps ?? StepRegistry.BuiltIn);
+        _sides = new SyncConflictSideText(gestures, mapping, steps ?? StepRegistry.BuiltIn, platform ?? RunningPlatform.Current);
         Help = help ?? SyncHelp;
         Entries = [.. _conflicts.Select(Entry)];
     }

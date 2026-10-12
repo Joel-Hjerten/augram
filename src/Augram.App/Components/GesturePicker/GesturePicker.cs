@@ -1,6 +1,7 @@
 using Augram.App.Components.GestureGrid;
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.Parts;
+using Augram.App.Dialogs;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,8 +11,9 @@ namespace Augram.App.Components.GesturePicker;
 
 /// <summary>
 /// Lookless content of the Select Gesture picker (F3): every gesture as a <see cref="GestureTile"/>
-/// (the Gestures tab's tile, without its grid's toolbar) in <c>PART_Tiles</c>, single selection, and
-/// the buttons <c>PART_NoGesture</c>, <c>PART_NewGesture</c>, <c>PART_Ok</c>, <c>PART_Cancel</c>.
+/// (the Gestures tab's tile, without its grid's toolbar) in <c>PART_Tiles</c>, single selection, in the dialog shell
+/// <c>PART_Shell</c> (<see cref="DialogShell"/>: OK and Cancel) with the buttons <c>PART_NoGesture</c> and <c>PART_NewGesture</c>
+/// before them.
 /// Every way out raises <see cref="Closed"/> with a <see cref="GesturePickerResult"/>; New Gesture…
 /// raises <see cref="NewGestureRequested"/> for the host to open training, and the host selects the
 /// accepted gesture through <see cref="Select"/>. Selection survives a tile rebuild by id.
@@ -88,8 +90,12 @@ public sealed class GesturePicker : TemplatedControl
             Select(_selectedId);
         }
 
-        e.OnClick("PART_Ok", Accept);
-        e.OnClick("PART_Cancel", Cancel);
+        if (e.NameScope.Find<DialogShell>("PART_Shell") is { } shell)
+        {
+            shell.Confirmed += (_, _) => Accept();
+            shell.Cancelled += (_, _) => Cancel();
+        }
+
         e.OnClick("PART_NoGesture", ChooseNoGesture);
         e.OnClick("PART_NewGesture", () => NewGestureRequested?.Invoke(this, EventArgs.Empty));
     }
