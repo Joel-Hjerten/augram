@@ -107,6 +107,20 @@ public sealed class CommandNamesTests
         Assert.Equal("in 'Blender'", CommandNames.Where(blender, close));
     }
 
+    /// <summary>Plan 0007 Q9: one label everywhere; a Global command shows its category, an app command never does.</summary>
+    [Fact]
+    public void AGlobalCommandIsLabelledWithItsCategory_AnAppCommandWithoutOne()
+    {
+        var media = new CommandCategory(CategoryId.New(), "Media");
+        var global = AppGroup.EmptyGlobal with { Categories = [media] };
+        var general = new CommandCategory(CategoryId.New(), "General");
+        var photoshop = NewGroup("Photoshop") with { Categories = [general] };
+
+        Assert.Equal("Global › Media › Volume up", CommandNames.Label(global, NewCommand("Volume up", Up) with { CategoryId = media.Id }));
+        Assert.Equal("Global › Gone", CommandNames.Label(global, NewCommand("Gone", Up) with { CategoryId = CategoryId.New() }));
+        Assert.Equal("Photoshop › Brush", CommandNames.Label(photoshop, NewCommand("Brush", Up) with { CategoryId = general.Id }));
+    }
+
     private static AppGroup BlenderWith(HoldRemap[] holdRemaps, params Command[] commands) => NewGroup("Blender", null, commands) with { HoldRemaps = holdRemaps };
 
     private static MappingValidationException Refused(AppGroup group)

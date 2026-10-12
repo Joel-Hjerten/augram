@@ -16,6 +16,21 @@ public static class MappingRules
 {
     public static StringComparer NameComparer => GestureRules.NameComparer;
 
+    /// <summary>
+    /// Refuses renaming the Global group (Joel, 2026-10-11, plan 0007 Q10): "Global" is a tab's title, never renamed; the
+    /// categories under it are what the user names and renames. The store asks it on every group update.
+    /// </summary>
+    /// <exception cref="MappingValidationException"><paramref name="next"/> gives the stored Global group another name.</exception>
+    public static void EnsureNotRenamingGlobal(AppGroup stored, AppGroup next)
+    {
+        ArgumentNullException.ThrowIfNull(stored);
+        ArgumentNullException.ThrowIfNull(next);
+        if (stored.IsGlobal && !string.Equals(Trimmed(stored.Name), Trimmed(next.Name), StringComparison.Ordinal))
+        {
+            throw new MappingValidationException("The Global group cannot be renamed.");
+        }
+    }
+
     /// <summary>Normalises and validates a whole document (a load, an import, every store commit) and returns it sorted.</summary>
     public static MappingDocument ValidDocument(MappingDocument document)
     {

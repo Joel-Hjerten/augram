@@ -94,6 +94,23 @@ public static class GalleryNavigation
                 new LinksField("Links", new DelegateBinding<IReadOnlyList<LinkItem>>(() => fake.Flag ? [new("Global › Media › Zoom in", () => fake.Flag = false), new("Chrome › Zoom in", () => { }, "inactive"), new("Plain text, no action", null)] : [], owner: fake, propertyName: null), "none", "Links one under the other; the first clears the Toggle above, which empties the list."),
                 new CustomField("Custom", () => new Button { Content = "A custom control" }),
             ]),
+            new Section("Buttons and committed text",
+            [
+                new ButtonsField("Buttons", [new FieldButton("First", () => fake.Flag = true), new FieldButton("Second", () => fake.Flag = false)], "Buttons side by side; the first sets the Toggle, the second clears it."),
+                new ButtonsField("Buttons, status", [new FieldButton("Run", () => fake.Amount += 5, new DelegateBinding<bool>(() => fake.Flag, owner: fake))], "A status line that wraps; the button is enabled while the Toggle is on.")
+                {
+                    Status = new DelegateBinding<string>(() => $"Ran up to {fake.Amount}. A long status line wraps under itself rather than running past the form's edge.", owner: fake),
+                },
+                new ButtonsField("Buttons, hint", [new FieldButton("Detect…", () => { })], "A hint after the button in the secondary role.")
+                {
+                    Hint = new DelegateBinding<string>(() => fake.Flag ? "Press a button…" : string.Empty, owner: fake),
+                },
+                new ButtonsField("Buttons, dropdown", [new FieldButton("Apply", () => { })], "A dropdown before the button.")
+                {
+                    Choice = new ChoiceBinding<string>(Choice.FromStrings("Alpha", "Beta", "Gamma"), new DelegateBinding<string>(() => fake.Choice, v => fake.Choice = v, fake)),
+                },
+                new CommittedTextField("CommittedText", new DelegateBinding<string>(() => fake.Name, v => fake.Name = v, fake), new DelegateBinding<string>(() => fake.Name.Length == 0 ? "Type something." : string.Empty, owner: fake), () => { }, () => { }, "Committed on leaving or Enter; the problem shows under it."),
+            ]),
             new Section("Second section, with help", [new NoteField("Only note", "Sections stack vertically.")], "Section help line."),
         ]);
     }

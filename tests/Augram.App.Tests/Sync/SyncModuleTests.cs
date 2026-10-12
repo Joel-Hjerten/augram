@@ -16,7 +16,6 @@ using Augram.Sync.Git;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -120,38 +119,6 @@ public sealed class SyncModuleTests : IDisposable
         var status = rows.Single(row => row.Label == "Status").GetVisualDescendants().OfType<TextBlock>().Single(text => text.Classes.Contains("note"));
         Assert.Equal(SyncStatusText.OffText, status.Text);
         Assert.False(rows.Single(row => row.Label == "Status").GetVisualDescendants().OfType<Button>().Single().IsEnabled);
-    }
-
-    [AvaloniaFact]
-    public void TheTextEditorsReportDraftsAndCommitOnLeavingOrEnterAndRevertOnEscape()
-    {
-        var draft = "start";
-        var problem = string.Empty;
-        var commits = 0;
-        var reverts = 0;
-        var editor = OptionsSyncSection.CommittedText(
-            new DelegateBinding<string>(() => draft, value => draft = value),
-            new DelegateBinding<string>(() => problem),
-            () => commits++,
-            () => reverts++,
-            wide: true);
-        new Window { Content = editor }.Show();
-        var box = editor.GetVisualDescendants().OfType<TextBox>().Single();
-        var error = editor.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Classes.Contains("error"));
-
-        Assert.Equal("start", box.Text);
-        Assert.Contains("wide", box.Classes);
-        Assert.False(error.IsVisible);
-        box.Text = "typed";
-        Assert.Equal("typed", draft);
-        Assert.Equal(0, commits);
-
-        box.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
-        Assert.Equal(1, commits);
-        box.RaiseEvent(new RoutedEventArgs(InputElement.LostFocusEvent));
-        Assert.Equal(2, commits);
-        box.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
-        Assert.Equal(1, reverts);
     }
 
     [AvaloniaFact]

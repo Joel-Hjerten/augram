@@ -64,7 +64,7 @@ public static class ButtonTriggerGalleryPage
     private static FormDialog AlsoInDialog(MappingDocument mapping)
     {
         var edit = AlsoInEditViewModel.For(mapping.Global.Commands.Single(command => command.Name == "Magnifier"), mapping);
-        var dialog = FormDialogPresenter.Build(new FormDialogRequest(AlsoInEditViewModel.Title, AlsoInEditViewModel.ConfirmLabel, Screen: edit.Declare()));
+        var dialog = FormDialogPresenter.Build(FormDialogs.Request(edit));
         dialog.Width = 560;
         return dialog;
     }

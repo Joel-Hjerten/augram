@@ -1,5 +1,4 @@
 using Augram.App.Declarations;
-using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -14,14 +13,16 @@ namespace Augram.App.ViewModels.Commands;
 /// </summary>
 public sealed partial class CategoryEditViewModel : ObservableObject
 {
+    public CategoryEditViewModel()
+    {
+        UseOn.PropertyChanged += (_, e) => OnPropertyChanged(e);
+    }
+
     [ObservableProperty]
     public partial string Name { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial bool UseOnWindows { get; set; } = true;
-
-    [ObservableProperty]
-    public partial bool UseOnMac { get; set; } = true;
+    /// <summary>Where the category's commands are used; its changes are raised as this view model's own. A refused change is put back with its <see cref="UseOnEdit.SyncFrom"/>, leaving the name as typed.</summary>
+    public UseOnEdit UseOn { get; } = new();
 
     public static CategoryEditViewModel From(CommandCategory category)
     {
@@ -35,22 +36,14 @@ public sealed partial class CategoryEditViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(category);
         Name = category.Name;
-        SyncUseOnFrom(category);
-    }
-
-    /// <summary>Takes only the stored "Use on", leaving the name as typed (a refused change puts the boxes back).</summary>
-    public void SyncUseOnFrom(CommandCategory category)
-    {
-        ArgumentNullException.ThrowIfNull(category);
-        UseOnWindows = category.UseOn.Includes(HostPlatform.Windows);
-        UseOnMac = category.UseOn.Includes(HostPlatform.MacOS);
+        UseOn.SyncFrom(category.UseOn);
     }
 
     /// <summary>The existing category with these settings.</summary>
     public CommandCategory Apply(CommandCategory existing)
     {
         ArgumentNullException.ThrowIfNull(existing);
-        return existing with { Name = Name, UseOn = PlatformSet.None.With(HostPlatform.Windows, UseOnWindows).With(HostPlatform.MacOS, UseOnMac) };
+        return existing with { Name = Name, UseOn = UseOn.Value };
     }
 
     public FormScreen Declare() => new("Category",
@@ -58,12 +51,7 @@ public sealed partial class CategoryEditViewModel : ObservableObject
         new Section("Category",
         [
             new TextField("Name", new DelegateBinding<string>(() => Name, value => Name = value, this), "Shown as a section of the Global tab; unique among categories."),
-            new TogglesField(
-                "Use on",
-                [
-                    new ToggleOption(HostPlatform.Windows.DisplayName(), new DelegateBinding<bool>(() => UseOnWindows, value => UseOnWindows = value, this)),
-                    new ToggleOption(HostPlatform.MacOS.DisplayName(), new DelegateBinding<bool>(() => UseOnMac, value => UseOnMac = value, this)),
-                ],
+            UseOn.Declare(
                 "Applies to every command in the category: a platform left unticked never fires them and hides the category unless Show other platforms is on. Each command keeps its own Use on for when the category takes the platform back."),
         ]),
     ]);

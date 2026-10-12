@@ -46,8 +46,6 @@ public static partial class GalleryFakes
                 new ListFilter("Level", ["All", "info", "warn"], new DelegateBinding<string>(() => filter, v => filter = v),
                     (row, selected) => selected == "All" || ((FakeRow)row).Level == selected),
             ],
-            ContextMenu: [new ListAction("Remove", row => { if (row is FakeRow r) { rows.Remove(r); source.NotifyChanged(); } })],
-            Keymap: [new ListKey("Delete", new ListAction("Remove", row => { if (row is FakeRow r) { rows.Remove(r); source.NotifyChanged(); } }))],
             AutoScroll: true));
     }
 

@@ -1,9 +1,7 @@
 using Augram.App.Components.Fields;
 using Augram.App.Declarations;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Layout;
-using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.ItemList;
 
@@ -75,31 +73,6 @@ internal static class ListRowBuilder
         }
 
         return grid;
-    }
-
-    public static void AttachActions(ListBox rows, ListSpec spec, Func<object?> selected)
-    {
-        if (spec.ContextMenu is { Count: > 0 } menuActions)
-        {
-            var menu = new ContextMenu();
-            foreach (var action in menuActions)
-            {
-                var item = new MenuItem { Header = action.Label };
-                item.Click += (_, _) => action.Execute(selected());
-                menu.Items.Add(item);
-            }
-
-            rows.ContextMenu = menu;
-        }
-
-        foreach (var key in spec.Keymap ?? [])
-        {
-            rows.KeyBindings.Add(new KeyBinding
-            {
-                Gesture = KeyGesture.Parse(key.Gesture),
-                Command = new RelayCommand(() => key.Action.Execute(selected())),
-            });
-        }
     }
 
     private static Grid NewGrid(ListSpec spec)

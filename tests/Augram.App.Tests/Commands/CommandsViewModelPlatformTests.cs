@@ -82,7 +82,7 @@ public sealed class CommandsViewModelPlatformTests
 
         var chrome = GroupEditViewModel.From(Group(store, "Chrome"));
         Assert.Equal("macOS: Google Chrome (guessed)", chrome.Identification.GuessText);
-        chrome.UseOnMac = false;
+        chrome.UseOn.UseOnMac = false;
         Assert.StartsWith("None needed", chrome.Identification.GuessText, StringComparison.Ordinal);
 
         var apple = GroupEditViewModel.From(Group(store, "Apple"));

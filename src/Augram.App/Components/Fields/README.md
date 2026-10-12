@@ -10,4 +10,4 @@ One renderer per field kind of `Declarations/` (ADR-0002 §5c): `SectionForm` as
 | Keep an editor in step with its binding | `BindingObserver.Attach(editor, binding, apply)` | Applies on entering the visual tree and on every `Changed` (through `Hosting/UiThread.RunOrPost`, so a change raised off the UI thread is posted), and unsubscribes on leaving the tree. |
 | Look | the field classes in `Themes/Default/Forms.axaml` | A renderer names no colour, size or margin (Theme rule). |
 
-The kinds: `ButtonRadio`, `CheckList`, `Color` (with `ColorEditor`), `Custom`, `Dropdown`, `Links`, `Note`, `Number`, `Pattern`, `Slider`, `Text`, `Toggle`, `Toggles`.
+The kinds: `ButtonRadio`, `Buttons` (buttons on a line, with a status, a hint or a dropdown), `CheckList`, `Color` (with `ColorEditor`), `CommittedText` (commit on leaving or Enter), `Custom`, `Dropdown`, `Links`, `Note`, `Number`, `Pattern`, `Slider`, `Text`, `Toggle`, `Toggles`.

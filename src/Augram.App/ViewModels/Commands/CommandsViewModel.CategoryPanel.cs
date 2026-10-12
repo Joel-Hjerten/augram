@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
@@ -9,94 +8,43 @@ namespace Augram.App.ViewModels.Commands;
 /// Each edit is one <see cref="MappingStore.UpdateGroup"/> of the category's group, one undo step; a refused name shows
 /// its rule while the field keeps the text, and a refused Use on (unticking both) shows its rule and puts the boxes back,
 /// since a check box cannot keep a value the store refused the way a text field can. Undo and a rename in the tree are
-/// synced into the open form.
+/// synced into the open form (<see cref="PanelEdit{TEdit, TId}"/>).
 /// </summary>
 public sealed partial class CommandsViewModel
 {
-    private CategoryEditViewModel? _categoryEdit;
-    private (GroupId Group, CategoryId Category)? _categoryEditId;
-    private bool _applyingCategoryEdit;
-    private bool _syncingCategoryEdit;
+    private PanelEdit<CategoryEditViewModel, (GroupId Group, CategoryId Category)>? _categoryPanel;
+
+    private PanelEdit<CategoryEditViewModel, (GroupId Group, CategoryId Category)> CategoryPanel => _categoryPanel ??= new(OnCategoryEdited);
 
     private void ProjectCategoryPanel(GroupId groupId, CommandCategory category)
     {
-        if (_categoryEdit is null || _categoryEditId != (groupId, category.Id))
+        if (CategoryPanel.Show((groupId, category.Id), () => CategoryEditViewModel.From(category), edit => edit.SyncFrom(category)) is { } shown)
         {
-            DetachCategoryEdit();
-            _categoryEdit = CategoryEditViewModel.From(category);
-            _categoryEditId = (groupId, category.Id);
-            _categoryEdit.PropertyChanged += OnCategoryEdited;
-            GroupForm = _categoryEdit.Declare();
-        }
-        else if (!_applyingCategoryEdit)
-        {
-            SyncCategoryEdit(edit => edit.SyncFrom(category));
+            GroupForm = shown.Declare();
         }
     }
 
-    private void OnCategoryEdited(object? sender, PropertyChangedEventArgs e)
+    private void OnCategoryEdited(CategoryEditViewModel edit, (GroupId Group, CategoryId Category) id, string? property)
     {
-        if (_syncingCategoryEdit || _categoryEdit is not { } edit || _categoryEditId is not { } id)
-        {
-            return;
-        }
-
         Message = null;
-        _applyingCategoryEdit = true;
-        try
+        Guard(() =>
         {
-            Guard(() =>
+            var group = RequireGroup(id.Group);
+            if (group.FindCategory(id.Category) is null)
             {
-                var group = RequireGroup(id.Group);
-                if (group.FindCategory(id.Category) is null)
-                {
-                    throw new KeyNotFoundException("That category no longer exists.");
-                }
+                throw new KeyNotFoundException("That category no longer exists.");
+            }
 
-                _store.UpdateGroup(group with
-                {
-                    Categories = [.. group.Categories.Select(category => category.Id == id.Category ? edit.Apply(category) : category)],
-                });
+            _store.UpdateGroup(group with
+            {
+                Categories = [.. group.Categories.Select(category => category.Id == id.Category ? edit.Apply(category) : category)],
             });
-        }
-        finally
-        {
-            _applyingCategoryEdit = false;
-        }
+        });
 
-        if (Message is not null && e.PropertyName is nameof(CategoryEditViewModel.UseOnWindows) or nameof(CategoryEditViewModel.UseOnMac)
-            && _store.FindGroup(id.Group)?.FindCategory(id.Category) is { } stored)
+        // A refused Use on puts the boxes back, leaving the name as typed.
+        if (Message is not null && UseOnEdit.IsUseOn(property) && _store.FindGroup(id.Group)?.FindCategory(id.Category) is { } stored)
         {
-            SyncCategoryEdit(form => form.SyncUseOnFrom(stored));
+            CategoryPanel.Sync(form => form.UseOn.SyncFrom(stored.UseOn));
         }
-    }
-
-    private void SyncCategoryEdit(Action<CategoryEditViewModel> sync)
-    {
-        if (_categoryEdit is not { } edit)
-        {
-            return;
-        }
-
-        _syncingCategoryEdit = true;
-        try
-        {
-            sync(edit);
-        }
-        finally
-        {
-            _syncingCategoryEdit = false;
-        }
-    }
-
-    private void DetachCategoryEdit()
-    {
-        if (_categoryEdit is not null)
-        {
-            _categoryEdit.PropertyChanged -= OnCategoryEdited;
-        }
-
-        _categoryEdit = null;
-        _categoryEditId = null;
     }
 }

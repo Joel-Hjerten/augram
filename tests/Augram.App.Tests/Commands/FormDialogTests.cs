@@ -83,8 +83,8 @@ public sealed class FormDialogTests
         var useOn = ((StackPanel)rows[2].Editor!).Children.OfType<CheckBox>().ToList();
         Assert.Equal(["Windows", "macOS"], useOn.Select(box => (string)box.Content!));
         useOn[1].IsChecked = false;
-        Assert.False(edit.UseOnMac);
-        Assert.True(edit.UseOnWindows);
+        Assert.False(edit.UseOn.UseOnMac);
+        Assert.True(edit.UseOn.UseOnWindows);
         Assert.Equal("Chromium", edit.Name);
         Assert.True(edit.SuppressGlobals);
     }

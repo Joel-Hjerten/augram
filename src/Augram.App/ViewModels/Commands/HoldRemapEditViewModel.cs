@@ -26,6 +26,11 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
 
     private bool _syncing;
 
+    public HoldRemapEditViewModel()
+    {
+        UseOn.PropertyChanged += (_, e) => OnPropertyChanged(e);
+    }
+
     [ObservableProperty]
     public partial string Name { get; set; } = string.Empty;
 
@@ -38,11 +43,8 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsActive { get; set; } = true;
 
-    [ObservableProperty]
-    public partial bool UseOnWindows { get; set; } = true;
-
-    [ObservableProperty]
-    public partial bool UseOnMac { get; set; } = true;
+    /// <summary>Where the hold remap is used; its changes are raised as this view model's own.</summary>
+    public UseOnEdit UseOn { get; } = new();
 
     public static HoldRemapEditViewModel From(HoldRemap holdRemap)
     {
@@ -62,8 +64,7 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
             HoldKey = holdRemap.HoldKey;
             TapTimeMs = holdRemap.TapTimeMs;
             IsActive = holdRemap.IsActive;
-            UseOnWindows = holdRemap.UseOn.Includes(HostPlatform.Windows);
-            UseOnMac = holdRemap.UseOn.Includes(HostPlatform.MacOS);
+            UseOn.SyncFrom(holdRemap.UseOn);
         }
         finally
         {
@@ -81,7 +82,7 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
             HoldKey = HoldKey,
             TapTimeMs = TapTimeMs,
             IsActive = IsActive,
-            UseOn = PlatformSet.None.With(HostPlatform.Windows, UseOnWindows).With(HostPlatform.MacOS, UseOnMac),
+            UseOn = UseOn.Value,
         };
     }
 
@@ -99,13 +100,7 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
                 Step: 10,
                 Help: $"Released within this time with nothing used, the hold key types as usual (a tap). Longer, or with a mouse button or wheel turn in it, it types nothing. 0 never types it. Default {HoldRemap.DefaultTapTimeMs}."),
             new ToggleField("Active", new DelegateBinding<bool>(() => IsActive, value => IsActive = value, this), "An inactive hold remap leaves its key alone."),
-            new TogglesField(
-                "Use on",
-                [
-                    new ToggleOption(HostPlatform.Windows.DisplayName(), new DelegateBinding<bool>(() => UseOnWindows, value => UseOnWindows = value, this)),
-                    new ToggleOption(HostPlatform.MacOS.DisplayName(), new DelegateBinding<bool>(() => UseOnMac, value => UseOnMac = value, this)),
-                ],
-                "Applies to every command under it: a platform left unticked never fires them and hides the hold remap unless Show other platforms is on."),
+            UseOn.Declare("Applies to every command under it: a platform left unticked never fires them and hides the hold remap unless Show other platforms is on."),
         ],
         "While the hold key is held in this app, the commands under it fire on their inputs: a mouse button, buttons held together, a wheel direction or a key. A Remap step holds an output for as long as the input is held; other steps run once per press. Right-click the hold remap to add commands. "
             + WorksOverExclusions),

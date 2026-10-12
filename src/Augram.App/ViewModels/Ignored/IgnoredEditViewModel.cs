@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Augram.App.Components.Fields.Links;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.Core.Mapping;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -18,7 +19,7 @@ namespace Augram.App.ViewModels.Ignored;
 /// the Exclusions tab's side panel for the selected one); <see cref="ToIgnored"/> and <see cref="Apply"/> turn it
 /// back into an <see cref="IgnoredApp"/>; <see cref="SyncFrom"/> re-reads a stored one. Nothing is validated here.
 /// </summary>
-public sealed partial class IgnoredEditViewModel : ObservableObject
+public sealed partial class IgnoredEditViewModel : ObservableObject, IDialogForm
 {
     public const string UsedByLabel = "Used by";
     public const string UsedByNone = "none";
@@ -32,6 +33,9 @@ public sealed partial class IgnoredEditViewModel : ObservableObject
 
     /// <summary>The Global form's title and section: the UI word is "Exclusions" (plan 0005), the code's "Ignored".</summary>
     public const string GlobalTitle = "Excluded app";
+
+    /// <summary>The new entry dialog's title, also the list's New button: "New excluded app" on Global, "New app" on Per command.</summary>
+    public static string NewTitle(IgnoreScope scope) => scope == IgnoreScope.PerCommand ? "New app" : "New excluded app";
 
     /// <param name="scope">The list the entry is on: Exclusions › Global (the default) or Exclusions › Per command.</param>
     public IgnoredEditViewModel(IgnoreScope scope = IgnoreScope.Global)
@@ -48,6 +52,10 @@ public sealed partial class IgnoredEditViewModel : ObservableObject
     public IgnoreScope Scope { get; }
 
     public bool IsPerCommand => Scope == IgnoreScope.PerCommand;
+
+    string IDialogForm.DialogTitle => NewTitle(Scope);
+
+    string IDialogForm.DialogConfirmLabel => FormDialogs.CreateLabel;
 
     [ObservableProperty]
     public partial string Name { get; set; } = string.Empty;

@@ -139,6 +139,9 @@ public sealed record AppMatcher
     /// <summary>True when <paramref name="platform"/>'s list is empty and the names it matches on are the guess from the other list.</summary>
     public bool IsGuessedOn(HostPlatform platform) => !ProcessNamesFor(platform).Any(HasText) && HasProcessNames;
 
+    /// <summary>What this matches on <paramref name="platform"/>, as every list and form summarises it (<see cref="AppMatcherSummary"/>).</summary>
+    public AppMatcherSummary Summary(HostPlatform platform) => AppMatcherSummary.Of(this, platform);
+
     /// <summary>The names <paramref name="platform"/> matches on: its own list, else the known-app guess from the other list (never from patterns); empty when neither gives any.</summary>
     public IReadOnlyList<string> EffectiveProcessNames(HostPlatform platform)
     {

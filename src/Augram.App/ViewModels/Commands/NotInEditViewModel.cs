@@ -1,6 +1,7 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.WindowFinder;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,7 +17,7 @@ namespace Augram.App.ViewModels.Commands;
 /// edit when the dialog is confirmed (Cancel adds nothing). What a list may hold is Core's (<see cref="MappingRules"/> keeps only
 /// Per command entries that exist); this only collects the ticks.
 /// </summary>
-public sealed partial class NotInEditViewModel : ObservableObject
+public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
 {
     public const string Title = "Not in";
     public const string ConfirmLabel = "Save";
@@ -30,7 +31,7 @@ public sealed partial class NotInEditViewModel : ObservableObject
     private readonly IReadOnlyList<IgnoredApp> _ignored;
     private readonly List<IgnoredApp> _entries;
     private readonly List<IgnoredApp> _added = [];
-    private readonly HashSet<GroupId> _checked;
+    private readonly CheckedSet<GroupId> _checked;
     private readonly HostPlatform _platform;
 
     /// <param name="commandName">The command's name, for the section title.</param>
@@ -46,10 +47,14 @@ public sealed partial class NotInEditViewModel : ObservableObject
         _platform = platform;
         _ignored = [.. ignored];
         _entries = [.. _ignored.Where(app => app.IsPerCommand)];
-        _checked = [.. notIn.Where(id => _entries.Exists(app => app.Id == id))];
+        _checked = new(notIn.Where(id => _entries.Exists(app => app.Id == id)), () => OnPropertyChanged(nameof(NotIn)));
     }
 
     public string CommandName { get; }
+
+    string IDialogForm.DialogTitle => Title;
+
+    string IDialogForm.DialogConfirmLabel => ConfirmLabel;
 
     /// <summary>The Per command entries offered, by name, the ones Add app… made among them.</summary>
     public IReadOnlyList<IgnoredApp> Entries => [.. _entries.OrderBy(app => app.Name, MappingRules.NameComparer).ThenBy(app => app.Id.Value)];
@@ -72,16 +77,6 @@ public sealed partial class NotInEditViewModel : ObservableObject
         return new NotInEditViewModel(command.Name, mapping.Ignored, command.NotIn, platform);
     }
 
-    public bool IsChecked(GroupId id) => _checked.Contains(id);
-
-    public void SetChecked(GroupId id, bool value)
-    {
-        if (value ? _checked.Add(id) : _checked.Remove(id))
-        {
-            OnPropertyChanged(nameof(NotIn));
-        }
-    }
-
     /// <summary>
     /// The window finder's pick: a Per command entry that already claims the window is ticked; otherwise a new one, named after
     /// the executable (<see cref="AppMatcherEditViewModel.AppNameOf"/>, made free among the ignore list's names: "Spine 2") and
@@ -93,7 +88,7 @@ public sealed partial class NotInEditViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(window);
         if (_entries.Find(app => app.Matcher.Matches(window, _platform)) is { } existing)
         {
-            SetChecked(existing.Id, true);
+            _checked.SetChecked(existing.Id, true);
             AddStatus = $"'{existing.Name}' is on Per command already: ticked.";
             return existing;
         }
@@ -105,7 +100,7 @@ public sealed partial class NotInEditViewModel : ObservableObject
         _added.Add(added);
         _entries.Add(added);
         OnPropertyChanged(nameof(Entries));
-        SetChecked(added.Id, true);
+        _checked.SetChecked(added.Id, true);
 
         var global = _ignored.FirstOrDefault(app => !app.IsPerCommand && app.IsActive && app.Matcher.Matches(window, _platform));
         AddStatus = $"Added '{name}' ({window.ProcessName}), ticked."
@@ -153,5 +148,5 @@ public sealed partial class NotInEditViewModel : ObservableObject
     private IReadOnlyList<CheckListItem> CheckItems() => [.. Entries.Select(Item)];
 
     private CheckListItem Item(IgnoredApp app)
-        => new(app.Name, new DelegateBinding<bool>(() => IsChecked(app.Id), value => SetChecked(app.Id, value), this, propertyName: nameof(NotIn)), Detail(app));
+        => _checked.Item(app.Name, app.Id, this, nameof(NotIn), Detail(app));
 }

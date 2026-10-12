@@ -34,17 +34,29 @@ public static class CommandNames
         return commands.Where(command => command.HoldRemapId == parent).Select(command => command.Name);
     }
 
-    /// <summary>"Blender › Space › Orbit" for a command under a hold remap, "Blender › Orbit" for an ordinary one.</summary>
+    /// <summary>
+    /// Where a command sits, the one label every list, message and log line uses (plan 0007 Q9): "Blender › Space › Orbit" for a
+    /// command under a hold remap, "Global › Media › Volume up" for a Global command in its category, "Blender › Orbit" for an
+    /// ordinary app command ("Global › Minimize" for a Global command whose category is not in the group, as outside the store).
+    /// </summary>
     public static string Label(AppGroup group, Command command)
     {
         ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(command);
-        return Label(group.Name, group.HoldRemapOf(command)?.Name, command.Name);
+        return Label(group.Name, Parent(group, command), command.Name);
     }
 
-    /// <summary><see cref="Label(AppGroup, Command)"/> from the names alone (<paramref name="holdRemap"/> null: an ordinary command).</summary>
-    public static string Label(string group, string? holdRemap, string command)
-        => holdRemap is null ? group + Separator + command : group + Separator + holdRemap + Separator + command;
+    /// <summary><see cref="Label(AppGroup, Command)"/> from the names alone (<paramref name="parent"/>, the hold remap's or the Global category's name; null for none).</summary>
+    public static string Label(string group, string? parent, string command)
+        => parent is null ? group + Separator + command : group + Separator + parent + Separator + command;
+
+    /// <summary>The middle part of a <see cref="Label(AppGroup, Command)"/>: the hold remap the command is under, else a Global command's category; null for neither.</summary>
+    public static string? Parent(AppGroup group, Command command)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        ArgumentNullException.ThrowIfNull(command);
+        return group.HoldRemapOf(command)?.Name ?? (group.IsGlobal ? group.CategoryOf(command)?.Name : null);
+    }
 
     /// <summary>"under 'Space' in 'Blender'" for a command under a hold remap, "in 'Blender'" for an ordinary one: the rules' and the sync's sentences.</summary>
     public static string Where(AppGroup group, Command command)

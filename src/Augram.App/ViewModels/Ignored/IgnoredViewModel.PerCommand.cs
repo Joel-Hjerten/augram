@@ -1,7 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.MasterDetail;
 using Augram.App.Declarations;
-using Augram.App.UsedBy;
 using Augram.Core.Mapping;
 using Augram.Core.Text;
 
@@ -62,7 +61,7 @@ public sealed partial class IgnoredViewModel
     };
 
     /// <summary>
-    /// The entry's "Used by" as links, "Global › Media › Zoom in" (<see cref="UsedByRow.Label"/>, the Gestures tab's words), each
+    /// The entry's "Used by" as links, "Global › Media › Zoom in" (<see cref="CommandNames.Label(AppGroup, Command)"/>, the Gestures tab's words), each
     /// opening its command on the Commands tab when there is a locator, "inactive" after a command that is switched off.
     /// </summary>
     private List<LinkItem> UsedByLinks(GroupId id) => Links(UsersOf(id));
@@ -73,7 +72,7 @@ public sealed partial class IgnoredViewModel
         {
             var commandId = pair.Command.Id;
             return new LinkItem(
-                UsedByRow.From(pair.Group, pair.Command).Label,
+                CommandNames.Label(pair.Group, pair.Command),
                 _commands is { } commands ? () => commands.ShowCommand(commandId) : null,
                 pair.Command.IsActive ? null : "inactive");
         })];

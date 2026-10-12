@@ -112,7 +112,7 @@ public static class CommandGalleryPages
 
     private static FormDialog NotInDialog(NotInEditViewModel edit)
     {
-        var dialog = FormDialogPresenter.Build(new FormDialogRequest(NotInEditViewModel.Title, NotInEditViewModel.ConfirmLabel, Screen: edit.Declare()));
+        var dialog = FormDialogPresenter.Build(FormDialogs.Request(edit));
         dialog.Width = DialogSize.Width(DialogSize.Form);
         return dialog;
     }

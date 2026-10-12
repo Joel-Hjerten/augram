@@ -71,12 +71,17 @@ public sealed class SyncConflictSideText
         return $"{gesture.Name} · {samples}{(gesture.IsActive ? string.Empty : " · inactive")}";
     }
 
-    /// <summary>"Chrome › Close tab: gesture Zig → Wait 30 ms", "Blender › Space › Orbit: Left → …" (<see cref="CommandNames.Label(string, string?, string)"/>).</summary>
+    /// <summary>
+    /// "Chrome › Close tab: gesture Zig → Wait 30 ms", "Blender › Space › Orbit: Left → …", "Global › Media › Mute: …"
+    /// (<see cref="CommandNames.Label(string, string?, string)"/>, the parent from <see cref="CommandNames.Parent"/>).
+    /// </summary>
     private string CommandText(GroupId groupId, Command command)
     {
         var group = _mapping.Groups.FirstOrDefault(candidate => candidate.Id == groupId);
-        var holdRemap = command.HoldRemapId is not { } id ? null : group?.FindHoldRemap(id)?.Name ?? "another hold remap";
-        var label = CommandNames.Label(group?.Name ?? "another group", holdRemap, command.Name);
+        var parent = command.HoldRemapId is not null && group?.HoldRemapOf(command) is null
+            ? "another hold remap"
+            : group is null ? null : CommandNames.Parent(group, command);
+        var label = CommandNames.Label(group?.Name ?? "another group", parent, command.Name);
         var trigger = TriggerText(command.Trigger);
         var steps = command.Steps.Count == 0 ? "no steps" : string.Join(", ", command.Steps.Select(step => step.Step.Summary));
         return $"{label}: {trigger} → {steps}{(command.IsActive ? string.Empty : " (inactive)")}";

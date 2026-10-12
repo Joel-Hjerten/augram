@@ -52,7 +52,7 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
 
     public string Heading => IsPerCommand ? "Per command apps" : "Excluded apps";
 
-    public string NewLabel => IsPerCommand ? "New app" : "New excluded app";
+    public string NewLabel => IgnoredEditViewModel.NewTitle(Scope);
 
     /// <summary>The right-click menu's move to the other list.</summary>
     public string MoveLabel => IsPerCommand ? "Move to Global" : "Move to Per command";
@@ -87,7 +87,7 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
     public void Dispose()
     {
         _store.Changed -= OnStoreChanged;
-        DetachEdit();
+        Panel.Close();
     }
 
     private void Dispatch(MasterDetailActionEventArgs e)
@@ -126,7 +126,7 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
     private async Task NewAsync()
     {
         var edit = new IgnoredEditViewModel(Scope);
-        if (!await _dialogs.ShowAsync(new FormDialogRequest(NewLabel, "Create", Screen: edit.Declare())).ConfigureAwait(true))
+        if (!await _dialogs.ShowAsync(edit).ConfigureAwait(true))
         {
             return;
         }
@@ -166,28 +166,7 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
     }
 
     /// <summary>"Gestures off over this app · blender.exe", "Used by 2 commands · Spine.exe": the mode (or its users) and what it matches here.</summary>
-    private string Summary(IgnoredApp app) => $"{(app.IsPerCommand ? UsersText(app.Id) : IgnoredModes.Label(app.DisableEntirely))} · {Matches(app.Matcher)}";
-
-    private string Matches(AppMatcher matcher)
-    {
-        if (matcher.IsEmpty)
-        {
-            return "matches nothing yet";
-        }
-
-        if (!IgnoreList.CanMatchOn(matcher, _platform))
-        {
-            return "nothing on " + _platform.DisplayName();
-        }
-
-        if (matcher.HasProcessNames)
-        {
-            var names = string.Join(", ", matcher.EffectiveProcessNames(_platform));
-            return matcher.IsGuessedOn(_platform) ? names + " (guessed)" : names;
-        }
-
-        return matcher.Title ?? matcher.PathFor(_platform).Path ?? matcher.ProcessPath ?? matcher.MacProcessPath ?? "window details";
-    }
+    private string Summary(IgnoredApp app) => $"{(app.IsPerCommand ? UsersText(app.Id) : IgnoredModes.Label(app.DisableEntirely))} · {app.Matcher.Summary(_platform).Text}";
 
     private IgnoredApp? Find(Guid id) => _store.FindIgnored(new GroupId(id));
 

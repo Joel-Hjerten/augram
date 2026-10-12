@@ -225,13 +225,13 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
 
     private string GuessFor(AppMatcher matcher, HostPlatform platform)
     {
-        if (!_usedOn().Includes(platform) || !matcher.IsGuessedOn(platform))
+        var summary = matcher.Summary(platform);
+        if (!_usedOn().Includes(platform) || !summary.IsGuessed)
         {
             return string.Empty;
         }
 
-        var guess = matcher.EffectiveProcessNames(platform);
-        return guess.Count > 0 ? $"{string.Join(", ", guess)} (guessed)" : $"no guess; {_noGuessAdvice}";
+        return summary.Names.Count > 0 ? summary.NamesText : $"no guess; {_noGuessAdvice}";
     }
 
     private static string[] Split(string names) => names.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

@@ -15,6 +15,26 @@ public sealed class PlatformMatchingTests
     private const HostPlatform Windows = HostPlatform.Windows;
     private const HostPlatform Mac = HostPlatform.MacOS;
 
+    /// <summary>One summary per platform for every list and form (plan 0007): the names there, the guess marked, or why it matches nothing there.</summary>
+    [Fact]
+    public void TheSummarySaysWhatAMatcherMatchesOnEachPlatform()
+    {
+        var chrome = ByProcess("chrome.exe");
+        Assert.Equal("chrome.exe", chrome.Summary(Windows).Text);
+        Assert.False(chrome.Summary(Windows).IsGuessed);
+        Assert.Equal("Google Chrome (guessed)", chrome.Summary(Mac).Text);
+        Assert.Equal("Google Chrome (guessed)", chrome.Summary(Mac).NamesText);
+
+        var unknown = ByProcess("Spine.exe");
+        Assert.Equal("Spine.exe", unknown.Summary(Windows).Text);
+        Assert.Equal("nothing on macOS", unknown.Summary(Mac).Text);
+        Assert.True(unknown.Summary(Mac).LacksNameHere);
+        Assert.False(unknown.Summary(Windows).LacksNameHere);
+
+        Assert.Equal("matches nothing yet", AppMatcher.Empty.Summary(Windows).Text);
+        Assert.Equal("Untitled - Notepad", new AppMatcher { Title = "Untitled - Notepad" }.Summary(Windows).Text);
+    }
+
     [Fact]
     public void EachPlatformMatchesOnItsOwnNames()
     {
