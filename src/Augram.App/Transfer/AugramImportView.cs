@@ -34,9 +34,6 @@ public sealed class AugramImportView : DialogShell
         };
         List.ChoiceChanged += (_, e) => viewModel.Choose(e.Index, e.Choice);
 
-        // No margin round the review, as before the shell: it was a DockPanel subclass, which the theme's DockPanel.dialog
-        // style (the margin) never matched. Kept as it looks; whether it should get the dialogs' margin is Joel's call.
-        Margin = default;
         ConfirmLabel = AugramImportViewModel.ImportLabel;
         CanConfirm = viewModel.CanImport;
         Cancelled += (_, _) => viewModel.Cancel();

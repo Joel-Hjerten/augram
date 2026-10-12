@@ -17,6 +17,8 @@ public static class DialogSize
     public const string Conflicts = "Dialog.Conflicts";
     public const string Import = "Dialog.Import";
     public const string Picker = "Dialog.Picker";
+    public const string Training = "Dialog.Training";
+    public const string StrokesPlusImport = "Dialog.StrokesPlusImport";
 
     /// <summary>Sets each of Width, Height, MinWidth and MinHeight that the set <paramref name="size"/> has a token for; the others keep their defaults.</summary>
     public static void Apply(Window window, string size)

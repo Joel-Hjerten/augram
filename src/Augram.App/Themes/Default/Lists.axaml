@@ -942,23 +942,21 @@
         </Setter>
       </ControlTheme>
 
-      <!-- Select Gesture (F3): the title with its ⓘ, the tiles in a panel, the buttons below. The window gives the backdrop. -->
+      <!-- Select Gesture (F3) in the dialog shell: the title with its ⓘ, the tiles in a panel, No Gesture and New Gesture… before
+           Cancel and OK. The window gives the backdrop. -->
       <ControlTheme x:Key="{x:Type gpicker:GesturePicker}" TargetType="gpicker:GesturePicker">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
           <ControlTemplate>
             <Border Background="{TemplateBinding Background}">
-              <DockPanel Classes="dialog">
-                <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
+              <dialogs:DialogShell Name="PART_Shell"
+                                   Heading="Select Gesture"
+                                   Help="Pick the gesture that fires this command; double-click also picks. No Gesture leaves the command trigger-less, New Gesture… draws one first."
+                                   CanConfirm="{TemplateBinding HasSelection}">
+                <dialogs:DialogShell.LeadingButtons>
                   <Button Name="PART_NoGesture" Classes="toolbar" Content="No Gesture" />
                   <Button Name="PART_NewGesture" Classes="toolbar" Content="New Gesture…" />
-                  <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" IsCancel="True" />
-                  <Button Name="PART_Ok" Classes="toolbar" Content="OK" IsDefault="True" IsEnabled="{TemplateBinding HasSelection}" />
-                </StackPanel>
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="2,0,0,10">
-                  <TextBlock Classes="heading" Text="Select Gesture" VerticalAlignment="Center" />
-                  <TextBlock Classes="help-icon" ToolTip.Tip="Pick the gesture that fires this command; double-click also picks. No Gesture leaves the command trigger-less, New Gesture… draws one first." />
-                </StackPanel>
+                </dialogs:DialogShell.LeadingButtons>
                 <Border Background="{DynamicResource Layer.Panel}"
                         BorderBrush="{DynamicResource Layer.Edge}"
                         BorderThickness="1"
@@ -978,15 +976,15 @@
                     </ListBox.ItemsPanel>
                   </ListBox>
                 </Border>
-              </DockPanel>
+              </dialogs:DialogShell>
             </Border>
           </ControlTemplate>
         </Setter>
       </ControlTheme>
 
-      <!-- The dialog chrome (Dialogs/DialogShell): the heading with its ⓘ, the content, the buttons bottom right (built by the
-           shell from its labels: Cancel first, the default button last). The window gives the backdrop; the shell's margin is
-           the old DockPanel.dialog's, so a window's content keeps its place. -->
+      <!-- The dialog chrome (Dialogs/DialogShell), every dialog's: the margin, the heading with its ⓘ, the content, the buttons
+           bottom right (built by the shell: any leading buttons, then Cancel, the default button last). The window gives the
+           backdrop. -->
       <ControlTheme x:Key="{x:Type dialogs:DialogShell}" TargetType="dialogs:DialogShell">
         <Setter Property="Margin" Value="{StaticResource Pad.L}" />
         <Setter Property="Template">
@@ -1408,9 +1406,6 @@
   </Style>
   <!-- Dialogs (the dialog shell, the gesture picker, the training window): a margin round the content, the buttons
        bottom right, rows apart. -->
-  <Style Selector="DockPanel.dialog">
-    <Setter Property="Margin" Value="{StaticResource Pad.L}" />
-  </Style>
   <Style Selector="StackPanel.dialog-buttons">
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="HorizontalAlignment" Value="Right" />

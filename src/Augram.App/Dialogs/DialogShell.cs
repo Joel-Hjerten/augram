@@ -8,11 +8,10 @@ namespace Augram.App.Dialogs;
 /// <summary>
 /// The dialog chrome, lookless (its ControlTheme is in <c>Themes/Default/Lists.axaml</c>): an optional <see cref="Heading"/> with
 /// its ⓘ (<see cref="Help"/>), the <see cref="ContentControl.Content"/> filling the middle, and the buttons bottom right in
-/// <c>PART_Buttons</c>: <see cref="CancelLabel"/> first, then <see cref="ConfirmLabel"/> (the default button, enabled while
-/// <see cref="CanConfirm"/>). A null label leaves its button out (a message has OK only; "Used by…" has Close only). The buttons
-/// raise <see cref="Confirmed"/> and <see cref="Cancelled"/>; the host decides what they mean. Escape is the window's
-/// (<see cref="DialogWindow"/>), never the shell's. Hosts: <c>FormDialog</c>'s template, <see cref="ConfirmDialog"/>,
-/// <c>UsedByWindow</c>, <c>SyncConflictWindow</c> and the import review (<c>AugramImportView</c>).
+/// <c>PART_Buttons</c>: any <see cref="LeadingButtons"/>, then <see cref="CancelLabel"/>, then <see cref="ConfirmLabel"/> (the default
+/// button, enabled while <see cref="CanConfirm"/>). A null label leaves its button out (a message has OK only; "Used by…" has Close
+/// only). The two buttons raise <see cref="Confirmed"/> and <see cref="Cancelled"/>; the host decides what they mean. Escape is the
+/// window's (<see cref="DialogWindow"/>), never the shell's. Hosts: every dialog (<c>Dialogs/README.md</c> lists them).
 /// </summary>
 public class DialogShell : ContentControl
 {
@@ -38,6 +37,11 @@ public class DialogShell : ContentControl
         AvaloniaProperty.Register<DialogShell, bool>(nameof(HasHelp));
 
     private Panel? _buttons;
+
+    public DialogShell()
+    {
+        LeadingButtons.CollectionChanged += (_, _) => BuildButtons();
+    }
 
     public event EventHandler? Confirmed;
 
@@ -88,6 +92,12 @@ public class DialogShell : ContentControl
         private set => SetValue(HasHelpProperty, value);
     }
 
+    /// <summary>
+    /// Buttons placed before Cancel, for a dialog with more ways out than cancel and confirm (the gesture picker's No Gesture and
+    /// New Gesture…). Each keeps its own click; the shell only places them.
+    /// </summary>
+    public Avalonia.Controls.Controls LeadingButtons { get; } = new();
+
     /// <summary>The confirm button once the template is applied and while there is one; tests press it.</summary>
     public Button? ConfirmButton { get; private set; }
 
@@ -128,6 +138,7 @@ public class DialogShell : ContentControl
 
         _buttons.Children.Clear();
         ConfirmButton = null;
+        _buttons.Children.AddRange(LeadingButtons);
         if (CancelLabel is { } cancelLabel)
         {
             var cancel = ToolbarButton.Create(cancelLabel, () => Cancelled?.Invoke(this, EventArgs.Empty));

@@ -2,31 +2,30 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Augram.App.ViewModels"
              xmlns:draw="using:Augram.App.Components.GestureDrawArea"
+             xmlns:dialogs="using:Augram.App.Dialogs"
              x:Class="Augram.App.Training.TrainingView"
              x:DataType="vm:TrainingViewModel">
-  <!-- The training popup's content (F3): name, live best match, the draw area, Cancel and Accept. Also shown in the gallery. -->
-  <DockPanel Classes="dialog">
-    <StackPanel DockPanel.Dock="Bottom" Classes="dialog-buttons">
-      <Button Classes="toolbar" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
-      <Button Classes="toolbar" Content="Accept" Command="{Binding AcceptCommand}" IsEnabled="{Binding CanAccept}" IsDefault="True" />
-    </StackPanel>
-    <!-- The instruction is an (i) after the title (App README, help rule). -->
-    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-      <TextBlock Classes="section-title" Text="{Binding Title}" />
-      <TextBlock Classes="help-icon" ToolTip.Tip="{Binding Instruction}" />
-    </StackPanel>
-    <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Classes="dialog-row">
-      <TextBlock Grid.Column="0" Classes="field-label" Text="Name" VerticalAlignment="Center" />
-      <TextBox Grid.Column="1" Name="NameEditor" Classes="field-editor" Text="{Binding Name}" />
-    </Grid>
-    <TextBlock DockPanel.Dock="Top" Classes="note" Text="{Binding BestMatchText}" />
-    <TextBlock DockPanel.Dock="Top" Classes="error" Text="{Binding Message}" IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}" />
-    <!-- Shape cleanup (plan 0001 M2 step 10): ticked by default; the cleaned shape shows in gold over the stroke. -->
-    <CheckBox DockPanel.Dock="Bottom" Classes="toggle-option" Content="Clean up shape" IsChecked="{Binding CleanUp}"
-              ToolTip.Tip="Stores a cleaned shape: wobbly straight runs become lines, curves smooth arcs, a loop a circle. The stroke as drawn is kept, and Restore original on the gesture's menu puts it back." />
-    <Panel>
-      <draw:GestureDrawArea Name="DrawArea" Points="{Binding Stroke}" />
-      <draw:GestureDrawArea Classes="cleaned" IsHitTestVisible="False" Points="{Binding CleanedStroke}" />
-    </Panel>
-  </DockPanel>
+  <!-- The training popup's content (F3) in the dialog shell: the title with the instruction as its (i) (App README, help rule),
+       name, live best match, the draw area, Cancel and Accept. Also shown in the gallery. -->
+  <dialogs:DialogShell Name="Shell"
+                       Heading="{Binding Title}"
+                       Help="{Binding Instruction}"
+                       ConfirmLabel="Accept"
+                       CanConfirm="{Binding CanAccept}">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Classes="dialog-row">
+        <TextBlock Grid.Column="0" Classes="field-label" Text="Name" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Name="NameEditor" Classes="field-editor" Text="{Binding Name}" />
+      </Grid>
+      <TextBlock DockPanel.Dock="Top" Classes="note" Text="{Binding BestMatchText}" />
+      <TextBlock DockPanel.Dock="Top" Classes="error" Text="{Binding Message}" IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <!-- Shape cleanup (plan 0001 M2 step 10): ticked by default; the cleaned shape shows in gold over the stroke. -->
+      <CheckBox DockPanel.Dock="Bottom" Classes="toggle-option" Content="Clean up shape" IsChecked="{Binding CleanUp}"
+                ToolTip.Tip="Stores a cleaned shape: wobbly straight runs become lines, curves smooth arcs, a loop a circle. The stroke as drawn is kept, and Restore original on the gesture's menu puts it back." />
+      <Panel>
+        <draw:GestureDrawArea Name="DrawArea" Points="{Binding Stroke}" />
+        <draw:GestureDrawArea Classes="cleaned" IsHitTestVisible="False" Points="{Binding CleanedStroke}" />
+      </Panel>
+    </DockPanel>
+  </dialogs:DialogShell>
 </UserControl>
