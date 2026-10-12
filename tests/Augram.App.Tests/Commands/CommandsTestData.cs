@@ -1,3 +1,4 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels.Commands;
@@ -97,6 +98,9 @@ internal static class CommandsTestData
     public static SectionItem Section(CommandsViewModel vm, string name) => vm.Sections.Single(section => section.Name == name);
 
     public static CommandItem Item(CommandsViewModel vm, string name) => vm.Sections.SelectMany(section => section.Commands).Single(command => command.Name == name);
+
+    /// <summary>The header's item for a row (nothing of the header's own set), or the item itself when it is one already.</summary>
+    public static CommandHeaderItem Header(CommandItem item) => item as CommandHeaderItem ?? new CommandHeaderItem(item);
 
     public static IReadOnlyList<string> Names(CommandsViewModel vm) => [.. vm.Sections.Select(section => section.Name)];
 

@@ -1,4 +1,4 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Avalonia;
 
 namespace Augram.App.Components.MasterDetail;

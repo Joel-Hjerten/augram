@@ -37,13 +37,14 @@ A trigger edit the rules refuse waits as the selected command's draft (`.Trigger
 | Settled | Swap or Take it | one `UpdateGroup`; the draft is gone |
 | Dropped | another selection; the command gone; its stored trigger changed (undo, sync); the rules now accept it (`WithDraft` saves nothing, it just stops showing) | back to no draft |
 
-Only the header shows a draft; the row keeps the stored trigger.
+Only the header shows a draft; the row keeps the stored trigger. The header's item is a `CommandHeaderItem` (`Components/CommandHeader/`), built from the selected row by `HeaderItem` (`.Projection`): the draft, the step refusals, the Options drag distance and the stroke button live only there.
 
 ## Other files
 
 | File | Job |
 |---|---|
 | `CommandSections` | sections per sub-tab, row summaries, platform notes (`AppMatcher.Summary`) |
+| `Projection/CommandItemProjection`, `Projection/StepItemProjection` | the `From` factories of a command row (`CommandItem`: trigger words, step summary (`Summarise`), F8 lines and marker) and a step row (`StepItem`); the wording of kinds stays in Components (`TriggerKindExtensions`, `InputKindExtensions`, `StepPlatformMarker`) |
 | `CommandClipboard` | the copied command or hold remap, shared by both sub-tabs |
 | `CommandLocator` | `Navigation/ICommandLocator`: opens a command on its sub-tab |
 | `CommandsScope` | Global or Apps |

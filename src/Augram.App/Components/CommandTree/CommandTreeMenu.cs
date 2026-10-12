@@ -1,25 +1,22 @@
+using Augram.App.Components.ListEditing;
 using Avalonia.Controls;
 using Avalonia.Input;
-using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.CommandTree;
 
-/// <summary>Builds the context menu and key bindings of a <see cref="CommandTree"/> (F5a); every entry ends in one <see cref="CommandTreeAction"/>.</summary>
+/// <summary>The context menu and key bindings of a <see cref="CommandTree"/> (F5a), on <see cref="ActionMenu{TAction}"/>; every entry ends in one <see cref="CommandTreeAction"/>.</summary>
 internal static class CommandTreeMenu
 {
-    public static ContextMenu Build(Action<CommandTreeAction> request)
-    {
-        var menu = new ContextMenu();
-        menu.Items.Add(Item(string.Empty, CommandTreeAction.NewSection, request));
-        menu.Items.Add(Item("New command", CommandTreeAction.NewCommand, request));
-        menu.Items.Add(Item("New hold remap", CommandTreeAction.NewHoldRemap, request));
-        menu.Items.Add(Item("Rename", CommandTreeAction.Rename, request));
-        menu.Items.Add(Item("Delete", CommandTreeAction.Delete, request));
-        menu.Items.Add(Item("Copy", CommandTreeAction.Copy, request));
-        menu.Items.Add(Item("Paste", CommandTreeAction.Paste, request));
-        menu.Items.Add(Item("Export…", CommandTreeAction.Export, request));
-        return menu;
-    }
+    public static ContextMenu Build(Action<CommandTreeAction> request) => ActionMenu<CommandTreeAction>.Build(
+        request,
+        (string.Empty, CommandTreeAction.NewSection),
+        ("New command", CommandTreeAction.NewCommand),
+        ("New hold remap", CommandTreeAction.NewHoldRemap),
+        ("Rename", CommandTreeAction.Rename),
+        ("Delete", CommandTreeAction.Delete),
+        ("Copy", CommandTreeAction.Copy),
+        ("Paste", CommandTreeAction.Paste),
+        ("Export…", CommandTreeAction.Export));
 
     /// <summary>
     /// Labels the new-section entry as the host does and shows or disables the entries that depend on the
@@ -30,22 +27,21 @@ internal static class CommandTreeMenu
     /// </summary>
     public static void Refresh(ContextMenu menu, SectionItem? section, CommandItem? command, string newSectionLabel)
     {
-        ArgumentNullException.ThrowIfNull(menu);
-        foreach (var item in menu.Items.OfType<MenuItem>())
+        foreach (var (item, action) in ActionMenu<CommandTreeAction>.Entries(menu))
         {
-            switch (item.Tag)
+            switch (action)
             {
                 case CommandTreeAction.NewSection:
                     item.Header = newSectionLabel;
                     break;
                 case CommandTreeAction.NewHoldRemap or CommandTreeAction.Export:
-                    item.IsVisible = Allows((CommandTreeAction)item.Tag, section, command);
+                    item.IsVisible = Allows(action, section, command);
                     break;
                 case CommandTreeAction.NewCommand:
                     item.IsEnabled = section is not null;
                     break;
                 case CommandTreeAction.Rename or CommandTreeAction.Delete or CommandTreeAction.Copy:
-                    item.IsEnabled = Allows((CommandTreeAction)item.Tag, section, command);
+                    item.IsEnabled = Allows(action, section, command);
                     break;
             }
         }
@@ -66,34 +62,18 @@ internal static class CommandTreeMenu
         _ => true,
     };
 
-    /// <summary>
-    /// Key bindings are evaluated from the focused element up before the key reaches it, so
-    /// <paramref name="canExecute"/> must say no while a row's name editor has focus, or Delete and
-    /// Ctrl+Z would act on the row instead of the text.
-    /// </summary>
-    public static void BindKeys(InputElement target, CommandsKeymap keymap, Action<CommandTreeAction> request, Func<bool> canExecute)
-    {
-        Bind(target, keymap.New, CommandTreeAction.NewCommand, request, canExecute);
-        Bind(target, keymap.Rename, CommandTreeAction.Rename, request, canExecute);
-        if (keymap.RenameAlso is { } renameAlso)
-        {
-            Bind(target, renameAlso, CommandTreeAction.Rename, request, canExecute);
-        }
-
-        Bind(target, keymap.Delete, CommandTreeAction.Delete, request, canExecute);
-        Bind(target, keymap.Copy, CommandTreeAction.Copy, request, canExecute);
-        Bind(target, keymap.Paste, CommandTreeAction.Paste, request, canExecute);
-        Bind(target, keymap.Undo, CommandTreeAction.Undo, request, canExecute);
-        Bind(target, keymap.Redo, CommandTreeAction.Redo, request, canExecute);
-    }
-
-    private static MenuItem Item(string header, CommandTreeAction action, Action<CommandTreeAction> request)
-    {
-        var item = new MenuItem { Header = header, Tag = action };
-        item.Click += (_, _) => request(action);
-        return item;
-    }
-
-    private static void Bind(InputElement target, string gesture, CommandTreeAction action, Action<CommandTreeAction> request, Func<bool> canExecute)
-        => target.KeyBindings.Add(new KeyBinding { Gesture = KeyGesture.Parse(gesture), Command = new RelayCommand(() => request(action), canExecute) });
+    /// <summary><paramref name="canExecute"/> says no while a row's name editor has focus (<see cref="ActionMenu{TAction}.BindKeys"/>).</summary>
+    public static void BindKeys(InputElement target, EditKeymap keymap, Action<CommandTreeAction> request, Func<bool> canExecute)
+        => ActionMenu<CommandTreeAction>.BindKeys(
+            target,
+            request,
+            canExecute,
+            (keymap.New, CommandTreeAction.NewCommand),
+            (keymap.Rename, CommandTreeAction.Rename),
+            (keymap.RenameAlso, CommandTreeAction.Rename),
+            (keymap.Delete, CommandTreeAction.Delete),
+            (keymap.Copy, CommandTreeAction.Copy),
+            (keymap.Paste, CommandTreeAction.Paste),
+            (keymap.Undo, CommandTreeAction.Undo),
+            (keymap.Redo, CommandTreeAction.Redo));
 }

@@ -1,4 +1,4 @@
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
 using Augram.Core.Abstractions;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;

@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
 using Augram.App.Tests.Support;
@@ -122,7 +123,7 @@ public sealed class CommandsViewModelTests
         confirm.Answer = true;
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, chrome, closeTab));
         Assert.Null(store.FindCommand(closeTab.Id));
-        Assert.Equal($"Deleted 'Close tab'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Deleted 'Close tab'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Delete, Section(vm, "Chrome")));
         Assert.Equal(("Delete app group", "Delete group 'Chrome' and its command?", "Delete"), confirm.Requests[^1]);

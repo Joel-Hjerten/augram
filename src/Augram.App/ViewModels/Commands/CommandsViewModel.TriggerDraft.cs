@@ -1,3 +1,4 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
@@ -8,7 +9,7 @@ namespace Augram.App.ViewModels.Commands;
 /// The trigger draft of <see cref="CommandsViewModel"/> (Joel, 2026-10-09: a combination is composed through states that are
 /// not valid yet, such as Wheel chosen where both directions are taken, or the last button unticked before another is
 /// ticked). A trigger edit the rules refuse does not snap back: it waits as the draft of the selected command's trigger, the
-/// header shows it with a note saying what is wrong and how to fix it (<see cref="CommandItem.DraftNote"/>), the next edit
+/// header shows it with a note saying what is wrong and how to fix it (<see cref="CommandHeaderItem.DraftNote"/>), the next edit
 /// starts from it, and as soon as the rules accept it, it is saved as one normal store edit and the draft is gone. Only the
 /// header shows a draft; the row keeps the stored trigger. It is UI state: selecting anything else drops it, and so does a
 /// store change that removes the command or changes its stored trigger (an undo, a sync) or after which the rules accept it.
@@ -58,7 +59,7 @@ public sealed partial class CommandsViewModel
     /// The selected row as the header shows it: with the draft over its trigger and the draft's note while one waits. A draft of
     /// another command, of one that is gone or whose stored trigger changed underneath it, or one the rules now accept, is dropped.
     /// </summary>
-    private CommandItem? WithDraft(CommandItem? item)
+    private CommandHeaderItem? WithDraft(CommandHeaderItem? item)
     {
         if (_draft is not { } draft)
         {
@@ -82,7 +83,7 @@ public sealed partial class CommandsViewModel
             shown = WithConflict(shown, found.Group, found.Command, draft, other);
         }
 
-        return StrokeButton is { } stroke ? CommandSections.WithStrokeButtonNote(shown, stroke) : shown;
+        return StrokeButton is { } stroke ? (CommandHeaderItem)CommandSections.WithStrokeButtonNote(shown, stroke) : shown;
     }
 
     /// <summary>

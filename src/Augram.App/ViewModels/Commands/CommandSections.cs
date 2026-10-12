@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
+using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
@@ -210,5 +211,5 @@ internal static class CommandSections
     private static IEnumerable<CommandCategory> Sorted(AppGroup group) => group.Categories.OrderBy(category => category.Name, MappingRules.NameComparer);
 
     private static CommandItem Item(AppGroup group, Command command, Func<GestureId, Gesture?> findGesture, HostPlatform here)
-        => CommandItem.From(group, command, command.TriggerFor(here) is Trigger.GestureTrigger gesture ? findGesture(gesture.GestureId) : null, here);
+        => CommandItemProjection.From(group, command, command.TriggerFor(here) is Trigger.GestureTrigger gesture ? findGesture(gesture.GestureId) : null, here);
 }

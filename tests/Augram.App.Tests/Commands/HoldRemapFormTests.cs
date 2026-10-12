@@ -1,5 +1,5 @@
+using Augram.App.Components.Capture;
 using Augram.App.Components.CommandTree;
-using Augram.App.Components.HotkeyCapture;
 using Augram.App.Declarations;
 using Augram.App.Tests.Steps;
 using Augram.App.ViewModels.Commands;

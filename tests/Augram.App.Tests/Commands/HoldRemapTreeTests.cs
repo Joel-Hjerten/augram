@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.ViewModels.Commands;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -75,7 +76,7 @@ public sealed class HoldRemapTreeTests
         tree.SelectedSectionId = HoldRemapSection(vm, "Space").Id;
         var list = tree.GetVisualDescendants().OfType<ListBox>().Single();
         Assert.True(list.ContainerFromItem(list.SelectedItem!)!.Focus());
-        var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
 
         window.KeyPressQwerty(PhysicalKey.C, modifier);
         window.KeyPressQwerty(PhysicalKey.N, modifier);

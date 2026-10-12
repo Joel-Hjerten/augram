@@ -1,4 +1,5 @@
 #if DEBUG
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.GestureGrid;
@@ -10,6 +11,7 @@ using Augram.App.Components.StepTypePicker;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
 using Augram.App.ViewModels.Commands;
+using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
@@ -146,7 +148,7 @@ public static class CommandGalleryPages
 
     public static ScreenDeclaration StepListPage()
     {
-        var steps = FakeSteps().Select((step, index) => StepItem.From(step, index, RunningPlatform.Current)).ToList();
+        var steps = FakeSteps().Select((step, index) => StepItemProjection.From(step, index, RunningPlatform.Current)).ToList();
         return new FormScreen("StepList",
         [
             new Section("Four steps, the first expanded; a header click opens or closes, drag to reorder, the check box toggles (local, no store)",
@@ -164,7 +166,7 @@ public static class CommandGalleryPages
                     var magnifier = Magnifier();
                     return new StepList
                     {
-                        Steps = [.. magnifier.Steps.Select((step, index) => StepItem.From(step, index, HostPlatform.Windows))],
+                        Steps = [.. magnifier.Steps.Select((step, index) => StepItemProjection.From(step, index, HostPlatform.Windows))],
                         StepTypes = StepRegistry.BuiltIn.All,
                         StepRefusals = StepOffer.Refusals(StepRegistry.BuiltIn.All, magnifier, HostPlatform.Windows),
                         HasCommand = true,
@@ -311,7 +313,7 @@ public static class CommandGalleryPages
                     return;
             }
 
-            list.Steps = items.Select((step, index) => StepItem.From(step, index, RunningPlatform.Current)).ToList();
+            list.Steps = items.Select((step, index) => StepItemProjection.From(step, index, RunningPlatform.Current)).ToList();
         };
         return list;
     }

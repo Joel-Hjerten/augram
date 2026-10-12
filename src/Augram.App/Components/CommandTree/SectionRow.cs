@@ -1,3 +1,5 @@
+using Augram.App.Components.ListEditing;
+using Augram.App.Components.Parts;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
@@ -84,15 +86,8 @@ public sealed class SectionRow : ItemRow
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
-        if (e.NameScope.Find<Button>("PART_Expander") is { } expander)
-        {
-            expander.Click += (_, _) => ExpandToggled?.Invoke(this, EventArgs.Empty);
-        }
-
-        if (e.NameScope.Find<Button>("PART_NewCommand") is { } newCommand)
-        {
-            newCommand.Click += (_, _) => NewCommandRequested?.Invoke(this, EventArgs.Empty);
-        }
+        e.OnClick("PART_Expander", () => ExpandToggled?.Invoke(this, EventArgs.Empty));
+        e.OnClick("PART_NewCommand", () => NewCommandRequested?.Invoke(this, EventArgs.Empty));
     }
 
     /// <summary>

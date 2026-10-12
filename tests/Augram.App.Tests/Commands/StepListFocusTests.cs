@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.Declarations;
 using Augram.App.Screens;
@@ -24,7 +25,7 @@ namespace Augram.App.Tests.Commands;
 /// </summary>
 public sealed class StepListFocusTests
 {
-    private static readonly RawInputModifiers Modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+    private static readonly RawInputModifiers Modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
 
     [AvaloniaFact]
     public void AClickOnAStepsHeaderTakesTheKeysFromTheTree()

@@ -1,4 +1,4 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
 using Augram.Core.Mapping;
@@ -43,7 +43,7 @@ public sealed partial class IgnoredViewModel
         {
             if (_store.SetAllowedFor(id, edit.Allowed) > 0 && _store.FindIgnored(id) is { } stored)
             {
-                Message = $"'{stored.Name}' is allowed for {Commands(AllowedUsersOf(id).Count)} now. {CommandsKeymap.Current.Undo} undoes it.";
+                Message = $"'{stored.Name}' is allowed for {Commands(AllowedUsersOf(id).Count)} now. {EditKeymap.Current.Undo} undoes it.";
             }
         });
     }
@@ -59,6 +59,6 @@ public sealed partial class IgnoredViewModel
     private string? LeftAlsoIn(IgnoredApp stored, int before)
     {
         var left = before - AllowedUsersOf(stored.Id).Count;
-        return left <= 0 ? null : $"'{stored.Name}' disables Augram while focused now, so it left the Also in of {Commands(left)}. {CommandsKeymap.Current.Undo} undoes it.";
+        return left <= 0 ? null : $"'{stored.Name}' disables Augram while focused now, so it left the Also in of {Commands(left)}. {EditKeymap.Current.Undo} undoes it.";
     }
 }

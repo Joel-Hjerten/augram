@@ -1,7 +1,8 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.Components.Steps;
 using Augram.App.Components.StepTypePicker;
+using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
@@ -79,7 +80,7 @@ public sealed class StepListHoldRemapTests
 
         // Its key opens no picker either; one type offered again enables both.
         var window = (Window)TopLevel.GetTopLevel(list)!;
-        var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
         var box = list.GetVisualDescendants().OfType<ListBox>().Single();
         Assert.True(box.ContainerFromItem(box.SelectedItem!)!.Focus());
         window.KeyPressQwerty(PhysicalKey.N, modifier);
@@ -147,7 +148,7 @@ public sealed class StepListHoldRemapTests
     private static (StepList List, List<StepListActionEventArgs> Actions) Show(RemapOutput output)
     {
         var actions = new List<StepListActionEventArgs>();
-        var steps = new List<StepItem> { StepItem.From(new CommandStep(new RemapStep(output), HostPlatform.Windows), 0, HostPlatform.Windows) };
+        var steps = new List<StepItem> { StepItemProjection.From(new CommandStep(new RemapStep(output), HostPlatform.Windows), 0, HostPlatform.Windows) };
         var list = new StepList { Steps = steps, SelectedIndex = 0, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
         list.ActionRequested += (_, e) => actions.Add(e);
         new Window { Content = list, Width = 800, Height = 800 }.Show();

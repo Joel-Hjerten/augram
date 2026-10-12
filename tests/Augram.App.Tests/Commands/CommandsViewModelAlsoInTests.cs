@@ -1,4 +1,6 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
 using Augram.App.ViewModels.Commands;
@@ -147,7 +149,7 @@ public sealed class CommandsViewModelAlsoInTests
 
         Assert.Empty(CommandsTestData.Find(store, "Zoom in").AlsoIn);
         Assert.False(vm.SelectedCommand!.CanSetAlsoIn);
-        Assert.Equal($"Cleared the Also in of 'Zoom in': only a trigger that holds a button other than the stroke button works over an excluded app. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Cleared the Also in of 'Zoom in': only a trigger that holds a button other than the stroke button works over an excluded app. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         Assert.Equal([Blender.Id], CommandsTestData.Find(store, "Zoom in").AlsoIn);
@@ -159,7 +161,7 @@ public sealed class CommandsViewModelAlsoInTests
     {
         var (vm, _, _) = GlobalWithChords();
         var actions = new List<CommandTreeActionEventArgs>();
-        var header = new CommandHeader { Item = Item(vm, "Magnifier") with { AlsoInText = "Blender" } };
+        var header = new CommandHeader { Item = Header(Item(vm, "Magnifier")) with { AlsoInText = "Blender" } };
         header.ActionRequested += (_, e) => actions.Add(e);
         new Window { Content = header, Width = 900 }.Show();
 
@@ -171,7 +173,7 @@ public sealed class CommandsViewModelAlsoInTests
         var asked = Assert.Single(actions);
         Assert.Equal((CommandTreeAction.EditAlsoIn, "Magnifier"), (asked.Action, asked.Command!.Name));
 
-        header.Item = Item(vm, "Close window");
+        header.Item = Header(Item(vm, "Close window"));
         Assert.False(header.CanSetAlsoIn);
         Assert.False(change.IsEffectivelyVisible);
     }

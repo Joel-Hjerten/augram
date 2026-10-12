@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
@@ -33,7 +34,7 @@ public sealed class TriggerBadgeTests
     [MemberData(nameof(Triggers))]
     public void TheBadgeShowsOneWordPerLineInsideItsTile(string trigger, string expected)
     {
-        var row = new CommandRow { Item = CommandItem.From(AppGroup.EmptyGlobal, Command(trigger), null, HostPlatform.Windows) };
+        var row = new CommandRow { Item = CommandItemProjection.From(AppGroup.EmptyGlobal, Command(trigger), null, HostPlatform.Windows) };
         var window = new Window { Content = row, Width = 400, Height = 120 };
         window.Show();
         Dispatcher.UIThread.RunJobs();

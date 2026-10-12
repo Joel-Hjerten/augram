@@ -1,4 +1,5 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
+using Augram.App.Components.Parts;
 using Augram.App.Components.Steps;
 using Augram.Core.Steps;
 using Avalonia;
@@ -106,7 +107,7 @@ public sealed partial class StepList : TemplatedControl
             _list.ContextMenu = StepListMenu.Build(Request);
             _list.ContextMenu.Opening += (_, _) => StepListMenu.Refresh(_list.ContextMenu, SelectedStep, CanAddStep);
             KeyBindings.Clear();
-            StepListMenu.BindKeys(this, CommandsKeymap.Current, Request, () => !IsEditing);
+            StepListMenu.BindKeys(this, EditKeymap.Current, Request, () => !IsEditing);
             _list.SelectionChanged += (_, _) =>
             {
                 if (!_applying && SelectedStep is { } step && step.Index != SelectedIndex)
@@ -117,11 +118,7 @@ public sealed partial class StepList : TemplatedControl
             ApplySelection();
         }
 
-        _new = e.NameScope.Find<Button>("PART_New");
-        if (_new is not null)
-        {
-            _new.Click += (_, _) => OpenTypePicker();
-        }
+        _new = e.OnClick("PART_New", OpenTypePicker);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

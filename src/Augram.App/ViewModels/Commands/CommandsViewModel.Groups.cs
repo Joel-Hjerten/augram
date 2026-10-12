@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Dialogs;
 using Augram.Core.Mapping;
 
@@ -31,7 +32,7 @@ public sealed partial class CommandsViewModel
         // Its commands and those of its hold remaps, which go with it.
         var count = Sections.Where(listed => listed.Id.GroupId == section.Id.GroupId).Sum(listed => listed.Commands.Count);
         var question = count == 1 ? $"Delete group '{section.Name}' and its command?" : $"Delete group '{section.Name}' and its {count} commands?";
-        await DeleteAsync("Delete app group", question, () => Deleted(_store.RemoveGroup(section.Id.GroupId).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
+        await DeleteAsync("Delete app group", question, () => Deleted(_store.RemoveGroup(section.Id.GroupId).Name, EditKeymap.Current.Undo)).ConfigureAwait(true);
     }
 
     private AppGroup RequireGroup(GroupId id) => _store.FindGroup(id) ?? throw new KeyNotFoundException("That app group no longer exists.");

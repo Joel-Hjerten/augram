@@ -1,4 +1,5 @@
 #if DEBUG
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;

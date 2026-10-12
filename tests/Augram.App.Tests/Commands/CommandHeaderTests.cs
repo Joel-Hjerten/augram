@@ -1,3 +1,4 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
@@ -81,18 +82,18 @@ public sealed class CommandHeaderTests
         header.ChooseCategory(header.Item!.Categories[2]);
         Assert.Single(actions);
 
-        header.Item = Item(vm, "Three steps");
+        header.Item = Header(Item(vm, "Three steps"));
         Assert.Equal(1, header.CategoryIndex);
 
         // An app group without categories has no dropdown; Photoshop has one, with its own categories after "No category".
         var (apps, _, _, _) = Create();
-        header.Item = Item(apps, "Close tab");
+        header.Item = Header(Item(apps, "Close tab"));
         Assert.False(header.HasCategories);
-        header.Item = Item(apps, "Brush");
+        header.Item = Header(Item(apps, "Brush"));
         Assert.True(header.HasCategories);
         Assert.Equal(["No category", "Blend Mode Normal", "General"], combo.ItemsSource!.Cast<string>());
         Assert.Equal(2, header.CategoryIndex);
-        header.Item = Item(apps, "Plain");
+        header.Item = Header(Item(apps, "Plain"));
         Assert.Equal(0, header.CategoryIndex);
     }
 
@@ -103,7 +104,7 @@ public sealed class CommandHeaderTests
         var (header, _) = Show(Item(vm, "Close window"));
         Assert.Equal("Hold the stroke button and draw the gesture; it fires when you let go. Change… picks another gesture or draws a new one.", header.TriggerHint);
 
-        header.Item = Item(vm, "Volume up");
+        header.Item = Header(Item(vm, "Volume up"));
 
         Assert.Equal("Hold the stroke button and turn the mouse wheel up; every notch fires.", header.TriggerHint);
     }
@@ -136,7 +137,7 @@ public sealed class CommandHeaderTests
         Assert.Equal((CommandTreeAction.SetWheelDirection, WheelDirection.Down), (actions[^1].Action, actions[^1].Wheel!.Value));
         Assert.Equal(0, header.WheelIndex);
 
-        header.Item = Item(vm, "Close window");
+        header.Item = Header(Item(vm, "Close window"));
         Assert.False(header.IsWheelKind);
         Assert.True(Box(header, "PART_HoldStroke").IsChecked);
         Assert.False(Box(header, "PART_HoldStroke").IsEnabled);
@@ -171,7 +172,7 @@ public sealed class CommandHeaderTests
     private static (CommandHeader Header, List<CommandTreeActionEventArgs> Actions) Show(CommandItem item)
     {
         var actions = new List<CommandTreeActionEventArgs>();
-        var header = new CommandHeader { Item = item };
+        var header = new CommandHeader { Item = Header(item) };
         header.ActionRequested += (_, e) => actions.Add(e);
         var window = new Window { Content = header };
         window.Show();

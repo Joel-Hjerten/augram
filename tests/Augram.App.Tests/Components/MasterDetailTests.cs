@@ -1,4 +1,4 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.MasterDetail;
 using Augram.App.Components.SectionForm;
 using Augram.App.Declarations;
@@ -74,7 +74,7 @@ public sealed class MasterDetailTests
     {
         var (view, actions) = Show();
         var window = (Window)TopLevel.GetTopLevel(view)!;
-        var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
 
         var newButton = view.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "New ignored app"));
         newButton.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -103,7 +103,7 @@ public sealed class MasterDetailTests
         view.SelectedId = VMware.Id;
         FocusSelectedRow(view);
 
-        window.KeyPressQwerty(CommandsKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
+        window.KeyPressQwerty(EditKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
         Assert.True(view.IsEditing);
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
         Assert.Empty(actions);
@@ -124,7 +124,7 @@ public sealed class MasterDetailTests
     {
         var (view, actions) = Show();
         var window = (Window)TopLevel.GetTopLevel(view)!;
-        var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
         var name = "Blender";
         view.SelectedId = Blender.Id;
         view.Detail = new FormScreen("Detail", [new Section("Ignored app", [new TextField("Name", new DelegateBinding<string>(() => name, value => name = value))])]);

@@ -1,6 +1,6 @@
-using Augram.App.Components.ButtonDetect;
+using Augram.App.Components.Capture;
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
-using Augram.App.Components.HotkeyCapture;
 using Augram.App.Tests.Steps;
 using Augram.App.Tests.Support;
 using Augram.Core.Abstractions;
@@ -53,7 +53,7 @@ public sealed class CommandHeaderInputTests
         Assert.Equal((CommandTreeAction.SetInputKind, InputKind.Key), (actions[^1].Action, actions[^1].InputKind!.Value));
         Assert.Equal(0, header.InputKindIndex);
 
-        header.Item = Item(vm, "Undo");
+        header.Item = Header(Item(vm, "Undo"));
         Assert.False(header.IsInputCommand);
         Assert.True(Part<ComboBox>(header, "PART_TriggerKind").IsEffectivelyVisible);
         Assert.Equal(-1, header.InputKindIndex);
@@ -80,7 +80,7 @@ public sealed class CommandHeaderInputTests
 
         // Another command selected meanwhile: the detection ends and the press is nobody's.
         Click(Part<Button>(header, "PART_AddButton"));
-        header.Item = Item(vm, "Pan");
+        header.Item = Header(Item(vm, "Pan"));
         Assert.False(header.IsDetecting);
         capture.Press(MouseButton.X1);
         Assert.Single(actions);
@@ -145,7 +145,7 @@ public sealed class CommandHeaderInputTests
     private static (CommandHeader Header, List<CommandTreeActionEventArgs> Actions) Show(CommandItem item, IButtonCapture? capture = null)
     {
         var actions = new List<CommandTreeActionEventArgs>();
-        var header = new CommandHeader { Item = item, ButtonCapture = capture ?? new FakeButtonCapture() };
+        var header = new CommandHeader { Item = Header(item), ButtonCapture = capture ?? new FakeButtonCapture() };
         header.ActionRequested += (_, e) => actions.Add(e);
         new Window { Content = header, Width = 1000, Height = 700 }.Show();
         return (header, actions);

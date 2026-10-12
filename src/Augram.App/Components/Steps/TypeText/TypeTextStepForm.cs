@@ -32,31 +32,19 @@ public sealed class TypeTextStepForm : IStepForm
     public Control Build(IStep current, Action<IStep> changed)
     {
         ArgumentNullException.ThrowIfNull(changed);
-        var state = StepParameters.Expect<TypeTextStep>(current, TypeTextStepType.Instance);
-
-        void Emit(TypeTextStep next)
-        {
-            if (next == state)
-            {
-                return;
-            }
-
-            state = next;
-            changed(next);
-        }
-
+        var form = new StepFormState<TypeTextStep>(StepParameters.Expect<TypeTextStep>(current, TypeTextStepType.Instance), changed);
         var screen = new FormScreen("Type text",
         [
             new Section("Type text",
             [
-                new TextField("Text", new DelegateBinding<string>(() => state.Text, text => Emit(state with { Text = text })), TextHelp)
+                new TextField("Text", form.Bind(() => form.Current.Text, text => form.Emit(form.Current with { Text = text })), TextHelp)
                 {
                     Multiline = true,
                 },
                 new DropdownField<TypeTextMethod>(
                     "Method",
                     Methods,
-                    new DelegateBinding<TypeTextMethod>(() => state.Method, method => Emit(state with { Method = method })),
+                    form.Bind(() => form.Current.Method, method => form.Emit(form.Current with { Method = method })),
                     MethodHelp),
             ]),
         ]);

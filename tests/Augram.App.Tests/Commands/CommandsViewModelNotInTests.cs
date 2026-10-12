@@ -1,4 +1,5 @@
 using Augram.App.Components;
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.WindowFinder;
@@ -240,7 +241,7 @@ public sealed class CommandsViewModelNotInTests
     {
         var (vm, _, _, _) = Create(CommandsScope.Global);
         var actions = new List<CommandTreeActionEventArgs>();
-        var header = new CommandHeader { Item = Item(vm, "Close window") with { NotInText = "Eyeris, Spine" } };
+        var header = new CommandHeader { Item = Header(Item(vm, "Close window")) with { NotInText = "Eyeris, Spine" } };
         header.ActionRequested += (_, e) => actions.Add(e);
         new Window { Content = header }.Show();
 
@@ -254,11 +255,11 @@ public sealed class CommandsViewModelNotInTests
         Assert.Equal((CommandTreeAction.EditNotIn, "Close window"), (asked.Action, asked.Command!.Name));
 
         var (apps, _, _, _) = Create();
-        header.Item = Item(apps, "Close tab");
+        header.Item = Header(Item(apps, "Close tab"));
         Assert.True(header.CanSetNotIn);
 
         var (blender, _, _) = HoldRemapTestData.CreateBlender();
-        header.Item = blender.Sections.SelectMany(section => section.Commands).First(item => item.IsUnderHoldRemap);
+        header.Item = Header(blender.Sections.SelectMany(section => section.Commands).First(item => item.IsUnderHoldRemap));
         Assert.False(header.CanSetNotIn);
         Assert.False(change.IsEffectivelyVisible);
     }

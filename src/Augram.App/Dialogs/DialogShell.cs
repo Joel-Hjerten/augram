@@ -1,3 +1,4 @@
+using Augram.App.Components.Parts;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -129,17 +130,16 @@ public class DialogShell : ContentControl
         ConfirmButton = null;
         if (CancelLabel is { } cancelLabel)
         {
-            var cancel = new Button { Content = cancelLabel, IsCancel = true };
-            cancel.Classes.Add("toolbar");
-            cancel.Click += (_, _) => Cancelled?.Invoke(this, EventArgs.Empty);
+            var cancel = ToolbarButton.Create(cancelLabel, () => Cancelled?.Invoke(this, EventArgs.Empty));
+            cancel.IsCancel = true;
             _buttons.Children.Add(cancel);
         }
 
         if (ConfirmLabel is { } confirmLabel)
         {
-            var confirm = new Button { Content = confirmLabel, IsDefault = true, IsEnabled = CanConfirm };
-            confirm.Classes.Add("toolbar");
-            confirm.Click += (_, _) => Confirmed?.Invoke(this, EventArgs.Empty);
+            var confirm = ToolbarButton.Create(confirmLabel, () => Confirmed?.Invoke(this, EventArgs.Empty));
+            confirm.IsDefault = true;
+            confirm.IsEnabled = CanConfirm;
             _buttons.Children.Add(confirm);
             ConfirmButton = confirm;
         }

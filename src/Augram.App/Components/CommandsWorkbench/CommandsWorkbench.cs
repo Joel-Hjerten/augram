@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.App.Components.Steps;
@@ -15,7 +16,7 @@ namespace Augram.App.Components.CommandsWorkbench;
 /// <summary>
 /// Lookless layout of a Commands sub-tab (F5a, F7; Global and Apps since 2026-10-07): the
 /// <see cref="CommandTree.CommandTree"/> (<c>PART_Tree</c>) beside the selected command's
-/// <see cref="CommandHeader"/> (<c>PART_Header</c>) and <see cref="StepList.StepList"/> (<c>PART_Steps</c>),
+/// <see cref="CommandHeader.CommandHeader"/> (<c>PART_Header</c>) and <see cref="StepList.StepList"/> (<c>PART_Steps</c>),
 /// or, while an app group, hold remap or category row is selected, its form (<see cref="GroupForm"/>, <c>PART_GroupForm</c>), with
 /// the message line. Both sub-tabs use it; what differs (the sections, the tree's heading, the
 /// new-section label, the help line) comes in as properties. Where the step panel sits is the template's
@@ -34,8 +35,8 @@ public sealed class CommandsWorkbench : TemplatedControl
     public static readonly StyledProperty<CommandId?> SelectedCommandIdProperty =
         AvaloniaProperty.Register<CommandsWorkbench, CommandId?>(nameof(SelectedCommandId));
 
-    public static readonly StyledProperty<CommandItem?> SelectedCommandProperty =
-        AvaloniaProperty.Register<CommandsWorkbench, CommandItem?>(nameof(SelectedCommand));
+    public static readonly StyledProperty<CommandHeaderItem?> SelectedCommandProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, CommandHeaderItem?>(nameof(SelectedCommand));
 
     public static readonly StyledProperty<IReadOnlyList<StepItem>> StepsProperty =
         AvaloniaProperty.Register<CommandsWorkbench, IReadOnlyList<StepItem>>(nameof(Steps), []);
@@ -113,7 +114,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         set => SetValue(SelectedCommandIdProperty, value);
     }
 
-    public CommandItem? SelectedCommand
+    public CommandHeaderItem? SelectedCommand
     {
         get => GetValue(SelectedCommandProperty);
         set => SetValue(SelectedCommandProperty, value);
@@ -158,7 +159,7 @@ public sealed class CommandsWorkbench : TemplatedControl
     }
 
     /// <summary>
-    /// The step types the selected command cannot take a step of now, with the reasons (<see cref="CommandItem.StepRefusals"/>):
+    /// The step types the selected command cannot take a step of now, with the reasons (<see cref="CommandHeaderItem.StepRefusals"/>):
     /// its step list's "New step…" greys them, and is disabled when it can take none.
     /// </summary>
     public IReadOnlyDictionary<IStepType, string> StepRefusals
@@ -169,7 +170,7 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     /// <summary>
     /// By step index, the types each of the selected command's steps cannot be changed to now, with the reasons
-    /// (<see cref="CommandItem.ChangeRefusals"/>): its step list's "Change to…" greys them for the step it changes.
+    /// (<see cref="CommandHeaderItem.ChangeRefusals"/>): its step list's "Change to…" greys them for the step it changes.
     /// </summary>
     public IReadOnlyList<IReadOnlyDictionary<IStepType, string>> ChangeRefusals
     {
@@ -248,7 +249,7 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public CommandTree.CommandTree? TreePart { get; private set; }
 
-    public CommandHeader? HeaderPart { get; private set; }
+    public CommandHeader.CommandHeader? HeaderPart { get; private set; }
 
     public StepList.StepList? StepsPart { get; private set; }
 
@@ -270,7 +271,7 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         base.OnApplyTemplate(e);
         TreePart = e.NameScope.Find<CommandTree.CommandTree>("PART_Tree");
-        HeaderPart = e.NameScope.Find<CommandHeader>("PART_Header");
+        HeaderPart = e.NameScope.Find<CommandHeader.CommandHeader>("PART_Header");
         StepsPart = e.NameScope.Find<StepList.StepList>("PART_Steps");
         GroupFormPart = e.NameScope.Find<SectionForm.SectionForm>("PART_GroupForm");
         CommandScrollPart = e.NameScope.Find<ScrollViewer>("PART_CommandScroll");

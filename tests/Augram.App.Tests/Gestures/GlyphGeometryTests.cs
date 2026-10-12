@@ -69,20 +69,20 @@ public sealed class GlyphGeometryTests
     }
 
     [AvaloniaFact]
-    public void BuildProducesAGeometryInsideTheTile()
+    public void StrokePointsFillTheTileInsideItsPadding()
     {
-        var geometry = GlyphGeometry.Build(StarterGestures.All().Single(g => g.Name == "Circle").Samples[0], Tile, Padding, 8);
+        var points = GlyphGeometry.StrokePoints(StarterGestures.All().Single(g => g.Name == "Circle").Samples[0], Tile, Padding);
 
-        var bounds = geometry.Bounds;
-        Assert.True(bounds.Width > 40 && bounds.Height > 40, bounds.ToString());
-        Assert.True(bounds.Left >= 0 && bounds.Top >= 0 && bounds.Right <= 64 && bounds.Bottom <= 64, bounds.ToString());
+        var (left, top, right, bottom) = (points.Min(p => p.X), points.Min(p => p.Y), points.Max(p => p.X), points.Max(p => p.Y));
+        Assert.True(right - left > 40 && bottom - top > 40, $"{left},{top} {right},{bottom}");
+        Assert.True(left >= 0 && top >= 0 && right <= 64 && bottom <= 64, $"{left},{top} {right},{bottom}");
     }
 
     [AvaloniaFact]
     public void EmptyAndSinglePointInputsDoNotThrow()
     {
         Assert.Empty(GlyphGeometry.Normalise([], Tile, Padding));
-        Assert.NotNull(GlyphGeometry.Build([new GesturePoint(3, 3)], Tile, Padding, 8));
+        Assert.Single(GlyphGeometry.StrokePoints([new GesturePoint(3, 3)], Tile, Padding));
         Assert.NotNull(GlyphGeometry.BuildRaw([], 8));
     }
 

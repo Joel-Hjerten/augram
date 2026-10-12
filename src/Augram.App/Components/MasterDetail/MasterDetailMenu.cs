@@ -1,40 +1,35 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Avalonia.Controls;
 using Avalonia.Input;
-using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.MasterDetail;
 
 /// <summary>
-/// The context menu and key bindings of a <see cref="MasterDetail"/> list, on the Commands tab's one per-platform keymap
-/// (<see cref="CommandsKeymap"/>: the rename key, Delete, new, undo, redo); every entry ends in one <see cref="MasterDetailAction"/>.
-/// The move entry shows only while the host gives it a label (<see cref="MasterDetail.MoveLabel"/>).
+/// The context menu and key bindings of a <see cref="MasterDetail"/> list (on <see cref="ActionMenu{TAction}"/>), on the one
+/// per-platform keymap (<see cref="EditKeymap"/>: the rename keys, Delete, new, undo, redo); every entry ends in one
+/// <see cref="MasterDetailAction"/>. The move entry shows only while the host gives it a label (<see cref="MasterDetail.MoveLabel"/>).
 /// </summary>
 internal static class MasterDetailMenu
 {
-    public static ContextMenu Build(string newLabel, Action<MasterDetailAction> request)
-    {
-        var menu = new ContextMenu();
-        menu.Items.Add(Item(newLabel, MasterDetailAction.New, request));
-        menu.Items.Add(Item("Rename", MasterDetailAction.Rename, request));
-        menu.Items.Add(Item(string.Empty, MasterDetailAction.Move, request));
-        menu.Items.Add(Item("Delete", MasterDetailAction.Delete, request));
-        return menu;
-    }
+    public static ContextMenu Build(string newLabel, Action<MasterDetailAction> request) => ActionMenu<MasterDetailAction>.Build(
+        request,
+        (newLabel, MasterDetailAction.New),
+        ("Rename", MasterDetailAction.Rename),
+        (string.Empty, MasterDetailAction.Move),
+        ("Delete", MasterDetailAction.Delete));
 
     /// <summary>Labels the new and move entries as the host does (no move label hides the move entry); rename, move and delete need a selected row.</summary>
     public static void Refresh(ContextMenu menu, string newLabel, string? moveLabel, bool hasSelection)
     {
-        ArgumentNullException.ThrowIfNull(menu);
-        foreach (var item in menu.Items.OfType<MenuItem>())
+        foreach (var (item, action) in ActionMenu<MasterDetailAction>.Entries(menu))
         {
-            if (item.Tag is MasterDetailAction.New)
+            if (action is MasterDetailAction.New)
             {
                 item.Header = newLabel;
                 continue;
             }
 
-            if (item.Tag is MasterDetailAction.Move)
+            if (action is MasterDetailAction.Move)
             {
                 item.Header = moveLabel;
                 item.IsVisible = !string.IsNullOrEmpty(moveLabel);
@@ -44,31 +39,16 @@ internal static class MasterDetailMenu
         }
     }
 
-    /// <summary>
-    /// Key bindings are evaluated from the focused element up before the key reaches it, so <paramref name="canExecute"/>
-    /// must say no while a row's name editor has focus, or Delete and the undo key would act on the row instead of the text.
-    /// </summary>
-    public static void BindKeys(InputElement target, CommandsKeymap keymap, Action<MasterDetailAction> request, Func<bool> canExecute)
-    {
-        Bind(target, keymap.New, MasterDetailAction.New, request, canExecute);
-        Bind(target, keymap.Rename, MasterDetailAction.Rename, request, canExecute);
-        if (keymap.RenameAlso is { } renameAlso)
-        {
-            Bind(target, renameAlso, MasterDetailAction.Rename, request, canExecute);
-        }
-
-        Bind(target, keymap.Delete, MasterDetailAction.Delete, request, canExecute);
-        Bind(target, keymap.Undo, MasterDetailAction.Undo, request, canExecute);
-        Bind(target, keymap.Redo, MasterDetailAction.Redo, request, canExecute);
-    }
-
-    private static MenuItem Item(string header, MasterDetailAction action, Action<MasterDetailAction> request)
-    {
-        var item = new MenuItem { Header = header, Tag = action };
-        item.Click += (_, _) => request(action);
-        return item;
-    }
-
-    private static void Bind(InputElement target, string gesture, MasterDetailAction action, Action<MasterDetailAction> request, Func<bool> canExecute)
-        => target.KeyBindings.Add(new KeyBinding { Gesture = KeyGesture.Parse(gesture), Command = new RelayCommand(() => request(action), canExecute) });
+    /// <summary><paramref name="canExecute"/> says no while a row's name editor has focus (<see cref="ActionMenu{TAction}.BindKeys"/>).</summary>
+    public static void BindKeys(InputElement target, EditKeymap keymap, Action<MasterDetailAction> request, Func<bool> canExecute)
+        => ActionMenu<MasterDetailAction>.BindKeys(
+            target,
+            request,
+            canExecute,
+            (keymap.New, MasterDetailAction.New),
+            (keymap.Rename, MasterDetailAction.Rename),
+            (keymap.RenameAlso, MasterDetailAction.Rename),
+            (keymap.Delete, MasterDetailAction.Delete),
+            (keymap.Undo, MasterDetailAction.Undo),
+            (keymap.Redo, MasterDetailAction.Redo));
 }

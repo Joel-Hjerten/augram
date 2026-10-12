@@ -56,10 +56,6 @@ public static class GlyphGeometry
         return result;
     }
 
-    /// <summary>Normalised polyline plus arrowhead, for a tile.</summary>
-    public static Geometry Build(IReadOnlyList<GesturePoint> points, Size tile, Thickness padding, double arrowLength)
-        => FromPoints(Normalise(points, tile, padding), arrowLength);
-
     /// <summary>Polyline plus arrowhead in the points' own coordinates, for a draw area showing the stroke where it was drawn.</summary>
     public static Geometry BuildRaw(IReadOnlyList<GesturePoint> points, double arrowLength)
     {

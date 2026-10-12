@@ -1,5 +1,7 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
@@ -120,8 +122,8 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
 
     /// <summary>The help line under the tree.</summary>
     public string Help => Scope == CommandsScope.Global
-        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories (select one to rename it, choose where it is used, or add a command with New command on its row); a command left without one goes into Uncategorized. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
-        : "One section per app group; its commands win over Global in that app. Select a group, and New command on its row adds a command to it. A group's hold remaps sit inside it with their commands (right-click a group: New hold remap). Right-click a row for the menu; rename with the rename key. Deleting a group, a hold remap or a command asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
+        ? "Global commands fire over every app unless the app's group overrides them. Sections are categories (select one to rename it, choose where it is used, or add a command with New command on its row); a command left without one goes into Uncategorized. Right-click a row for the menu; rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back."
+        : "One section per app group; its commands win over Global in that app. Select a group, and New command on its row adds a command to it. A group's hold remaps sit inside it with their commands (right-click a group: New hold remap). Right-click a row for the menu; rename with the rename key. Deleting a group, a hold remap or a command asks first; " + EditKeymap.Current.Undo + " brings it back.";
 
     [ObservableProperty]
     public partial IReadOnlyList<SectionItem> Sections { get; private set; } = [];
@@ -134,7 +136,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
     public partial CommandId? SelectedCommandId { get; private set; }
 
     [ObservableProperty]
-    public partial CommandItem? SelectedCommand { get; private set; }
+    public partial CommandHeaderItem? SelectedCommand { get; private set; }
 
     [ObservableProperty]
     public partial IReadOnlyList<StepItem> Steps { get; private set; } = [];
@@ -257,7 +259,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
                 break;
             case CommandTreeAction.UseConvertedOriginal when e.Command is { } command:
                 UpdateCommand(command.Id, stored => stored.WithoutOwnVersion());
-                Message = $"'{command.Name}' runs the converted original here again. {CommandsKeymap.Current.Undo} brings its own steps back.";
+                Message = $"'{command.Name}' runs the converted original here again. {EditKeymap.Current.Undo} brings its own steps back.";
                 break;
             case CommandTreeAction.MarkOwnVersionChecked when e.Command is { } command:
                 UpdateCommand(command.Id, stored => stored.WithOwnVersionChecked(DateTimeOffset.UtcNow));

@@ -1,4 +1,4 @@
-using Augram.App.Components.ButtonDetect;
+using Augram.App.Components.Capture;
 using Augram.Core.Capture;
 
 namespace Augram.App.Tests.Support;

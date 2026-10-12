@@ -7,6 +7,7 @@
         xmlns:draw="using:Augram.App.Components.GestureDrawArea"
         xmlns:bench="using:Augram.App.Components.CommandsWorkbench"
         xmlns:tree="using:Augram.App.Components.CommandTree"
+        xmlns:header="using:Augram.App.Components.CommandHeader"
         xmlns:steps="using:Augram.App.Components.StepList"
         xmlns:picker="using:Augram.App.Components.StepTypePicker"
         xmlns:gpicker="using:Augram.App.Components.GesturePicker"
@@ -15,7 +16,7 @@
         xmlns:md="using:Augram.App.Components.MasterDetail"
         xmlns:sync="using:Augram.App.Components.SyncConflictList"
         xmlns:wf="using:Augram.App.Components.WindowFinder"
-        xmlns:hk="using:Augram.App.Components.HotkeyCapture">
+        xmlns:hk="using:Augram.App.Components.Capture">
   <!--
     The glass look for lists, panels and the workbenches (plan 0006 step 4; visual reference
     design/mockups/augram-glass-theme.html: .island, .ihead, .row, .gt, .tag, .steps, .ggrid, .log). Included by Default.axaml
@@ -424,7 +425,7 @@
                        (Joel, 0.11.0: the header stayed put while only the steps scrolled, and its title sat inside its card). -->
                   <ScrollViewer Name="PART_CommandScroll" IsVisible="{TemplateBinding ShowsCommandPanel}" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="12,8,12,12" MaxWidth="{StaticResource Form.MaxWidth}">
-                      <tree:CommandHeader Name="PART_Header" Item="{TemplateBinding SelectedCommand}" />
+                      <header:CommandHeader Name="PART_Header" Item="{TemplateBinding SelectedCommand}" />
                       <steps:StepList Name="PART_Steps"
                                       Steps="{TemplateBinding Steps}"
                                       SelectedIndex="{TemplateBinding SelectedStepIndex}"
@@ -662,7 +663,7 @@
       </ControlTheme>
 
       <!-- The selected command's trigger and settings: a panel, the name as its title, label and editors per line (.dbody, .fgrid). -->
-      <ControlTheme x:Key="{x:Type tree:CommandHeader}" TargetType="tree:CommandHeader">
+      <ControlTheme x:Key="{x:Type header:CommandHeader}" TargetType="header:CommandHeader">
         <Setter Property="Template">
           <ControlTemplate>
             <StackPanel Margin="0,0,0,10">
@@ -753,7 +754,7 @@
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding ShowsDragDistance}">
                         <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
                           <TextBlock Classes="bench-label" Text="Drag distance" />
-                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.DragDistanceHelp}" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.DragDistanceHelp}" />
                         </StackPanel>
                         <ComboBox Name="PART_DragDistanceMode" Classes="field-editor" />
                         <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasOwnDragDistance}">
@@ -789,14 +790,14 @@
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasCategories}">
                         <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
                           <TextBlock Classes="bench-label" Text="Category" />
-                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.CategoryHelp}" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.CategoryHelp}" />
                         </StackPanel>
                         <ComboBox Name="PART_Category" Classes="field-editor" />
                       </StackPanel>
                       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
                         <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
                           <TextBlock Classes="bench-label" Text="Use on" />
-                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.UseOnHelp}" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.UseOnHelp}" />
                         </StackPanel>
                         <CheckBox Name="PART_UseOnWindows" Classes="toggle-option" Content="Windows" />
                         <CheckBox Name="PART_UseOnMac" Classes="toggle-option" Content="macOS" />
@@ -809,7 +810,7 @@
                       <DockPanel IsVisible="{TemplateBinding CanSetNotIn}">
                         <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                           <TextBlock Classes="bench-label" Text="Not in" />
-                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.NotInHelp}" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.NotInHelp}" />
                         </StackPanel>
                         <Button DockPanel.Dock="Left" Name="PART_NotInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
                         <TextBlock Name="PART_NotInText" Classes="bench-value" Text="{TemplateBinding NotInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
@@ -818,7 +819,7 @@
                       <DockPanel IsVisible="{TemplateBinding CanSetAlsoIn}">
                         <StackPanel DockPanel.Dock="Left" Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                           <TextBlock Classes="bench-label" Text="Also in" />
-                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static tree:CommandHeader.AlsoInHelp}" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.AlsoInHelp}" />
                         </StackPanel>
                         <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
                         <TextBlock Name="PART_AlsoInText" Classes="bench-value" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />

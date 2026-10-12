@@ -1,3 +1,4 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
 using Augram.App.ViewModels.Commands;
@@ -191,7 +192,7 @@ public sealed class CommandsViewModelTriggerDraftTests
     {
         var row = Item(vm, "Close window");
         Assert.Equal((TriggerKind.Gesture, "Up", Trigger.ForGesture(Up)), (row.TriggerKind, row.TriggerText, row.Trigger));
-        Assert.Null(row.DraftNote);
+        Assert.IsNotType<CommandHeaderItem>(row);
     }
 
     private static void AssertOneUndoStep(CommandsViewModel vm, MappingStore store)

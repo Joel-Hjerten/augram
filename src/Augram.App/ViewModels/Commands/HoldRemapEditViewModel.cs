@@ -1,4 +1,4 @@
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
 using Augram.App.Declarations;
 using Augram.Core.Abstractions;
 using Augram.Core.HoldRemaps;

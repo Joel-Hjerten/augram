@@ -1,4 +1,5 @@
 using Augram.App.Components.GestureGrid;
+using Augram.App.Components.ListEditing;
 using Augram.App.Dialogs;
 using Augram.App.Import;
 using Augram.App.Training;
@@ -155,7 +156,7 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
         try
         {
             var stored = _library.Update(change(gesture));
-            Message = string.Format(System.Globalization.CultureInfo.InvariantCulture, done, stored.Name) + $" {GestureGridKeymap.Undo} undoes it.";
+            Message = string.Format(System.Globalization.CultureInfo.InvariantCulture, done, stored.Name) + $" {EditKeymap.Current.Undo} undoes it.";
         }
         catch (GestureValidationException exception)
         {
@@ -178,8 +179,8 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
             var unbound = _mapping.UnbindGesture(tile.Id);
             var removed = _library.Remove(tile.Id);
             return unbound == 0
-                ? Deleted(removed.Name, GestureGridKeymap.Undo)
-                : $"Deleted '{removed.Name}' and unbound {Sentence.Count(unbound, "command")}. {GestureGridKeymap.Undo} undoes the delete; the Commands tab undoes the unbinding.";
+                ? Deleted(removed.Name, EditKeymap.Current.Undo)
+                : $"Deleted '{removed.Name}' and unbound {Sentence.Count(unbound, "command")}. {EditKeymap.Current.Undo} undoes the delete; the Commands tab undoes the unbinding.";
         }).ConfigureAwait(true);
     }
 
@@ -203,12 +204,12 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
         _library.ReplaceAll(_library.All.Where(gesture => !losers.Contains(gesture.Id)));
         if (retargeted + unbound == 0)
         {
-            Message = $"Kept '{tile.Name}'; deleted {string.Join(", ", names)}. {GestureGridKeymap.Undo} undoes it.";
+            Message = $"Kept '{tile.Name}'; deleted {string.Join(", ", names)}. {EditKeymap.Current.Undo} undoes it.";
             return;
         }
 
         var commands = $"{Sentence.Count(retargeted, "command")} retargeted to '{tile.Name}'" + (unbound == 0 ? "." : $"; {Sentence.Count(unbound, "command")} unbound (its group already used '{tile.Name}').");
-        Message = $"Kept '{tile.Name}'; deleted {string.Join(", ", names)}. {commands} {GestureGridKeymap.Undo} undoes the delete; the Commands tab undoes the retargeting.";
+        Message = $"Kept '{tile.Name}'; deleted {string.Join(", ", names)}. {commands} {EditKeymap.Current.Undo} undoes the delete; the Commands tab undoes the retargeting.";
     }
 
     private async Task ImportAsync()

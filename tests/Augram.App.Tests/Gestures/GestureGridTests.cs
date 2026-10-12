@@ -1,5 +1,6 @@
 using Augram.App.Components.GestureGlyph;
 using Augram.App.Components.GestureGrid;
+using Augram.App.Components.ListEditing;
 using Augram.Core.Gestures;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -25,7 +26,6 @@ public sealed class GestureGridTests
         Assert.Contains(":inactive", circle.Classes);
         var glyph = circle.GetVisualDescendants().OfType<GestureGlyph>().Single();
         Assert.False(glyph.IsActive);
-        Assert.NotNull(glyph.Geometry);
         Assert.NotNull(glyph.StrokePoints);
         var stroke = glyph.GetVisualDescendants().OfType<GlyphStroke>().Single();
         Assert.Same(glyph.StrokePoints, stroke.Points);
@@ -93,7 +93,7 @@ public sealed class GestureGridTests
         grid.Select(StarterGestures.IdFor("Up"));
         FocusSelectedTile(grid);
 
-        window.KeyPressQwerty(GestureGridKeymap.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
+        window.KeyPressQwerty(EditKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
         Assert.True(grid.IsEditing);
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
         window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control);

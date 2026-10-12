@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
+using Augram.App.Components.ListEditing;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
@@ -180,7 +181,7 @@ public sealed partial class CommandsViewModel
 
         if (lines.Count > 0)
         {
-            Message = $"{string.Join(" ", lines)} {CommandsKeymap.Current.Undo} undoes it.";
+            Message = $"{string.Join(" ", lines)} {EditKeymap.Current.Undo} undoes it.";
         }
     }
 

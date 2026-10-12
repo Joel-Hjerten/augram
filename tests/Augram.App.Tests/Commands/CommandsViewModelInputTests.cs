@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
@@ -64,7 +65,7 @@ public sealed class CommandsViewModelInputTests
 
         Assert.Equal((left, right), (Find(store, "Pan").Trigger, Find(store, "Orbit").Trigger));
         Assert.Equal((new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift), new RemapOutput.Button(MouseButton.Middle)), (RemapOf(store, "Pan"), RemapOf(store, "Orbit")));
-        Assert.Equal($"Swapped with 'Orbit', which now uses Right. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+        Assert.Equal($"Swapped with 'Orbit', which now uses Right. {EditKeymap.Current.Undo} undoes both.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         Assert.Equal((right, left), (Find(store, "Pan").Trigger, Find(store, "Orbit").Trigger));
@@ -76,7 +77,7 @@ public sealed class CommandsViewModelInputTests
         Assert.Equal(left, Find(store, "Pan").Trigger);
         Assert.Same(Trigger.None, Find(store, "Orbit").Trigger);
         Assert.Equal("Orbit", vm.SelectedCommand!.Name);
-        Assert.Equal($"'Orbit' has no input now: give it one. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+        Assert.Equal($"'Orbit' has no input now: give it one. {EditKeymap.Current.Undo} undoes both.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         Assert.Equal((right, left), (Find(store, "Pan").Trigger, Find(store, "Orbit").Trigger));

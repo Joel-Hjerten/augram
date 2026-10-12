@@ -1,4 +1,4 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
@@ -74,7 +74,7 @@ public sealed partial class CommandsViewModel
                 {
                     steps[step.Index] = changed;
                     Commit(group, command, steps, step.Index);
-                    Message ??= $"Changed step '{step.Summary}' to {type.DisplayName}. {CommandsKeymap.Current.Undo} undoes it.";
+                    Message ??= $"Changed step '{step.Summary}' to {type.DisplayName}. {EditKeymap.Current.Undo} undoes it.";
                 }
 
                 break;
@@ -92,7 +92,7 @@ public sealed partial class CommandsViewModel
                 break;
             case StepListAction.Copy when step is not null:
                 _clipboard.Step = steps[step.Index];
-                Message = $"Copied step '{step.Summary}'. {CommandsKeymap.Current.Paste} pastes it at the bottom of a step list.";
+                Message = $"Copied step '{step.Summary}'. {EditKeymap.Current.Paste} pastes it at the bottom of a step list.";
                 break;
             case StepListAction.Paste:
                 if (_clipboard.Step is not { } copied)
@@ -111,7 +111,7 @@ public sealed partial class CommandsViewModel
             case StepListAction.Delete when step is not null:
                 steps.RemoveAt(step.Index);
                 Commit(group, command, steps, Math.Min(step.Index, steps.Count - 1));
-                Message = $"Deleted step '{step.Summary}'. {CommandsKeymap.Current.Undo} undoes it.";
+                Message = $"Deleted step '{step.Summary}'. {EditKeymap.Current.Undo} undoes it.";
                 break;
             case StepListAction.ToggleActive when step is not null:
                 // The active box opens and closes nothing (Joel, 0.11.4).
@@ -156,7 +156,7 @@ public sealed partial class CommandsViewModel
         SelectedStepIndex = select;
         if (forked)
         {
-            Message = $"'{command.Name}' now has its own steps here; the original keeps running where it was authored. {CommandsKeymap.Current.Undo} undoes it.";
+            Message = $"'{command.Name}' now has its own steps here; the original keeps running where it was authored. {EditKeymap.Current.Undo} undoes it.";
         }
     }
 

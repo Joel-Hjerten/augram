@@ -1,4 +1,6 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
@@ -131,7 +133,7 @@ public sealed class CommandsViewModelButtonTriggerTests
         Handle(vm, CommandTreeAction.SwapTrigger);
 
         Assert.Equal((RightLeft, RightMiddle), (Find(store, "Back").Trigger, Find(store, "Magnifier").Trigger));
-        Assert.Equal($"Swapped with 'Magnifier', which now uses Right + Middle. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+        Assert.Equal($"Swapped with 'Magnifier', which now uses Right + Middle. {EditKeymap.Current.Undo} undoes both.", vm.Message);
         Handle(vm, CommandTreeAction.Undo);
         Assert.Equal((RightMiddle, RightLeft), (Find(store, "Back").Trigger, Find(store, "Magnifier").Trigger));
         Assert.False(vm.CanUndo);

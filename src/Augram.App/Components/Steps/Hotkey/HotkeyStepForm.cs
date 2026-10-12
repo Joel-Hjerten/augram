@@ -1,4 +1,4 @@
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
 using Augram.App.Declarations;
 using Augram.Core.Abstractions;
 using Augram.Core.Steps;
@@ -23,61 +23,31 @@ public sealed class HotkeyStepForm : IStepForm
     public static string ModifiersHelp =>
         $"R sends the right-hand key ({HotkeyText.Format(KeyModifiers.Alt, KeyCode.None, KeyModifiers.Alt)}, {HotkeyText.Format(KeyModifiers.Control, KeyCode.None, KeyModifiers.Control)}), which some apps treat differently.";
 
-    // Built per form, not once per type: the key names follow HotkeyText.Names, which follows RunningPlatform once the App sets it at startup.
-    private static IReadOnlyList<Choice<KeyCode>> Keys =>
-        [.. Enum.GetValues<KeyCode>().Select(key => new Choice<KeyCode>(key == KeyCode.None ? HotkeyCaptureBox.EmptyText : HotkeyText.KeyName(key), key))];
-
     public string TypeKey => HotkeyStepType.Instance.Key;
 
     public Control Build(IStep current, Action<IStep> changed)
     {
         ArgumentNullException.ThrowIfNull(changed);
-        var state = StepParameters.Expect<HotkeyStep>(current, HotkeyStepType.Instance).Normalized();
-        var box = new HotkeyCaptureBox { Modifiers = state.Modifiers, RightHand = state.RightHand, Key = state.Key };
-        var refreshEditors = new List<Action>();
-
-        void Emit(HotkeyStep next)
+        var opened = StepParameters.Expect<HotkeyStep>(current, HotkeyStepType.Instance).Normalized();
+        var box = new HotkeyCaptureBox { Modifiers = opened.Modifiers, RightHand = opened.RightHand, Key = opened.Key };
+        var form = new StepFormState<HotkeyStep>(opened, changed, step => step.Normalized())
         {
-            next = next.Normalized();
-            if (next == state)
+            Accepted = next =>
             {
-                return;
-            }
+                box.Modifiers = next.Modifiers;
+                box.RightHand = next.RightHand;
+                box.Key = next.Key;
+            },
+        };
 
-            state = next;
-            box.Modifiers = next.Modifiers;
-            box.RightHand = next.RightHand;
-            box.Key = next.Key;
-            changed(next);
-            foreach (var refresh in refreshEditors)
-            {
-                refresh();
-            }
-        }
+        Func<Control> Modifier(KeyModifiers flag) => HotkeyChoices.ModifierToggle(
+            flag,
+            () => (form.Current.Modifiers, form.Current.RightHand),
+            (modifiers, rightHand) => form.Emit(form.Current with { Modifiers = modifiers, RightHand = rightHand }),
+            form.OnEdit);
 
-        // Built now, so its refresh is registered before any edit; the field's Build hands out this one instance.
-        Func<Control> Modifier(KeyModifiers flag)
-        {
-            var toggle = new ModifierToggle();
-            void Refresh()
-            {
-                toggle.IsOn = (state.Modifiers & flag) != 0;
-                toggle.IsRightHand = (state.RightHand & flag) != 0;
-            }
-
-            Refresh();
-            refreshEditors.Add(Refresh);
-            toggle.Toggled += (_, _) => Emit(state with
-            {
-                Modifiers = toggle.IsOn ? state.Modifiers | flag : state.Modifiers & ~flag,
-                RightHand = toggle.IsRightHand ? state.RightHand | flag : state.RightHand & ~flag,
-            });
-            return () => toggle;
-        }
-
-        var key = new DelegateBinding<KeyCode>(() => state.Key, value => Emit(state with { Key = value }), propertyName: nameof(HotkeyStep.Key));
-        refreshEditors.Add(key.NotifyChanged);
-        box.Committed += (_, e) => Emit(new HotkeyStep(e.Modifiers, e.Key, e.RightHand));
+        var key = form.Refreshed(() => form.Current.Key, value => form.Emit(form.Current with { Key = value }), propertyName: nameof(HotkeyStep.Key));
+        box.Committed += (_, e) => form.Emit(new HotkeyStep(e.Modifiers, e.Key, e.RightHand));
 
         var screen = new FormScreen("Hotkey",
         [
@@ -91,7 +61,7 @@ public sealed class HotkeyStepForm : IStepForm
                 new CustomField(HotkeyText.Format(KeyModifiers.Alt, KeyCode.None), Modifier(KeyModifiers.Alt)),
                 new CustomField(HotkeyText.Format(KeyModifiers.Shift, KeyCode.None), Modifier(KeyModifiers.Shift)),
                 new CustomField(HotkeyText.Format(KeyModifiers.Meta, KeyCode.None), Modifier(KeyModifiers.Meta)),
-                new DropdownField<KeyCode>("Key", Keys, key, $"Also for a key alone, a lone modifier ({HotkeyText.KeyName(KeyCode.LeftMeta)}) or a key the capture cannot see."),
+                new DropdownField<KeyCode>("Key", HotkeyChoices.Keys, key, $"Also for a key alone, a lone modifier ({HotkeyText.KeyName(KeyCode.LeftMeta)}) or a key the capture cannot see."),
             ], ModifiersHelp),
         ]);
         return new SectionForm.SectionForm { Screen = screen };

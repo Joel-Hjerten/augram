@@ -1,4 +1,4 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.MasterDetail;
 using Augram.App.Dialogs;
 using Augram.App.Navigation;
@@ -61,11 +61,11 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
     public string Help => IsPerCommand
         ? "Apps listed here change nothing on their own; a command that names one in its Not in does nothing over it and holds no button back there. "
             + "Name them in a command's Not in on the Commands tab (its Change… also adds an app with the magnifier). "
-            + "Right-click a row for the menu (Move to Global stops all of Augram over the app); rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back."
+            + "Right-click a row for the menu (Move to Global stops all of Augram over the app); rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back."
         : "Augram stays out of these apps: over their windows the stroke button passes through untouched, and a \"Disable while focused\" app pauses Augram while it has focus. "
             + IgnoredModes.HoldRemapsInTheseApps + " "
             + "A command whose trigger holds no stroke button (Right + Left, Right + wheel) also works in an app its Also in names. "
-            + "Right-click a row for the menu (Move to Per command keeps Augram on and lets single commands leave the app alone); rename with the rename key. Deleting asks first; " + CommandsKeymap.Current.Undo + " brings it back.";
+            + "Right-click a row for the menu (Move to Per command keeps Augram on and lets single commands leave the app alone); rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back.";
 
     public string EmptyDetailText => IsPerCommand
         ? "Select an app to see how it is recognised and which commands leave it alone, or add one with New app."
@@ -144,7 +144,7 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
         var (title, question) = IsPerCommand
             ? ("Delete app", $"Delete '{item.Name}' from Per command?{UsersSentence(new GroupId(item.Id))}")
             : ("Delete excluded app", $"Delete excluded app '{item.Name}'? Augram works over it again.");
-        await DeleteAsync(title, question, () => Deleted(_store.RemoveIgnored(new GroupId(item.Id)).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
+        await DeleteAsync(title, question, () => Deleted(_store.RemoveIgnored(new GroupId(item.Id)).Name, EditKeymap.Current.Undo)).ConfigureAwait(true);
     }
 
     protected override void OnStoreChangedOnUi() => Project();

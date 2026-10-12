@@ -1,6 +1,6 @@
 using System.Reflection;
 using Augram.App.Components;
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
 using Augram.Core.Abstractions;
 using Augram.Engine.Hosting;
 using Avalonia;

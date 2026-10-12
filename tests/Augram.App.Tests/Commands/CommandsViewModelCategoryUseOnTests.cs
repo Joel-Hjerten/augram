@@ -1,3 +1,4 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Declarations;
 using Augram.App.ViewModels.Commands;
@@ -156,7 +157,7 @@ public sealed class CommandsViewModelCategoryUseOnTests
         Assert.Equal(CommandTreeAction.SetUseOn, asked.Action);
         Assert.Equal(PlatformSet.MacOS, asked.UseOn);
 
-        header.Item = Item(vm, "Volume up");
+        header.Item = Header(Item(vm, "Volume up"));
         Assert.Null(header.UseOnNote);
         Assert.True(mac is { IsEnabled: true, IsChecked: true });
     }
@@ -199,7 +200,7 @@ public sealed class CommandsViewModelCategoryUseOnTests
     private static (CommandHeader Header, List<CommandTreeActionEventArgs> Actions) Show(CommandItem item)
     {
         var actions = new List<CommandTreeActionEventArgs>();
-        var header = new CommandHeader { Item = item };
+        var header = new CommandHeader { Item = Header(item) };
         header.ActionRequested += (_, e) => actions.Add(e);
         var window = new Window { Content = header };
         window.Show();

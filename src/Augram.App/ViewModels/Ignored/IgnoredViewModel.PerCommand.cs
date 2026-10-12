@@ -1,4 +1,4 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.MasterDetail;
 using Augram.App.Declarations;
 using Augram.Core.Mapping;
@@ -38,7 +38,7 @@ public sealed partial class IgnoredViewModel
         {
             var current = Require(item.Id);
             var moved = _store.UpdateIgnored(current with { Scope = current.IsPerCommand ? IgnoreScope.Global : IgnoreScope.PerCommand });
-            var undo = $"{CommandsKeymap.Current.Undo} undoes it.";
+            var undo = $"{EditKeymap.Current.Undo} undoes it.";
             Message = moved.IsPerCommand
                 ? $"Moved '{moved.Name}' to Exclusions › Per command: it stops nothing until a command names it in its Not in{(current.DisableEntirely ? ", and it no longer disables Augram while focused" : string.Empty)}. {undo}"
                 : $"Moved '{moved.Name}' to Exclusions › Global: Augram stays out of it, hold remaps aside. {undo}";

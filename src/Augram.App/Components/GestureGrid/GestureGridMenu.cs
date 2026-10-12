@@ -1,41 +1,37 @@
+using Augram.App.Components.ListEditing;
 using Avalonia.Controls;
 using Avalonia.Input;
-using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.GestureGrid;
 
-/// <summary>Builds the context menu and key bindings of a <see cref="GestureGrid"/> (F5a); every entry ends in one <see cref="GestureGridAction"/>. Import lives on the toolbar only; activation is per command, not per gesture (F3). "Used by…" is always offered: an unused gesture's popup says so.</summary>
+/// <summary>The context menu and key bindings of a <see cref="GestureGrid"/> (F5a), on <see cref="ActionMenu{TAction}"/>; every entry ends in one <see cref="GestureGridAction"/>. Import lives on the toolbar only; activation is per command, not per gesture (F3). "Used by…" is always offered: an unused gesture's popup says so.</summary>
 internal static class GestureGridMenu
 {
-    public static ContextMenu Build(Action<GestureGridAction> request)
-    {
-        var menu = new ContextMenu();
-        menu.Items.Add(Item("New gesture…", GestureGridAction.New, request));
-        menu.Items.Add(Item("Redraw…", GestureGridAction.Redraw, request));
-        menu.Items.Add(Item("Rename", GestureGridAction.Rename, request));
-        menu.Items.Add(Item("Clean up shape", GestureGridAction.CleanUp, request));
-        menu.Items.Add(Item("Restore original", GestureGridAction.RestoreOriginal, request));
-        menu.Items.Add(Item("Used by…", GestureGridAction.UsedBy, request));
-        menu.Items.Add(Item("Delete", GestureGridAction.Delete, request));
-        menu.Items.Add(Item("Keep this, delete its duplicates", GestureGridAction.KeepThis, request));
-        return menu;
-    }
+    public static ContextMenu Build(Action<GestureGridAction> request) => ActionMenu<GestureGridAction>.Build(
+        request,
+        ("New gesture…", GestureGridAction.New),
+        ("Redraw…", GestureGridAction.Redraw),
+        ("Rename", GestureGridAction.Rename),
+        ("Clean up shape", GestureGridAction.CleanUp),
+        ("Restore original", GestureGridAction.RestoreOriginal),
+        ("Used by…", GestureGridAction.UsedBy),
+        ("Delete", GestureGridAction.Delete),
+        ("Keep this, delete its duplicates", GestureGridAction.KeepThis));
 
     /// <summary>Shows or hides the entries that only apply to some tiles: "Keep this" needs a duplicate; "Clean up shape" a gesture as drawn, "Restore original" a cleaned one.</summary>
     public static void Refresh(ContextMenu menu, GestureTileItem? selected)
     {
-        ArgumentNullException.ThrowIfNull(menu);
-        foreach (var item in menu.Items.OfType<MenuItem>())
+        foreach (var (item, action) in ActionMenu<GestureGridAction>.Entries(menu))
         {
-            if (item.Tag is GestureGridAction.KeepThis)
+            if (action is GestureGridAction.KeepThis)
             {
                 item.IsVisible = selected?.HasDuplicates == true;
             }
-            else if (item.Tag is GestureGridAction.CleanUp)
+            else if (action is GestureGridAction.CleanUp)
             {
                 item.IsVisible = selected is { IsCleanedUp: false, SampleCount: > 0 };
             }
-            else if (item.Tag is GestureGridAction.RestoreOriginal)
+            else if (action is GestureGridAction.RestoreOriginal)
             {
                 item.IsVisible = selected?.IsCleanedUp == true;
             }
@@ -43,26 +39,18 @@ internal static class GestureGridMenu
     }
 
     /// <summary>
-    /// Key bindings are evaluated from the focused element up before the key reaches it, so
-    /// <paramref name="canExecute"/> must say no while a tile's name editor has focus, or Delete and
-    /// Ctrl+Z would act on the gesture instead of the text.
+    /// The Commands tab's keys (Q11, Joel 2026-10-11: Enter renames a gesture on Windows too, beside F2); <paramref name="canExecute"/>
+    /// says no while a tile's name editor has focus (<see cref="ActionMenu{TAction}.BindKeys"/>).
     /// </summary>
-    public static void BindKeys(InputElement target, Action<GestureGridAction> request, Func<bool> canExecute)
-    {
-        Bind(target, GestureGridKeymap.New, GestureGridAction.New, request, canExecute);
-        Bind(target, GestureGridKeymap.Rename, GestureGridAction.Rename, request, canExecute);
-        Bind(target, GestureGridKeymap.Delete, GestureGridAction.Delete, request, canExecute);
-        Bind(target, GestureGridKeymap.Undo, GestureGridAction.Undo, request, canExecute);
-        Bind(target, GestureGridKeymap.Redo, GestureGridAction.Redo, request, canExecute);
-    }
-
-    private static MenuItem Item(string header, GestureGridAction action, Action<GestureGridAction> request)
-    {
-        var item = new MenuItem { Header = header, Tag = action };
-        item.Click += (_, _) => request(action);
-        return item;
-    }
-
-    private static void Bind(InputElement target, string gesture, GestureGridAction action, Action<GestureGridAction> request, Func<bool> canExecute)
-        => target.KeyBindings.Add(new KeyBinding { Gesture = KeyGesture.Parse(gesture), Command = new RelayCommand(() => request(action), canExecute) });
+    public static void BindKeys(InputElement target, EditKeymap keymap, Action<GestureGridAction> request, Func<bool> canExecute)
+        => ActionMenu<GestureGridAction>.BindKeys(
+            target,
+            request,
+            canExecute,
+            (keymap.New, GestureGridAction.New),
+            (keymap.Rename, GestureGridAction.Rename),
+            (keymap.RenameAlso, GestureGridAction.Rename),
+            (keymap.Delete, GestureGridAction.Delete),
+            (keymap.Undo, GestureGridAction.Undo),
+            (keymap.Redo, GestureGridAction.Redo));
 }

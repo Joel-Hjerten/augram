@@ -1,3 +1,4 @@
+using Augram.App.Components.Parts;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
@@ -18,9 +19,8 @@ public static class LinksAccessory
         ArgumentNullException.ThrowIfNull(change);
         return () =>
         {
-            var button = new Button { Content = ChangeLabel, VerticalAlignment = VerticalAlignment.Center };
-            button.Classes.Add("toolbar");
-            button.Click += (_, _) => change();
+            var button = ToolbarButton.Create(ChangeLabel, change);
+            button.VerticalAlignment = VerticalAlignment.Center;
             return button;
         };
     }
