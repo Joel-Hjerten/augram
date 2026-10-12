@@ -29,6 +29,13 @@ public sealed record MappingDocument(IReadOnlyList<AppGroup> Groups, IReadOnlyLi
         }
     }
 
+    /// <summary>
+    /// The commands whose "Not in" names the Exclusions › Per command entry <paramref name="ignoredId"/>, in document order: its users
+    /// (the Exclusions tab's "Used by", the Not in dialog's "unused"; plan 0004).
+    /// </summary>
+    public IEnumerable<(AppGroup Group, Command Command)> NotInUsers(GroupId ignoredId)
+        => AllCommands().Where(pair => pair.Command.NotIn.Contains(ignoredId));
+
     /// <summary>The command with this id and its group, in any group; null when the mapping has none.</summary>
     public (AppGroup Group, Command Command)? FindCommand(CommandId id)
     {

@@ -103,7 +103,7 @@ public static class CommandGalleryPages
             [
                 new CustomField("Volume up", () => LiveHeader(CommandsScope.Global, "Volume up")),
             ]),
-            new Section("The Not in dialog for Zoom in: the Per command entries by name, two ticked; Add app… adds the window dropped on",
+            new Section("The Not in dialog for Zoom in: the Per command entries by name, two ticked, Krita unused with its ✕; Add app… adds the window dropped on",
             [
                 new CustomField("Not in", () => NotInDialog(NotInEditViewModel.For(zoomIn, mapping, HostPlatform.Windows))),
             ]),

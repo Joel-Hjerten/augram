@@ -51,7 +51,7 @@ public sealed partial class IgnoredViewModel
 
     /// <summary>The commands whose "Not in" names the entry, in document order (Global first, then the app groups by name).</summary>
     private List<(AppGroup Group, Command Command)> UsersOf(GroupId id)
-        => [.. _store.Current.AllCommands().Where(pair => pair.Command.NotIn.Contains(id))];
+        => [.. _store.Current.NotInUsers(id)];
 
     /// <summary>"Used by 2 commands", "Not used yet": the row summary's first part for a Per command entry.</summary>
     private string UsersText(GroupId id) => UsersOf(id).Count is var count and > 0 ? $"Used by {Commands(count)}" : "Not used yet";

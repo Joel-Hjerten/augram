@@ -104,15 +104,25 @@ public sealed partial class MappingStore
     }
 
     /// <summary>
-    /// Adds <paramref name="added"/> to the ignore list and replaces the command with the same id in that group, as one change
-    /// and one undo step (plan 0004: the "Not in" dialog's Save, where Add app… made new Ignored › Per command entries the
-    /// command's <see cref="Command.NotIn"/> names). Refused as a whole when either part breaks a rule.
+    /// Adds <paramref name="added"/> to the ignore list, removes the entries <paramref name="removed"/> names, and replaces the command
+    /// with the same id in that group, as one change and one undo step (plan 0004: the "Not in" dialog's Save, where Add app… made new
+    /// Exclusions › Per command entries the command's <see cref="Command.NotIn"/> names, and ✕ took away entries no command uses; Joel,
+    /// 2026-10-12). Refused as a whole when either part breaks a rule, or when a command, this one as replaced included, still names
+    /// a removed entry (the dialog offers ✕ only on an entry nothing else uses and not ticked).
     /// </summary>
-    public Command UpdateCommandAddingIgnored(GroupId groupId, Command command, IReadOnlyList<IgnoredApp> added)
+    /// <exception cref="MappingValidationException">A rule is broken, or a removed entry is still named in a "Not in".</exception>
+    public Command UpdateCommandChangingIgnored(GroupId groupId, Command command, IReadOnlyList<IgnoredApp> added, IReadOnlyCollection<GroupId> removed)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(added);
-        Commit(WithCommandReplaced(groupId, command) with { Ignored = [.. Current.Ignored, .. added] });
+        ArgumentNullException.ThrowIfNull(removed);
+        var replaced = WithCommandReplaced(groupId, command);
+        if (Current.Ignored.FirstOrDefault(app => removed.Contains(app.Id) && replaced.NotInUsers(app.Id).Any()) is { } used)
+        {
+            throw new MappingValidationException($"'{used.Name}' is still used in a command's Not in, so it cannot be removed.");
+        }
+
+        Commit(replaced with { Ignored = [.. Current.Ignored.Where(app => !removed.Contains(app.Id)), .. added] });
         return FindCommand(command.Id)!.Value.Command;
     }
 

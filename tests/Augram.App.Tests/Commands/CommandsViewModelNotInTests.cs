@@ -236,6 +236,58 @@ public sealed class CommandsViewModelNotInTests
         Assert.Same(before, store.Current);
     }
 
+    /// <summary>✕ (Joel, 2026-10-12): an entry no other command names, unticked, is muted "unused" and removable; Save deletes it with the ticks, one undo step.</summary>
+    [AvaloniaFact]
+    public void AnUnusedEntry_IsMarkedAndRemovable_AndSaveDeletesItWithTheTicksAsOneUndoStep()
+    {
+        var (vm, store, _, dialogs) = Create(CommandsScope.Global, ignored: Ignored);
+        store.UpdateCommand(GroupId.Global, Find(store, "Minimize") with { NotIn = [Eyeris.Id] });
+        store.UpdateCommand(GroupId.Global, Find(store, "Close window") with { NotIn = [Spine.Id] });
+        var before = store.Current;
+        IReadOnlyList<(string, bool, string)>? looks = null;
+        dialogs.Answer = request =>
+        {
+            var (_, form) = Show(request.Screen!);
+            looks = [.. form.GetVisualDescendants().OfType<CheckBox>().Select(box => (
+                Caption(box),
+                box.GetVisualDescendants().OfType<TextBlock>().First().Classes.Contains("muted"),
+                string.Join(" ", box.GetVisualDescendants().OfType<TextBlock>().Skip(1).Where(text => text.IsVisible).Select(text => text.Text))))];
+            var list = CheckList(request);
+            Assert.Equal([false, true, false], list.Items.Select(item => item.Remove!.Removable.Get()));
+            list.Items.Single(item => item.Caption == "Krita").Remove!.Click();
+            list.Items.Single(item => item.Caption == "Spine").Value.Set(false);
+            list.Items.Single(item => item.Caption == "Spine").Remove!.Click();
+            Tick(list, "Eyeris");
+            return true;
+        };
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditNotIn, command: Item(vm, "Close window")));
+
+        // Eyeris is Minimize's, Spine ticked here, Krita no one's.
+        Assert.Equal([("Eyeris", false, string.Empty), ("Krita", true, "inactive unused"), ("Spine", false, string.Empty)], looks);
+        Assert.Equal(["Eyeris", "VMware"], store.Current.Ignored.Select(app => app.Name).Order());
+        Assert.Equal([Eyeris.Id], Find(store, "Close window").NotIn);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Same(before, store.Current);
+    }
+
+    [AvaloniaFact]
+    public void CancelRemovesNothing()
+    {
+        var (vm, store, _, dialogs) = Create(CommandsScope.Global, ignored: Ignored);
+        var before = store.Current;
+        dialogs.Answer = request =>
+        {
+            CheckList(request).Items.Single(item => item.Caption == "Krita").Remove!.Click();
+            return false;
+        };
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditNotIn, command: Item(vm, "Close window")));
+
+        Assert.Same(before, store.Current);
+    }
+
     [AvaloniaFact]
     public void TheHeaderShowsTheRowForAnyCommandNotUnderAHoldRemap_AndChangeAsks()
     {

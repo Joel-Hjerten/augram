@@ -853,7 +853,7 @@
     <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
   </Style>
   <!-- The search box's clear glyph (SearchBox): no frame, faint, the primary colour under the pointer. -->
-  <Style Selector="Button.search-clear">
+  <Style Selector="Button.search-clear, Button.check-list-remove">
     <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
@@ -861,7 +861,7 @@
     <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="Cursor" Value="Hand" />
   </Style>
-  <Style Selector="Button.search-clear:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.search-clear:pressed /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.search-clear:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.search-clear:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.check-list-remove:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.check-list-remove:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
   </Style>
@@ -1105,6 +1105,10 @@
   </Style>
   <Style Selector="TextBlock.check-list-detail">
     <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+  <!-- A removable item's ✕ (the Not in dialog's unused apps): the search box's clear glyph (Button.search-clear below), centred on the row. -->
+  <Style Selector="Button.check-list-remove">
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <!-- A slider field (plan 0006: Tint, Corner rounding): the slider, then its value and unit. -->

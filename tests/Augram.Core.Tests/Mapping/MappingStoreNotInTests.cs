@@ -5,8 +5,8 @@ using static Augram.Core.Tests.Mapping.Support.MappingFixtures;
 namespace Augram.Core.Tests.Mapping;
 
 /// <summary>
-/// The store's side of the "Not in" dialog (plan 0004 step 7): new Ignored › Per command entries and the command naming them
-/// are one change and one undo step, refused as a whole; moving an entry to Global drops it from every "Not in" in that step.
+/// The store's side of the "Not in" dialog (plan 0004 step 7): new Ignored › Per command entries, removed unused ones and the
+/// command naming them are one change and one undo step, refused as a whole; moving an entry to Global drops it from every "Not in" in that step.
 /// </summary>
 public sealed class MappingStoreNotInTests
 {
@@ -21,7 +21,7 @@ public sealed class MappingStoreNotInTests
         var spine = PerCommand("Spine");
         var eyeris = PerCommand("Eyeris");
 
-        var stored = store.UpdateCommandAddingIgnored(GroupId.Global, zoom with { NotIn = [spine.Id, eyeris.Id] }, [spine, eyeris]);
+        var stored = store.UpdateCommandChangingIgnored(GroupId.Global, zoom with { NotIn = [spine.Id, eyeris.Id] }, [spine, eyeris], []);
 
         Assert.Equal(new[] { spine.Id, eyeris.Id }.OrderBy(id => id.Value), stored.NotIn);
         Assert.Equal(["Spine", "Eyeris"], store.Current.Ignored.Select(app => app.Name));
@@ -41,10 +41,35 @@ public sealed class MappingStoreNotInTests
         var before = store.Current;
         var clash = PerCommand("spine");
 
-        Assert.Throws<MappingValidationException>(() => store.UpdateCommandAddingIgnored(GroupId.Global, store.Global.Commands[0] with { NotIn = [clash.Id] }, [clash]));
+        Assert.Throws<MappingValidationException>(() => store.UpdateCommandChangingIgnored(GroupId.Global, store.Global.Commands[0] with { NotIn = [clash.Id] }, [clash], []));
 
         Assert.Same(before, store.Current);
         Assert.False(store.CanUndo);
+    }
+
+    [Fact]
+    public void RemovedEntries_GoWithTheCommandsChange_InOneUndoStep_ButNotOneACommandStillNames()
+    {
+        var spine = PerCommand("Spine");
+        var krita = PerCommand("Krita");
+        var eyeris = PerCommand("Eyeris");
+        var zoomIn = NewCommand("Zoom In") with { NotIn = [spine.Id] };
+        var zoomOut = NewCommand("Zoom Out") with { NotIn = [eyeris.Id] };
+        var store = new MappingStore(new MappingDocument([NewGlobal(zoomIn, zoomOut)], [spine, krita, eyeris]));
+        var before = store.Current;
+        var stored = store.Global.Commands.Single(command => command.Name == "Zoom In");
+
+        // Eyeris is Zoom Out's; Spine is still ticked on Zoom In: both refused, nothing stored.
+        Assert.Throws<MappingValidationException>(() => store.UpdateCommandChangingIgnored(GroupId.Global, stored, [], [eyeris.Id]));
+        Assert.Throws<MappingValidationException>(() => store.UpdateCommandChangingIgnored(GroupId.Global, stored, [], [spine.Id]));
+        Assert.Same(before, store.Current);
+
+        store.UpdateCommandChangingIgnored(GroupId.Global, stored with { NotIn = [] }, [], [spine.Id, krita.Id]);
+
+        Assert.Equal([eyeris.Id], store.Current.Ignored.Select(app => app.Id));
+        Assert.Empty(store.Global.Commands.Single(command => command.Name == "Zoom In").NotIn);
+        Assert.True(store.Undo());
+        Assert.Same(before, store.Current);
     }
 
     [Fact]

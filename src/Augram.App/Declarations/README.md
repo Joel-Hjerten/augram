@@ -19,7 +19,7 @@ Each kind is a record here and a renderer in `Components/Fields/<Kind>/` (found 
 |---|---|---|
 | Toggle | `ToggleField` | one bool |
 | Toggles | `TogglesField` + `ToggleOption` | a few bools on one row ("Use on ☑ Windows ☑ macOS"; the edit forms take it from `ViewModels/UseOnEdit.Declare`) |
-| CheckList | `CheckListField` + `CheckListItem` (`LiveItems` for a list that changes) | bools one under the other with a detail (the Not in, Also in, Allowed for and export dialogs; their ticks are a `ViewModels/CheckedSet`) |
+| CheckList | `CheckListField` + `CheckListItem` (`LiveItems` for a list that changes; an item's optional `Remove`, a `CheckListRemove`: while its `Removable` reads true the caption is muted, its note ("unused") shows and an ✕ removes it) | bools one under the other with a detail (the Not in, Also in, Allowed for and export dialogs; their ticks are a `ViewModels/CheckedSet`; only the Not in dialog sets `Remove`) |
 | Dropdown, ButtonRadio | `DropdownField<T>`, `ButtonRadioField<T>` + `Choice<T>` | one of a few values; `ChoiceBinding<T>` maps a typed binding to indexes |
 | Text | `TextField` (`Multiline`) | a value stored on every keystroke |
 | CommittedText | `CommittedTextField` (`Wide`) | a value committed on leaving or Enter, reverted on Escape, its problem under it (Options › Sync's address and machine name over a `DraftText`) |

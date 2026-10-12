@@ -1,3 +1,4 @@
+using Augram.App.Declarations;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
@@ -5,7 +6,10 @@ using Xunit;
 
 namespace Augram.App.Tests.Commands;
 
-/// <summary>The Not in dialog's Add app… (plan 0004 step 7): what a picked window becomes, named free among the Per command entries (not the Global ones; Joel, 2026-10-12).</summary>
+/// <summary>
+/// The Not in dialog's Add app… (plan 0004 step 7): what a picked window becomes, named free among the Per command entries (not the
+/// Global ones; Joel, 2026-10-12); and its ✕ on an unused entry (Joel, 2026-10-12: the list kept growing).
+/// </summary>
 public sealed class NotInEditViewModelTests
 {
     [Fact]
@@ -61,4 +65,37 @@ public sealed class NotInEditViewModelTests
         Assert.Equal(["Eyeris"], added.Matcher.MacProcessNames);
         Assert.Empty(added.Matcher.WindowsProcessNames);
     }
+
+    [Fact]
+    public void AnEntryNoOtherCommandNames_IsRemovableWhileUnticked_AndAnAddedOneIsSimplyNotAdded()
+    {
+        var spine = PerCommand("Spine");
+        var eyeris = PerCommand("Eyeris");
+        var krita = PerCommand("Krita");
+        var edit = new NotInEditViewModel("Zoom in", [spine, eyeris, krita], [spine.Id], HostPlatform.Windows, usedElsewhere: [eyeris.Id]);
+
+        // Spine is ticked here, Eyeris another command's: neither. Krita: no one's.
+        Assert.Equal([false, false, true], new[] { spine, eyeris, krita }.Select(app => edit.IsRemovable(app.Id)));
+        Assert.False(edit.Remove(eyeris.Id));
+
+        CheckList(edit).Items.Single(item => item.Caption == "Spine").Value.Set(false);
+        Assert.True(CheckList(edit).Items.Single(item => item.Caption == "Spine").Remove!.Removable.Get());
+        Assert.True(edit.Remove(spine.Id));
+        Assert.True(edit.Remove(krita.Id));
+
+        var added = edit.AddApp(FakeWindowSystem.WindowOf("Blender.exe"));
+        CheckList(edit).Items.Single(item => item.Caption == "Blender").Value.Set(false);
+        Assert.True(edit.Remove(added.Id));
+
+        Assert.Equal(["Eyeris"], edit.Entries.Select(app => app.Name));
+        Assert.Equal([spine.Id, krita.Id], edit.Removed);
+        Assert.Empty(edit.Added);
+        Assert.Empty(edit.NotIn);
+    }
+
+    private static CheckListField CheckList(NotInEditViewModel edit)
+        => edit.Declare().Sections.SelectMany(section => section.Fields).OfType<CheckListField>().Single();
+
+    private static IgnoredApp PerCommand(string name)
+        => new(GroupId.New(), name, IsActive: true, new AppMatcher { WindowsProcessNames = [name + ".exe"] }, DisableEntirely: false) { Scope = IgnoreScope.PerCommand };
 }
