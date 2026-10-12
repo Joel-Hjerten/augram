@@ -4,14 +4,15 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 
 namespace Augram.App.Components.SearchBox;
 
 /// <summary>
 /// The one search box of every list's toolbar (plan 0009 decision 1): <see cref="Text"/> (two-way; the host filters on every
 /// change, decision 6) with <see cref="Placeholder"/> as its watermark, in the template's <c>PART_Text</c>, and a clear glyph
-/// (<c>PART_Clear</c>, shown while there is text). Escape in the box clears it (and is swallowed, so a dialog around it stays
-/// open); with nothing to clear it passes on. <c>Focus()</c> lands in the text with it selected: the lists' find key
+/// (<c>PART_Clear</c>, shown while there is text). Escape in the box clears it (swallowed, so a dialog around it stays
+/// open); in an empty box it leaves for the list's selected row and passes on. <c>Focus()</c> lands in the text with it selected: the lists' find key
 /// (<c>EditKeymap.Find</c>) calls it. The matching rule is <see cref="SearchQuery"/>; the box only holds the text.
 /// </summary>
 public sealed class SearchBox : TemplatedControl
@@ -95,12 +96,38 @@ public sealed class SearchBox : TemplatedControl
         }
     }
 
+    /// <summary>
+    /// Escape in two steps (Joel, 0.13.13): with text it clears it and stays, swallowed so a dialog around the box stays open;
+    /// in an empty box it leaves for the list the box belongs to, so its keys work at once, and passes on (the gesture picker
+    /// closes, as before).
+    /// </summary>
     private void OnTextKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && Text.Length > 0)
+        if (e.Key != Key.Escape)
+        {
+            return;
+        }
+
+        if (Text.Length > 0)
         {
             Clear();
             e.Handled = true;
+            return;
         }
+
+        LeaveToList();
+    }
+
+    /// <summary>The box sits in its list's template: focus that list's selected row, else the rows, else nothing at all.</summary>
+    private void LeaveToList()
+    {
+        var rows = (TemplatedParent as Visual)?.GetVisualDescendants().OfType<ListBox>().FirstOrDefault();
+        var row = rows?.SelectedItem is { } selected ? rows.ContainerFromItem(selected) : null;
+        if (row?.Focus() == true || rows?.Focus() == true)
+        {
+            return;
+        }
+
+        TopLevel.GetTopLevel(this)?.FocusManager?.ClearFocus();
     }
 }

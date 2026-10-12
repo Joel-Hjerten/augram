@@ -160,6 +160,27 @@ public sealed class CommandTreeTests
         Assert.True(tree.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == "No commands match 'zzz'").IsVisible);
     }
 
+    /// <summary>Escape in two steps (Joel, 0.13.13): the first clears the text and stays, the next leaves for the selected row.</summary>
+    [AvaloniaFact]
+    public void EscapeClearsTheSearchFirst_ThenLeavesForTheSelectedRow()
+    {
+        var (tree, _, vm) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        tree.SelectedCommandId = Item(vm, "Close tab").Id;
+        var box = tree.GetVisualDescendants().OfType<Augram.App.Components.SearchBox.SearchBox>().Single();
+
+        box.Focus();
+        tree.SearchText = "close";
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Assert.Equal(string.Empty, tree.SearchText);
+        Assert.True(box.IsTyping);
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Assert.False(box.IsTyping);
+        Assert.True(tree.GetVisualDescendants().OfType<ListBox>().First().IsKeyboardFocusWithin);
+    }
+
     [AvaloniaFact]
     public void ClickingAwayFromTheRenameEditorKeepsTheNameAndEscapeStillReverts()
     {
