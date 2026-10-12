@@ -634,18 +634,25 @@
                         BorderThickness="1"
                         CornerRadius="{DynamicResource Radius.Panel}">
                   <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" ColumnDefinitions="Auto,*">
-                      <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="{StaticResource Lists.HeadLineHeight}" Margin="0,0,12,0">
-                        <TextBlock Classes="title" Text="{TemplateBinding Heading}" VerticalAlignment="Center" />
-                        <TextBlock Classes="help-icon"
-                                   ToolTip.Tip="{TemplateBinding HelpText}"
-                                   IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                      </StackPanel>
-                      <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
+                    <!-- As the Commands tree: the search box on the title line, stretching with the list; the button under it (Joel, 2026-10-12: side by side they wrapped in the narrow column). -->
+                    <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" Spacing="8">
+                      <Grid ColumnDefinitions="Auto,*" MinHeight="{StaticResource Lists.HeadLineHeight}">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
+                          <TextBlock Classes="title" Text="{TemplateBinding Heading}" VerticalAlignment="Center" />
+                          <TextBlock Classes="help-icon"
+                                     ToolTip.Tip="{TemplateBinding HelpText}"
+                                     IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                        <search:SearchBox Name="PART_Search"
+                                          Grid.Column="1"
+                                          HorizontalAlignment="Stretch"
+                                          MinWidth="{StaticResource Editor.SearchFloorWidth}"
+                                          Text="{TemplateBinding SearchText, Mode=TwoWay}" />
+                      </Grid>
+                      <WrapPanel ItemSpacing="6" LineSpacing="4">
                         <Button Name="PART_New" Classes="toolbar primary" Content="{TemplateBinding NewLabel}" />
-                        <search:SearchBox Name="PART_Search" Text="{TemplateBinding SearchText, Mode=TwoWay}" />
                       </WrapPanel>
-                    </Grid>
+                    </StackPanel>
                     <!-- "No apps match 'xyz'" while the search leaves nothing (plan 0009 decision 7). -->
                     <TextBlock DockPanel.Dock="Top"
                                Classes="panel-empty"
