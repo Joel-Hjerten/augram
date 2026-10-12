@@ -38,14 +38,14 @@ public sealed partial class StepList : TemplatedControl
     public static readonly StyledProperty<IReadOnlyList<StepRow>> RowsProperty =
         AvaloniaProperty.Register<StepList, IReadOnlyList<StepRow>>(nameof(Rows), []);
 
+    private readonly RowListHost _rows;
     private readonly StepDragReorder _drag;
-    private ListBox? _list;
     private Button? _new;
-    private bool _applying;
 
     public StepList()
     {
-        _drag = new StepDragReorder(() => Rows, () => _list, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to), OnDragStarted, OnHeaderClicked);
+        _rows = new RowListHost(() => IsEditing);
+        _drag = new StepDragReorder(() => Rows, () => _rows.List, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to), OnDragStarted, OnHeaderClicked);
     }
 
     public event EventHandler<StepListActionEventArgs>? ActionRequested;
@@ -86,7 +86,7 @@ public sealed partial class StepList : TemplatedControl
     /// <summary>Swappable for tests and the gallery; defaults to the assembly-scanned registry.</summary>
     public StepFormRegistry Forms { get; init; } = StepFormRegistry.Default;
 
-    public StepItem? SelectedStep => (_list?.SelectedItem as StepRow)?.Item;
+    public StepItem? SelectedStep => (_rows.SelectedItem as StepRow)?.Item;
 
     /// <summary>True while keyboard focus is inside the expanded step's form; the list's key bindings stand down then.</summary>
     public bool IsEditing
@@ -101,20 +101,12 @@ public sealed partial class StepList : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
-        _list = e.NameScope.Find<ListBox>("PART_Rows");
-        if (_list is not null)
+        if (_rows.Attach(e.NameScope.Find<ListBox>("PART_Rows"), OnSelectionChanged) is { } list)
         {
-            _list.ContextMenu = StepListMenu.Build(Request);
-            _list.ContextMenu.Opening += (_, _) => StepListMenu.Refresh(_list.ContextMenu, SelectedStep, CanAddStep);
+            list.ContextMenu = StepListMenu.Build(Request);
+            list.ContextMenu.Opening += (_, _) => StepListMenu.Refresh(list.ContextMenu, SelectedStep, CanAddStep);
             KeyBindings.Clear();
-            StepListMenu.BindKeys(this, EditKeymap.Current, Request, () => !IsEditing);
-            _list.SelectionChanged += (_, _) =>
-            {
-                if (!_applying && SelectedStep is { } step && step.Index != SelectedIndex)
-                {
-                    Raise(StepListAction.Select, step);
-                }
-            };
+            StepListMenu.BindKeys(this, EditKeymap.Current, Request, _rows.KeysEnabled);
             ApplySelection();
         }
 
@@ -164,19 +156,22 @@ public sealed partial class StepList : TemplatedControl
                 rows.Add(row);
             }
 
-            // Replacing the rows clears the list's selection at once; that is not the user selecting nothing.
-            _applying = true;
-            try
-            {
-                Rows = rows;
-            }
-            finally
-            {
-                _applying = false;
-            }
+            // Rows are reused while the count is unchanged (above), so only a new set goes through the host; the focus stays
+            // where Avalonia put it on the press (FocusAfterRebuild.None).
+            _rows.Replace(() => Rows = rows, ApplySelection);
+            return;
         }
 
         ApplySelection();
+    }
+
+    /// <summary>A user selection of another step asks to open it; reselecting the open one raises nothing.</summary>
+    private void OnSelectionChanged()
+    {
+        if (SelectedStep is { } step && step.Index != SelectedIndex)
+        {
+            Raise(StepListAction.Select, step);
+        }
     }
 
     /// <summary>Expands the row at <see cref="SelectedIndex"/> (building or keeping its form) and selects it without raising Select.</summary>
@@ -200,20 +195,7 @@ public sealed partial class StepList : TemplatedControl
             }
         }
 
-        if (_list is null)
-        {
-            return;
-        }
-
-        _applying = true;
-        try
-        {
-            _list.SelectedItem = selected;
-        }
-        finally
-        {
-            _applying = false;
-        }
+        _rows.SelectQuietly(selected);
     }
 
     private void EnsureForm(StepRow row)
@@ -253,17 +235,12 @@ public sealed partial class StepList : TemplatedControl
     /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is not StepRow row || _list is null)
+        if (sender is not StepRow row || _rows.List is null)
         {
             return;
         }
 
-        var properties = e.GetCurrentPoint(row).Properties;
-        if (properties.IsRightButtonPressed)
-        {
-            _list.SelectedItem = row;
-        }
-        else if (properties.IsLeftButtonPressed && e.Source is Visual source && !row.IsInForm(source) && !row.IsFromOwnControl(source))
+        if (!_rows.SelectOnRightPress(row, e) && e.GetCurrentPoint(row).Properties.IsLeftButtonPressed && e.Source is Visual source && !row.IsInForm(source) && !row.IsFromOwnControl(source))
         {
             _drag.Press(row, e, clickable: !row.IsOnGrip(e));
             e.Handled = true;

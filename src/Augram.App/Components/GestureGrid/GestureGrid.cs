@@ -33,8 +33,13 @@ public sealed class GestureGrid : TemplatedControl
     public static readonly StyledProperty<string?> MessageProperty =
         AvaloniaProperty.Register<GestureGrid, string?>(nameof(Message));
 
-    private ListBox? _list;
+    private readonly RowListHost _rows;
     private GestureId? _selectedId;
+
+    public GestureGrid()
+    {
+        _rows = new RowListHost(() => IsEditing);
+    }
 
     public event EventHandler<GestureGridActionEventArgs>? ActionRequested;
 
@@ -69,41 +74,37 @@ public sealed class GestureGrid : TemplatedControl
         set => SetValue(MessageProperty, value);
     }
 
-    public GestureTileItem? SelectedTile => (_list?.SelectedItem as GestureTile)?.Item;
+    public GestureTileItem? SelectedTile => (_rows.SelectedItem as GestureTile)?.Item;
 
     /// <summary>True while a tile's name is being edited in place; the list's key bindings stand down then.</summary>
-    public bool IsEditing => TileControls.Any(tile => tile.IsEditing);
+    public bool IsEditing => RowListHost.AnyEditing(TileControls);
 
+    /// <summary>Selects the gesture's tile as a click would (its partners light up); remembered across a rebuild and a template.</summary>
     public void Select(GestureId id)
     {
         _selectedId = id;
-        if (_list is not null)
+        if (_rows.List is not null)
         {
-            _list.SelectedItem = TileControls.FirstOrDefault(tile => tile.Item?.Id == id);
+            _rows.Select(TileControls.FirstOrDefault(tile => tile.Item?.Id == id));
         }
     }
 
     /// <summary>Starts in-place rename of the selected tile (the rename keys of <see cref="EditKeymap"/> or the menu).</summary>
-    public void BeginRename() => (_list?.SelectedItem as GestureTile)?.BeginEdit();
+    public void BeginRename() => _rows.RenameSelected();
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
-        _list = e.NameScope.Find<ListBox>("PART_Tiles");
-        if (_list is not null)
+        // The grid never applies a selection quietly: every change, the rebuild's included, remembers the id and marks partners.
+        // A double click redraws (DoubleTapped: a tile has no press-count rule).
+        if (_rows.Attach(e.NameScope.Find<ListBox>("PART_Tiles"), OnSelectionChanged, () => Request(GestureGridAction.Redraw)) is { } list)
         {
-            _list.ContextMenu = GestureGridMenu.Build(Request);
-            _list.ContextMenu.Opening += (_, _) => GestureGridMenu.Refresh(_list.ContextMenu, SelectedTile);
+            list.ContextMenu = GestureGridMenu.Build(Request);
+            list.ContextMenu.Opening += (_, _) => GestureGridMenu.Refresh(list.ContextMenu, SelectedTile);
             // On the grid, not the list: key bindings are evaluated from the focused element upwards,
             // so they work from a focused tile and from the toolbar buttons alike.
             KeyBindings.Clear();
-            GestureGridMenu.BindKeys(this, EditKeymap.Current, Request, () => !IsEditing);
-            _list.SelectionChanged += (_, _) =>
-            {
-                _selectedId = SelectedTile?.Id ?? _selectedId;
-                MarkPartners();
-            };
-            _list.DoubleTapped += (_, _) => Request(GestureGridAction.Redraw);
+            GestureGridMenu.BindKeys(this, EditKeymap.Current, Request, _rows.KeysEnabled);
             if (_selectedId is { } selected)
             {
                 Select(selected);
@@ -158,11 +159,17 @@ public sealed class GestureGrid : TemplatedControl
         }
     }
 
+    private void OnSelectionChanged()
+    {
+        _selectedId = SelectedTile?.Id ?? _selectedId;
+        MarkPartners();
+    }
+
     private void OnTilePressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is GestureTile tile && _list is not null && e.GetCurrentPoint(tile).Properties.IsRightButtonPressed)
+        if (sender is GestureTile tile)
         {
-            _list.SelectedItem = tile;
+            _rows.SelectOnRightPress(tile, e);
         }
     }
 

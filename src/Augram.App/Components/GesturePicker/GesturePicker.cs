@@ -1,4 +1,5 @@
 using Augram.App.Components.GestureGrid;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.Parts;
 using Augram.Core.Gestures;
 using Avalonia;
@@ -26,7 +27,7 @@ public sealed class GesturePicker : TemplatedControl
     public static readonly StyledProperty<bool> HasSelectionProperty =
         AvaloniaProperty.Register<GesturePicker, bool>(nameof(HasSelection));
 
-    private ListBox? _list;
+    private readonly RowListHost _rows = new(static () => false);
     private GestureId? _selectedId;
 
     public event EventHandler<GesturePickerResult>? Closed;
@@ -52,14 +53,14 @@ public sealed class GesturePicker : TemplatedControl
         private set => SetValue(HasSelectionProperty, value);
     }
 
-    public GestureId? SelectedId => (_list?.SelectedItem as GestureTile)?.Item?.Id ?? _selectedId;
+    public GestureId? SelectedId => (_rows.SelectedItem as GestureTile)?.Item?.Id ?? _selectedId;
 
     public void Select(GestureId? id)
     {
         _selectedId = id;
-        if (_list is not null)
+        if (_rows.List is not null)
         {
-            _list.SelectedItem = id is { } wanted ? TileControls.FirstOrDefault(tile => tile.Item?.Id == wanted) : null;
+            _rows.Select(id is { } wanted ? TileControls.FirstOrDefault(tile => tile.Item?.Id == wanted) : null);
         }
 
         HasSelection = SelectedId is not null;
@@ -81,15 +82,9 @@ public sealed class GesturePicker : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
-        _list = e.NameScope.Find<ListBox>("PART_Tiles");
-        if (_list is not null)
+        // No menu, no keys, no rename: the host gives the picker its selection memory and the double click, which accepts.
+        if (_rows.Attach(e.NameScope.Find<ListBox>("PART_Tiles"), OnSelectionChanged, Accept) is not null)
         {
-            _list.SelectionChanged += (_, _) =>
-            {
-                _selectedId = (_list.SelectedItem as GestureTile)?.Item?.Id ?? _selectedId;
-                HasSelection = _list.SelectedItem is not null;
-            };
-            _list.DoubleTapped += (_, _) => Accept();
             Select(_selectedId);
         }
 
@@ -109,4 +104,9 @@ public sealed class GesturePicker : TemplatedControl
         }
     }
 
+    private void OnSelectionChanged()
+    {
+        _selectedId = (_rows.SelectedItem as GestureTile)?.Item?.Id ?? _selectedId;
+        HasSelection = _rows.SelectedItem is not null;
+    }
 }

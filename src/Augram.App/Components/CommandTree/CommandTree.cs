@@ -59,9 +59,13 @@ public sealed class CommandTree : TemplatedControl
     public static readonly StyledProperty<string> HelpTextProperty =
         AvaloniaProperty.Register<CommandTree, string>(nameof(HelpText), string.Empty);
 
+    private readonly RowListHost _rows;
     private ToggleButton? _otherPlatforms;
-    private ListBox? _list;
-    private bool _applying;
+
+    public CommandTree()
+    {
+        _rows = new RowListHost(() => IsEditing, FocusAfterRebuild.SelectedRowUnlessSettled);
+    }
 
     public event EventHandler<CommandTreeActionEventArgs>? ActionRequested;
 
@@ -112,9 +116,9 @@ public sealed class CommandTree : TemplatedControl
         set => SetValue(HelpTextProperty, value);
     }
 
-    public CommandItem? SelectedCommand => (_list?.SelectedItem as CommandRow)?.Item;
+    public CommandItem? SelectedCommand => (_rows.SelectedItem as CommandRow)?.Item;
 
-    public SectionItem? SelectedSection => _list?.SelectedItem switch
+    public SectionItem? SelectedSection => _rows.SelectedItem switch
     {
         SectionRow row => row.Item,
         CommandRow row when row.Item is { } item => Sections.FirstOrDefault(section => section.Id == item.Section),
@@ -122,16 +126,16 @@ public sealed class CommandTree : TemplatedControl
     };
 
     /// <summary>True while a row's name is being edited in place; the key bindings stand down then.</summary>
-    public bool IsEditing => Rows.Any(row => row is ItemRow { IsEditing: true });
+    public bool IsEditing => RowListHost.AnyEditing(Rows);
 
     /// <summary>Starts in-place rename of the selected row (the rename key or the menu).</summary>
-    public void BeginRename() => (_list?.SelectedItem as ItemRow)?.BeginEdit();
+    public void BeginRename() => _rows.RenameSelected();
 
     /// <summary>Selects the command and starts renaming it (a freshly created "New command N").</summary>
-    public void BeginRename(CommandId id) => BeginRename(CommandTreeRows.Command(Rows, id));
+    public void BeginRename(CommandId id) => _rows.BeginRename(CommandTreeRows.Command(Rows, id));
 
     /// <summary>Selects the section and starts renaming it (a freshly created "New category N").</summary>
-    public void BeginRename(SectionId id) => BeginRename(CommandTreeRows.Section(Rows, id));
+    public void BeginRename(SectionId id) => _rows.BeginRename(CommandTreeRows.Section(Rows, id));
 
     /// <summary>The toolbar toggle's label ("Show other platforms"); null hides it (the Global tab has no platform filter).</summary>
     public string? PlatformFilterLabel
@@ -172,20 +176,12 @@ public sealed class CommandTree : TemplatedControl
             };
         }
 
-        _list = e.NameScope.Find<ListBox>("PART_Rows");
-        if (_list is not null)
+        if (_rows.Attach(e.NameScope.Find<ListBox>("PART_Rows"), () => Raise(CommandTreeAction.Select, SelectedSection, SelectedCommand)) is { } list)
         {
-            _list.ContextMenu = CommandTreeMenu.Build(Request);
-            _list.ContextMenu.Opening += (_, _) => CommandTreeMenu.Refresh(_list.ContextMenu, SelectedSection, SelectedCommand, NewSectionLabel);
+            list.ContextMenu = CommandTreeMenu.Build(Request);
+            list.ContextMenu.Opening += (_, _) => CommandTreeMenu.Refresh(list.ContextMenu, SelectedSection, SelectedCommand, NewSectionLabel);
             KeyBindings.Clear();
-            CommandTreeMenu.BindKeys(this, EditKeymap.Current, Request, () => !IsEditing);
-            _list.SelectionChanged += (_, _) =>
-            {
-                if (!_applying)
-                {
-                    Raise(CommandTreeAction.Select, SelectedSection, SelectedCommand);
-                }
-            };
+            CommandTreeMenu.BindKeys(this, EditKeymap.Current, Request, _rows.KeysEnabled);
             ApplySelection();
         }
 
@@ -236,41 +232,16 @@ public sealed class CommandTree : TemplatedControl
         timer.Start();
     }
 
-
-    private void BeginRename(ItemRow? row)
-    {
-        if (_list is not null && row is not null)
-        {
-            _list.SelectedItem = row;
-            row.BeginEdit();
-        }
-    }
-
     /// <summary>
     /// Replaces every row. When the list had the keyboard focus (a click on a header toggles it, which lands here), the
-    /// focus moves to the selected row's replacement once it is laid out; otherwise it went with the old row and the
-    /// rename and delete keys stopped reaching the tree (Joel, 2026-10-07: Return renamed commands but not groups).
+    /// focus moves to the selected row's replacement once it is laid out (<see cref="FocusAfterRebuild.SelectedRowUnlessSettled"/>);
+    /// otherwise it went with the old row and the rename and delete keys stopped reaching the tree (Joel, 2026-10-07: Return
+    /// renamed commands but not groups).
     /// </summary>
     private void Rebuild()
     {
-        var hadFocus = _list?.IsKeyboardFocusWithin == true;
         var rows = CommandTreeRows.Build(Sections, (action, section, command, name) => Raise(action, section, command, name), OnRowPressed);
-
-        // Replacing the rows clears the list's selection at once; that is not the user selecting nothing.
-        Quietly(() => Rows = rows);
-        ApplySelection();
-        if (hadFocus)
-        {
-            Dispatcher.UIThread.Post(FocusSelectedRow, DispatcherPriority.Loaded);
-        }
-    }
-
-    private void FocusSelectedRow()
-    {
-        if (_list?.SelectedItem is { } selected && !IsEditing && !(_list.IsKeyboardFocusWithin && _list.ContainerFromItem(selected)?.IsKeyboardFocusWithin == true))
-        {
-            _list.ContainerFromItem(selected)?.Focus();
-        }
+        _rows.Replace(() => Rows = rows, ApplySelection);
     }
 
     /// <summary>
@@ -279,28 +250,14 @@ public sealed class CommandTree : TemplatedControl
     /// </summary>
     private void ApplySelection()
     {
-        if (_list is not null)
+        if (_rows.List is not null)
         {
-            Quietly(() => _list.SelectedItem = CommandTreeRows.Find(Rows, SelectedSectionId, SelectedCommandId));
+            _rows.SelectQuietly(CommandTreeRows.Find(Rows, SelectedSectionId, SelectedCommandId));
         }
 
         foreach (var header in Rows.OfType<SectionRow>())
         {
             header.ShowsNewCommand = SelectedSectionId is { } target && header.Item?.Id == target;
-        }
-    }
-
-    /// <summary>A selection change that is not the user's: the list's SelectionChanged raises nothing meanwhile.</summary>
-    private void Quietly(Action change)
-    {
-        _applying = true;
-        try
-        {
-            change();
-        }
-        finally
-        {
-            _applying = false;
         }
     }
 
@@ -313,18 +270,14 @@ public sealed class CommandTree : TemplatedControl
     /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is not Control row || _list is null)
+        if (sender is not Control row || _rows.List is null)
         {
             return;
         }
 
-        if (e.GetCurrentPoint(row).Properties.IsRightButtonPressed)
+        if (!_rows.SelectOnRightPress(row, e) && row is ItemRow item)
         {
-            _list.SelectedItem = row;
-        }
-        else if (row is ItemRow item && item.IsRenameClick(e))
-        {
-            Dispatcher.UIThread.Post(() => RenameByDoubleClick(item));
+            _rows.RenameOnDoubleClick(item, e, RenameByDoubleClick);
         }
     }
 

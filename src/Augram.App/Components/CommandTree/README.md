@@ -4,7 +4,7 @@ The tree of a Commands sub-tab (F5a) and the vocabulary its rows and the header 
 
 | Type | Job |
 |---|---|
-| `CommandTree`, `CommandTreeRows` | The list (`PART_Rows`), the rebuild that keeps selection and focus, right-click select, double-click rename, the platform filter toggle. |
+| `CommandTree`, `CommandTreeRows` | The list (`PART_Rows`, through `ListEditing/RowListHost`: the rebuild that keeps selection and focus, right-click select, double-click rename), what a double click on a header does (puts its first click's toggle back), the platform filter toggle. |
 | `SectionRow`, `CommandRow` | Rows, on `ListEditing/ItemRow`. A section header toggles on a tap, renames on a double click on its name. |
 | `CommandTreeMenu` | The menu table and `Allows` rules over `ListEditing/ActionMenu`, keys from `ListEditing/EditKeymap`. |
 | `CommandTreeAction`, `CommandTreeActionEventArgs` | Every intent of the tree and the header. |

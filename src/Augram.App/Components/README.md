@@ -15,7 +15,7 @@ Every shared control of the App: lookless (`TemplatedControl` with named `PART_*
 ## The editable-list contract
 
 - **Items in, one `ActionRequested` out.** The host (a view model) builds the items, plain records (`CommandItem`, `SectionItem`, `StepItem`, `MasterItem`, `GestureTileItem`); their `From` factories live in the view models (`ViewModels/Commands/Projection/`), the wording of kinds stays here (`TriggerKindExtensions`, `InputKindExtensions`, `StepPlatformMarker`). Every intent (menu entry, key, button, rename, drag) ends in one action enum value.
-- **The host owns the selection**, by id; it survives a rebuild of the rows, and applying it never echoes back as a request (the `_applying`/`Quietly` guard in each list; S14b folds it into one `RowListHost`).
+- **The host owns the selection**, by id; it survives a rebuild of the rows, and applying it never echoes back as a request (`ListEditing/RowListHost`: `SelectQuietly`, `Replace`).
 - **Right-click selects** before the menu opens; **a double click** renames (a row) or redraws (a tile).
 - **Rename in place through `ListEditing/ItemRow`**, the one rename editor: Enter or leaving commits, Escape reverts, an unchanged name raises nothing, the commit after a leave is posted so a click on another row selects first.
 - **One menu builder and one keymap**: each list's `…Menu` is a table over `ListEditing/ActionMenu<TAction>` and binds `ListEditing/EditKeymap` (F2 or Enter on Windows, Return on macOS, Ctrl/Cmd shortcuts). No list binds a key or builds a `MenuItem` of its own.
@@ -26,6 +26,7 @@ Every shared control of the App: lookless (`TemplatedControl` with named `PART_*
 
 | Job | Use | Not |
 |---|---|---|
+| A list's `ListBox`: selection by id without an echo, rebuild with focus restore, right-click select, the double-click rule, the keys standing down | `ListEditing/RowListHost` (a field of the list) | a `SelectionChanged`/`DoubleTapped` handler or an `_applying` flag in a list |
 | In-place rename, the active box, `:editing`/`:inactive` | `ListEditing/ItemRow` (base of `SectionRow`, `CommandRow`, `StepRow`, `MasterRow`, `GestureTile`) | a `PART_NameEditor` handled in a row of its own |
 | A list's context menu and its keys | `ListEditing/ActionMenu<TAction>` + `ListEditing/EditKeymap` | `new MenuItem`, `new KeyBinding`, or a `Key.F2`/`Key.Return` rename outside them |
 | A dropdown that only asks | `Parts/AskingDropdown` (the header, the sync conflict row) | an `_applying` flag around a `ComboBox` |
