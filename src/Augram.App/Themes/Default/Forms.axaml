@@ -683,12 +683,13 @@
         </Style>
       </ControlTheme>
 
-      <!-- The hotkey capture field (F5): an input-like field, then its buttons; capturing changes only the frame's colour, so nothing shifts. -->
+      <!-- The hotkey capture field (F5): an input-like field, then its buttons; capturing changes only the frame's colour, so nothing shifts.
+           The buttons wrap under the field where the editor column is too narrow for them (a Mac step panel cut Capture off, 0.13.9). -->
       <ControlTheme x:Key="{x:Type hk:HotkeyCaptureBox}" TargetType="hk:HotkeyCaptureBox">
         <Setter Property="Template">
           <ControlTemplate>
             <StackPanel Spacing="{StaticResource Space.S}">
-              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+              <WrapPanel ItemSpacing="{StaticResource Space.M}" LineSpacing="{StaticResource Space.S}">
                 <Border Name="PART_Field"
                         MinWidth="{StaticResource Editor.MinWidth}"
                         MinHeight="{StaticResource Editor.Height}"
@@ -703,7 +704,7 @@
                 <Button Name="PART_Capture" Classes="toolbar" Content="Capture" />
                 <Button Name="PART_Accept" Classes="toolbar primary" Content="Accept" />
                 <Button Name="PART_Clear" Classes="toolbar" Content="Clear" />
-              </StackPanel>
+              </WrapPanel>
               <TextBlock Classes="help" Text="{TemplateBinding StatusText}" IsVisible="{TemplateBinding HasStatus}" />
             </StackPanel>
           </ControlTemplate>

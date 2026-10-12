@@ -92,7 +92,9 @@ internal sealed class StepEditor
 
                 break;
             case StepListAction.Edit when step is not null && e.Edited is { } edited:
-                steps[step.Index] = steps[step.Index] with { Step = edited };
+                // An edit is made in this platform's terms (the form shows its key names), so the step is authored here:
+                // a Windows "Win+X" kept unconverted in a Mac version, edited to Opt+Shift+X, still read and ran as Windows.
+                steps[step.Index] = steps[step.Index] with { Step = edited, AuthoredOn = _platform };
                 Commit(group, command, steps, step.Index);
                 break;
             case StepListAction.Duplicate when step is not null:

@@ -2,7 +2,9 @@ using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
+using Augram.Core.Mapping;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.WindowOp;
 using Avalonia.Headless.XUnit;
 using Xunit;
@@ -34,6 +36,23 @@ public sealed class CommandsViewModelVersionTests
         Assert.Contains("now has its own steps here", vm.Message, StringComparison.Ordinal);
         Assert.True(vm.SelectedCommand!.HasOwnVersionHere);
         Assert.Equal("own macOS version", Item(vm, "Three steps").PlatformMarker);
+    }
+
+    /// <summary>A step with no conversion stays Windows' in the own version; once edited here it is a macOS step (Joel, 0.13.9: the magnifier).</summary>
+    [AvaloniaFact]
+    public void AnUnconvertedStepEditedHere_IsAuthoredHere()
+    {
+        var (vm, store, _, _) = Create(CommandsScope.Global, platform: HostPlatform.MacOS);
+        var command = Find(store, "Three steps");
+        store.UpdateCommand(store.Global.Id, command with { Steps = [new CommandStep(new HotkeyStep(KeyModifiers.Shift | KeyModifiers.Meta, KeyCode.X), HostPlatform.Windows)] });
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized"), Item(vm, "Three steps")));
+        Assert.Equal(HostPlatform.Windows, vm.Steps[0].Step.AuthoredOn);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Edit, vm.Steps[0], edited: new HotkeyStep(KeyModifiers.Alt | KeyModifiers.Shift, KeyCode.X)));
+
+        var own = Assert.Single(Find(store, "Three steps").OwnVersion!.Steps);
+        Assert.Equal(HostPlatform.MacOS, own.AuthoredOn);
+        Assert.Equal("Opt+Shift+X", vm.Steps[0].Summary);
     }
 
     /// <summary>"Change to…" edits this platform's steps as Edit does: the first change here makes own steps, the original keeps its step.</summary>
