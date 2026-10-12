@@ -4,7 +4,7 @@ Windows implementations of the Core ports that need the OS: `IWindowSystem` (M1 
 
 **May reference:** `Augram.Core` and the `Microsoft.Win32.SystemEvents` package (session, power and display notifications; `Microsoft.Win32.Registry` is in the shared framework). Win32 goes through `P/Invoke` in `Interop/NativeMethods.cs` (and its display part, `NativeMethods.Display.cs`) and nowhere else; types that touch it carry `[SupportedOSPlatform("windows")]`. The assembly has `[DisableRuntimeMarshalling]` so `LibraryImport` generates direct calls (blittable structs and `Span<char>` buffers only).
 
-**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem`, `Win32WindowOperations` as `IWindowOperations`, `Win32ProcessLauncher` as `IProcessLauncher`, `Win32DisplayModes` as `IDisplayModes`, `Win32Clipboard` as `IClipboard` and the adapters below through `EngineModule`.
+**Must never contain:** Avalonia, SharpHook, business rules, or anything Core could do without the OS. Nothing above the ports may know this project exists except the composition root, which registers `Win32WindowSystem` as `IWindowSystem`, `Win32WindowOperations` as `IWindowOperations`, `Win32ProcessLauncher` as `IProcessLauncher`, `Win32DisplayModes` as `IDisplayModes`, `Win32Clipboard` as `IClipboard` and the adapters below, all in `Augram.App/Hosting/Modules/PlatformModule`. This project has no App-facing exceptions; the macOS project has three (`MacStatusItem`, `MacDock`, `MacLaunchEvent`: macOS-only, no Windows counterpart, so no port; its README and ADR-0002 §2 list them).
 
 ## Layout
 

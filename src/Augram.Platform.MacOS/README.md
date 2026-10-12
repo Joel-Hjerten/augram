@@ -6,6 +6,14 @@ macOS implementations of the same Core ports as `Augram.Platform.Windows`, throu
 
 **Must never contain:** Avalonia, SharpHook, business rules, or Windows types.
 
+**Who may name it:** nothing above the ports except the composition root (`CompositionRoot` and `Augram.App/Hosting/Modules`, which register the adapters), and three documented App-facing exceptions (ADR-0002 §2; plan 0007, Eng 17). Each is macOS-only with no Windows counterpart, so it has no Core port; it gets one only if a Windows equivalent appears:
+
+| Type | Named by | Why there is no port |
+|---|---|---|
+| `MacStatusItem` (+ `MacMenuEntry`) | `Augram.App/Tray/MacTrayHost`, `Tray/TrayMenuEntries` | The menu-bar item; Windows uses Avalonia's `TrayIcon`. |
+| `MacDock` | `Augram.App/Hosting/MacDockPresence`, `App.Launch.cs` | The Dock icon's activation policy; Windows has no Dock. |
+| `Startup/MacLaunchEvent` | `Augram.App/App.Launch.cs` | Whether this launch was a login-item launch; Windows passes `--hidden` instead. |
+
 ## What is here
 
 | Folder / file | Port | What it does |
@@ -48,7 +56,7 @@ Not built yet: the placement operations. `ISystemEvents` is `MacSystemEvents` si
 
 ## Start at login on macOS (2026-10-10, compiled, not yet run on a Mac)
 
-Ticking Start at login (Options › General or the menu-bar menu) in the installed Augram registers Augram.app as a login item (`MacLoginItemRegistration`); a development build never touches it (App README, "Start at login"). A login item registered this way takes no arguments, so the App cannot ask for a hidden launch as the Windows Run entry does with `--hidden`; it detects one: `MacLaunchEvent` reads the launch Apple event when launching finishes, and a login-item launch starts with no window and no Dock icon, in the menu bar only (App README, "Hidden launch"). To avoid a flash, on macOS the App never lets Avalonia show the window at start: it shows it itself once the launch event has decided (within milliseconds of `[NSApp run]`; after 3 s without one it shows it anyway). Opening Augram again from Finder, Launchpad, Spotlight or the Dock while it runs reaches it as a reopen (`IActivatableLifetime`, `ActivationKind.Reopen`), which shows the window.
+Ticking Start at login (Options › General or the menu-bar menu) in the installed Augram registers Augram.app as a login item (`MacLoginItemRegistration`); a development build never touches it (`Augram.App/Hosting/README.md`, "Start at login is the installed build's"). A login item registered this way takes no arguments, so the App cannot ask for a hidden launch as the Windows Run entry does with `--hidden`; it detects one: `MacLaunchEvent` reads the launch Apple event when launching finishes, and a login-item launch starts with no window and no Dock icon, in the menu bar only (`Augram.App/Hosting/README.md`, "Hidden launch"). To avoid a flash, on macOS the App never lets Avalonia show the window at start: it shows it itself once the launch event has decided (within milliseconds of `[NSApp run]`; after 3 s without one it shows it anyway). Opening Augram again from Finder, Launchpad, Spotlight or the Dock while it runs reaches it as a reopen (`IActivatableLifetime`, `ActivationKind.Reopen`), which shows the window.
 
 What macOS reports, and who wins: `enabled` is registered. `requiresApproval` (registered, but the user must allow it in Login Items) and `notFound` (Apple: "couldn't find this service"; developers report it once the user removed the app from Login Items) count as the user's "off": if the setting is on, Augram's next start turns the setting off and says so on Options ("Removed in …" / "Not allowed in System Settings › General › Login Items."), instead of registering again behind the user's back (Apple DTS advises the same). `notRegistered` with the setting on (a config copied from another Mac) registers again. Ticking it in Augram registers again in every case; while approval is pending Options says "Waiting for approval in System Settings › General › Login Items."
 
@@ -89,7 +97,7 @@ The spike's recipe (learnings 0005, variant B with the native poster) moved into
 
 ## Window finder on macOS (2026-10-09, not yet run on a Mac)
 
-The identification form's magnifiers (App README, "Window finder") call `MacWindowSystem.WindowKeyAt` and `WindowAt` on the main thread while dragging: both read the window server's list and `proc_pidpath` only, no Accessibility call, so they run inline there. The pointer comes from Avalonia (`PointToScreen`), which is points from the top left of the main display like the window list. The Mac session must verify:
+The identification form's magnifiers (`Augram.App/Components/WindowFinder/README.md`) call `MacWindowSystem.WindowKeyAt` and `WindowAt` on the main thread while dragging: both read the window server's list and `proc_pidpath` only, no Accessibility call, so they run inline there. The pointer comes from Avalonia (`PointToScreen`), which is points from the top left of the main display like the window list. The Mac session must verify:
 
 1. Dragging a magnifier from Commands › Apps out of Augram's window onto Safari, Chrome or TextEdit names the app in the popup as the pointer moves (on both displays: the 2x built-in and the 1x external, and on a display left of or above the main one), and the release adds `Safari` / `Google Chrome` / `TextEdit` to the macOS executables.
 2. The cursor is a crosshair outside Augram's window during the drag, and the target app gets no click from the release.

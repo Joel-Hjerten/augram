@@ -143,7 +143,7 @@ grant (session handoff §8a); the bundle needs its own.
 - **`spctl --assess` says "rejected" for an unsigned local build.** Normal: nothing quarantines a file built on the Mac,
   so it runs anyway; the assessment bites only a downloaded copy (Eyeris, same finding).
 - **A launch that seems to do nothing** may have handed off to an Augram already running (the single-instance guard,
-  App README "Tray and single instance"), installed or dev. Quit the other one first.
+  `src/Augram.App/Hosting/README.md`, "One Augram at a time"), installed or dev. Quit the other one first.
 - **A version can ship once.** Velopack orders releases by version; re-releasing `0.2.0` with different contents
   confuses an updater. Bump instead.
 - **The first packaging run needs the network** for the runtime packs of the target runtime and the vpk tool; later runs

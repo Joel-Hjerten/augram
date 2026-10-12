@@ -1,6 +1,6 @@
 # ViewModels
 
-Projections over the Core and Engine stores (ADR-0002 §5a): a view model reads a store, exposes what a screen shows, and turns the screen's intents into store calls. It holds UI-only state (selection, expanded sections, a draft), so deleting one loses nothing. Rules live in Core; only their messages show here. The App README's "Folders" row lists every view model and the tab sections ("Commands tab", "Gestures tab", "Exclusions tab", "How settings flow") say what each does.
+Projections over the Core and Engine stores (ADR-0002 §5a): a view model reads a store, exposes what a screen shows, and turns the screen's intents into store calls. It holds UI-only state (selection, expanded sections, a draft), so deleting one loses nothing. Rules live in Core; only their messages show here. What each tab does is with its view model: the Commands tab in `Commands/README.md`, the Exclusions tab in `Ignored/README.md`, the Gestures tab in `Components/GestureGrid/README.md`, how settings flow in `Hosting/README.md`.
 
 ## What lives here
 
