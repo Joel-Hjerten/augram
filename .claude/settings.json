@@ -30,13 +30,6 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(git worktree remove *)",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/allow-worktree-remove.mjs\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "if": "PowerShell(git worktree remove *)",
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/allow-worktree-remove.mjs\"",
             "timeout": 10
           }
