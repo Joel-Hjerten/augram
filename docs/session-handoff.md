@@ -1,4 +1,4 @@
-# Agent handoff: Augram, refactor in progress (plan 0007), features paused (updated 2026-10-11, PC session)
+# Agent handoff: Augram, refactor done (plan 0007), features resume (updated 2026-10-12, PC session)
 
 This file holds the **current state only**: what is true now, what is open, and the rules that came from incidents. The story of how it got here is in git, the plans, and the frozen [archive/session-handoff-2026-10-11.md](archive/session-handoff-2026-10-11.md). When something here stops being true, change it here; when a session ends, replace its section rather than adding a dated one above it.
 
@@ -6,7 +6,7 @@ Joel works on a **Windows 11 PC** and a **Mac**; both run Augram and sync throug
 
 ## 0. Right now
 
-**[Plan 0007, the refactor](plans/0007-refactor.md), started 2026-10-11. Features are paused until it is done** (bug fixes Joel asks for still go in). Steps: fold the retired Wireframe theme into Default; a read-only inventory per area (Fable agents); one list Joel picks from; slices that keep behaviour exactly, each writing its folder's README.
+**[Plan 0007, the refactor](plans/completed/0007-refactor.md), done 2026-10-12.** Every App folder has a README (the App README is a map of them); 52 architecture tests fail CI when a second implementation of a folded job comes back ([reference/one-home-guards.md](reference/one-home-guards.md)); CLAUDE.md's "One home per job" rule. Features resume. **Main has visible changes since 0.11.14 that Joel has not installed:** every dialog on one base (the import review's margin, the picker's heading), the light theme's swatch ring and cleaned-stroke gold, Enter renames on the Gestures tab (Windows), one undo step for deleting or merging used gestures, command labels ("Global › Minimize", "Blender › Space › Orbit") in Used by, sync conflicts and the log, the sync conflict text right on the Mac. The next package should get a new version.
 
 **Versions.** Main is **0.11.14** (`Directory.Build.props`). The PC runs a 0.11.x build (Joel installs with `node scripts/package.mjs windows` and runs the Setup.exe himself). **The Mac still runs 0.7.0**: it cannot read the PC's config (schema 7, sync format 14), so its sync is paused ("uses a newer Augram") until it runs the current build. Nothing is lost meanwhile.
 
@@ -34,6 +34,8 @@ When Joel calls a plan done on both machines, move it to `docs/plans/completed/`
 - **Sync conflicts show only in Options › Sync.** Proposed: "· 1 conflict" in the tray tooltip and Resolve… in the tray menu.
 - **Augram stops while Task Manager has focus** (elevated windows); "later" (requirements §4 has the cause and two fixes).
 - **Debug logging cannot be switched on** in any build (`ChannelEventLog.MinimumLevel` is set by nothing); Joel: not needed now.
+- **Dialog headings sit right on their panel** (the gesture picker, sync conflicts; since plan 0007 S19 every dialog shares one shell). A gap is one setter in `Themes/Default/Lists.axaml` and changes every dialog with a heading; Joel has not said.
+- **Is the refactor making small requests faster?** Measure the first few feature requests with `node scripts/agent-time.mjs` against plan 0007's close-out numbers.
 - **Older questions:** may his 105 gestures become a test fixture in the public repo (never without his yes); Avalonia 12 / SharpHook 8 (deferred); Gestures tab Undo/Redo buttons keep or drop; Mac window extras (Center, snap halves, set size).
 - **One app, defined once (Joel, 2026-10-11, backlog: after the refactor and the Mac).** Exclusions › Global and › Per command each hold their own app definitions, and names must be unique across both lists, so Joel's Per command "Blender" and "Spine" are stuck as "Blender 2" / "Spine 2" beside the Global ones. And re-registering Blender's exe in one place does not reach the others: the same app is defined up to three times (Global exclusion, Per command exclusion, the Apps app group), each with its own matcher. Options: (1) small: names unique per list, not across both (fixes the " 2" only); (2) proper, lead's recommendation: an app is defined once and exclusions and app groups refer to it, so one edit reaches every use. (2) changes the config schema and sync format, so it is its own plan once the Mac runs the current build.
 - **Idea, not scheduled (Joel, 2026-10-11): one gesture that means player fullscreen over a YouTube video and window maximize elsewhere in Chrome.** Needs the UI element under the cursor via the accessibility tree (UIA / AX); an extension is ruled out. Findings and what to measure first (the cost to Chrome): [reference/element-under-cursor.md](reference/element-under-cursor.md).
@@ -43,7 +45,7 @@ When Joel calls a plan done on both machines, move it to `docs/plans/completed/`
 ## 3. Read in this order
 
 1. [CLAUDE.md](../CLAUDE.md): ground rules (including the turnaround rules and agent effort levels), the architecture invariants, the read-first table.
-2. [plans/0007-refactor.md](plans/0007-refactor.md) while the refactor runs.
+2. [reference/one-home-guards.md](reference/one-home-guards.md): which type is the one home for which job; the folder READMEs say the same per folder.
 3. [requirements.md](requirements.md): everything DECIDED, the vocabulary (**app group › command › step**; the command-line step type is **Run**; never "action").
 4. [adr/0002-code-and-repo-structure.md](adr/0002-code-and-repo-structure.md): where code goes and why, with the 2026-10-11 amendments (Wireframe retired, a README in every App folder).
 5. The README in every project folder under `src/` and `tests/`, and in each Core subsystem; `src/Augram.Engine/README.md` has the thread table.

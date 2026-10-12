@@ -1,6 +1,6 @@
 # Plan 0007: Refactor: one implementation per job, a map for every folder
 
-**Status: STARTED 2026-10-11. Features are paused until this plan is done** (Joel, 2026-10-11). Bug fixes Joel asks for still go in; new features wait. The Mac catch-up for plans 0005 and 0006 waits too.
+**Status: DONE 2026-10-12.** Started 2026-10-11 with features paused; 19 slices merged (S1–S19 and S14b), CI green on each. Features resume; the Mac catch-up for plans 0005 and 0006 is next. What came out of it for later work: the folder READMEs (every App folder has one), the one-home guards ([reference/one-home-guards.md](../../reference/one-home-guards.md)) and the CLAUDE.md "One home per job" rule.
 
 ## Why
 
@@ -9,7 +9,7 @@ Joel, 2026-10-11: compartmentalise everything as it should be, and avoid the sam
 ## Decisions (Joel, 2026-10-11)
 
 1. **Features pause** while the refactor runs, so slices never collide with feature work.
-2. **The Wireframe theme is retired** ([ADR-0002](../adr/0002-code-and-repo-structure.md) §5b, amended). It was Default's base layer: what Default still uses moves into `Themes/Default/`, what Default overrides is deleted. UiShots renders every screen and gallery page before and after; they must match.
+2. **The Wireframe theme is retired** ([ADR-0002](../../adr/0002-code-and-repo-structure.md) §5b, amended). It was Default's base layer: what Default still uses moves into `Themes/Default/`, what Default overrides is deleted. UiShots renders every screen and gallery page before and after; they must match.
 3. **Every App folder gets a README** (ADR-0002 §5, amended), written by the agent that reorganises that folder.
 4. **Behaviour stays exactly as it is.** A slice that would change what Joel sees or what a gesture does is not a refactor; it goes back to Joel as a question.
 5. **Models.** The inventory runs on Fable 5.1 at `high` (finding the same job written two different ways is its strength). The slices run on Opus 5.5 at the effort CLAUDE.md sets per area. Risky slices (Engine, capture, recognition, hold remaps, sync) get a separate Fable review before they merge. For merging the inventory into one list, the lead asks Joel to switch the session to Fable and back.
@@ -48,15 +48,26 @@ Updated 2026-10-11, late. Step 1 (Wireframe fold, merged `4a022f1`) and step 2 (
 | S16 | merged | `b506e34` | `tests/Augram.TestSupport` (Core only, no xunit; global using in Core, Engine, App, Platform.Windows tests; README has one row per port with its options): `FakeInputSimulator` (`.All`, `OnInjection`, `PressResult/ReleaseResult/OtherResult`), `FakeWindowSystem` (`Lookups`, `WindowOf`), `FakeStepType/FakeStep(Text, Owner)`, `FakeSyncRepository/SyncRemote`, `ListEventLog` (`MinimumLevel`, `WaitForAny`), `FakeClock` (`StepPerRead`, `Stepping()`), `FakeClipboard` (`ClearedOn`), `FakeDisplayModes` (`ThrowOnChange`) and the rest; App's own-port fakes stay in App.Tests (`FakeClipboardText`). The DevGallery keeps its own fakes (Debug code in the shipping App). `ClickRelayTests` pins Replay's sequence |
 | S17 | merged | `e5e1ad7` | Tokens pruned; per-theme `Swatch.RingBrush/RingHintBrush/EdgeBrush`, `Lists.PartnerFill/PartnerEdge`, `Lists.Cleaned` (light theme: the selected swatch's ring is visible now, the cleaned stroke is the mockup's light gold; dark unchanged); `DrawsTitleBar` gone; the App README is a map, every App folder has a README (new: Themes, Inspector, UsedBy, Overlay, Transfer, Import, DevGallery); ADR-0002 §2 and both Platform READMEs list the macOS App-facing exceptions; the Engine README's hook row agrees with the code; CLAUDE.md read-first rows. UiShots README says how to byte-compare without the two log shots. Left: archived plans, learnings and ADR history as written; stale code doc comments beyond `TrailOverlayWindow`'s (fixed by the lead) |
 | S19 | merged | `a392ddd` | Every dialog is a `DialogWindow` in a `DialogShell` (`LeadingButtons` for extra buttons; `DialogSize.Training`, `DialogSize.StrokesPlusImport`); only `DialogWindow`, `MainWindow`, `TrailOverlayWindow` derive from `Window`; `SyncConflictSideText` takes a `HostPlatform` and uses `AppMatcher.Summary`; `CommandNames.Parent` leaves out Uncategorized (by id). Open for Joel: dialog headings sit right on their panel (picker, sync conflicts); a gap is one setter in `Lists.axaml` for every dialog |
-| S18 | wave 5, next: S19 after both (shares dialog and theme files); S18 last (its tests then also hold every dialog to `DialogShell`). S18 is not optional (Joel 2026-10-12) | | S17 also: CLAUDE.md's read-first row for the SP.net import names the new mapping doc; the Engine README's hook row says "Trace only, apart from IgnoredInputLog's Info lines" in "Does" but still "log above Trace" in "Must not" (and "Hook installed"/"Hook lost" are hook-thread Info once per generation): make the row agree; a test pinning `ClickRelay.Replay`'s whole call sequence (keys down, click, Ctrl tap, keys up) as one list (S7 review note) |
+| S18 | merged | `9f86cf7` | 52 architecture tests in `tests/Augram.App.Tests/Architecture/OneHome*Tests` (8 reflection, 1 project reference, 43 source scans on `SourceScan`, allowlists self-checking); `docs/reference/one-home-guards.md` (jobs, homes, the leftovers marked "fold later", how to add a guard); CLAUDE.md "One home per job" and the lead's reuse check |
 
-**Wave 4 done 2026-10-12** (main `4f34a5f`, 3,418 tests). **Next: S18 (the guards), then the close-out.**
+**Done 2026-10-12** (main `9f86cf7`, 3,474 tests). Close-out below.
 
 **Questions** 1, 10, 11 answered by Joel; the rest run on the lead's recommendation unless he overrules (2: yes; 3: settled; 4: exception documented; 5: refuse; 6: moved; 7: executor's line; 8: one undo step; 9: one label).
 
 **How a slice runs (what worked):** one worktree agent per slice, base commit named in the brief, its findings cited from `0007-inventory/` instead of re-verified, effort per CLAUDE.md, scratch commit-message files named `sN-…` (agents share the scratchpad). Slices in Engine, capture, recognition, hold remaps or sync get a Fable review agent (read-only, `model: fable`) before merge. The lead reads the diff's riskiest file, merges with `--no-ff` and a message file, and runs build + full suite + format itself only when main moved under the slice; then pushes, waits for CI in the background, removes the worktree. From S12 on, each brief asks the agent to name the one-home types it created, and the lead adds them to S18's guard list in this table. Keep shell commands simple: a compound merge-and-push line was refused by the permission check; separate calls are not.
 
 **Outside this plan, noted while it ran:** plan 0008 (keys lost after a Minimize, Joel, PROPOSED for after the refactor); the handoff's "one app, defined once" backlog item.
+
+## Close-out (2026-10-12)
+
+**Timing, against the 2026-10-11 baseline** (`scripts/agent-time.mjs`, the slice agents of waves 4 and 5: S11–S19 and S14b, Opus 5.5 at the CLAUDE.md effort):
+- Median slice agent 17 minutes (9 to 33). Not comparable with the baseline's runs: these were large folds across many files, the baseline small feature changes.
+- Model time (thinking and writing) 59% of agent wall time, against 63% at `xhigh` on 2026-10-11.
+- Relearning: 8 of 10 slice agents read 0 to 2 docs before their first edit (the brief named the files, the inventory had the facts); S17, the docs sweep, read 15 by its nature.
+- Tests were never the cost: the full suite runs in about 17 seconds; `dotnet test` was 7.6% of agent time.
+- **The real check is still open:** run `node scripts/agent-time.mjs <transcripts> <since>` on the first few small feature requests after the refactor and compare with the 2026-10-11 numbers (a two-minute UI change took 13 to 35 minutes).
+
+**Open after the plan** (each also in the handoff): dialog headings sit right on their panel, a gap is one setter for all dialogs (S19); the guards doc's "fold later" leftovers (`ScrollExecutor`'s own key bracket, a `RequireCategory` lookup, `RunStepForm`'s Browse line, the HDR/Window/Display mode/Open app step forms' own state).
 
 ## The list (step 3, written 2026-10-11 on Fable 5.1)
 
