@@ -79,6 +79,21 @@ public sealed class AppearanceLinkTests
         Assert.Equal(new CornerRadius(2), resources["Radius.Control"]);
     }
 
+    [AvaloniaFact]
+    public void ATintChangeRepaintsWithoutAskingForGlassAgain()
+    {
+        // Avalonia's macOS backend turns a window opaque when it is asked again for the glass it already has.
+        var window = new Window();
+        WindowBackdrop.Apply(window, AppearanceSettings.Default with { TintPercent = 60 });
+        var asked = window.TransparencyLevelHint;
+        var painted = window.Background;
+
+        WindowBackdrop.Apply(window, AppearanceSettings.Default with { TintPercent = 30 });
+
+        Assert.Same(asked, window.TransparencyLevelHint);
+        Assert.NotEqual(painted, window.Background);
+    }
+
     [Fact]
     public void TheBackdropAsksForGlassAndFallsBackToNone()
     {

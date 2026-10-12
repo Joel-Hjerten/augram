@@ -44,7 +44,15 @@ public static class WindowBackdrop
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(appearance);
-        window.TransparencyLevelHint = HintsFor(appearance.WindowBackground, OperatingSystem.IsWindows());
+        var hints = HintsFor(appearance.WindowBackground, OperatingSystem.IsWindows());
+
+        // Only a different list is sent. Avalonia's macOS backend (11.3) skips the level a window already has, so the same
+        // list again falls through to None and the window turns opaque: a Tint drag flickered between glass and opaque.
+        if (!window.TransparencyLevelHint.SequenceEqual(hints))
+        {
+            window.TransparencyLevelHint = hints;
+        }
+
         Paint(window, appearance);
     }
 

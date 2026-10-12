@@ -32,6 +32,7 @@ What the plan 0006 session learned while re-skinning the app with a lead and fou
 ## Glass
 
 - **The system does the blur and keeps its strength to itself.** Avalonia takes a `TransparencyLevelHint` list and uses the first level the platform supports: Acrylic or Mica first, `None` last.
+- **Set `TransparencyLevelHint` only when the list differs** (Mac, 0.13.7). Avalonia 11.3's macOS backend skips the level a window already has, so the same list sent again falls through to `None`, and the window turns opaque until the next send. Sending it on every Tint step made the window flicker between glass and opaque during a drag (`Themes/WindowBackdrop.Apply`).
 - **When `ActualTransparencyLevel` is `None`** (Solid, transparency effects off, battery saver, an unfocused Mica window), the window's tint must be painted opaque. Otherwise the window is see-through with nothing behind it (`Themes/WindowBackdrop`).
 - **Dialogs get the backdrop** through a `Control.LoadedEvent` class handler on `Window`, only for windows with an owner, and never the trail overlay, which has no owner and is excluded by type as well (CLAUDE.md invariant 6).
 - **Windows 11, Joel's first real-window run (2026-10-11):**
