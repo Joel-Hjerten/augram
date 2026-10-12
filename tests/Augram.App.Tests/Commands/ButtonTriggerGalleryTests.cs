@@ -78,8 +78,9 @@ public sealed class ButtonTriggerGalleryTests
         var boxes = dialogs[0].GetVisualDescendants().OfType<CheckBox>().ToList();
         Assert.Equal(["A Plague Tale", "Blender", "DaVinci Resolve"], boxes.Select(box => box.GetVisualDescendants().OfType<TextBlock>().First().Text));
         Assert.Equal([false, true, false], boxes.Select(box => box.IsChecked == true));
-        Assert.Empty(dialogs[1].GetVisualDescendants().OfType<CheckBox>());
-        Assert.Contains(dialogs[1].GetVisualDescendants().OfType<TextBlock>(), text => text.Text == AlsoInEditViewModel.NoAppsText);
+        Assert.Equal([true, false, true], boxes.Select(box => box.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == RemovableEntries.UnusedNote && text.IsVisible)));
+        Assert.DoesNotContain(dialogs[1].GetVisualDescendants().OfType<CheckBox>(), box => box.IsEffectivelyVisible);
+        Assert.Contains(dialogs[1].GetVisualDescendants().OfType<TextBlock>(), text => text.Text == AlsoInEditViewModel.NoAppsText && text.IsEffectivelyVisible);
     }
 
     [AvaloniaFact]

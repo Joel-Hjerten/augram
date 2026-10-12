@@ -61,7 +61,7 @@ public sealed class AllowedForEditViewModel : ObservableObject, IDialogForm
         ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(mapping);
         var offered = mapping.AllCommands().Where(pair => MappingRules.CanWorkOverExcluded(pair.Command));
-        var allowed = mapping.AllCommands().Where(pair => pair.Command.AlsoIn.Contains(app.Id)).Select(pair => pair.Command.Id);
+        var allowed = mapping.UsersOf(app.Id).Select(pair => pair.Command.Id);
         return new AllowedForEditViewModel(app.Name, offered, allowed, platform);
     }
 

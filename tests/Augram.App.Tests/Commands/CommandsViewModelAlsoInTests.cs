@@ -1,6 +1,7 @@
 using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.ListEditing;
+using Augram.App.Components.SectionForm;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
 using Augram.App.ViewModels.Commands;
@@ -19,7 +20,8 @@ namespace Augram.App.Tests.Commands;
 /// <summary>
 /// "Also in" (Joel, 2026-10-10, plan 0005 decision 7): a command whose trigger holds no stroke button (a button trigger, Right +
 /// wheel) names the Exclusions › Global entries it still works over. The header's row names them, Change… opens the Global
-/// entries without the disable-while-focused mode by name as a check list, and Save stores what is ticked as one undo step.
+/// entries without the disable-while-focused mode by name as a check list, and Save stores what is ticked as one undo step; an
+/// unused entry has the Not in dialog's ✕ (Joel, 2026-10-12).
 /// </summary>
 public sealed class CommandsViewModelAlsoInTests
 {
@@ -101,6 +103,63 @@ public sealed class CommandsViewModelAlsoInTests
         Assert.False(store.CanUndo);
     }
 
+    /// <summary>✕ (Joel, 2026-10-12, the Not in dialog's mechanism): an entry no other command's Also in names, unticked, is muted "unused" and removable; Save deletes it with the ticks, one undo step.</summary>
+    [AvaloniaFact]
+    public void AnUnusedEntry_IsMarkedAndRemovable_AndSaveDeletesItWithTheTicksAsOneUndoStep()
+    {
+        var (vm, store, dialogs) = GlobalWithChords();
+        store.UpdateCommand(GroupId.Global, CommandsTestData.Find(store, "Zoom in") with { AlsoIn = [Blender.Id] });
+        store.UpdateCommand(GroupId.Global, CommandsTestData.Find(store, "Magnifier") with { AlsoIn = [Resolve.Id] });
+        var before = store.Current;
+        IReadOnlyList<(string, bool, string)>? looks = null;
+        dialogs.Answer = request =>
+        {
+            var form = new SectionForm { Screen = request.Screen! };
+            new Window { Width = 700, Height = 900, Content = form }.Show();
+            looks = [.. form.GetVisualDescendants().OfType<CheckBox>().Select(box => (
+                box.GetVisualDescendants().OfType<TextBlock>().First().Text ?? string.Empty,
+                box.GetVisualDescendants().OfType<TextBlock>().First().Classes.Contains("muted"),
+                string.Join(" ", box.GetVisualDescendants().OfType<TextBlock>().Skip(1).Where(text => text.IsVisible).Select(text => text.Text))))];
+            var list = CheckList(request);
+            Assert.Equal(AlsoInEditViewModel.ListHelp, list.Help);
+            Assert.Equal([true, false, false], list.Items.Select(item => item.Remove!.Removable.Get()));
+            Assert.Equal(AlsoInEditViewModel.RemoveTip, list.Items[0].Remove!.Tip);
+            list.Items.Single(item => item.Caption == "A Plague Tale").Remove!.Click();
+            list.Items.Single(item => item.Caption == "DaVinci Resolve").Value.Set(false);
+            list.Items.Single(item => item.Caption == "DaVinci Resolve").Remove!.Click();
+            Tick(list, "Blender");
+            return true;
+        };
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditAlsoIn, command: Item(vm, "Magnifier")));
+
+        // Blender is Zoom in's, DaVinci Resolve ticked here, A Plague Tale no one's.
+        Assert.Equal([("A Plague Tale", true, "inactive unused"), ("Blender", false, string.Empty), ("DaVinci Resolve", false, string.Empty)], looks);
+        Assert.Equal(["Blender", "Spine", "VMware"], store.Current.Ignored.Select(app => app.Name).Order());
+        Assert.Equal([Blender.Id], CommandsTestData.Find(store, "Magnifier").AlsoIn);
+        Assert.Equal("Blender", Item(vm, "Magnifier").AlsoInText);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Same(before, store.Current);
+    }
+
+    [AvaloniaFact]
+    public void CancelRemovesNothing()
+    {
+        var (vm, store, dialogs) = GlobalWithChords();
+        var before = store.Current;
+        dialogs.Answer = request =>
+        {
+            Assert.True(CheckList(request).Items.Single(item => item.Caption == "Blender").Remove!.Removable.Get());
+            CheckList(request).Items.Single(item => item.Caption == "Blender").Remove!.Click();
+            return false;
+        };
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditAlsoIn, command: Item(vm, "Magnifier")));
+
+        Assert.Same(before, store.Current);
+    }
+
     [AvaloniaFact]
     public void WithNoPlainGlobalEntry_TheDialogSaysSo_AndAGestureAskingOpensNothing()
     {
@@ -114,8 +173,11 @@ public sealed class CommandsViewModelAlsoInTests
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditAlsoIn, command: Item(vm, "Magnifier")));
 
-        var note = Assert.IsType<NoteField>(asked!.Screen!.Sections.Single().Fields.Single());
+        var fields = asked!.Screen!.Sections.Single().Fields;
+        Assert.False(fields.OfType<CheckListField>().Single().Visible!.Get());
+        var note = fields.OfType<NoteField>().Single();
         Assert.Equal((AlsoInEditViewModel.ListLabel, AlsoInEditViewModel.NoAppsText), (note.Label, note.Text.Get()));
+        Assert.True(note.Visible!.Get());
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.EditAlsoIn, command: Item(vm, "Close window")));
         Assert.Single(dialogs.Requests);

@@ -68,7 +68,7 @@ public sealed partial class IgnoredViewModel
         Message = null;
         Guard(() =>
         {
-            var allowed = AllowedUsersOf(id).Count;
+            var allowed = UsersOf(id).Count;
             Message = LeftAlsoIn(_store.UpdateIgnored(edit.Apply(Require(id.Value))), allowed);
         });
     }

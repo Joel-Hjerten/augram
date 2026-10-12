@@ -23,7 +23,7 @@ The Exclusions tab's view models ("Exclusions" in the UI since plan 0005, "Ignor
 
 ## The side panel
 
-The selected entry's form lives in a `ViewModels/PanelEdit`: rebuilt only when another entry is selected, so typing keeps focus; for the same entry the stored values are synced in, and its "Used by" (Per command: the commands naming it in their Not in) and "Allowed for" (Global: the commands naming it in their Also in) are re-read on every store change. Those two lists and the identification's guess are the host's, so they are never taken for an edit. The links read `CommandNames.Label` ("Global › Media › Zoom in") and open the command through `Navigation/ICommandLocator` when there is one.
+The selected entry's form lives in a `ViewModels/PanelEdit`: rebuilt only when another entry is selected, so typing keeps focus; for the same entry the stored values are synced in, and its "Used by" (Per command: the commands naming it in their Not in) and "Allowed for" (Global: the commands naming it in their Also in), both Core's `MappingDocument.UsersOf`, are re-read on every store change. Those two lists and the identification's guess are the host's, so they are never taken for an edit. The links read `CommandNames.Label` ("Global › Media › Zoom in") and open the command through `Navigation/ICommandLocator` when there is one.
 
 ## Exclusions tab (F5 ignore list; plan 0001 M2 step 6; 2026-10-09; Global / Per command, plan 0004 step 7; Also in, plan 0005)
 

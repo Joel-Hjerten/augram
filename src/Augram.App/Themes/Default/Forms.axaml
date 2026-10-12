@@ -1106,7 +1106,7 @@
   <Style Selector="TextBlock.check-list-detail">
     <Setter Property="Margin" Value="8,0,0,0" />
   </Style>
-  <!-- A removable item's ✕ (the Not in dialog's unused apps): the search box's clear glyph (Button.search-clear below), centred on the row. -->
+  <!-- A removable item's ✕ (the Not in and Also in dialogs' unused apps): the search box's clear glyph (Button.search-clear below), centred on the row. -->
   <Style Selector="Button.check-list-remove">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>

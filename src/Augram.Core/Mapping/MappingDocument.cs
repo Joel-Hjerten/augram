@@ -30,11 +30,13 @@ public sealed record MappingDocument(IReadOnlyList<AppGroup> Groups, IReadOnlyLi
     }
 
     /// <summary>
-    /// The commands whose "Not in" names the Exclusions › Per command entry <paramref name="ignoredId"/>, in document order: its users
-    /// (the Exclusions tab's "Used by", the Not in dialog's "unused"; plan 0004).
+    /// The commands that name the Exclusions entry <paramref name="ignoredId"/>, in document order: its users. A Per command entry is
+    /// used by the commands whose "Not in" names it, a Global entry by the commands whose "Also in" names it; an entry is one kind or
+    /// the other, and normalisation keeps each list to its kind, so one lookup answers for both (the Exclusions tab's "Used by" and
+    /// "Allowed for", the Not in and Also in dialogs' "unused"; plans 0004 and 0005, Joel 2026-10-12).
     /// </summary>
-    public IEnumerable<(AppGroup Group, Command Command)> NotInUsers(GroupId ignoredId)
-        => AllCommands().Where(pair => pair.Command.NotIn.Contains(ignoredId));
+    public IEnumerable<(AppGroup Group, Command Command)> UsersOf(GroupId ignoredId)
+        => AllCommands().Where(pair => pair.Command.NotIn.Contains(ignoredId) || pair.Command.AlsoIn.Contains(ignoredId));
 
     /// <summary>The command with this id and its group, in any group; null when the mapping has none.</summary>
     public (AppGroup Group, Command Command)? FindCommand(CommandId id)

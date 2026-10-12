@@ -14,12 +14,8 @@ namespace Augram.App.ViewModels.Ignored;
 /// </summary>
 public sealed partial class IgnoredViewModel
 {
-    /// <summary>The commands whose "Also in" names the entry, in document order (Global first, then the app groups by name).</summary>
-    private List<(AppGroup Group, Command Command)> AllowedUsersOf(GroupId id)
-        => [.. _store.Current.AllCommands().Where(pair => pair.Command.AlsoIn.Contains(id))];
-
-    /// <summary>The entry's "Allowed for" as links, "Global › Media › Magnifier", each opening its command (the Per command entries' "Used by" words).</summary>
-    private List<LinkItem> AllowedForLinks(GroupId id) => Links(AllowedUsersOf(id));
+    /// <summary>The entry's "Allowed for" as links, "Global › Media › Magnifier", each opening its command (the Per command entries' "Used by" words; the same <see cref="UsersOf"/>).</summary>
+    private List<LinkItem> AllowedForLinks(GroupId id) => Links(UsersOf(id));
 
     /// <summary>
     /// The Allowed for row's Change… (Joel, 2026-10-11: from the excluded app's side too): the commands that can work over an
@@ -43,7 +39,7 @@ public sealed partial class IgnoredViewModel
         {
             if (_store.SetAllowedFor(id, edit.Allowed) > 0 && _store.FindIgnored(id) is { } stored)
             {
-                Message = $"'{stored.Name}' is allowed for {Commands(AllowedUsersOf(id).Count)} now. {EditKeymap.Current.Undo} undoes it.";
+                Message = $"'{stored.Name}' is allowed for {Commands(UsersOf(id).Count)} now. {EditKeymap.Current.Undo} undoes it.";
             }
         });
     }
@@ -58,7 +54,7 @@ public sealed partial class IgnoredViewModel
     /// </summary>
     private string? LeftAlsoIn(IgnoredApp stored, int before)
     {
-        var left = before - AllowedUsersOf(stored.Id).Count;
+        var left = before - UsersOf(stored.Id).Count;
         return left <= 0 ? null : $"'{stored.Name}' disables Augram while focused now, so it left the Also in of {Commands(left)}. {EditKeymap.Current.Undo} undoes it.";
     }
 }

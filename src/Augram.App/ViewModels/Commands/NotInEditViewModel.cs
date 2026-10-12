@@ -13,7 +13,8 @@ namespace Augram.App.ViewModels.Commands;
 /// check list (<see cref="CheckListField"/>, the export dialog's) of the Exclusions › Per command entries by name, the ones it
 /// names ticked, and <see cref="AddLabel"/> with the window finder's magnifier: the picked window's app becomes a new Per command
 /// entry (<see cref="AddApp"/>), listed and ticked at once. An entry no other command names and not ticked here reads "unused"
-/// (muted) with an ✕ that takes it out of the list (<see cref="Remove"/>; Joel, 2026-10-12: the list kept growing). <see cref="Declare"/>
+/// (muted) with an ✕ that takes it out of the list (<see cref="Remove"/>; Joel, 2026-10-12: the list kept growing; the mechanism is
+/// <see cref="RemovableEntries"/>, the Also in dialog's too). <see cref="Declare"/>
 /// is the form for the shared <c>FormDialog</c>; <see cref="NotIn"/> is what is ticked, <see cref="Added"/> the entries Add app… made and
 /// <see cref="Removed"/> the stored entries ✕ took away, which the host stores together as one edit when the dialog is confirmed (Cancel
 /// adds and removes nothing). What a list may hold is Core's (<see cref="MappingRules"/> keeps only
@@ -26,10 +27,9 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
     public const string ListLabel = "Apps";
     public const string NoAppsText = "None on Exclusions › Per command yet: add one with the magnifier below.";
     public const string AddLabel = "Add app…";
-    public const string UnusedNote = "unused";
-    public const string RemoveTip = "Remove from Exclusions › Per command";
-    public const string ListHelp = CommandHeader.NotInHelp
-        + " An app no other command names reads \"unused\": its ✕ deletes it from Exclusions › Per command, the only place it lives, when you Save.";
+    public const string ListName = "Per command";
+    public static readonly string RemoveTip = RemovableEntries.Tip(ListName);
+    public static readonly string ListHelp = CommandHeader.NotInHelp + RemovableEntries.Help(ListName);
     public const string AddPrompt = "Drag the magnifier onto the app's window.";
     public const string AddHelp = "The window's app joins Exclusions › Per command, named after its executable and matched on it (as the identification form's "
         + "Executable magnifier fills it), and is ticked here. Save stores it with the ticks; Cancel adds nothing. An app already on Per command is ticked instead.";
@@ -37,9 +37,8 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
     private readonly IReadOnlyList<IgnoredApp> _ignored;
     private readonly List<IgnoredApp> _entries;
     private readonly List<IgnoredApp> _added = [];
-    private readonly List<GroupId> _removed = [];
-    private readonly HashSet<GroupId> _usedElsewhere;
     private readonly CheckedSet<GroupId> _checked;
+    private readonly RemovableEntries _removable;
     private readonly HostPlatform _platform;
 
     /// <param name="commandName">The command's name, for the section title.</param>
@@ -57,7 +56,7 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
         _ignored = [.. ignored];
         _entries = [.. _ignored.Where(app => app.IsPerCommand)];
         _checked = new(notIn.Where(id => _entries.Exists(app => app.Id == id)), () => OnPropertyChanged(nameof(NotIn)));
-        _usedElsewhere = [.. usedElsewhere ?? []];
+        _removable = new(_entries, _checked, usedElsewhere, RemoveTip, this, nameof(NotIn), () => OnPropertyChanged(nameof(Entries)), _added);
     }
 
     public string CommandName { get; }
@@ -73,7 +72,7 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
     public IReadOnlyList<IgnoredApp> Added => _added;
 
     /// <summary>The stored entries ✕ took away, in the order removed; Save deletes them from Exclusions › Per command with <see cref="NotIn"/>.</summary>
-    public IReadOnlyList<GroupId> Removed => _removed;
+    public IReadOnlyList<GroupId> Removed => _removable.Removed;
 
     /// <summary>The ticked entries, in the stored order (by id).</summary>
     public IReadOnlyList<GroupId> NotIn => [.. _checked.OrderBy(id => id.Value)];
@@ -87,34 +86,17 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(mapping);
-        var usedElsewhere = mapping.Ignored.Where(app => app.IsPerCommand && mapping.NotInUsers(app.Id).Any(pair => pair.Command.Id != command.Id));
-        return new NotInEditViewModel(command.Name, mapping.Ignored, command.NotIn, platform, usedElsewhere.Select(app => app.Id));
+        return new NotInEditViewModel(command.Name, mapping.Ignored, command.NotIn, platform, RemovableEntries.UsedElsewhere(mapping, mapping.Ignored.Where(app => app.IsPerCommand), command.Id));
     }
 
     /// <summary>True when no other command names the entry and it is not ticked here: it reads "unused" and may be removed.</summary>
-    public bool IsRemovable(GroupId id) => !_usedElsewhere.Contains(id) && !_checked.IsChecked(id) && _entries.Exists(app => app.Id == id);
+    public bool IsRemovable(GroupId id) => _removable.IsRemovable(id);
 
     /// <summary>
     /// ✕: takes a removable entry (<see cref="IsRemovable"/>) out of the list; one Add app… made here is simply not added, a stored
     /// one joins <see cref="Removed"/>. Anything else is left alone. Returns whether it was removed.
     /// </summary>
-    public bool Remove(GroupId id)
-    {
-        if (!IsRemovable(id))
-        {
-            return false;
-        }
-
-        var app = _entries.Find(entry => entry.Id == id)!;
-        _entries.Remove(app);
-        if (!_added.Remove(app))
-        {
-            _removed.Add(id);
-        }
-
-        OnPropertyChanged(nameof(Entries));
-        return true;
-    }
+    public bool Remove(GroupId id) => _removable.Remove(id);
 
     /// <summary>
     /// The window finder's pick: a Per command entry that already claims the window is ticked; otherwise a new one, named after
@@ -135,7 +117,7 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
         var identification = new AppMatcherEditViewModel(() => PlatformSet.All, string.Empty, string.Empty) { Platform = _platform };
         identification.TakeExecutable(window);
         // Free among the Per command entries only: a Global "Blender" does not push this one to "Blender (2)" (Joel, 2026-10-12).
-        var name = NameScope.Free(AppMatcherEditViewModel.AppNameOf(window), _ignored.Where(app => app.IsPerCommand && !_removed.Contains(app.Id)).Concat(_added).Select(app => app.Name));
+        var name = NameScope.Free(AppMatcherEditViewModel.AppNameOf(window), _ignored.Where(app => app.IsPerCommand && !Removed.Contains(app.Id)).Concat(_added).Select(app => app.Name));
         var added = new IgnoredApp(GroupId.New(), name, IsActive: true, identification.ToMatcher(), DisableEntirely: false) { Scope = IgnoreScope.PerCommand };
         _added.Add(added);
         _entries.Add(added);
@@ -187,8 +169,5 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
 
     private IReadOnlyList<CheckListItem> CheckItems() => [.. Entries.Select(Item)];
 
-    private CheckListItem Item(IgnoredApp app) => _checked.Item(app.Name, app.Id, this, nameof(NotIn), Detail(app)) with
-    {
-        Remove = new CheckListRemove(UnusedNote, RemoveTip, () => Remove(app.Id), new DelegateBinding<bool>(() => IsRemovable(app.Id), owner: this, propertyName: nameof(NotIn))),
-    };
+    private CheckListItem Item(IgnoredApp app) => _removable.WithRemove(_checked.Item(app.Name, app.Id, this, nameof(NotIn), Detail(app)), app.Id);
 }

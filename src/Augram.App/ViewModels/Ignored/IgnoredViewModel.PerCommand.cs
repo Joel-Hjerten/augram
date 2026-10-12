@@ -30,8 +30,8 @@ public sealed partial class IgnoredViewModel
             return;
         }
 
-        if (!app.IsPerCommand && AllowedUsersOf(app.Id) is { Count: > 0 } allowed
-            && !await Confirm.ConfirmAsync("Move to Per command", MoveAllowedQuestion(app, allowed.Count), "Move").ConfigureAwait(true))
+        if (!app.IsPerCommand && users.Count > 0
+            && !await Confirm.ConfirmAsync("Move to Per command", MoveAllowedQuestion(app, users.Count), "Move").ConfigureAwait(true))
         {
             return;
         }
@@ -49,9 +49,9 @@ public sealed partial class IgnoredViewModel
         });
     }
 
-    /// <summary>The commands whose "Not in" names the entry, in document order (Global first, then the app groups by name).</summary>
+    /// <summary>The commands naming the entry, in document order (Global first, then the app groups by name): a Per command entry's through their Not in, a Global entry's through their Also in (Core's <see cref="MappingDocument.UsersOf"/>).</summary>
     private List<(AppGroup Group, Command Command)> UsersOf(GroupId id)
-        => [.. _store.Current.NotInUsers(id)];
+        => [.. _store.Current.UsersOf(id)];
 
     /// <summary>"Used by 2 commands", "Not used yet": the row summary's first part for a Per command entry.</summary>
     private string UsersText(GroupId id) => UsersOf(id).Count is var count and > 0 ? $"Used by {Commands(count)}" : "Not used yet";

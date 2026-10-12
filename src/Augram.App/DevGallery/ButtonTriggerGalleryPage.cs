@@ -21,7 +21,7 @@ namespace Augram.App.DevGallery;
 /// Drag distance row, the Also in row naming Blender, its Remap step's form offering a key only, the step picker offering
 /// Remap); headers in the states of the trigger: Magnifier as stored (with its Also in row), pressed with Right instead (the
 /// draft waits for a button to hold), and Back given Left, which Magnifier uses (Take it and Swap in the note); and the Also in
-/// dialog (plan 0005 decision 7) with entries and with none.
+/// dialog (plan 0005 decision 7) with entries, the unused ones with their ✕, and with none.
 /// </summary>
 public static class ButtonTriggerGalleryPage
 {
@@ -48,7 +48,7 @@ public static class ButtonTriggerGalleryPage
         [
             new CustomField("Back", () => Header("Back", item => new(CommandTreeAction.SetTriggerButton, command: item, button: MouseButton.Left))),
         ]),
-        new Section("The Also in dialog for Magnifier: the plain Exclusions › Global entries by name, Blender ticked, A Plague Tale inactive (VMware disables Augram while focused: not offered)",
+        new Section("The Also in dialog for Magnifier: the plain Exclusions › Global entries by name, Blender ticked, A Plague Tale inactive and DaVinci Resolve unused with their ✕ (VMware disables Augram while focused: not offered)",
         [
             new CustomField("Also in", () => AlsoInDialog(MappingRules.ValidDocument(CommandGalleryFakes.MappingWithMagnifier()))),
         ]),

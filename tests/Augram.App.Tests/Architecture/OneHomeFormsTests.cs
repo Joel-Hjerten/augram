@@ -7,7 +7,7 @@ namespace Augram.App.Tests.Architecture;
 /// <summary>
 /// One home per mapping rule and form mechanism (plan 0007 S13; docs/reference/one-home-guards.md): names joined for display,
 /// gesture retargeting, an app matcher's summary, the Global rename rule, the side panel's form lifecycle, "Use on", checked
-/// sets, form dialogs, button and committed-text lines, and the nameless relay.
+/// sets, their removable entries and an Exclusions entry's users, form dialogs, button and committed-text lines, and the nameless relay.
 /// </summary>
 public sealed partial class OneHomeFormsTests
 {
@@ -71,6 +71,21 @@ public sealed partial class OneHomeFormsTests
             new Allowed(App + "ViewModels/CheckedSet.cs", "the home"));
 
     [Fact]
+    public void RemovableEntriesOfACheckListLiveInRemovableEntries()
+        => AssertOnlyIn(
+            RemovableBookkeeping(),
+            Code(App + "ViewModels"),
+            "Use ViewModels/Commands/RemovableEntries for a check list's \"unused\" entries and their ✕ instead of building a CheckListRemove or keeping removed ids by hand (Joel, 2026-10-12).",
+            new Allowed(App + "ViewModels/Commands/RemovableEntries.cs", "the home"));
+
+    [Fact]
+    public void AnExclusionEntrysUsersAreLookedUpOnlyThroughUsersOf()
+        => AssertOnlyIn(
+            EntryUsers(),
+            AppCode,
+            "Use MappingDocument.UsersOf (Core) for the commands naming an Exclusions entry, Per command through their Not in and Global through their Also in, instead of scanning the commands' lists (Joel, 2026-10-12).");
+
+    [Fact]
     public void FormDialogsAreRequestedThroughFormDialogs()
         => AssertOnlyIn(
             NewFormDialogRequest(),
@@ -126,6 +141,12 @@ public sealed partial class OneHomeFormsTests
 
     [GeneratedRegex(@"\bHashSet<[^>]+>\s+_checked\w*|\bnew\s+CheckListItem\s*\(")]
     private static partial Regex CheckedField();
+
+    [GeneratedRegex(@"\bnew\s+CheckListRemove\s*\(|\bList<GroupId>\s+_removed\w*")]
+    private static partial Regex RemovableBookkeeping();
+
+    [GeneratedRegex(@"\.(?:NotIn|AlsoIn)\.Contains\(")]
+    private static partial Regex EntryUsers();
 
     [GeneratedRegex(@"\bnew\s+FormDialogRequest\s*\(")]
     private static partial Regex NewFormDialogRequest();
