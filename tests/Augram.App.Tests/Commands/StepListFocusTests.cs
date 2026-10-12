@@ -120,6 +120,25 @@ public sealed class StepListFocusTests
         Assert.True(bench.TreePart.IsVisualAncestorOf((Visual)TopLevel.GetTopLevel(bench)!.FocusManager!.GetFocusedElement()!));
     }
 
+    /// <summary>Joel, 0.14.4: a right-click aims the step's menu at it and opens or closes nothing.</summary>
+    [AvaloniaFact]
+    public void ARightClickOnAStepOpensAndClosesNothing_TheMenuActsOnIt()
+    {
+        var (vm, bench, window, _, steps) = ShowThreeSteps();
+        Click(window, StepPart(bench, 0, "PART_Name"));
+        Assert.Equal(0, vm.SelectedStepIndex);
+        steps.Clear();
+
+        Render();
+        var point = Centre(StepPart(bench, 2, "PART_Name"), window);
+        window.MouseDown(point, MouseButton.Right);
+        window.MouseUp(point, MouseButton.Right);
+
+        Assert.DoesNotContain(steps, action => action.Action == StepListAction.Select);
+        Assert.Equal(0, vm.SelectedStepIndex);
+        Assert.Equal(2, bench.StepsPart!.SelectedStep!.Index);
+    }
+
     private static Control StepPart(CommandsWorkbench bench, int index, string name)
         => bench.StepsPart!.Rows[index].GetVisualDescendants().OfType<Control>().Single(control => control.Name == name);
 

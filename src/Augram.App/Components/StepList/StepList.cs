@@ -134,6 +134,9 @@ public sealed partial class StepList : TemplatedControl
                 args.Cancel = IsReadOnly;
                 StepListMenu.Refresh(list.ContextMenu, SelectedStep, CanAddStep);
             };
+
+            // The menu aimed the selection at the right-clicked step; once it closes the open step is the selected one again.
+            list.ContextMenu.Closed += (_, _) => ApplySelection();
             KeyBindings.Clear();
             StepListMenu.BindKeys(this, EditKeymap.Current, Request, _rows.KeysEnabled);
             ApplySelection();
@@ -277,7 +280,8 @@ public sealed partial class StepList : TemplatedControl
             return;
         }
 
-        if (!_rows.SelectOnRightPress(row, e) && e.GetCurrentPoint(row).Properties.IsLeftButtonPressed && e.Source is Visual source && !row.IsInForm(source) && !row.IsFromOwnControl(source))
+        // A right press only aims the menu at this step: nothing opens or closes (Joel, 0.14.4).
+        if (!_rows.SelectOnRightPress(row, e, quietly: true) && e.GetCurrentPoint(row).Properties.IsLeftButtonPressed && e.Source is Visual source && !row.IsInForm(source) && !row.IsFromOwnControl(source))
         {
             _drag.Press(row, e, clickable: !row.IsOnGrip(e));
             e.Handled = true;

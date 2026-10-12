@@ -499,7 +499,7 @@
                                       Text="{TemplateBinding SearchText, Mode=TwoWay}" />
                   </Grid>
                   <WrapPanel ItemSpacing="6" LineSpacing="4">
-                    <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
+                    <Button Name="PART_NewSection" Classes="toolbar primary" Content="{TemplateBinding NewSectionLabel}" />
                     <ToggleButton Name="PART_OtherPlatforms"
                                   Classes="toolbar"
                                   Content="{TemplateBinding PlatformFilterLabel}"
@@ -942,8 +942,9 @@
                   </StackPanel>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
                     <!-- Disabled while the command can take no step (its only step is a Remap step), the reason as its tooltip. -->
+                    <!-- Accent-filled as every button that makes something new (New command, New category, Exclusions' New; Joel, 0.14.4). -->
                     <Button Name="PART_New"
-                            Classes="toolbar"
+                            Classes="toolbar primary"
                             Content="New step…"
                             IsVisible="{TemplateBinding IsReadOnly, Converter={x:Static BoolConverters.Not}}"
                             IsEnabled="{TemplateBinding CanAddStep}"

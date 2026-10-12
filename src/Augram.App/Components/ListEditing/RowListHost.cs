@@ -146,8 +146,12 @@ internal sealed class RowListHost
         }
     }
 
-    /// <summary>Right-click selects before the context menu opens, so the menu acts on the row under the pointer. True when it was a right press.</summary>
-    public bool SelectOnRightPress(Control row, PointerPressedEventArgs e)
+    /// <summary>
+    /// Right-click selects before the context menu opens, so the menu acts on the row under the pointer. True when it was a right
+    /// press. <paramref name="quietly"/>: the selection raises nothing and the press is handled, so the list does not select it
+    /// loudly either (the step list, where a selection opens the step; Joel, 0.14.4: the menu must not open or close a step).
+    /// </summary>
+    public bool SelectOnRightPress(Control row, PointerPressedEventArgs e, bool quietly = false)
     {
         ArgumentNullException.ThrowIfNull(row);
         ArgumentNullException.ThrowIfNull(e);
@@ -156,7 +160,16 @@ internal sealed class RowListHost
             return false;
         }
 
-        List.SelectedItem = row;
+        if (quietly)
+        {
+            SelectQuietly(row);
+            e.Handled = true;
+        }
+        else
+        {
+            List.SelectedItem = row;
+        }
+
         return true;
     }
 
