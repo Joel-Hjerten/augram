@@ -54,12 +54,21 @@
           <SolidColorBrush x:Key="Lists.GlyphMuted" Color="#78777C" />
           <!-- A popup is a window of its own with nothing behind it, so it needs an opaque fill (the window finder's line). -->
           <SolidColorBrush x:Key="Lists.Popup" Color="#2B2A31" />
+          <!-- The cleaned shape drawn over the stroke (training's Clean up shape, the gallery's preview): gold, darker on light
+               (the mockup's glyph-end there). -->
+          <SolidColorBrush x:Key="Lists.Cleaned" Color="#F2C14E" />
+          <!-- A gesture tile's partner score: an opaque box framed in danger red over the tile's corner. -->
+          <SolidColorBrush x:Key="Lists.PartnerFill" Color="#2A2A2A" />
+          <SolidColorBrush x:Key="Lists.PartnerEdge" Color="#E5484D" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="Lists.DangerSoft" Color="#14D93B30" />
           <SolidColorBrush x:Key="Lists.GlyphStartMuted" Color="#CFCFD5" />
           <SolidColorBrush x:Key="Lists.GlyphMuted" Color="#9C9BA0" />
           <SolidColorBrush x:Key="Lists.Popup" Color="#FBFBFD" />
+          <SolidColorBrush x:Key="Lists.Cleaned" Color="#D69C14" />
+          <SolidColorBrush x:Key="Lists.PartnerFill" Color="#FBFBFD" />
+          <SolidColorBrush x:Key="Lists.PartnerEdge" Color="#D93B30" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
 
@@ -1158,9 +1167,10 @@
     <Setter Property="MinHeight" Value="0" />
   </Style>
   <!-- Rows (the Row rule): the frame is quiet (its container draws hover and selection); the line inside it is the one place
-       a row's spacing and control sizes are set (tokens Row.*). -->
+       a row's spacing and control sizes are set (tokens Row.*). The transparent fill keeps the row hit-testable, so a click
+       on its empty part still reaches it. -->
   <Style Selector="Border.row">
-    <Setter Property="Background" Value="{StaticResource Brush.HitTest}" />
+    <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
@@ -1331,8 +1341,8 @@
 
   <!-- Gesture tiles: a partner's score in a framed box over its glyph. -->
   <Style Selector="Border.tile-partner">
-    <Setter Property="Background" Value="{StaticResource Brush.Surface}" />
-    <Setter Property="BorderBrush" Value="{StaticResource Brush.Danger}" />
+    <Setter Property="Background" Value="{DynamicResource Lists.PartnerFill}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Lists.PartnerEdge}" />
     <Setter Property="BorderThickness" Value="{StaticResource Border.Hairline}" />
     <Setter Property="Padding" Value="{StaticResource Pad.S}" />
   </Style>
@@ -1342,7 +1352,7 @@
     <Setter Property="BorderThickness" Value="0" />
   </Style>
   <Style Selector="draw|GestureDrawArea.cleaned /template/ Path#PART_Stroke">
-    <Setter Property="Stroke" Value="{StaticResource Brush.Cleaned}" />
+    <Setter Property="Stroke" Value="{DynamicResource Lists.Cleaned}" />
     <Setter Property="StrokeThickness" Value="3" />
   </Style>
   <!-- Gesture tiles: the duplicate frame in danger red (the name and the partner's score are text roles, Text.axaml). -->

@@ -1,5 +1,4 @@
 using Augram.App.Navigation;
-using Augram.App.Themes;
 using Augram.App.ViewModels;
 using Avalonia;
 using Avalonia.Controls;
@@ -23,10 +22,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
-        if (ThemeSelector.DrawsTitleBar)
-        {
-            DrawOwnTitleBar();
-        }
+        DrawOwnTitleBar();
     }
 
     /// <summary>Closing hides the window; the app keeps running in the tray (F7). Shutdown closes it for real.</summary>

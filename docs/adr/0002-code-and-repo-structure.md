@@ -45,6 +45,8 @@ Core owns the interfaces for everything that touches the outside world; the othe
 
 One composition root in `Augram.App` (`Program.cs` / `AppHost`) registers everything with `Microsoft.Extensions.DependencyInjection`. Nothing else calls `new` on a service.
 
+*Amended 2026-10-12 (plan 0007, S17):* the composition root is `CompositionRoot.cs` and its modules in `Augram.App/Hosting/Modules/` (`PlatformModule` registers the Platform adapters). Above the ports only the composition root names a Platform project, with three documented exceptions, all macOS-only with no Windows counterpart and so no Core port (a port comes only if a Windows equivalent appears): `MacStatusItem` (the menu-bar item, behind the App's `Tray/MacTrayHost`), `MacDock` (the Dock icon, `Hosting/MacDockPresence` and `App.Launch`) and `MacLaunchEvent` (a login-item launch, `App.Launch`). The two Platform READMEs list them.
+
 ### 3. Core is organised by subsystem, each a folder with a README
 
 ```

@@ -125,7 +125,7 @@ A local item already matched by id is never matched again by name, so two items 
 
 `settings` only in "everything" (no `sync` member), `mapping` absent for "gestures only", `gestures` always (maybe empty). Read back by `ConfigSerializer`, such a file is a valid config: a missing section takes its default.
 
-### App (sketch; built 2026-10-10 to it, see the App README "Export and import of Augram files")
+### App (sketch; built 2026-10-10 to it, see `src/Augram.App/Transfer/README.md`)
 
 A folder `App/Transfer/` beside `Import/` (StrokesPlus.net) and `Sync/`, registered by the module that registers `Import/` today (`Hosting/GesturesModule`) or a `TransferModule` of its own. Nothing in it decides what is exported or merged; it calls `Core/Transfer` and shows the answer.
 
