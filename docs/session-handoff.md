@@ -29,7 +29,7 @@ When Joel calls a plan done on both machines, move it to `docs/plans/completed/`
 ## 2. Open, awaiting Joel
 
 - **The magnifier holds Right back everywhere at the Options value (10 px)**, so a right-drag in Spine and Eyeris waits 10 px. Two fixes offered (the magnifier's own drag distance 3, or Spine in its Not in); not chosen. Eyeris and Spine also drop the first pixels of a drag themselves ([learnings 0006](learnings/0006-other-programs-on-the-mouse.md)).
-- **Start at login has never run on a real login** (off on the PC). Check lists: App README "Windows check list", Platform.MacOS README "Start at login on macOS".
+- **Start at login has never run on a real login** (off on the PC). Check lists: [Hosting README](../src/Augram.App/Hosting/README.md) "Windows check list", Platform.MacOS README "Start at login on macOS".
 - **Export/import (plan 0003, PROPOSED):** "Decided for Joel" and "Questions for Joel" wait for him; his check list is plan 0003 step 5 (throwaway config folders, `--config-folder … --no-engine`). Follow-ups: plan 0003 "Follow-ups from Joel's questions".
 - **Sync conflicts show only in Options › Sync.** Proposed: "· 1 conflict" in the tray tooltip and Resolve… in the tray menu.
 - **Augram stops while Task Manager has focus** (elevated windows); "later" (requirements §4 has the cause and two fixes).

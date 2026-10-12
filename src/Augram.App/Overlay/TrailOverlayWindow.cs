@@ -12,8 +12,8 @@ namespace Augram.App.Overlay;
 
 /// <summary>
 /// The trail overlay (F6): one transparent, click-through, non-activating, topmost window that covers the
-/// virtual screen (on macOS the display under the stroke start) only while a stroke is in progress. Hidden when idle; shown by the first frame of a
-/// stroke after the native styles were applied and read back (<see cref="OverlayStylePolicy"/>); hidden
+/// virtual screen (on macOS the display under the stroke start) only while a stroke is in progress. Between strokes it is parked at one pixel (<see cref="HideIdle"/>); shown by the first
+/// frame of a stroke after the native styles were applied and read back (<see cref="OverlayStylePolicy"/>); parked
 /// again by the stroke's last frame. If the OS ever reports the window as not click-through it is hidden
 /// at once, logged as an error, and the trail becomes a no-op for the rest of the run: a full-screen
 /// window that takes clicks blocks the user's mouse. A watchdog hides a window that is still visible
