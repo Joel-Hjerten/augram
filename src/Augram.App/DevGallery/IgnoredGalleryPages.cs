@@ -12,11 +12,12 @@ namespace Augram.App.DevGallery;
 /// <summary>Gallery pages for the <see cref="MasterDetail"/> component (the Exclusions tab over a throwaway store, and the component's empty and selected states with plain items) and the <see cref="WindowFinder"/> on the identification form.</summary>
 public static class IgnoredGalleryPages
 {
-    /// <summary>Exclusions › Global over Joel's six imported excluded apps (two inactive), with dialogs that answer at once.</summary>
-    public static ScreenDeclaration IgnoredPage()
+    /// <summary>Exclusions › Global over Joel's six imported excluded apps (two inactive), with dialogs that answer at once; <paramref name="search"/> in its search box (plan 0009).</summary>
+    public static ScreenDeclaration IgnoredPage(string? search = null)
     {
         var store = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal], FakeIgnored()));
         var vm = new IgnoredViewModel(store, new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), HostPlatform.Windows);
+        vm.SearchText = search ?? string.Empty;
         return Screens.IgnoredScreen.Declare(vm);
     }
 

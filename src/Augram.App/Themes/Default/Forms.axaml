@@ -4,7 +4,8 @@
         xmlns:form="using:Augram.App.Components.SectionForm"
         xmlns:text="using:Augram.App.Components.TextPanel"
         xmlns:color="using:Augram.App.Components.Fields.Color"
-        xmlns:hk="using:Augram.App.Components.Capture">
+        xmlns:hk="using:Augram.App.Components.Capture"
+        xmlns:search="using:Augram.App.Components.SearchBox">
   <!--
     The glass look's forms and standard controls (plan 0006 step 4; visual reference
     design/mockups/augram-glass-theme.html, its .frow, .opt-title, .btn, .input, .select, .num, .segm, .switch, .box,
@@ -739,6 +740,26 @@
         </Style>
       </ControlTheme>
 
+      <!-- A list's search box (plan 0009): a text field with the clear glyph inside its right edge while there is text. -->
+      <ControlTheme x:Key="{x:Type search:SearchBox}" TargetType="search:SearchBox">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <TextBox Name="PART_Text"
+                     Text="{TemplateBinding Text, Mode=TwoWay}"
+                     Watermark="{TemplateBinding Placeholder}"
+                     MinWidth="{StaticResource Editor.SearchMinWidth}"
+                     VerticalAlignment="Center">
+              <TextBox.InnerRightContent>
+                <Button Name="PART_Clear"
+                        Classes="search-clear"
+                        Content="✕"
+                        ToolTip.Tip="Clear (Escape)" />
+              </TextBox.InnerRightContent>
+            </TextBox>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
       <!-- The colour field: the swatch button and R, G, B, or with presets (plan 0006 decision 8) the round swatches in their
            order, then Custom…, whose flyout is the same picker. ColorEditor wires PART_Picker. -->
       <ControlTheme x:Key="{x:Type color:ColorEditor}" TargetType="color:ColorEditor">
@@ -825,6 +846,19 @@
     <Setter Property="Cursor" Value="Hand" />
   </Style>
   <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.link:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+  </Style>
+  <!-- The search box's clear glyph (SearchBox): no frame, faint, the primary colour under the pointer. -->
+  <Style Selector="Button.search-clear">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.search-clear:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.search-clear:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
   </Style>

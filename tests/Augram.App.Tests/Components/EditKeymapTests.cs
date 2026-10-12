@@ -10,11 +10,11 @@ namespace Augram.App.Tests.Components;
 public sealed class EditKeymapTests
 {
     [Fact]
-    public void WindowsUsesCtrlF2OrEnterAndCtrlY()
+    public void WindowsUsesCtrlF2OrEnterCtrlYAndCtrlF()
     {
         var keymap = new EditKeymap(isMacOS: false);
 
-        Assert.Equal(["Ctrl+N", "Ctrl+C", "Ctrl+V", "Ctrl+D", "Delete", "F2", "Enter", "Ctrl+Z", "Ctrl+Y"], keymap.All);
+        Assert.Equal(["Ctrl+N", "Ctrl+C", "Ctrl+V", "Ctrl+D", "Delete", "F2", "Enter", "Ctrl+Z", "Ctrl+Y", "Ctrl+F"], keymap.All);
         Assert.All(keymap.All, gesture => Assert.NotNull(KeyGesture.Parse(gesture)));
     }
 
@@ -23,7 +23,7 @@ public sealed class EditKeymapTests
     {
         var keymap = new EditKeymap(isMacOS: true);
 
-        Assert.Equal(["Cmd+N", "Cmd+C", "Cmd+V", "Cmd+D", "Delete", "Return", "Cmd+Z", "Cmd+Shift+Z"], keymap.All);
+        Assert.Equal(["Cmd+N", "Cmd+C", "Cmd+V", "Cmd+D", "Delete", "Return", "Cmd+Z", "Cmd+Shift+Z", "Cmd+F"], keymap.All);
         Assert.All(keymap.All, gesture => Assert.NotNull(KeyGesture.Parse(gesture)));
     }
 

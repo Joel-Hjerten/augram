@@ -50,5 +50,6 @@ internal static class MasterDetailMenu
             (keymap.RenameAlso, MasterDetailAction.Rename),
             (keymap.Delete, MasterDetailAction.Delete),
             (keymap.Undo, MasterDetailAction.Undo),
-            (keymap.Redo, MasterDetailAction.Redo));
+            (keymap.Redo, MasterDetailAction.Redo),
+            (keymap.Find, MasterDetailAction.Find));
 }

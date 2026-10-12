@@ -2,6 +2,10 @@
 
 The Exclusions tab's view models ("Exclusions" in the UI since plan 0005, "Ignored" in the code and keys): `IgnoredViewModel`, one per sub-tab (Global, Per command; singletons over the one `MappingStore`, sharing its history with the Commands tab), its form `IgnoredEditViewModel`, the Allowed for dialog `AllowedForEditViewModel`, and `IgnoredModes` (the two modes' words). The rules are Core's (`IgnoreList`, `MappingRules`); the list's row summary is `AppMatcher.Summary(platform).Text`.
 
+## The search (plan 0009)
+
+`IgnoredViewModel.SearchText` is UI-only state, two-way bound from the `MasterDetail`'s box; `Project` keeps the entries whose name or summary matches (`SearchQuery.Matches(name, summary)`, decision 3). A hidden selected entry keeps its form. `Hosting/HiddenWindowReset` empties the text when the main window hides.
+
 ## Where an intent goes
 
 `Handle(MasterDetailActionEventArgs)` clears the message and runs the intent inside `Guard`:

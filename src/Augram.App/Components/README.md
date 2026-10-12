@@ -6,7 +6,7 @@ Every shared control of the App: lookless (`TemplatedControl` with named `PART_*
 
 | Kind | Folders | What they are |
 |---|---|---|
-| Declarative renderers (ADR-0002 §5c) | `ScreenHost/`, `SectionForm/`, `Fields/`, `ItemList/`, `TextPanel/`, `Shell/`, `FormDialog/` | A `Screens/` declaration in, controls out. `ItemList` is the read-only table renderer (Log, Recognition, Used by); the editable lists below are bespoke controls, not `ListSpec`s, whatever ADR §5c foresaw. |
+| Declarative renderers (ADR-0002 §5c) | `ScreenHost/`, `SectionForm/`, `Fields/`, `ItemList/`, `TextPanel/`, `Shell/`, `FormDialog/`, and `SearchBox/` (the box every list's toolbar carries and the one search rule, plan 0009) | A `Screens/` declaration in, controls out. `ItemList` is the read-only table renderer (Log, Recognition, Used by); the editable lists below are bespoke controls, not `ListSpec`s, whatever ADR §5c foresaw. |
 | Editable lists | `CommandTree/`, `CommandHeader/`, `CommandsWorkbench/`, `StepList/`, `StepTypePicker/`, `MasterDetail/`, `GestureGrid/`, `GesturePicker/`, `SyncConflictList/`, with the shared pieces in `ListEditing/` and `Parts/` | The contract below. |
 | Gesture drawing | `GestureGlyph/`, `GestureDrawArea/` | A stroke as a glyph (normalised, gradient, arrowhead), and the training canvas (as drawn). |
 | Input capture | `Capture/`, `WindowFinder/` | Controls that take keys, a mouse button or a window from the whole system through a port, and fall back to their own window without the engine. |
@@ -34,6 +34,7 @@ Every shared control of the App: lookless (`TemplatedControl` with named `PART_*
 | A button built in code | `Parts/ToolbarButton.Create(label, action)` (the `toolbar` class) | `new Button` + `Classes.Add("toolbar")` |
 | A step form's value and its one edit path | `Steps/StepFormState<TStep>` | a local `state` and `Emit` |
 | Key list, modifier toggle, held-key boxes | `Capture/HotkeyChoices` | a `KeyCode` choice list or `ModifierToggle` wiring in a form |
+| A list's search: the box and the matching rule (plan 0009) | `SearchBox/SearchBox` on the toolbar, `SearchBox/SearchQuery` where the host projects its items; the find key is `EditKeymap.Find` through the list's `…Menu.BindKeys` | a `TextBox` with a clear glyph of its own, a `Contains(…, OrdinalIgnoreCase)` for a search |
 
 ## How a component finds a port
 

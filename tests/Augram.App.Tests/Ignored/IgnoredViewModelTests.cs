@@ -173,6 +173,25 @@ public sealed class IgnoredViewModelTests
         Assert.Null(store.FindIgnored(VMware.Id));
     }
 
+    /// <summary>Plan 0009 decision 3: an excluded app matches on its name or its summary (the process pattern); a hidden selected entry keeps its form.</summary>
+    [AvaloniaFact]
+    public void TheSearchMatchesTheNameOrTheSummary_AndAHiddenSelectionKeepsItsForm()
+    {
+        var (vm, _, _, _) = Create();
+        vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, Item(vm, "Blender")));
+
+        vm.SearchText = "vmware.exe";
+        Assert.Equal(["VMware"], vm.Items.Select(item => item.Name));
+        Assert.Equal(Blender.Id.Value, vm.SelectedId);
+        Assert.NotNull(vm.Detail);
+
+        vm.SearchText = "blen";
+        Assert.Equal(["Blender"], vm.Items.Select(item => item.Name));
+
+        vm.SearchText = string.Empty;
+        Assert.Equal(["Blender", "Spine", "VMware"], vm.Items.Select(item => item.Name));
+    }
+
     private static (IgnoredViewModel Vm, MappingStore Store, FakeFormDialogPresenter Dialogs, FakeConfirmPresenter Confirm) Create(HostPlatform platform = HostPlatform.Windows)
     {
         var store = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal], [VMware, Blender, Spine]));

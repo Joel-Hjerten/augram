@@ -1,6 +1,6 @@
 # Plan 0009: search and filter on the lists
 
-Status: **PLANNED (2026-10-12, PC session)**; one worktree agent builds it on the PC, the lead reviews and merges. Origin: Joel, 2026-10-12: "the ability to search and filter the lists. Both for the app groups and commands. And then a search function inside the gesture panel. … I just write something and it starts filtering out groups containing that. And commands." Exclusions too ("as they don't have sub items it's easier").
+Status: **BUILT by a worktree agent, awaiting the lead's review (2026-10-12, PC session)**; the lead reviews and merges. Origin: Joel, 2026-10-12: "the ability to search and filter the lists. Both for the app groups and commands. And then a search function inside the gesture panel. … I just write something and it starts filtering out groups containing that. And commands." Exclusions too ("as they don't have sub items it's easier").
 
 ## Decisions (Joel, 2026-10-12)
 

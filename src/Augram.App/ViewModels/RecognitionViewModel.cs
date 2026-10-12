@@ -2,6 +2,7 @@ using System.Globalization;
 using Augram.App.Declarations;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Augram.App.ViewModels;
 
@@ -10,7 +11,7 @@ namespace Augram.App.ViewModels;
 /// newest last. The matched gesture's glyph comes from the <see cref="GestureLibrary"/> by id, so a
 /// renamed or retrained gesture shows its current look; a deleted one shows an empty tile.
 /// </summary>
-public sealed class RecognitionViewModel
+public sealed class RecognitionViewModel : ObservableObject
 {
     private readonly GestureLibrary _library;
 
@@ -24,6 +25,12 @@ public sealed class RecognitionViewModel
     }
 
     public ListSource<RecognitionLogEntry> Source { get; }
+
+    /// <summary>The search box's text (plan 0009): never persisted; cleared when the main window hides.</summary>
+    public string SearchText { get; set => SetProperty(ref field, value); } = string.Empty;
+
+    /// <summary>What a row is searched by: the matched gesture, the top matches and the result.</summary>
+    public static string SearchableText(object row) => row is RecognitionLogEntry e ? Matched(e) + " " + TopMatches(e) + " " + Result(e) : string.Empty;
 
     public static string Time(RecognitionLogEntry e) => e.Timestamp.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture);
 

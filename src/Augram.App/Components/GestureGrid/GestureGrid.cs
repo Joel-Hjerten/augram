@@ -1,9 +1,11 @@
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.Parts;
+using Augram.App.Components.SearchBox;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Input;
 
 namespace Augram.App.Components.GestureGrid;
@@ -15,6 +17,9 @@ namespace Augram.App.Components.GestureGrid;
 /// <c>PART_Import</c>, <c>PART_Export</c>, <c>PART_Undo</c>, <c>PART_Redo</c>, and binds <see cref="Message"/> (rule
 /// feedback). Selecting a tile marks
 /// its confusion partners with their score. Selection survives a rebuild by gesture id. Right-click selects before the context menu opens; double-click redraws.
+/// The toolbar's search box (<c>PART_Search</c>, plan 0009) is two-way bound to <see cref="SearchText"/>, which the host narrows
+/// the tiles by; the find key focuses it, the edit keys stand down while it has the focus, and <see cref="EmptyText"/> says
+/// "No gestures match 'xyz'" while the search leaves nothing.
 /// </summary>
 public sealed class GestureGrid : TemplatedControl
 {
@@ -33,8 +38,15 @@ public sealed class GestureGrid : TemplatedControl
     public static readonly StyledProperty<string?> MessageProperty =
         AvaloniaProperty.Register<GestureGrid, string?>(nameof(Message));
 
+    public static readonly StyledProperty<string> SearchTextProperty =
+        AvaloniaProperty.Register<GestureGrid, string>(nameof(SearchText), string.Empty, defaultBindingMode: BindingMode.TwoWay);
+
+    public static readonly StyledProperty<string?> EmptyTextProperty =
+        AvaloniaProperty.Register<GestureGrid, string?>(nameof(EmptyText));
+
     private readonly RowListHost _rows;
     private GestureId? _selectedId;
+    private SearchBox.SearchBox? _search;
 
     public GestureGrid()
     {
@@ -74,10 +86,24 @@ public sealed class GestureGrid : TemplatedControl
         set => SetValue(MessageProperty, value);
     }
 
+    /// <summary>The search box's text (plan 0009), two-way: the host narrows <see cref="Tiles"/> by it.</summary>
+    public string SearchText
+    {
+        get => GetValue(SearchTextProperty);
+        set => SetValue(SearchTextProperty, value);
+    }
+
+    /// <summary>"No gestures match 'xyz'" while the search leaves no tile; null otherwise (the template hides it).</summary>
+    public string? EmptyText
+    {
+        get => GetValue(EmptyTextProperty);
+        private set => SetValue(EmptyTextProperty, value);
+    }
+
     public GestureTileItem? SelectedTile => (_rows.SelectedItem as GestureTile)?.Item;
 
-    /// <summary>True while a tile's name is being edited in place; the list's key bindings stand down then.</summary>
-    public bool IsEditing => RowListHost.AnyEditing(TileControls);
+    /// <summary>True while a tile's name is being edited in place, or the search box is typed in; the list's key bindings stand down then.</summary>
+    public bool IsEditing => RowListHost.AnyEditing(TileControls) || _search?.IsTyping == true;
 
     /// <summary>Selects the gesture's tile as a click would (its partners light up); remembered across a rebuild and a template.</summary>
     public void Select(GestureId id)
@@ -95,6 +121,7 @@ public sealed class GestureGrid : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+        _search = e.NameScope.Find<SearchBox.SearchBox>("PART_Search");
         // The grid never applies a selection quietly: every change, the rebuild's included, remembers the id and marks partners.
         // A double click redraws (DoubleTapped: a tile has no press-count rule).
         if (_rows.Attach(e.NameScope.Find<ListBox>("PART_Tiles"), OnSelectionChanged, () => Request(GestureGridAction.Redraw)) is { } list)
@@ -125,6 +152,16 @@ public sealed class GestureGrid : TemplatedControl
         {
             Rebuild();
         }
+        else if (change.Property == SearchTextProperty)
+        {
+            ProjectEmptyText();
+        }
+    }
+
+    private void ProjectEmptyText()
+    {
+        var search = SearchQuery.Parse(SearchText);
+        EmptyText = Tiles.Count == 0 && !search.IsEmpty ? search.NoneMatch("gestures") : null;
     }
 
 
@@ -146,6 +183,7 @@ public sealed class GestureGrid : TemplatedControl
         }
 
         MarkPartners();
+        ProjectEmptyText();
     }
 
     /// <summary>Lights up the selected gesture's duplicates (A7) with the score.</summary>
@@ -180,6 +218,9 @@ public sealed class GestureGrid : TemplatedControl
         {
             case GestureGridAction.Rename:
                 BeginRename();
+                return;
+            case GestureGridAction.Find:
+                _search?.Focus();
                 return;
             case GestureGridAction.Redraw or GestureGridAction.Delete or GestureGridAction.KeepThis or GestureGridAction.UsedBy or GestureGridAction.CleanUp or GestureGridAction.RestoreOriginal when tile is null:
                 return;

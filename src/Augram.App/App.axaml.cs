@@ -128,6 +128,8 @@ public sealed partial class App : Application
             }
         });
         HandOver(desktop, window, now: !lifetimeShowsWindow || (_launchEvent is null && launch is { Hidden: false }));
+        // Closing the window hides it; every list's search box empties with it (plan 0009 decision 8).
+        HiddenWindowReset.Follow(window, _services);
         if (OperatingSystem.IsMacOS())
         {
             ShowOwnDockIconWhenUnbundled();

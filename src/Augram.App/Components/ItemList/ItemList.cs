@@ -1,3 +1,5 @@
+using Augram.App.Components.ListEditing;
+using Augram.App.Components.SearchBox;
 using Augram.App.Declarations;
 using Augram.App.Hosting;
 using Augram.App.Inspector;
@@ -11,8 +13,9 @@ namespace Augram.App.Components.ItemList;
 /// <summary>
 /// Renders a <see cref="ListSpec"/> (ADR-0002 §5c): title, filters and toolbar actions above, a
 /// header row, then one row per visible item in <c>PART_Rows</c>. Filtering is applied here from the
-/// spec's <see cref="ListFilter"/>s; rows refresh (coalesced, on the UI thread) whenever the source
-/// changes. The row visuals are built by <see cref="ListRowBuilder"/>.
+/// spec's <see cref="ListFilter"/>s and its <see cref="ListSearch"/> (plan 0009: <see cref="SearchQuery"/> over the row's
+/// text; <see cref="EmptyText"/> says "No lines match 'xyz'" while the search leaves nothing; the find key focuses the box);
+/// rows refresh (coalesced, on the UI thread) whenever the source changes. The row visuals are built by <see cref="ListRowBuilder"/>.
 /// </summary>
 public sealed class ItemList : TemplatedControl
 {
@@ -34,7 +37,11 @@ public sealed class ItemList : TemplatedControl
     public static readonly StyledProperty<IDataTemplate?> RowTemplateProperty =
         AvaloniaProperty.Register<ItemList, IDataTemplate?>(nameof(RowTemplate));
 
+    public static readonly StyledProperty<string?> EmptyTextProperty =
+        AvaloniaProperty.Register<ItemList, string?>(nameof(EmptyText));
+
     private ListBox? _rows;
+    private SearchBox.SearchBox? _search;
     private ListSpec? _subscribed;
     private int _refreshQueued;
 
@@ -75,21 +82,34 @@ public sealed class ItemList : TemplatedControl
         private set => SetValue(RowTemplateProperty, value);
     }
 
+    /// <summary>"No lines match 'xyz'" while the spec's search leaves no row; null otherwise (the template hides it).</summary>
+    public string? EmptyText
+    {
+        get => GetValue(EmptyTextProperty);
+        private set => SetValue(EmptyTextProperty, value);
+    }
+
     public object? SelectedItem => _rows?.SelectedItem;
 
-    /// <summary>Re-reads the source and re-applies filters now, on the calling (UI) thread.</summary>
+    /// <summary>Re-reads the source and re-applies the filters and the search now, on the calling (UI) thread.</summary>
     public void Refresh()
     {
         var spec = Spec;
         if (spec is null)
         {
             Rows = [];
+            EmptyText = null;
             return;
         }
 
         var filters = spec.Filters ?? [];
-        var visible = spec.Source.Items.Where(item => filters.All(filter => filter.Matches(item, filter.Selected.Get()))).ToList();
+        var search = spec.Search is { } declared ? SearchQuery.Parse(declared.Text.Get()) : SearchQuery.Empty;
+        var visible = spec.Source.Items
+            .Where(item => filters.All(filter => filter.Matches(item, filter.Selected.Get())))
+            .Where(item => search.IsEmpty || search.Matches(spec.Search!.TextOf(item)))
+            .ToList();
         Rows = visible;
+        EmptyText = visible.Count == 0 && !search.IsEmpty ? search.NoneMatch(spec.Search!.Plural) : null;
         if (spec.AutoScroll && visible.Count > 0)
         {
             _rows?.ScrollIntoView(visible[^1]);
@@ -100,6 +120,9 @@ public sealed class ItemList : TemplatedControl
     {
         base.OnApplyTemplate(e);
         _rows = e.NameScope.Find<ListBox>("PART_Rows");
+        // The find key, from a row or a toolbar button: bindings are evaluated from the focused element up.
+        KeyBindings.Clear();
+        ActionMenu<ItemListAction>.BindKeys(this, _ => _search?.Focus(), () => true, (EditKeymap.Current.Find, ItemListAction.Find));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -132,15 +155,18 @@ public sealed class ItemList : TemplatedControl
         {
             Title = string.Empty;
             ToolbarItems = [];
+            _search = null;
             HeaderRow = null;
             RowTemplate = null;
             Rows = [];
+            EmptyText = null;
             return;
         }
 
         Region.Mark(this, spec.Title, new RegionInfo(spec.Title, "List", spec.Declared));
         Title = spec.Title;
         ToolbarItems = ListRowBuilder.BuildToolbar(spec, QueueRefresh, () => SelectedItem);
+        _search = ToolbarItems.OfType<SearchBox.SearchBox>().FirstOrDefault();
         HeaderRow = ListRowBuilder.BuildHeader(spec);
         RowTemplate = new FuncDataTemplate<object>((item, _) => ListRowBuilder.BuildRow(spec, item), supportsRecycling: true);
         Refresh();

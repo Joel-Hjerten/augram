@@ -2,6 +2,7 @@ using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Components.ListEditing;
+using Augram.App.Components.SearchBox;
 using Augram.App.Components.StepList;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
@@ -24,7 +25,7 @@ namespace Augram.App.ViewModels.Commands;
 /// availability and the message line. Turns the tree's and the step list's intents into store calls;
 /// the rules live in <see cref="MappingRules"/> and only their messages show here (a refused trigger edit
 /// waits as a draft in the header, with its note, instead: <see cref="TriggerEditor"/>). UI-only state
-/// (selection, expanded sections, the trigger draft) is all it owns, and the in-memory clipboard is shared by both tabs, so a
+/// (selection, expanded sections, the search text, the trigger draft) is all it owns, and the in-memory clipboard is shared by both tabs, so a
 /// Global command copied on one pastes into an app group on the other; deleting it loses nothing.
 /// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
 /// process-lifetime singleton, so what the user opened stays open for the running session (tab
@@ -118,6 +119,15 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
     public partial bool ShowOtherPlatforms { get; private set; }
 
     /// <summary>
+    /// The search box's text (plan 0009): UI-only, two-way bound from the tree's box, applied by <see cref="CommandSections.Narrow"/>
+    /// after the platform filter (decision 4) on every change; never persisted, cleared when the main window hides
+    /// (<c>Hosting/HiddenWindowReset</c>, decision 8). The selection survives a search that hides it (decision 5): the header
+    /// and side panel stay, and clearing the box shows the row again, its section opened in the saved expanded set.
+    /// </summary>
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = string.Empty;
+
+    /// <summary>
     /// Counts the edits that hid the selected row behind the platform filter (its Use on, or its category's or group's, left this
     /// platform out while <see cref="ShowOtherPlatforms"/> is off); the tree blinks the toggle at each, so the user sees where it
     /// went (Joel, 0.11.9). A row that was deleted, or one the user hid by turning the filter off, does not count.
@@ -195,6 +205,17 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
         _settings?.Dispose();
     }
 
+    partial void OnSearchTextChanged(string value)
+    {
+        if (SearchQuery.Parse(value).IsEmpty && SelectedSectionId is { } section)
+        {
+            // Back from a search with a row selected: its section opens, so the row is in sight again (decision 5).
+            Expand(section);
+        }
+
+        Project();
+    }
+
     private void Dispatch(CommandTreeActionEventArgs e)
     {
         switch (e.Action)
@@ -203,7 +224,8 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
                 Select(e.Section?.Id, e.Command?.Id);
                 ProjectSelection();
                 break;
-            case CommandTreeAction.ToggleExpanded when e.Section is { } section:
+            case CommandTreeAction.ToggleExpanded when e.Section is { } section && SearchQuery.Parse(SearchText).IsEmpty:
+                // While searching every shown section is expanded by the rule and the saved set is left alone (decision 4).
                 ToggleExpanded(section);
                 break;
             case CommandTreeAction.NewSection:

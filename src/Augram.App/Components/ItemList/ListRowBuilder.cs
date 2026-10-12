@@ -7,7 +7,7 @@ using Avalonia.Layout;
 namespace Augram.App.Components.ItemList;
 
 /// <summary>
-/// Builds the pieces of an <see cref="ItemList"/> from its spec: toolbar (filters, then actions),
+/// Builds the pieces of an <see cref="ItemList"/> from its spec: toolbar (filters, the search box, then actions),
 /// header row, data rows (text cells or the spec's row component), context menu and key bindings.
 /// Visual choices (padding, fonts) come from the theme through the classes set here.
 /// </summary>
@@ -19,6 +19,11 @@ internal static class ListRowBuilder
         foreach (var filter in spec.Filters ?? [])
         {
             items.Add(BuildFilter(filter, refresh));
+        }
+
+        if (spec.Search is { } search)
+        {
+            items.Add(BuildSearch(search, refresh));
         }
 
         foreach (var action in spec.Toolbar ?? [])
@@ -83,6 +88,28 @@ internal static class ListRowBuilder
 
         grid.Classes.Add("list-row");
         return grid;
+    }
+
+    /// <summary>The spec's search box (plan 0009), kept in step with its binding both ways; every change refreshes the rows.</summary>
+    private static Control BuildSearch(ListSearch search, Action refresh)
+    {
+        var box = new SearchBox.SearchBox();
+        BindingObserver.Attach(box, search.Text, value =>
+        {
+            if (box.Text != value)
+            {
+                box.Text = value;
+            }
+        });
+        box.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == SearchBox.SearchBox.TextProperty)
+            {
+                search.Text.Set(box.Text);
+                refresh();
+            }
+        };
+        return box;
     }
 
     private static Control BuildFilter(ListFilter filter, Action refresh)

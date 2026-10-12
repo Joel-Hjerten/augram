@@ -134,6 +134,32 @@ public sealed class CommandTreeTests
         Assert.False(tree.IsEditing);
     }
 
+    /// <summary>Plan 0009 decision 6: the find key focuses the search box from a selected row; Delete and Enter there edit the text, not the list; the empty state names the text.</summary>
+    [AvaloniaFact]
+    public void TheFindKeyFocusesTheSearchBoxAndTheEditKeysStandDownThere()
+    {
+        var (tree, actions, vm) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        tree.SelectedCommandId = Item(vm, "Close tab").Id;
+        FocusSelectedRow(tree);
+
+        window.KeyPressQwerty(PhysicalKey.F, modifier);
+
+        var box = tree.GetVisualDescendants().OfType<Augram.App.Components.SearchBox.SearchBox>().Single();
+        Assert.True(box.IsTyping);
+        Assert.True(tree.IsEditing);
+        window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        Assert.Empty(actions);
+
+        tree.SearchText = "zzz";
+        tree.Sections = [];
+        Assert.Equal("No commands match 'zzz'", tree.EmptyText);
+        Assert.True(tree.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == "No commands match 'zzz'").IsVisible);
+    }
+
     [AvaloniaFact]
     public void ClickingAwayFromTheRenameEditorKeepsTheNameAndEscapeStillReverts()
     {

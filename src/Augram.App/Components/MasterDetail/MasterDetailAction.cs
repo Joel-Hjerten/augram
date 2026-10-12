@@ -22,6 +22,8 @@ public enum MasterDetailAction
     Move,
 
     Undo,
-
     Redo,
+
+    /// <summary>The find key (plan 0009): the list focuses its search box itself; the host never sees it.</summary>
+    Find,
 }

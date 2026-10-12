@@ -52,5 +52,6 @@ internal static class GestureGridMenu
             (keymap.RenameAlso, GestureGridAction.Rename),
             (keymap.Delete, GestureGridAction.Delete),
             (keymap.Undo, GestureGridAction.Undo),
-            (keymap.Redo, GestureGridAction.Redo));
+            (keymap.Redo, GestureGridAction.Redo),
+            (keymap.Find, GestureGridAction.Find));
 }

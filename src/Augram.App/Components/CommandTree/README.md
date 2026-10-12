@@ -4,7 +4,7 @@ The tree of a Commands sub-tab (F5a) and the vocabulary its rows and the header 
 
 | Type | Job |
 |---|---|
-| `CommandTree`, `CommandTreeRows` | The list (`PART_Rows`, through `ListEditing/RowListHost`: the rebuild that keeps selection and focus, right-click select, double-click rename), what a double click on a header does (puts its first click's toggle back), the platform filter toggle. |
+| `CommandTree`, `CommandTreeRows` | The list (`PART_Rows`, through `ListEditing/RowListHost`: the rebuild that keeps selection and focus, right-click select, double-click rename), what a double click on a header does (puts its first click's toggle back), the platform filter toggle, the search box (`PART_Search`, a `SearchBox/SearchBox` two-way bound to `SearchText`, which the host narrows `Sections` by; plan 0009) with `EmptyText` ("No commands match 'xyz'") while nothing is left. The find key (`CommandTreeAction.Find`) focuses the box, and `IsEditing` is true while the box is typed in, so the edit keys stand down there. |
 | `SectionRow`, `CommandRow` | Rows, on `ListEditing/ItemRow`. A section header toggles on a tap, renames on a double click on its name. |
 | `CommandTreeMenu` | The menu table and `Allows` rules over `ListEditing/ActionMenu`, keys from `ListEditing/EditKeymap`. |
 | `CommandTreeAction`, `CommandTreeActionEventArgs` | Every intent of the tree and the header. |

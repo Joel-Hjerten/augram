@@ -75,5 +75,6 @@ internal static class CommandTreeMenu
             (keymap.Copy, CommandTreeAction.Copy),
             (keymap.Paste, CommandTreeAction.Paste),
             (keymap.Undo, CommandTreeAction.Undo),
-            (keymap.Redo, CommandTreeAction.Redo));
+            (keymap.Redo, CommandTreeAction.Redo),
+            (keymap.Find, CommandTreeAction.Find));
 }

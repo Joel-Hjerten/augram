@@ -1,9 +1,11 @@
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.Parts;
+using Augram.App.Components.SearchBox;
 using Augram.Core.Mapping;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Threading;
 
@@ -21,7 +23,10 @@ namespace Augram.App.Components.CommandTree;
 /// (undo and redo are keys only since 2026-10-07: deletes ask first) all end in that event. It never asks which tab it is on: each
 /// <see cref="SectionItem"/> says what its header can do and the host supplies the words. Selection
 /// follows <see cref="SelectedCommandId"/> / <see cref="SelectedSectionId"/> from the host and survives a
-/// rebuild; a user click raises <see cref="CommandTreeAction.Select"/>.
+/// rebuild; a user click raises <see cref="CommandTreeAction.Select"/>. The toolbar's search box (<c>PART_Search</c>, plan
+/// 0009) is two-way bound to <see cref="SearchText"/>, which the host narrows the sections by; the find key focuses it, the
+/// edit keys stand down while it has the focus, and <see cref="EmptyText"/> says "No commands match 'xyz'" while the search
+/// leaves nothing.
 /// </summary>
 public sealed class CommandTree : TemplatedControl
 {
@@ -49,6 +54,12 @@ public sealed class CommandTree : TemplatedControl
     public static readonly StyledProperty<int> PlatformFilterNudgesProperty =
         AvaloniaProperty.Register<CommandTree, int>(nameof(PlatformFilterNudges));
 
+    public static readonly StyledProperty<string> SearchTextProperty =
+        AvaloniaProperty.Register<CommandTree, string>(nameof(SearchText), string.Empty, defaultBindingMode: BindingMode.TwoWay);
+
+    public static readonly StyledProperty<string?> EmptyTextProperty =
+        AvaloniaProperty.Register<CommandTree, string?>(nameof(EmptyText));
+
     /// <summary>The platform filter toggle's tooltip (Joel, 0.11.9).</summary>
     public const string PlatformFilterHelp =
         "Shows or hides groups, categories and commands from the other platform (PC or Mac).";
@@ -61,6 +72,7 @@ public sealed class CommandTree : TemplatedControl
 
     private readonly RowListHost _rows;
     private ToggleButton? _otherPlatforms;
+    private SearchBox.SearchBox? _search;
 
     public CommandTree()
     {
@@ -125,8 +137,22 @@ public sealed class CommandTree : TemplatedControl
         _ => null,
     };
 
-    /// <summary>True while a row's name is being edited in place; the key bindings stand down then.</summary>
-    public bool IsEditing => RowListHost.AnyEditing(Rows);
+    /// <summary>True while a row's name is being edited in place, or the search box is typed in; the key bindings stand down then.</summary>
+    public bool IsEditing => RowListHost.AnyEditing(Rows) || _search?.IsTyping == true;
+
+    /// <summary>The search box's text (plan 0009), two-way: the host narrows <see cref="Sections"/> by it.</summary>
+    public string SearchText
+    {
+        get => GetValue(SearchTextProperty);
+        set => SetValue(SearchTextProperty, value);
+    }
+
+    /// <summary>"No commands match 'xyz'" while the search leaves no section; null otherwise (the template hides it).</summary>
+    public string? EmptyText
+    {
+        get => GetValue(EmptyTextProperty);
+        private set => SetValue(EmptyTextProperty, value);
+    }
 
     /// <summary>Starts in-place rename of the selected row (the rename key or the menu).</summary>
     public void BeginRename() => _rows.RenameSelected();
@@ -164,6 +190,7 @@ public sealed class CommandTree : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+        _search = e.NameScope.Find<SearchBox.SearchBox>("PART_Search");
         _otherPlatforms = e.NameScope.Find<ToggleButton>("PART_OtherPlatforms");
         if (_otherPlatforms is not null)
         {
@@ -194,6 +221,10 @@ public sealed class CommandTree : TemplatedControl
         if (change.Property == SectionsProperty)
         {
             Rebuild();
+        }
+        else if (change.Property == SearchTextProperty)
+        {
+            ProjectEmptyText();
         }
         else if (change.Property == SelectedCommandIdProperty || change.Property == SelectedSectionIdProperty)
         {
@@ -242,6 +273,13 @@ public sealed class CommandTree : TemplatedControl
     {
         var rows = CommandTreeRows.Build(Sections, (action, section, command, name) => Raise(action, section, command, name), OnRowPressed);
         _rows.Replace(() => Rows = rows, ApplySelection);
+        ProjectEmptyText();
+    }
+
+    private void ProjectEmptyText()
+    {
+        var search = SearchQuery.Parse(SearchText);
+        EmptyText = Sections.Count == 0 && !search.IsEmpty ? search.NoneMatch("commands") : null;
     }
 
     /// <summary>
@@ -297,12 +335,16 @@ public sealed class CommandTree : TemplatedControl
         }
     }
 
-    /// <summary>The toolbar, menu and keys: Rename starts the editor; anything else reaches the host only when the selection allows it.</summary>
+    /// <summary>The toolbar, menu and keys: Rename starts the editor, Find focuses the search box; anything else reaches the host only when the selection allows it.</summary>
     private void Request(CommandTreeAction action)
     {
         if (action == CommandTreeAction.Rename)
         {
             BeginRename();
+        }
+        else if (action == CommandTreeAction.Find)
+        {
+            _search?.Focus();
         }
         else if (CommandTreeMenu.Allows(action, SelectedSection, SelectedCommand))
         {

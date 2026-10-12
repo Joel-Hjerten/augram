@@ -1,5 +1,6 @@
 using Augram.App.Components.GestureGrid;
 using Augram.App.Components.GesturePicker;
+using Augram.App.Components.SearchBox;
 using Augram.Core.Gestures;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -55,6 +56,23 @@ public sealed class GesturePickerTests
         var list = picker.GetVisualDescendants().OfType<ListBox>().Single();
         list.SelectedItem = picker.TileControls.Single(tile => tile.NameText == "Late");
         Assert.Equal("Late", picker.Tiles.Single(tile => tile.Id == picker.SelectedId).Name);
+    }
+
+    /// <summary>Plan 0009 decision 2: the picker narrows by name with the gestures starting with the text first, each half by name; the empty state names the text.</summary>
+    [AvaloniaFact]
+    public void TheSearchPutsTheGesturesStartingWithTheTextFirst_AndSaysWhenNothingMatches()
+    {
+        var gestures = new[] { "Up then down", "Down", "Left", "Down then left", "Right" }
+            .Select(name => new Gesture(GestureId.New(), name, IsActive: true, [new GestureSample([new(0, 0), new(10, 10)])]));
+
+        var tiles = GesturePickerPresenter.Tiles(gestures, SearchQuery.Parse("down"));
+
+        Assert.Equal(["Down", "Down then left", "Up then down"], tiles.Select(tile => tile.Name));
+
+        var (picker, _, _) = Show();
+        picker.SearchText = "zzz";
+        picker.Tiles = GesturePickerPresenter.Tiles([], SearchQuery.Parse("zzz"));
+        Assert.Equal("No gestures match 'zzz'", picker.EmptyText);
     }
 
     private static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
