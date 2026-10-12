@@ -8,7 +8,7 @@ You are picking up a project whose first runnable milestone is built and accepte
 
 ### ALSO NOW: plan 0006, the glass look (D2), PC done as 0.11.0; the Mac next (written 2026-10-11, PC session)
 
-Joel decided the app's look on an interactive mockup: **[plan 0006](../plans/0006-glass-look.md)**. In short:
+Joel decided the app's look on an interactive mockup: **[plan 0006](../plans/completed/0006-glass-look.md)**. In short:
 - frosted glass, with depth from translucent layers instead of white outlines
 - folder tabs in the title bar, with sub-tab pills inside the page
 - dark by default, plus Light and Follow system
@@ -33,7 +33,7 @@ Open [design/mockups/augram-glass-theme.html](../../design/mockups/augram-glass-
 
 ### NOW: plan 0005 (button triggers, Also in, Exclusions) as 0.10.0 on the PC, Joel's check (written 2026-10-11, PC session)
 
-**[Plan 0005](../plans/0005-button-triggers.md)** moves Eyeris's loupe chord into Augram (read its decisions first). Built and merged on main as **0.10.0**, CI green, nothing run on a desktop yet:
+**[Plan 0005](../plans/completed/0005-button-triggers.md)** moves Eyeris's loupe chord into Augram (read its decisions first). Built and merged on main as **0.10.0**, CI green, nothing run on a desktop yet:
 - **Step 1, the foreign-release guard:** a simulated button release another program posts (Eyeris swallows the real Right up and posts its own) takes the button off the held set and ends a press it owns quietly. Augram's own releases are announced by the simulator and claimed by the hook (`OwnButtonInjections`). The stuck "Right + gesture" of Joel's log 2026-10-10 19:37 is gone.
 - **Steps 2–3, the Button trigger:** "Right + Left" fires at Left's press; a Remap step's key (Win+Shift+X) is held by the worker while both are down; ordinary steps run once at the press.
 - **Step 4:** config schema 7, sync format 14, export/import. **The Mac (still 0.7.0) pauses sync until it runs 0.10.0.**
@@ -57,7 +57,7 @@ What this session learned (a stuck button read from the log, other programs' hoo
 
 **Nothing to implement:** everything below is shared code (Core, Engine, App) already in the Mac build. The job is to build, install and check it on macOS, then fix only what a check shows. Main is **0.9.1** (`78de2d9`), CI green on both runners. The PC runs 0.9.1. Joel: "it works really well" for Swap / Take it, and "working" for the rest. The Mac still runs **0.7.0**, and sync is paused there ("uses a newer Augram"): the PC now writes **config schema 6, sync format 13**. Nothing is lost; the Mac catches up when it runs 0.9.1.
 
-What came in since 0.7.0, all in [plan 0004](../plans/0004-drag-distance-and-not-in.md) (read decisions 1, 2, 5–8) and requirements F1 / F5:
+What came in since 0.7.0, all in [plan 0004](../plans/completed/0004-drag-distance-and-not-in.md) (read decisions 1, 2, 5–8) and requirements F1 / F5:
 - **Options › Capture › Button drag distance** (per machine, default 10 px). A command's own **Drag distance** in its trigger area applies only to a trigger holding a button other than the stroke button, without it (Right + wheel).
 - **Ignored › Global / Per command.** A command's **Not in** names Per command entries; over their windows the command is absent. Each entry shows **Used by** links. The Not in dialog has **Add app…** with the window finder's magnifier.
 - **Swap / Take it** in the red "already uses" note of a trigger or hold-remap input.
@@ -80,7 +80,7 @@ Steps (the Mac's run rules are in "Run rules on this Mac" below: the agent never
 Joel's Global › Media › Zoom In/Out are Right + wheel on the PC (Stroke + Right on the Mac), so every right press on the PC is held back. **Letting the press through** and closing the context menu its release opens afterwards was weighed and **held off by Joel** (requirements F1: the app would own the release; Windows opens menus on the up, macOS on the down). Instead:
 
 1. **Button drag distance, built (`c1b7ac0`):** a held-back button other than the stroke button is handed back as a drag at `CaptureThresholds.ButtonDragDistancePx` (Options › Capture, default 10 px, per machine), no longer at the stroke's 30 px. Not yet in an installer or tried by Joel (Spine and Eyeris pan with Right).
-2. **[Plan 0004](../plans/0004-drag-distance-and-not-in.md), in progress (Joel asked for both):** a command's own drag distance (Zoom In/Out; the Options value stays the default) and "Not in" on Global commands (app groups where the command is absent: no fire, nothing held back). Steps 1–3 built and merged as 0.8.0 (installer built, not confirmed installed). **Revised the same evening:** "Not in" names entries of a new Ignored › Per command list instead of app groups (plan 0004 decisions 5–8); steps 5–7 built and merged as **0.9.0** (config schema 6, sync format 13). Joel installed 0.9.0 on the PC and reports it "working" (giving it more time). Then **0.9.1** (no format change): Swap / Take it in the trigger draft's red note for a trigger or hold remap input another command uses (requirements; App README "Trigger draft"). Next: the Mac on 0.9.x so sync resumes; Joel's longer check. Both machines must update before sync resumes. Until then the same effect as "Not in" is an app group with an override to nothing on the same trigger.
+2. **[Plan 0004](../plans/completed/0004-drag-distance-and-not-in.md), in progress (Joel asked for both):** a command's own drag distance (Zoom In/Out; the Options value stays the default) and "Not in" on Global commands (app groups where the command is absent: no fire, nothing held back). Steps 1–3 built and merged as 0.8.0 (installer built, not confirmed installed). **Revised the same evening:** "Not in" names entries of a new Ignored › Per command list instead of app groups (plan 0004 decisions 5–8); steps 5–7 built and merged as **0.9.0** (config schema 6, sync format 13). Joel installed 0.9.0 on the PC and reports it "working" (giving it more time). Then **0.9.1** (no format change): Swap / Take it in the trigger draft's red note for a trigger or hold remap input another command uses (requirements; App README "Trigger draft"). Next: the Mac on 0.9.x so sync resumes; Joel's longer check. Both machines must update before sync resumes. Until then the same effect as "Not in" is an app group with an override to nothing on the same trigger.
 
 ### OVERNIGHT 2026-10-10 (PC session; Joel asleep, lead + worktree subagents)
 

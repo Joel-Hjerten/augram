@@ -1,6 +1,6 @@
 # UI inspiration (plan 0006, the glass look)
 
-Screenshots Joel collected on 2026-10-11 while deciding the look ([plan 0006](../../plans/0006-glass-look.md)). Each folder lists what Augram takes from it. The mockup that settled the decisions is [design/mockups/augram-glass-theme.html](../../../design/mockups/augram-glass-theme.html).
+Screenshots Joel collected on 2026-10-11 while deciding the look ([plan 0006](../../plans/completed/0006-glass-look.md)). Each folder lists what Augram takes from it. The mockup that settled the decisions is [design/mockups/augram-glass-theme.html](../../../design/mockups/augram-glass-theme.html).
 
 | Folder | What it shows | What Augram takes |
 |---|---|---|
