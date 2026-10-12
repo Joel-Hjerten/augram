@@ -1,5 +1,4 @@
 using Augram.App.Sync;
-using Augram.App.Tests.Support;
 using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Augram.Core.Gestures;

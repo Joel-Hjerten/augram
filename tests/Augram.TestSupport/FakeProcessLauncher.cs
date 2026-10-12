@@ -1,9 +1,9 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.Engine.Tests.Fakes;
+namespace Augram.TestSupport;
 
 /// <summary>Fake <see cref="IProcessLauncher"/>: records every request (thread-safe, the executor calls it) and answers <see cref="Result"/>; starts nothing.</summary>
-internal sealed class FakeProcessLauncher : IProcessLauncher
+public sealed class FakeProcessLauncher : IProcessLauncher
 {
     private readonly object _gate = new();
     private readonly List<ProcessLaunch> _launches = [];

@@ -9,7 +9,7 @@ public sealed class EventLogExtensionsTests
     [Fact]
     public void DisabledLevel_ChecksIsEnabledAndNeverCallsLog()
     {
-        var log = new CountingEventLog(EventLevel.Info);
+        var log = new ListEventLog(EventLevel.Info);
 
         log.Trace("hook", "move", ("x", "1"));
         log.Debug("hook", "move");
@@ -21,7 +21,7 @@ public sealed class EventLogExtensionsTests
     [Fact]
     public void DisabledLevel_AllocatesNothing()
     {
-        var log = new CountingEventLog(EventLevel.Info);
+        var log = new ListEventLog(EventLevel.Info);
         log.Trace("hook", "warm-up", ("k", "v"));
 
         var before = GC.GetAllocatedBytesForCurrentThread();
@@ -40,7 +40,7 @@ public sealed class EventLogExtensionsTests
     [Fact]
     public void EnabledLevel_BuildsTheEventWithLevelSourceMessageAndProperties()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
         var start = DateTimeOffset.Now;
 
         log.Info("hook", "Hook installed", ("generation", 2), ("thread", "hook-gen2"));
@@ -59,7 +59,7 @@ public sealed class EventLogExtensionsTests
     [Fact]
     public void NoProperties_LeavesPropertiesNull()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
 
         log.Warning("config", "Migrated");
 
@@ -70,7 +70,7 @@ public sealed class EventLogExtensionsTests
     [Fact]
     public void Error_CarriesTheException()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
         var boom = new InvalidOperationException("boom");
 
         log.Error("steps", "Step failed", boom, ("step", "Hotkey"));
@@ -89,7 +89,7 @@ public sealed class EventLogExtensionsTests
     [InlineData(EventLevel.Error)]
     public void EachMethod_UsesItsLevel(EventLevel level)
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
 
         switch (level)
         {

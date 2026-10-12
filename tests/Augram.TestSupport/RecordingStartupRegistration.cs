@@ -1,12 +1,12 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.App.Tests.Support;
+namespace Augram.TestSupport;
 
 /// <summary>
 /// An in-memory start-at-login registration that records every write (to prove a development build makes none), with a
 /// status the test can script (a switch-off in Task Manager, macOS waiting for approval) and an optional failure.
 /// </summary>
-internal sealed class RecordingStartupRegistration : IStartupRegistration
+public sealed class RecordingStartupRegistration : IStartupRegistration
 {
     public RecordingStartupRegistration(bool enabled = false)
         : this(enabled ? StartupStatus.Registered : StartupStatus.NotRegistered)

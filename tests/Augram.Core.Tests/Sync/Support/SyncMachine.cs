@@ -3,8 +3,6 @@ using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Sync;
 using Augram.Core.Tests.Config;
-using Augram.Core.Tests.Diagnostics;
-using Augram.Core.Tests.Mapping.Support;
 
 namespace Augram.Core.Tests.Sync.Support;
 
@@ -19,7 +17,7 @@ internal sealed class SyncMachine : IDisposable
 
     private readonly TempFolder _folder = new();
 
-    public SyncMachine(string name, SyncRemote remote, SteppingClock clock, IEnumerable<Gesture>? gestures = null, MappingDocument? mapping = null, Guid? machineId = null)
+    public SyncMachine(string name, SyncRemote remote, FakeClock clock, IEnumerable<Gesture>? gestures = null, MappingDocument? mapping = null, Guid? machineId = null)
     {
         Settings = new SettingsStore(Core.Config.Settings.Default with { Sync = new SyncSettings(Url, machineId ?? Guid.NewGuid(), name) });
         Gestures = new GestureLibrary(gestures ?? []);
@@ -39,7 +37,7 @@ internal sealed class SyncMachine : IDisposable
 
     public SyncBaseStore Bases { get; }
 
-    public CountingEventLog Log { get; } = new();
+    public ListEventLog Log { get; } = new();
 
     public SyncCoordinator Coordinator { get; }
 

@@ -1,8 +1,8 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.Engine.Tests.Fakes;
+namespace Augram.TestSupport;
 
-internal sealed class FakeSystemEvents : ISystemEvents
+public sealed class FakeSystemEvents : ISystemEvents
 {
     public event EventHandler<SystemEventKind>? Occurred;
 

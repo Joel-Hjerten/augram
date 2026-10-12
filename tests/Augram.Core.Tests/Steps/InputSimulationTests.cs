@@ -1,6 +1,5 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
-using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
 namespace Augram.Core.Tests.Steps;
@@ -21,7 +20,7 @@ public sealed class InputSimulationTests
         var result = input.WithModifiersHeld(CtrlShift, () => input.Click(MouseButton.Right, 1, 2));
 
         Assert.Equal(SimulationResult.Success, result);
-        Assert.Equal(["press LeftControl", "press LeftShift", "click Right@1,2", "release LeftShift", "release LeftControl"], input.Calls);
+        Assert.Equal(["press LeftControl", "press LeftShift", "click Right@1,2", "release LeftShift", "release LeftControl"], input.All);
     }
 
     [Fact]
@@ -30,7 +29,7 @@ public sealed class InputSimulationTests
         var input = new FakeInputSimulator { OtherResult = SimulationResult.Failed };
 
         Assert.Equal(SimulationResult.Failed, input.WithModifiersHeld([], () => input.Click(MouseButton.Left, 0, 0)));
-        Assert.Equal(["click Left@0,0"], input.Calls);
+        Assert.Equal(["click Left@0,0"], input.All);
     }
 
     [Fact]
@@ -41,7 +40,7 @@ public sealed class InputSimulationTests
         var result = input.WithModifiersHeld(CtrlShift, () => SimulationResult.Unsupported);
 
         Assert.Equal(SimulationResult.Unsupported, result);
-        Assert.Equal(["press LeftControl", "press LeftShift", "release LeftShift", "release LeftControl"], input.Calls);
+        Assert.Equal(["press LeftControl", "press LeftShift", "release LeftShift", "release LeftControl"], input.All);
     }
 
     [Fact]
@@ -51,7 +50,7 @@ public sealed class InputSimulationTests
 
         Assert.Equal(SimulationResult.Success, input.PressKeys(CtrlShift));
         Assert.Equal(SimulationResult.Failed, input.ReleaseKeys(CtrlShift));
-        Assert.Equal(["press LeftControl", "press LeftShift", "release LeftShift", "release LeftControl"], input.Calls);
+        Assert.Equal(["press LeftControl", "press LeftShift", "release LeftShift", "release LeftControl"], input.All);
     }
 
     [Theory]

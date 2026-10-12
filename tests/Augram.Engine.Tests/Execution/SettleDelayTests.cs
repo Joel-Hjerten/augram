@@ -4,7 +4,6 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
-using Augram.Engine.Tests.Fakes;
 using Augram.Engine.Tests.Hosting;
 using Xunit;
 

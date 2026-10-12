@@ -12,7 +12,7 @@ public abstract class TwoMachineTest : IDisposable
 
     internal SyncRemote Remote { get; } = new();
 
-    internal SteppingClock Clock { get; } = new();
+    internal FakeClock Clock { get; } = FakeClock.Stepping();
 
     public void Dispose()
     {

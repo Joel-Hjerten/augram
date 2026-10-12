@@ -1,9 +1,9 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.App.Tests.Support;
+namespace Augram.TestSupport;
 
 /// <summary>An <see cref="IOverlayWindowStyle"/> that reports whatever the test says and counts the applies.</summary>
-internal sealed class FakeOverlayStyle : IOverlayWindowStyle
+public sealed class FakeOverlayStyle : IOverlayWindowStyle
 {
     public FakeOverlayStyle(OverlayStyleReport report)
     {

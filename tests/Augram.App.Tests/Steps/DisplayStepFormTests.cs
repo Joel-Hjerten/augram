@@ -21,7 +21,7 @@ public sealed class DisplayStepFormTests
     [Fact]
     public void ResolutionsAreAutoThenTheUnionLargestFirst_AndTheStoredOneIsKept()
     {
-        var choices = DisplayModeChoices.Resolutions(TwoDisplays.Instance.Displays(), new DisplayResolution(5120, 1440));
+        var choices = DisplayModeChoices.Resolutions(TwoDisplays.Displays(), new DisplayResolution(5120, 1440));
 
         Assert.Equal(["Auto (keep current)", "3840×2160", "5120×1440", "2560×1440", "1920×1080"], choices.Select(choice => choice.Label));
         Assert.Null(choices[0].Value);
@@ -30,7 +30,7 @@ public sealed class DisplayStepFormTests
     [Fact]
     public void RatesAreThoseAtTheChosenResolutionHighestFirst_OrAllForAuto()
     {
-        var displays = TwoDisplays.Instance.Displays();
+        var displays = TwoDisplays.Displays();
 
         Assert.Equal(["Auto (keep current)", "Highest available", "60 Hz", "59.94 Hz", "24 Hz", "23.976 Hz"], DisplayModeChoices.Rates(displays, Uhd, null).Select(choice => choice.Label));
         Assert.Equal(["Auto (keep current)", "Highest available", "144 Hz", "120 Hz", "60 Hz", "59.94 Hz", "24 Hz", "23.976 Hz"], DisplayModeChoices.Rates(displays, null, null).Select(choice => choice.Label));
@@ -41,7 +41,7 @@ public sealed class DisplayStepFormTests
     public void TheFormShowsTheStepAndEveryPickEmitsOneStep()
     {
         var changes = new List<IStep>();
-        var (form, _) = Show(new DisplayModeStepForm(TwoDisplays.Instance), new DisplayModeStep(Uhd, RefreshRate.FromHertz(23.976)), changes.Add);
+        var (form, _) = Show(new DisplayModeStepForm(TwoDisplays), new DisplayModeStep(Uhd, RefreshRate.FromHertz(23.976)), changes.Add);
 
         Assert.Equal(["Resolution", "Refresh", "Display"], form.GetVisualDescendants().OfType<FieldRow>().Select(row => row.Label));
         Assert.Equal(["3840×2160", "23.976 Hz", "Display under the gesture"], Combos(form).Select(combo => combo.SelectedItem));
@@ -57,7 +57,7 @@ public sealed class DisplayStepFormTests
     public void ChoosingAResolutionReListsTheRatesAndKeepsTheChosenRate()
     {
         var changes = new List<IStep>();
-        var (form, _) = Show(new DisplayModeStepForm(TwoDisplays.Instance), new DisplayModeStep(Uhd, RefreshRate.FromHertz(24)), changes.Add);
+        var (form, _) = Show(new DisplayModeStepForm(TwoDisplays), new DisplayModeStep(Uhd, RefreshRate.FromHertz(24)), changes.Add);
 
         Combos(form)[0].SelectedItem = "1920×1080";
 
@@ -111,25 +111,17 @@ public sealed class DisplayStepFormTests
         return (control, window);
     }
 
-    /// <summary>A 4K TV (24, 60 and their TV twins) and a 1440p monitor at 144 Hz; changes nothing.</summary>
-    private sealed class TwoDisplays : IDisplayModes
+    /// <summary>A 4K TV (24, 60 and their TV twins) and a 1440p monitor at 144 Hz; a change throws (forms never change a display).</summary>
+    private static FakeDisplayModes TwoDisplays
     {
-        public static TwoDisplays Instance { get; } = new();
-
-        public HostPlatform Platform => HostPlatform.Windows;
-
-        public bool CanSwitchHdr => true;
-
-        public IReadOnlyList<DisplayInfo> Displays() =>
-        [
-            new("tv", "TV", new DisplayBounds(0, 0, 3840, 2160), true, Mode(Uhd, 60), [.. new[] { Uhd, FullHd }.SelectMany(size => new[] { 23, 24, 59, 60 }.Select(rate => Mode(size, rate)))]),
-            new("monitor", "Monitor", new DisplayBounds(3840, 0, 2560, 1440), false, Mode(new(2560, 1440), 144), [Mode(new(2560, 1440), 144), Mode(new(2560, 1440), 120), Mode(FullHd, 144)]),
-        ];
-
-        public DisplayChangeResult SetMode(DisplayInfo display, VideoMode mode) => throw new InvalidOperationException("forms never change a display");
-
-        public DisplayChangeResult SetHdr(DisplayInfo display, bool on) => throw new InvalidOperationException("forms never change a display");
-
-        private static VideoMode Mode(DisplayResolution size, int legacyRate) => new(size, RefreshRate.FromLegacyHertz(legacyRate));
+        get
+        {
+            var displays = new FakeDisplayModes { ThrowOnChange = true };
+            displays.Listed.Add(new("tv", "TV", new DisplayBounds(0, 0, 3840, 2160), true, Mode(Uhd, 60), [.. new[] { Uhd, FullHd }.SelectMany(size => new[] { 23, 24, 59, 60 }.Select(rate => Mode(size, rate)))]));
+            displays.Listed.Add(new("monitor", "Monitor", new DisplayBounds(3840, 0, 2560, 1440), false, Mode(new(2560, 1440), 144), [Mode(new(2560, 1440), 144), Mode(new(2560, 1440), 120), Mode(FullHd, 144)]));
+            return displays;
+        }
     }
+
+    private static VideoMode Mode(DisplayResolution size, int legacyRate) => new(size, RefreshRate.FromLegacyHertz(legacyRate));
 }

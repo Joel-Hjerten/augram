@@ -1,4 +1,3 @@
-using Augram.Core.Abstractions;
 using Augram.Core.Sync;
 using Xunit;
 
@@ -11,7 +10,7 @@ public sealed class SyncFoldersTests : IDisposable
     private const string Second = "https://github.com/joel/other.git";
 
     private readonly string _config = Path.Combine(Path.GetTempPath(), "augram-sync-folder-tests", Guid.NewGuid().ToString("N"));
-    private readonly FixedClock _clock = new(new DateTimeOffset(2026, 10, 7, 14, 32, 5, TimeSpan.Zero));
+    private readonly FakeClock _clock = new() { UtcNow = new DateTimeOffset(2026, 10, 7, 14, 32, 5, TimeSpan.Zero) };
 
     public void Dispose()
     {
@@ -126,17 +125,5 @@ public sealed class SyncFoldersTests : IDisposable
         var git = Path.Combine(folders.RepositoryFolder, ".git");
         Directory.CreateDirectory(git);
         File.WriteAllText(Path.Combine(git, "HEAD"), "ref: refs/heads/main");
-    }
-
-    private sealed class FixedClock : IClock
-    {
-        public FixedClock(DateTimeOffset now)
-        {
-            UtcNow = now;
-        }
-
-        public DateTimeOffset UtcNow { get; }
-
-        public long MonotonicMs => 0;
     }
 }

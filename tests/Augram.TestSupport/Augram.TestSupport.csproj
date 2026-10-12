@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The fakes of Augram.Core's ports, one per port, shared by the test projects (plan 0007 S16, ADR-0002 §1). Test code only:
+       no src project references it, and it references nothing but Augram.Core (no xunit, so a fake never asserts). -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Augram.Core/Augram.Core.csproj" />
+  </ItemGroup>
+</Project>

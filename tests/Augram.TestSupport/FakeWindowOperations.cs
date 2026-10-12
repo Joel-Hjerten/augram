@@ -1,13 +1,13 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.Engine.Tests.Fakes;
+namespace Augram.TestSupport;
 
 /// <summary>
 /// Fake <see cref="IWindowOperations"/>: records every <see cref="Perform"/> call and answers with a
 /// configurable support set, result and platform. Supports everything and succeeds by default.
-/// Thread-safe because the executor calls it (the Core.Tests copy is single-threaded).
+/// Thread-safe because the executor calls it.
 /// </summary>
-internal sealed class FakeWindowOperations : IWindowOperations
+public sealed class FakeWindowOperations : IWindowOperations
 {
     private readonly object _gate = new();
     private readonly List<(WindowOperation Operation, WindowIdentity Window, WindowSize? Size)> _calls = [];

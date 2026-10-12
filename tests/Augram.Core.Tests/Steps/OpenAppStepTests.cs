@@ -47,11 +47,11 @@ public sealed class OpenAppStepTests
         var window = new FakeAppWindow { Opens = true };
         var launcher = new FakeProcessLauncher();
 
-        Assert.Equal(StepOutcome.Done, Run(new OpenAppStep(true, string.Empty, string.Empty), launcher, new FakeActivator(AppActivation.NotRunning), window).Outcome);
+        Assert.Equal(StepOutcome.Done, Run(new OpenAppStep(true, string.Empty, string.Empty), launcher, new FakeAppActivator(AppActivation.NotRunning), window).Outcome);
         Assert.Equal(1, window.Opened);
         Assert.Empty(launcher.Launches);
 
-        var none = Run(new OpenAppStep(true, string.Empty, string.Empty), launcher, new FakeActivator(AppActivation.NotRunning), new FakeAppWindow());
+        var none = Run(new OpenAppStep(true, string.Empty, string.Empty), launcher, new FakeAppActivator(AppActivation.NotRunning), new FakeAppWindow());
         Assert.Equal((StepOutcome.Skipped, "Augram has no window to open here"), (none.Outcome, none.Reason));
     }
 
@@ -59,7 +59,7 @@ public sealed class OpenAppStepTests
     public void ARunningAppIsBroughtForward_NotStartedAgain()
     {
         var launcher = new FakeProcessLauncher();
-        var activator = new FakeActivator(AppActivation.Activated);
+        var activator = new FakeAppActivator(AppActivation.Activated);
 
         var result = Run(new OpenAppStep(false, "chrome.exe", "Google Chrome"), launcher, activator, new FakeAppWindow());
 
@@ -73,41 +73,17 @@ public sealed class OpenAppStepTests
     {
         var launcher = new FakeProcessLauncher();
 
-        var started = Run(new OpenAppStep(false, "chrome.exe", "Google Chrome"), launcher, new FakeActivator(AppActivation.NotRunning), new FakeAppWindow());
+        var started = Run(new OpenAppStep(false, "chrome.exe", "Google Chrome"), launcher, new FakeAppActivator(AppActivation.NotRunning), new FakeAppWindow());
         Assert.Equal(StepOutcome.Done, started.Outcome);
         Assert.Equal([RunningPlatform.Current == HostPlatform.MacOS ? "Google Chrome" : "chrome.exe"], launcher.Launches.Select(launch => launch.File));
 
-        var refused = Run(new OpenAppStep(false, "chrome.exe", "Google Chrome"), new FakeProcessLauncher(), new FakeActivator(AppActivation.Failed("no")), new FakeAppWindow());
+        var refused = Run(new OpenAppStep(false, "chrome.exe", "Google Chrome"), new FakeProcessLauncher(), new FakeAppActivator(AppActivation.Failed("no")), new FakeAppWindow());
         Assert.Equal((StepOutcome.Failed, "no"), (refused.Outcome, refused.Reason));
 
-        var unset = Run((OpenAppStep)Type.CreateDefault(), new FakeProcessLauncher(), new FakeActivator(AppActivation.Activated), new FakeAppWindow());
+        var unset = Run((OpenAppStep)Type.CreateDefault(), new FakeProcessLauncher(), new FakeAppActivator(AppActivation.Activated), new FakeAppWindow());
         Assert.Equal((StepOutcome.Skipped, "no app set"), (unset.Outcome, unset.Reason));
     }
 
-    private static StepResult Run(OpenAppStep step, FakeProcessLauncher launcher, FakeActivator activator, FakeAppWindow window)
+    private static StepResult Run(OpenAppStep step, FakeProcessLauncher launcher, FakeAppActivator activator, FakeAppWindow window)
         => Type.Execute(step, StepContexts.Create(log: NullEventLog.Instance) with { Processes = launcher, Apps = activator, AppWindow = window });
-
-    private sealed class FakeActivator(AppActivation answer) : IAppActivator
-    {
-        public List<string> Asked { get; } = [];
-
-        public AppActivation BringToFront(string executable)
-        {
-            Asked.Add(executable);
-            return answer;
-        }
-    }
-
-    private sealed class FakeAppWindow : IAppWindow
-    {
-        public bool Opens { get; init; }
-
-        public int Opened { get; private set; }
-
-        public bool Open()
-        {
-            Opened += Opens ? 1 : 0;
-            return Opens;
-        }
-    }
 }

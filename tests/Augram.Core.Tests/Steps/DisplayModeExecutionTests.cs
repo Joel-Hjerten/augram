@@ -2,7 +2,6 @@ using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.DisplayMode;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -138,7 +137,7 @@ public sealed class DisplayModeExecutionTests
     {
         var displays = new FakeDisplayModes();
         displays.Listed.Add(FakeDisplayModes.Tv());
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
 
         Type.Execute(Rate(24), StepContexts.Create(log: log) with { Displays = displays });
 

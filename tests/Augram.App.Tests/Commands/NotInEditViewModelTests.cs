@@ -1,4 +1,3 @@
-using Augram.App.Tests.Support;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
@@ -16,7 +15,7 @@ public sealed class NotInEditViewModelTests
         var oldSpine = new IgnoredApp(GroupId.New(), "Spine", IsActive: false, new AppMatcher { WindowsProcessNames = ["Spine.exe"] }, DisableEntirely: false);
         var edit = new NotInEditViewModel("Zoom in", [oldSpine], [], HostPlatform.Windows);
 
-        var added = edit.AddApp(FakeWindowSystem.Window("Spine.exe", "Spine 4.2"));
+        var added = edit.AddApp(FakeWindowSystem.WindowOf("Spine.exe", "Spine 4.2"));
 
         Assert.Equal(("Spine (2)", true, true, false), (added.Name, added.IsPerCommand, added.IsActive, added.DisableEntirely));
         Assert.Equal(["Spine.exe"], added.Matcher.WindowsProcessNames);
@@ -32,7 +31,7 @@ public sealed class NotInEditViewModelTests
         var vmware = new IgnoredApp(GroupId.New(), "VMware", IsActive: true, new AppMatcher { WindowsProcessNames = ["vmware.exe"] }, DisableEntirely: true);
         var edit = new NotInEditViewModel("Zoom in", [vmware], [], HostPlatform.Windows);
 
-        var added = edit.AddApp(FakeWindowSystem.Window("vmware.exe"));
+        var added = edit.AddApp(FakeWindowSystem.WindowOf("vmware.exe"));
 
         // Names compare as the rules compare them: "vmware" is taken by "VMware".
         Assert.Equal("vmware (2)", added.Name);
@@ -44,7 +43,7 @@ public sealed class NotInEditViewModelTests
     {
         var edit = new NotInEditViewModel("Zoom in", [], [], HostPlatform.MacOS);
 
-        var added = edit.AddApp(FakeWindowSystem.Window("Eyeris"));
+        var added = edit.AddApp(FakeWindowSystem.WindowOf("Eyeris"));
 
         Assert.Equal("Eyeris", added.Name);
         Assert.Equal(["Eyeris"], added.Matcher.MacProcessNames);

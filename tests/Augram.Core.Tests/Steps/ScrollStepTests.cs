@@ -3,7 +3,6 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.Scroll;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -142,7 +141,7 @@ public sealed class ScrollStepTests
     [Fact]
     public void EveryRunLogsOneDebugLine()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
 
         Type.Execute(new ScrollStep(ScrollDirection.Left, 2, KeyModifiers.Shift), StepContexts.Create(log: log));
 

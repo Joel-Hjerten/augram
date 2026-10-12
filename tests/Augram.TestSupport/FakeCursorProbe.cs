@@ -1,9 +1,9 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.Engine.Tests.Fakes;
+namespace Augram.TestSupport;
 
 /// <summary>A cursor the test moves. <see cref="Available"/> false fakes a failed <c>GetCursorPos</c>.</summary>
-internal sealed class FakeCursorProbe : ICursorProbe
+public sealed class FakeCursorProbe : ICursorProbe
 {
     public int X { get; set; }
 

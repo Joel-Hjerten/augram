@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
@@ -15,7 +14,7 @@ namespace Augram.App.Tests.Ignored;
 /// </summary>
 public sealed class AppMatcherFinderTests
 {
-    internal static readonly WindowIdentity Chrome = FakeWindowSystem.Window(
+    internal static readonly WindowIdentity Chrome = FakeWindowSystem.WindowOf(
         "chrome.exe",
         "Google Chrome",
         @"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -46,7 +45,7 @@ public sealed class AppMatcherFinderTests
     {
         var edit = New(HostPlatform.MacOS);
         edit.ProcessPath = @"C:\keep.exe";
-        var mac = FakeWindowSystem.Window("Google Chrome", "New Tab", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+        var mac = FakeWindowSystem.WindowOf("Google Chrome", "New Tab", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
 
         edit.TakePath(mac);
         edit.TakeTitle(mac);
@@ -63,7 +62,7 @@ public sealed class AppMatcherFinderTests
         var edit = New(HostPlatform.MacOS);
         edit.WindowsNames = "chrome.exe";
 
-        Assert.True(edit.TakeExecutable(FakeWindowSystem.Window("Google Chrome", "New Tab", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")));
+        Assert.True(edit.TakeExecutable(FakeWindowSystem.WindowOf("Google Chrome", "New Tab", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")));
 
         Assert.Equal("Google Chrome", edit.MacNames);
         Assert.Equal("chrome.exe", edit.WindowsNames);
@@ -149,7 +148,7 @@ public sealed class AppMatcherFinderTests
         edit.WindowTitle = "keep";
         edit.RootClass = "keep";
         var raised = Raised(edit);
-        var bare = FakeWindowSystem.Window("Finder");
+        var bare = FakeWindowSystem.WindowOf("Finder");
 
         edit.TakePath(bare);
         edit.TakeTitle(bare);

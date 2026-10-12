@@ -1,13 +1,14 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.Core.Tests.Steps.Support;
+namespace Augram.TestSupport;
 
 /// <summary>
 /// Fake <see cref="IDisplayModes"/>: lists the displays a test sets, records every <see cref="SetMode"/> and
 /// <see cref="SetHdr"/> call ("mode \\.\DISPLAY1 1920×1080 at 24 Hz", "hdr \\.\DISPLAY1 on") and answers with a
-/// configurable result. Can switch HDR and succeeds by default; it never touches a real display.
+/// configurable result. Can switch HDR and succeeds by default; it never touches a real display. With
+/// <see cref="ThrowOnChange"/> a change throws instead (a form test proving forms never change a display).
 /// </summary>
-internal sealed class FakeDisplayModes : IDisplayModes
+public sealed class FakeDisplayModes : IDisplayModes
 {
     private readonly List<string> _calls = [];
 
@@ -19,18 +20,23 @@ internal sealed class FakeDisplayModes : IDisplayModes
 
     public DisplayChangeResult Result { get; set; } = DisplayChangeResult.Ok;
 
+    /// <summary>Set: <see cref="SetMode"/> and <see cref="SetHdr"/> throw <see cref="InvalidOperationException"/> and record nothing.</summary>
+    public bool ThrowOnChange { get; set; }
+
     public IReadOnlyList<string> Calls => _calls;
 
     public IReadOnlyList<DisplayInfo> Displays() => [.. Listed];
 
     public DisplayChangeResult SetMode(DisplayInfo display, VideoMode mode)
     {
+        RefuseIfReadOnly();
         _calls.Add($"mode {display.Id} {mode}");
         return Result;
     }
 
     public DisplayChangeResult SetHdr(DisplayInfo display, bool on)
     {
+        RefuseIfReadOnly();
         _calls.Add($"hdr {display.Id} {(on ? "on" : "off")}");
         return Result;
     }
@@ -64,4 +70,12 @@ internal sealed class FakeDisplayModes : IDisplayModes
     }
 
     public static VideoMode Mode(int width, int height, double hertz) => new(new DisplayResolution(width, height), RefreshRate.FromHertz(hertz));
+
+    private void RefuseIfReadOnly()
+    {
+        if (ThrowOnChange)
+        {
+            throw new InvalidOperationException("forms never change a display");
+        }
+    }
 }

@@ -1,4 +1,3 @@
-using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
 using Augram.Core.Capture;
 using Augram.Core.Config;

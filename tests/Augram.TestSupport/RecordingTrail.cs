@@ -1,10 +1,10 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 
-namespace Augram.Engine.Tests.Fakes;
+namespace Augram.TestSupport;
 
 /// <summary>Records the trail calls as <c>begin</c>, <c>extend</c>, <c>end</c> in order; thread-safe because the worker calls it.</summary>
-internal sealed class RecordingTrail : IStrokeTrail
+public sealed class RecordingTrail : IStrokeTrail
 {
     private readonly object _gate = new();
     private readonly List<string> _calls = [];
