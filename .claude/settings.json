@@ -117,7 +117,6 @@
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)",
-      "Bash(git branch -D:*)",
       "Bash(rm -rf:*)",
       "Bash(rm -r:*)",
       "PowerShell(git push --force:*)",

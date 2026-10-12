@@ -6,8 +6,9 @@
 //     && git branch -D <branch> worktree-agent-<id> [2>&1 | tail -2]
 //
 // `Bash(git:*)` is already allowed, but Claude Code's own check on commands that
-// delete under .claude/ still prompts, and `git branch -D` is on the ask list;
-// a hook's "allow" is what gets past both. The command is split on `&&` and
+// delete under .claude/ still prompts; a hook's "allow" gets past it. (It does
+// not get past an ask rule, so `git branch -D` is guarded here instead of on the
+// ask list - see the force-delete check below.) The command is split on `&&` and
 // approved only if every part is one of:
 //   - `cd` to this checkout
 //   - `git worktree remove` of one .claude/worktrees/agent-* (no --force: git
@@ -65,18 +66,32 @@ function approved(segment) {
   return !!m && m[1].trim().split(/ +/).every(mergedIntoMain);
 }
 
-const command = (input?.tool_input?.command ?? '')
+const decide = (permissionDecision, reason) => {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision, permissionDecisionReason: reason },
+  }));
+  process.exit(0);
+};
+
+// A force delete anywhere in the command (-D, --delete --force, -df) asks
+// unless every branch it names is merged into main. This replaces the
+// `Bash(git branch -D:*)` ask rule: an ask rule beats a hook's "allow", so
+// with it every cleanup prompted even when the branches were merged.
+const raw = input?.tool_input?.command ?? '';
+const forceDeleteRe = /git branch (?:-D|-df|-fd|--delete --force|--force --delete)\b([^;&|\n]*)/g;
+for (const m of raw.matchAll(forceDeleteRe)) {
+  const names = m[1].replace(/\s+\d?>&?\d?\S*.*$/, '').trim().split(/\s+/).filter(Boolean);
+  if (!names.length || !names.every((n) => /^[\w./-]+$/.test(n) && mergedIntoMain(n))) {
+    decide('ask', 'git branch -D of a branch not merged into main');
+  }
+}
+
+const command = raw
   .trim()
   .replace(/(?: 2>&1)?(?: \| (?:tail|head) -n? ?\d+)?$/, '');
 if (/[;|`$<>\n]|&(?!&)|(?<!&)&/.test(command.replace(/ && /g, ' '))) process.exit(0);
 
 const segments = command.split(' && ').map((s) => s.trim());
 if (segments.some((s) => removeRe.test(s) || branchRe.test(s)) && segments.every(approved)) {
-  process.stdout.write(JSON.stringify({
-    hookSpecificOutput: {
-      hookEventName: 'PreToolUse',
-      permissionDecision: 'allow',
-      permissionDecisionReason: 'Agent worktree cleanup (scripts/allow-worktree-remove.mjs)',
-    },
-  }));
+  decide('allow', 'Agent worktree cleanup (scripts/allow-worktree-remove.mjs)');
 }
