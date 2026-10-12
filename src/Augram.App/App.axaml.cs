@@ -45,6 +45,7 @@ public sealed partial class App : Application
         AvaloniaXamlLoader.Load(this);
         Styles.Add(ThemeSelector.Load(ThemeSelector.Active));
         ClickAwayFocus.Register();
+        ControlCharacterInput.Register();
     }
 
     public override void OnFrameworkInitializationCompleted()

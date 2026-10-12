@@ -1,8 +1,10 @@
+using Augram.App.Components.ListEditing;
 using Augram.App.Inspector;
 using Augram.App.Navigation;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
 
 namespace Augram.App.Components.Shell;
 
@@ -10,6 +12,10 @@ namespace Augram.App.Components.Shell;
 /// Renders a <see cref="NavigationRegistry"/> as top-level tabs with optional sub-tabs (F7). Each
 /// leaf entry becomes a <see cref="ScreenHost.ScreenHost"/>; the registry is the only input, so adding a
 /// tab never touches this class. <see cref="SelectedKey"/> selects a tab by key (e.g. <c>--gallery</c>).
+/// The find key (<see cref="EditKeymap.Find"/>, plan 0009 decision 6: "from anywhere on the tab") is bound on the window
+/// the shell is in, since Avalonia evaluates key bindings from the focused element up and, while nothing has the focus (the
+/// Mac until a click), only the window's own: it focuses the shown tab's search box (<see cref="FocusSearch"/>). A list
+/// that has the focus answers the key itself first (its binding marks it handled), so the shell's never fires twice.
 /// </summary>
 public sealed class Shell : TemplatedControl
 {
@@ -23,6 +29,7 @@ public sealed class Shell : TemplatedControl
         AvaloniaProperty.Register<Shell, string?>(nameof(SelectedKey));
 
     private TabControl? _tabs;
+    private TopLevel? _keysBoundTo;
 
     public NavigationRegistry? Registry
     {
@@ -48,6 +55,39 @@ public sealed class Shell : TemplatedControl
         _tabs = e.NameScope.Find<TabControl>("PART_Tabs");
         ApplySelection();
     }
+
+    /// <summary>Binds the find key on the window once (a dialog is its own window and hosts no shell, so it is untouched).</summary>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (TopLevel.GetTopLevel(this) is { } top && !ReferenceEquals(top, _keysBoundTo))
+        {
+            _keysBoundTo = top;
+            ActionMenu<ShellAction>.BindKeys(top, _ => FocusSearch(), FindKeyEnabled, (EditKeymap.Current.Find, ShellAction.Find));
+        }
+    }
+
+    /// <summary>
+    /// Focuses the shown tab's search box: the first <see cref="SearchBox.SearchBox"/> under the shell, which holds only the
+    /// shown tab's content (no tab has two; Options has none, and then nothing happens). True when there was one.
+    /// </summary>
+    public bool FocusSearch()
+    {
+        if (this.GetVisualDescendants().OfType<SearchBox.SearchBox>().FirstOrDefault(box => box.IsEffectivelyVisible) is not { } box)
+        {
+            return false;
+        }
+
+        box.Focus();
+        return true;
+    }
+
+    /// <summary>
+    /// The find key's <c>canExecute</c>, the lists' <see cref="RowListHost.KeysEnabled"/> rule from the window: no while a text
+    /// editor other than a search box (a rename editor, a form's text box) has the focus, so Cmd+F while typing a name stays put.
+    /// </summary>
+    private bool FindKeyEnabled()
+        => _keysBoundTo?.FocusManager?.GetFocusedElement() is not TextBox editor || editor.FindAncestorOfType<SearchBox.SearchBox>() is not null;
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
