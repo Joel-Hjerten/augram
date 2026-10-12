@@ -187,6 +187,20 @@ public sealed class ConfigSessionTests
     }
 
     [Fact]
+    public void ABrokenFileWhoseGlobalHasAnotherName_LoadsGlobalUnderItsOwnNameWithoutANotice()
+    {
+        var up = GestureId.New();
+        var global = MappingFixtures.NewGlobal(MappingFixtures.NewCommand("Close", up)) with { Name = "Everywhere" };
+        var mapping = new MappingDocument([global, MappingFixtures.NewGroup("Chrome"), MappingFixtures.NewGroup("chrome")], []);
+
+        using var session = Open(new InMemoryConfigStore(new ConfigDocument { Mapping = mapping }));
+
+        Assert.Equal("Global", session.Mapping.Global.Name);
+        Assert.Equal("Close", Assert.Single(session.Mapping.Global.Commands).Name);
+        Assert.DoesNotContain(_notices, notice => notice.Contains("Everywhere", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ADuplicateSavedCategoryCostsOnlyItselfAndItsCommandsLoadInUncategorized()
     {
         var media = MappingFixtures.NewCategory("Media");
