@@ -9,12 +9,13 @@ namespace Augram.App.Tests.Commands;
 public sealed class CommandsViewModelSearchTests
 {
     [AvaloniaFact]
-    public void TheSelectionSurvivesASearchThatHidesIt_AndIsBackExpandedAfterClearing()
+    public void TheSelectionSurvivesASearchThatHidesIt_AndTheTreeIsAsBeforeAfterClearing()
     {
         var (vm, _, _, _) = Create();
         var chrome = Section(vm, "Chrome");
         var closeTab = Item(vm, "Close tab");
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, chrome, closeTab));
+        Assert.False(Section(vm, "Chrome").IsExpanded, "sections start collapsed and a selection does not open one");
 
         vm.SearchText = "brush";
 
@@ -26,10 +27,28 @@ public sealed class CommandsViewModelSearchTests
 
         vm.SearchText = string.Empty;
 
+        // Selected before the search in a collapsed section: it stays collapsed (Joel, 2026-10-12), the selection kept.
         Assert.Equal(["Apple", "Chrome", "Photoshop"], Names(vm));
         Assert.Equal(closeTab.Id, vm.SelectedCommandId);
-        Assert.True(Section(vm, "Chrome").IsExpanded);
-        Assert.Contains(Section(vm, "Chrome").Commands, command => command.Id == closeTab.Id);
+        Assert.False(Section(vm, "Chrome").IsExpanded);
+    }
+
+    [AvaloniaFact]
+    public void ARowSelectedDuringASearchHasItsSectionOpenAfterClearing()
+    {
+        var (vm, _, _, _) = Create();
+        Assert.False(Section(vm, "Photoshop").IsExpanded);
+
+        vm.SearchText = "brush";
+        var photoshop = Section(vm, "Photoshop");
+        var brush = photoshop.Commands.Single();
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, photoshop, brush));
+
+        vm.SearchText = string.Empty;
+
+        Assert.Equal(brush.Id, vm.SelectedCommandId);
+        Assert.True(Section(vm, "Photoshop").IsExpanded);
+        Assert.False(Section(vm, "Chrome").IsExpanded);
     }
 
     [AvaloniaFact]

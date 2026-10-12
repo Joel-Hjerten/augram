@@ -49,6 +49,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
     private readonly StepEditor _steps;
     private readonly SectionPanel _panel;
     private CommandId? _stepsOf;
+    private (SectionId? Section, CommandId? Command)? _selectionBeforeSearch;
 
     /// <summary>
     /// <paramref name="clipboard"/> is shared by both tabs; <paramref name="platform"/> is what a new step is authored on (F8);
@@ -207,10 +208,20 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
 
     partial void OnSearchTextChanged(string value)
     {
-        if (SearchQuery.Parse(value).IsEmpty && SelectedSectionId is { } section)
+        if (!SearchQuery.Parse(value).IsEmpty)
         {
-            // Back from a search with a row selected: its section opens, so the row is in sight again (decision 5).
-            Expand(section);
+            _selectionBeforeSearch ??= (SelectedSectionId, SelectedCommandId);
+        }
+        else if (_selectionBeforeSearch is { } before)
+        {
+            // Back from a search: the tree is as it was before it (Joel, 2026-10-12). Only a row selected during the search
+            // gets its section opened, so the row is in sight (decision 5); a selection made before the search was in a
+            // collapsed section on purpose and stays so.
+            _selectionBeforeSearch = null;
+            if (SelectedSectionId is { } section && before != (SelectedSectionId, SelectedCommandId))
+            {
+                Expand(section);
+            }
         }
 
         Project();
