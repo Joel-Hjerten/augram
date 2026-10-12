@@ -479,12 +479,20 @@
                 <!-- Title on its own line, the buttons under it, wrapping sideways: beside the title they stacked into a column in a narrow tree (Joel, 2026-10-11).
                      New command is not here: it sits on the selected section's header (SectionRow's PART_NewCommand; Joel, 2026-10-11). -->
                 <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Lists.HeadPadding}" Spacing="8">
-                  <StackPanel Orientation="Horizontal" MinHeight="{StaticResource Lists.HeadLineHeight}">
-                    <TextBlock Classes="title" Text="{TemplateBinding Heading}" VerticalAlignment="Center" />
-                    <TextBlock Classes="help-icon"
-                               ToolTip.Tip="{TemplateBinding HelpText}"
-                               IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  </StackPanel>
+                  <!-- The search box sits on the title line, at the right, stretching with the list (Joel, 2026-10-12: under the buttons it took a third row; no fixed width). -->
+                  <Grid ColumnDefinitions="Auto,*" MinHeight="{StaticResource Lists.HeadLineHeight}">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
+                      <TextBlock Classes="title" Text="{TemplateBinding Heading}" VerticalAlignment="Center" />
+                      <TextBlock Classes="help-icon"
+                                 ToolTip.Tip="{TemplateBinding HelpText}"
+                                 IsVisible="{TemplateBinding HelpText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                    <search:SearchBox Name="PART_Search"
+                                      Grid.Column="1"
+                                      HorizontalAlignment="Stretch"
+                                      MinWidth="{StaticResource Editor.SearchFloorWidth}"
+                                      Text="{TemplateBinding SearchText, Mode=TwoWay}" />
+                  </Grid>
                   <WrapPanel ItemSpacing="6" LineSpacing="4">
                     <Button Name="PART_NewSection" Classes="toolbar" Content="{TemplateBinding NewSectionLabel}" />
                     <ToggleButton Name="PART_OtherPlatforms"
@@ -492,7 +500,6 @@
                                   Content="{TemplateBinding PlatformFilterLabel}"
                                   ToolTip.Tip="{x:Static tree:CommandTree.PlatformFilterHelp}"
                                   IsVisible="{TemplateBinding PlatformFilterLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                    <search:SearchBox Name="PART_Search" Text="{TemplateBinding SearchText, Mode=TwoWay}" />
                   </WrapPanel>
                 </StackPanel>
                 <!-- "No commands match 'xyz'" while the search leaves nothing (plan 0009 decision 7). -->

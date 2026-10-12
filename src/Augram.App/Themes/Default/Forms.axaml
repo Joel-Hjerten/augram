@@ -742,12 +742,14 @@
 
       <!-- A list's search box (plan 0009): a text field with the clear glyph inside its right edge while there is text. -->
       <ControlTheme x:Key="{x:Type search:SearchBox}" TargetType="search:SearchBox">
+        <!-- The box's own MinWidth is the floor; a list that stretches the box lowers it (Editor.SearchFloorWidth). -->
+        <Setter Property="MinWidth" Value="{StaticResource Editor.SearchMinWidth}" />
         <Setter Property="Template">
           <ControlTemplate>
             <TextBox Name="PART_Text"
                      Text="{TemplateBinding Text, Mode=TwoWay}"
                      Watermark="{TemplateBinding Placeholder}"
-                     MinWidth="{StaticResource Editor.SearchMinWidth}"
+                     MinWidth="{TemplateBinding MinWidth}"
                      VerticalAlignment="Center">
               <TextBox.InnerRightContent>
                 <Button Name="PART_Clear"
