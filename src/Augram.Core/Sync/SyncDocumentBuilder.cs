@@ -73,17 +73,29 @@ internal static partial class SyncDocumentBuilder
     private static Gesture[] Gestures(SyncItem.GestureItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
         => NamesUnique(items, [.. items.Select(item => item.Gesture)], incoming, gesture => gesture.Name, (gesture, name) => gesture with { Name = name }, "gesture", repairs);
 
-    /// <summary>The ignored apps, an incoming one renamed when its name is taken (names are unique, like group names).</summary>
+    /// <summary>
+    /// The ignored apps, an incoming one renamed when its name is taken on its own list (names are unique like group names, but
+    /// per list since format 15: Global and Per command may each hold a "Blender").
+    /// </summary>
     private static IgnoredApp[] Ignored(SyncItem.IgnoredItem[] items, IReadOnlySet<SyncItemKey> incoming, List<SyncRepair> repairs)
-        => NamesUnique(items, [.. items.Select(item => item.App)], incoming, app => app.Name, (app, name) => app with { Name = name }, "excluded app", repairs);
+        => NamesUnique(items, [.. items.Select(item => item.App)], incoming, app => app.Name, (app, name) => app with { Name = name }, "excluded app", repairs, app => "on " + MappingRules.ListName(app));
 
-    /// <summary><paramref name="values"/> (one per item, in place) with names unique in one scope, the incoming ones renamed (<see cref="Claimed"/>).</summary>
-    private static T[] NamesUnique<T>(IReadOnlyList<SyncItem> items, T[] values, IReadOnlySet<SyncItemKey> incoming, Func<T, string> nameOf, Func<T, string, T> withName, string noun, List<SyncRepair> repairs)
+    /// <summary>
+    /// <paramref name="values"/> (one per item, in place) with names unique in one scope, or in one scope per <paramref name="whereOf"/>
+    /// (the excluded apps' list, "on Global"; null for one scope), the incoming ones renamed (<see cref="Claimed"/>).
+    /// </summary>
+    private static T[] NamesUnique<T>(IReadOnlyList<SyncItem> items, T[] values, IReadOnlySet<SyncItemKey> incoming, Func<T, string> nameOf, Func<T, string, T> withName, string noun, List<SyncRepair> repairs, Func<T, string>? whereOf = null)
     {
-        var names = new NameScope();
+        var scopes = new Dictionary<string, NameScope>();
         foreach (int index in IncomingLast(items, incoming))
         {
-            var name = Claimed(names, nameOf(values[index]), items[index].Key, noun, null, repairs);
+            var where = whereOf?.Invoke(values[index]);
+            if (!scopes.TryGetValue(where ?? string.Empty, out var names))
+            {
+                scopes[where ?? string.Empty] = names = new NameScope();
+            }
+
+            var name = Claimed(names, nameOf(values[index]), items[index].Key, noun, where, repairs);
             if (name != nameOf(values[index]))
             {
                 values[index] = withName(values[index], name);

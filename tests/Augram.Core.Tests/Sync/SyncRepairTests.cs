@@ -60,7 +60,20 @@ public sealed class SyncRepairTests
 
         Assert.Equal("Steam", result.Mapping.Ignored.Single(app => app.Id == mine.Id).Name);
         Assert.Equal("steam (2)", result.Mapping.Ignored.Single(app => app.Id == theirs.Id).Name);
-        AssertRepair(result, SyncRepairKind.Renamed, SyncItemKey.ForIgnored(theirs.Id), "excluded app");
+        AssertRepair(result, SyncRepairKind.Renamed, SyncItemKey.ForIgnored(theirs.Id), "Incoming excluded app 'steam' on Global renamed 'steam (2)'");
+    }
+
+    [Fact]
+    public void AnIncomingPerCommandEntryKeepsANameAGlobalEntryHas()
+    {
+        // Names are unique per list (format 15, Joel 2026-10-12): the Per command "Blender" beside the Global one is no clash.
+        var mine = new IgnoredApp(GroupId.New(), "Blender", IsActive: true, new AppMatcher { WindowsProcessNames = ["blender.exe"] }, DisableEntirely: false);
+        var theirs = mine with { Id = GroupId.New(), Scope = IgnoreScope.PerCommand };
+
+        var result = Merge(Ignoring(mine), Ignoring(theirs));
+
+        Assert.Equal(["Blender", "Blender"], result.Mapping.Ignored.Select(app => app.Name));
+        Assert.DoesNotContain(result.Repairs, repair => repair.Kind == SyncRepairKind.Renamed);
     }
 
     [Fact]

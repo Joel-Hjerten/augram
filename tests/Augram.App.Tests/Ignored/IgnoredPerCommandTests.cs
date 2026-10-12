@@ -136,6 +136,24 @@ public sealed class IgnoredPerCommandTests
     }
 
     [AvaloniaFact]
+    public void MoveToPerCommand_TakesTheFirstFreeSuffix_WhenTheNameIsTakenThere()
+    {
+        // Names are unique per list (Joel, 2026-10-12): a Per command "Blender" beside the Global one is fine, so moving the
+        // Global one over lands it as "Blender (2)", the one rule for a clash.
+        var (global, perCommand, store, _, _, _) = Create();
+        store.AddIgnored(PerCommand("blender", "blender-launcher.exe"));
+
+        global.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Move, Item(global, "Blender")));
+
+        Assert.Equal((IgnoreScope.PerCommand, "Blender (2)"), (store.FindIgnored(Blender.Id)!.Scope, store.FindIgnored(Blender.Id)!.Name));
+        Assert.StartsWith("Moved 'Blender' to Exclusions › Per command as 'Blender (2)' ('Blender' is taken there): ", global.Message, StringComparison.Ordinal);
+        Assert.Equal(["blender", "Blender (2)", "Krita", "Spine"], perCommand.Items.Select(item => item.Name));
+
+        global.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Undo));
+        Assert.Equal((IgnoreScope.Global, "Blender"), (store.FindIgnored(Blender.Id)!.Scope, store.FindIgnored(Blender.Id)!.Name));
+    }
+
+    [AvaloniaFact]
     public void MoveToGlobal_AsksWhenCommandsUseIt_AndDropsItFromTheirNotIn_InOneUndoStep()
     {
         var (global, perCommand, store, _, confirm, _) = Create();

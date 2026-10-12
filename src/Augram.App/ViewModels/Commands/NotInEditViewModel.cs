@@ -95,7 +95,8 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
 
         var identification = new AppMatcherEditViewModel(() => PlatformSet.All, string.Empty, string.Empty) { Platform = _platform };
         identification.TakeExecutable(window);
-        var name = NameScope.Free(AppMatcherEditViewModel.AppNameOf(window), _ignored.Concat(_added).Select(app => app.Name));
+        // Free among the Per command entries only: a Global "Blender" does not push this one to "Blender (2)" (Joel, 2026-10-12).
+        var name = NameScope.Free(AppMatcherEditViewModel.AppNameOf(window), _ignored.Where(app => app.IsPerCommand).Concat(_added).Select(app => app.Name));
         var added = new IgnoredApp(GroupId.New(), name, IsActive: true, identification.ToMatcher(), DisableEntirely: false) { Scope = IgnoreScope.PerCommand };
         _added.Add(added);
         _entries.Add(added);

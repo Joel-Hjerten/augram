@@ -121,7 +121,7 @@ public sealed partial class IgnoredEditViewModel : ObservableObject, IDialogForm
         [
             new Section("Per command app",
             [
-                new TextField("Name", new DelegateBinding<string>(() => Name, value => Name = value, this), "Shown in the list and in the commands' Not in; unique among excluded apps."),
+                new TextField("Name", new DelegateBinding<string>(() => Name, value => Name = value, this), "Shown in the list and in the commands' Not in; unique on this list (Global may hold the same name)."),
                 new ToggleField("Active", new DelegateBinding<bool>(() => IsActive, value => IsActive = value, this), "An inactive entry stops no command: the commands naming it work over the app as usual."),
                 new LinksField(UsedByLabel, new DelegateBinding<IReadOnlyList<LinkItem>>(() => UsedBy, owner: this, propertyName: nameof(UsedBy)), UsedByNone, UsedByHelp),
             ]),

@@ -211,6 +211,22 @@ public sealed class MappingStoreTests
     }
 
     [Fact]
+    public void IgnoredAppNamesAreUniquePerList_GlobalAndPerCommandMayShareOne()
+    {
+        // Joel, 2026-10-12: the Per command "Blender" beside the Global one, no longer stuck as "Blender (2)".
+        var store = new MappingStore();
+        var global = store.AddIgnored(new IgnoredApp(GroupId.New(), "Blender", true, ByProcess("blender.exe"), DisableEntirely: false));
+        var perCommand = store.AddIgnored(new IgnoredApp(GroupId.New(), "Blender (2)", true, ByProcess("blender.exe"), DisableEntirely: false) { Scope = IgnoreScope.PerCommand });
+
+        Assert.Equal("Blender", store.UpdateIgnored(perCommand with { Name = "Blender" }).Name);
+        Assert.Equal(["Blender", "Blender"], store.Current.Ignored.Select(app => app.Name));
+
+        var refused = Assert.Throws<MappingValidationException>(() => store.AddIgnored(new IgnoredApp(GroupId.New(), "blender", true, ByProcess("x.exe"), false) { Scope = IgnoreScope.PerCommand }));
+        Assert.Equal("An excluded app named 'Blender' already exists on Per command.", refused.Message);
+        Assert.Equal("An excluded app named 'Blender' already exists on Global.", Assert.Throws<MappingValidationException>(() => store.AddIgnored(new IgnoredApp(GroupId.New(), "blender", true, ByProcess("y.exe"), false))).Message);
+    }
+
+    [Fact]
     public void IgnoredAppNamesAreUniqueIgnoringCase()
     {
         var store = new MappingStore();

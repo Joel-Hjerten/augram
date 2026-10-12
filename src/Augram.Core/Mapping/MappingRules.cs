@@ -308,17 +308,22 @@ public static class MappingRules
             throw new MappingValidationException("An excluded app needs a name.");
         }
 
-        // Names unique like group names (Joel, 2026-10-09).
+        // Names unique like group names (Joel, 2026-10-09), within the entry's own list: Global and Per command may each hold
+        // a "Blender" (Joel, 2026-10-12: the picked one was stuck as "Blender (2)"). Ids are unique across both.
         Unique.Ensure(
             others,
             other => other.Id == app.Id,
             other => other.Name,
             app.Name,
             $"An excluded app with id {app.Id} already exists.",
-            taken => $"An excluded app named '{taken}' already exists.");
+            taken => $"An excluded app named '{taken}' already exists on {ListName(app)}.",
+            isSibling: other => other.Scope == app.Scope);
 
         EnsureValid(app.Matcher);
     }
+
+    /// <summary>"Global" or "Per command": the Exclusions list the entry is on, for the name rule's refusal and the sync's repair line.</summary>
+    public static string ListName(IgnoredApp app) => app.IsPerCommand ? "Per command" : "Global";
 
     /// <summary>A regex field that is switched on must hold a pattern the regex engine accepts.</summary>
     public static void EnsureValid(AppMatcher matcher)

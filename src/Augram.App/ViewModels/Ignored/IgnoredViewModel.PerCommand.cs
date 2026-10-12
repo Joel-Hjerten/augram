@@ -12,6 +12,8 @@ namespace Augram.App.ViewModels.Ignored;
 /// move questions), and the right-click menu's move between Global and Per command. A move is one <c>UpdateIgnored</c>, one
 /// undo step: moving to Global, Core's normalisation drops the entry from every command's "Not in" in the same step, so the
 /// user is asked first when a command names it; moving to Per command, a "Disable while focused" mode is dropped the same way.
+/// Names are unique per list, so a move lands as "Blender (2)" when the other list has a "Blender" (<see cref="NameScope"/>, the
+/// one rule for a clash), and the message says so.
 /// </summary>
 public sealed partial class IgnoredViewModel
 {
@@ -37,11 +39,13 @@ public sealed partial class IgnoredViewModel
         Guard(() =>
         {
             var current = Require(item.Id);
-            var moved = _store.UpdateIgnored(current with { Scope = current.IsPerCommand ? IgnoreScope.Global : IgnoreScope.PerCommand });
+            var name = NameScope.Free(current.Name, _store.Current.Ignored.Where(app => app.IsPerCommand != current.IsPerCommand).Select(app => app.Name));
+            var moved = _store.UpdateIgnored(current with { Scope = current.IsPerCommand ? IgnoreScope.Global : IgnoreScope.PerCommand, Name = name });
+            var renamed = name == current.Name ? string.Empty : $" as '{name}' ('{current.Name}' is taken there)";
             var undo = $"{EditKeymap.Current.Undo} undoes it.";
             Message = moved.IsPerCommand
-                ? $"Moved '{moved.Name}' to Exclusions › Per command: it stops nothing until a command names it in its Not in{(current.DisableEntirely ? ", and it no longer disables Augram while focused" : string.Empty)}. {undo}"
-                : $"Moved '{moved.Name}' to Exclusions › Global: Augram stays out of it, hold remaps aside. {undo}";
+                ? $"Moved '{current.Name}' to Exclusions › Per command{renamed}: it stops nothing until a command names it in its Not in{(current.DisableEntirely ? ", and it no longer disables Augram while focused" : string.Empty)}. {undo}"
+                : $"Moved '{current.Name}' to Exclusions › Global{renamed}: Augram stays out of it, hold remaps aside. {undo}";
         });
     }
 
