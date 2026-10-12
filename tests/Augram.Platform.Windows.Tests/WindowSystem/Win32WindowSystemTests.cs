@@ -81,6 +81,39 @@ public sealed class Win32WindowSystemTests
     }
 
     [Fact]
+    public void Activate_GestureOverAToolWindowPopupOfTheForegroundApp_NotNeeded()
+    {
+        // A Chrome tab hover card (an owned tool window) under the start while Chrome's main window is in front: Windows will not
+        // bring the card forward (measured 2026-10-12), and the keys are meant for its owner, which is in front already.
+        var win = new FakeWin32 { Foreground = 0x10 }
+            .AddWindow(0x10, "Chrome_WidgetWin_1", pid: 1)
+            .AddWindow(0x12, "Chrome_WidgetWin_1", owner: 0x10, pid: 1);
+        win.ToolWindows.Add(0x12);
+        var system = new Win32WindowSystem(win, win, NullEventLog.Instance, _ => { });
+
+        var result = system.Activate(new WindowIdentity(0x12, 0x10, "chrome.exe", null, null, [], 1, false, false));
+
+        Assert.Same(ActivationResult.NotNeeded, result);
+        Assert.Empty(win.Calls);
+    }
+
+    [Fact]
+    public void Activate_GestureOverANoActivatePopup_BringsItsOwnerForward()
+    {
+        var win = new FakeWin32 { Foreground = 0x20, PlainSucceeds = true }
+            .AddWindow(0x10, "App", pid: 1)
+            .AddWindow(0x12, "Flyout", owner: 0x10, pid: 1)
+            .AddWindow(0x20, "Other", pid: 2);
+        win.NoActivate.Add(0x12);
+        var system = new Win32WindowSystem(win, win, NullEventLog.Instance, _ => { });
+
+        var result = system.Activate(new WindowIdentity(0x12, 0x10, "app.exe", null, null, [], 1, false, false));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(0x10, win.Foreground);
+    }
+
+    [Fact]
     public void Activate_TargetDisabledBehindItsModalDialog_NotNeeded()
     {
         var win = new FakeWin32 { Foreground = 0x12 }

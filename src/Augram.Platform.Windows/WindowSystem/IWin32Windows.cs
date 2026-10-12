@@ -67,4 +67,7 @@ internal interface IWin32Windows
 
     /// <summary><c>WS_EX_TOOLWINDOW</c>: a floating palette or a helper window, never in the taskbar or Alt+Tab.</summary>
     bool IsToolWindow(nint hwnd);
+
+    /// <summary><c>WS_EX_NOACTIVATE</c>: a popup that never takes activation (a tooltip, a hover card); Augram's own overlay is one.</summary>
+    bool IsNoActivate(nint hwnd);
 }

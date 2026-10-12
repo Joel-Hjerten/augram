@@ -46,6 +46,17 @@ Rejected: minimizing through `WM_SYSCOMMAND SC_MINIMIZE` like the minimize butto
 
 Why SP.net works with the same rule in words: its "foreground root" is most likely the top-level window, which is what Augram compares now.
 
+## Follow-up, 0.12.2 (2026-10-12): the delay Joel noticed
+
+Joel: "it works, but is there a fraction of a delay?" The log said yes: `Window activated technique=alt-tap elapsedMs=309`. Two causes, two changes:
+
+1. **Each failed technique took 153 ms, not 50.** `SettledOn` counted ten 5 ms sleeps as 50 ms, but a Windows sleep rounds up to the 15.6 ms timer tick. The budget is now measured with a `TimeProvider` clock (`ForegroundActivator` takes one; tests use a fake the fake sleep advances). Worst case is now the 150 ms the README always claimed; Joel's case drops to ≈105 ms.
+2. **Owned tool-window and no-activate popups stand for their owner** (`Win32WindowSystem.ActivatableTopLevel`). The self-triggering probe (acts when the top-level under the pointer differs from the one in front while both share a root owner and a process) fired twice on the wrong thing and both runs taught the same lesson: a Chrome tab hover card (`WS_EX_TOOLWINDOW`, owned) and an Avalonia flyout (tool window, topmost, owned) under the pointer while their owner was in front, and **no technique could bring either forward** in 100 ms (`SetForegroundWindow` returned true and moved nothing; `SetActiveWindow`, `BringWindowToTop`, `SwitchToThisWindow`, the Alt tap: nothing). Without this rule, every gesture over a tooltip would have cost 150 ms and a Warning. The keys drawn over such a popup are meant for its owner.
+
+Also seen: the same owned-popup-in-front shape in Chrome (a title-less `Chrome_WidgetWin_1` owned by the main window held the front while the pointer was over the page), where the plain `SetForegroundWindow` settled in 0.9 ms, and the focus followed only ~300 ms later. So the shape is general, not PotPlayer's alone.
+
+**Open:** which technique brings PotPlayer's main window forward *fast* when its helper is in front. On 0.12.1 `set-foreground` and `attach-thread-input` both failed there and only `alt-tap` worked (in 3 ms). The probe's last run was limited to PotPlayer (`auto` mode with the techniques `setfg,attach-setfg,attach-active,bring-top,switch,alt-setfg`) but timed out before Joel ran the sequence. If the remaining ≈105 ms bothers him, rebuild the probe (its design is above; no hook, no overlay), get one PotPlayer run, and order or add a technique for the same-process case from what it shows.
+
 ## Done when
 
 Joel's sequence works on the PC with no click in between: PotPlayer at a quarter of the screen, Chrome beside it, `/Down` on Chrome (and once with Chrome's own minimize button), `/Up` on PotPlayer → fullscreen. The log shows a real activation technique instead of `not-needed`. Also check: Notepad++ Find dialog open and focused, a hotkey gesture over the Find dialog still types into it (A20).

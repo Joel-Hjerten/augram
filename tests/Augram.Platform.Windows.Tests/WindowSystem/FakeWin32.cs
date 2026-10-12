@@ -152,6 +152,10 @@ internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground, IWin32WindowC
 
     public bool IsToolWindow(nint hwnd) => ToolWindows.Contains(hwnd);
 
+    public HashSet<nint> NoActivate { get; } = [];
+
+    public bool IsNoActivate(nint hwnd) => NoActivate.Contains(hwnd);
+
     public void ShowWindow(nint hwnd, int command)
     {
         Calls.Add($"show:{hwnd}:{command}");

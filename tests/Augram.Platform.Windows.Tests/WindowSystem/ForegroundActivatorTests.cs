@@ -78,11 +78,26 @@ public sealed class ForegroundActivatorTests
     {
         var (win, log) = Setup();
         var slept = 0;
+        var time = new FakeTime();
 
-        new ForegroundActivator(win, win, log, ms => slept += ms).Activate(Identity());
+        new ForegroundActivator(win, win, log, ms => { slept += ms; time.Advance(ms); }, time).Activate(Identity());
 
         // Three techniques, each polled for up to 50 ms in 5 ms steps.
         Assert.Equal(150, slept);
+    }
+
+    [Fact]
+    public void SettleBudget_IsByTheClock_NotBySleepCount()
+    {
+        // A Windows sleep of 5 ms lasts a 16 ms timer tick (plan 0008: 153 ms per technique instead of 50).
+        var (win, log) = Setup();
+        var slept = 0;
+        var time = new FakeTime();
+
+        new ForegroundActivator(win, win, log, ms => { slept += 16; time.Advance(16); }, time).Activate(Identity());
+
+        // Four ticks reach the 50 ms budget per technique: 64 ms × 3, not 160 ms × 3.
+        Assert.Equal(192, slept);
     }
 
     [Fact]
@@ -93,7 +108,7 @@ public sealed class ForegroundActivatorTests
         win.AddWindow(0x12, "Afx:helper", owner: Target, pid: 1, thread: 9);
         win.Foreground = 0x12;
 
-        var result = new ForegroundActivator(win, win, log, _ => { }).Activate(Identity(), Target);
+        var result = Activator(win, log).Activate(Identity(), Target);
 
         Assert.False(result.Succeeded);
     }
@@ -133,7 +148,26 @@ public sealed class ForegroundActivatorTests
     }
 
     private static ActivationResult Activate(FakeWin32 win, ListEventLog log)
-        => new ForegroundActivator(win, win, log, _ => { }).Activate(Identity());
+        => Activator(win, log).Activate(Identity());
+
+    /// <summary>An activator whose sleeps advance a scripted clock by the milliseconds asked for.</summary>
+    private static ForegroundActivator Activator(FakeWin32 win, ListEventLog log)
+    {
+        var time = new FakeTime();
+        return new ForegroundActivator(win, win, log, time.Advance, time);
+    }
 
     private static WindowIdentity Identity() => new(Target, Target, "app.exe", null, null, [], 1, false, false);
+
+    /// <summary>A clock in milliseconds that only moves when a test advances it.</summary>
+    private sealed class FakeTime : TimeProvider
+    {
+        private long _ms;
+
+        public override long TimestampFrequency => 1000;
+
+        public override long GetTimestamp() => _ms;
+
+        public void Advance(int ms) => _ms += ms;
+    }
 }

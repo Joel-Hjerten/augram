@@ -144,6 +144,9 @@ internal sealed class Win32Windows : IWin32Windows, IWin32Foreground, IWin32Wind
     public bool IsToolWindow(nint hwnd)
         => ((long)NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle) & NativeMethods.WsExToolWindow) != 0;
 
+    public bool IsNoActivate(nint hwnd)
+        => ((long)NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle) & NativeMethods.WsExNoActivate) != 0;
+
     [UnmanagedCallersOnly]
     private static int CollectWindow(nint hwnd, nint state)
     {

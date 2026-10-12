@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 
@@ -23,13 +22,15 @@ internal sealed class ForegroundActivator
     private readonly IWin32Windows _query;
     private readonly IEventLog _log;
     private readonly Action<int> _sleep;
+    private readonly TimeProvider _time;
 
-    public ForegroundActivator(IWin32Foreground win, IWin32Windows query, IEventLog log, Action<int>? sleep = null)
+    public ForegroundActivator(IWin32Foreground win, IWin32Windows query, IEventLog log, Action<int>? sleep = null, TimeProvider? time = null)
     {
         _win = win;
         _query = query;
         _log = log;
         _sleep = sleep ?? Thread.Sleep;
+        _time = time ?? TimeProvider.System;
     }
 
     /// <summary>Brings the target's root owner forward: the Open app step's case, where the window found is an unowned top-level one.</summary>
@@ -42,7 +43,7 @@ internal sealed class ForegroundActivator
     /// </summary>
     public ActivationResult Activate(WindowIdentity target, nint window)
     {
-        var clock = Stopwatch.StartNew();
+        var started = _time.GetTimestamp();
         var foreground = _win.ForegroundWindow();
 
         for (var i = 0; i < Techniques.Length; i++)
@@ -51,13 +52,13 @@ internal sealed class ForegroundActivator
             Attempt(i, window, foreground);
             if (SettledOn(window))
             {
-                return new ActivationResult(true, technique, (int)clock.ElapsedMilliseconds);
+                return new ActivationResult(true, technique, ElapsedMs(started));
             }
 
-            _log.Info(LogSources.Window, "Activation attempt failed", ("technique", technique), ("elapsedMs", (int)clock.ElapsedMilliseconds), ("process", target.ProcessName));
+            _log.Info(LogSources.Window, "Activation attempt failed", ("technique", technique), ("elapsedMs", ElapsedMs(started)), ("process", target.ProcessName));
         }
 
-        return new ActivationResult(false, "none", (int)clock.ElapsedMilliseconds);
+        return new ActivationResult(false, "none", ElapsedMs(started));
     }
 
     private void Attempt(int index, nint target, nint foreground)
@@ -95,9 +96,14 @@ internal sealed class ForegroundActivator
         }
     }
 
+    /// <summary>
+    /// Polls until the window is in front or the settle budget has passed <b>by the clock</b>: a Windows sleep rounds up to
+    /// the 15.6 ms timer tick, so counting ten 5 ms sleeps as 50 ms ran 153 ms per technique (plan 0008, measured 2026-10-12).
+    /// </summary>
     private bool SettledOn(nint window)
     {
-        for (var waited = 0; ; waited += PollMs)
+        var started = _time.GetTimestamp();
+        while (true)
         {
             var foreground = _win.ForegroundWindow();
             if (_query.RootOrSelf(foreground) == window || (!_query.IsEnabled(window) && _query.RootOwnerOrSelf(foreground) == window))
@@ -105,7 +111,7 @@ internal sealed class ForegroundActivator
                 return true;
             }
 
-            if (waited >= SettleMs)
+            if (ElapsedMs(started) >= SettleMs)
             {
                 return false;
             }
@@ -113,4 +119,6 @@ internal sealed class ForegroundActivator
             _sleep(PollMs);
         }
     }
+
+    private int ElapsedMs(long started) => (int)_time.GetElapsedTime(started).TotalMilliseconds;
 }
