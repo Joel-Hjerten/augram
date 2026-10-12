@@ -121,6 +121,18 @@ public sealed class CommandNamesTests
         Assert.Equal("Photoshop › Brush", CommandNames.Label(photoshop, NewCommand("Brush", Up) with { CategoryId = general.Id }));
     }
 
+    /// <summary>Joel, 2026-10-12: Uncategorized says nothing, so a Global command in it is labelled without it; another category stays.</summary>
+    [Fact]
+    public void AGlobalCommandInUncategorizedIsLabelledWithoutIt()
+    {
+        var media = new CommandCategory(CategoryId.New(), "Media");
+        var global = MappingRules.ValidDocument(new MappingDocument([NewGlobal(NewCommand("Minimize", Up), NewCommand("Mute", Down).In(media)) with { Categories = [media] }], [])).Global;
+
+        Assert.NotNull(CategoryRules.Uncategorized(global));
+        Assert.Equal("Global › Minimize", CommandNames.Label(global, global.Commands.Single(command => command.Name == "Minimize")));
+        Assert.Equal("Global › Media › Mute", CommandNames.Label(global, global.Commands.Single(command => command.Name == "Mute")));
+    }
+
     private static AppGroup BlenderWith(HoldRemap[] holdRemaps, params Command[] commands) => NewGroup("Blender", null, commands) with { HoldRemaps = holdRemaps };
 
     private static MappingValidationException Refused(AppGroup group)

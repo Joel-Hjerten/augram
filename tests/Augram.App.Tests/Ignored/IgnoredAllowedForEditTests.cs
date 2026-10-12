@@ -35,7 +35,7 @@ public sealed class IgnoredAllowedForEditTests
         var list = Fields(dialogs.Last.Screen!).OfType<CheckListField>().Single();
         Assert.Equal(AllowedForEditViewModel.Title, dialogs.Last.Title);
         Assert.Equal(
-            [("Global › Uncategorized › Magnifier", "Right + Left", true), ("Global › Uncategorized › Zoom In", "Right + wheel up", false), ("Chrome › Back", "Right + Middle · inactive", true)],
+            [("Global › Magnifier", "Right + Left", true), ("Global › Zoom In", "Right + wheel up", false), ("Chrome › Back", "Right + Middle · inactive", true)],
             list.Items.Select(item => (item.Caption, item.Detail, item.Value.Get())));
     }
 
@@ -46,7 +46,7 @@ public sealed class IgnoredAllowedForEditTests
         dialogs.Answer = request =>
         {
             var items = Fields(request.Screen!).OfType<CheckListField>().Single().Items;
-            items.Single(item => item.Caption == "Global › Uncategorized › Zoom In").Value.Set(true);
+            items.Single(item => item.Caption == "Global › Zoom In").Value.Set(true);
             items.Single(item => item.Caption == "Chrome › Back").Value.Set(false);
             return true;
         };
@@ -57,7 +57,7 @@ public sealed class IgnoredAllowedForEditTests
         Assert.Empty(Find(store, "Back").AlsoIn);
         Assert.Equal([Blender.Id], Find(store, "Magnifier").AlsoIn);
         Assert.StartsWith("'Blender' is allowed for 2 commands now.", vm.Message, StringComparison.Ordinal);
-        Assert.Equal(["Global › Uncategorized › Magnifier", "Global › Uncategorized › Zoom In"], AllowedFor(vm.Detail!).Links.Get().Select(link => link.Caption));
+        Assert.Equal(["Global › Magnifier", "Global › Zoom In"], AllowedFor(vm.Detail!).Links.Get().Select(link => link.Caption));
 
         Assert.True(store.Undo());
         Assert.Empty(Find(store, "Zoom In").AlsoIn);
