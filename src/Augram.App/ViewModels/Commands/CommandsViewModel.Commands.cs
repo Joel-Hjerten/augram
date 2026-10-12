@@ -8,7 +8,7 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// The command half of <see cref="CommandsViewModel"/> (F5a, F3): new and paste into the selected section
 /// (its group, on the Global tab its category, on the Apps tab a hold remap of the group, plan 0002), copy, delete with
-/// confirmation and the category; the trigger is <c>CommandsViewModel.Trigger.cs</c>, an input <c>.Input</c>.
+/// confirmation and the category; the trigger and an input are <see cref="TriggerEditor"/>'s.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
@@ -33,7 +33,7 @@ public sealed partial class CommandsViewModel
             return;
         }
 
-        var group = RequireGroup(section.GroupId);
+        var group = _store.RequireGroup(section.GroupId);
         Expand(section);
         var name = FreeNames.Next("New command", CommandNames.SiblingNames(group.Commands, section.HoldRemapId), MappingRules.NameComparer);
         var command = new Command(CommandId.New(), name, Trigger.None, IsActive: true, Steps: [], CategoryId: section.CategoryId) { HoldRemapId = section.HoldRemapId };
@@ -45,7 +45,7 @@ public sealed partial class CommandsViewModel
 
     private void CopyCommand(CommandItem command)
     {
-        _clipboard.Command = RequireCommand(command.Id).Command;
+        _clipboard.Command = _store.RequireCommand(command.Id).Command;
         Message = $"Copied '{command.Name}'. Paste it into a group or a category with {EditKeymap.Current.Paste}.";
     }
 
@@ -78,7 +78,7 @@ public sealed partial class CommandsViewModel
             return;
         }
 
-        var group = RequireGroup(section.GroupId);
+        var group = _store.RequireGroup(section.GroupId);
         var name = NameScope.Free(source.Name, CommandNames.SiblingNames(group.Commands, section.HoldRemapId));
         var copy = Placed(source with { Id = CommandId.New(), Name = name, CategoryId = PastedCategory(section, group, source), HoldRemapId = section.HoldRemapId }, section);
         Command stored;
@@ -96,7 +96,7 @@ public sealed partial class CommandsViewModel
         }
 
         // The section the store put it in: the target, or Uncategorized for a copy pasted into Global with no category.
-        var landed = CommandSections.SectionOf(Scope, RequireGroup(group.Id), stored);
+        var landed = CommandSections.SectionOf(Scope, _store.RequireGroup(group.Id), stored);
         Select(landed, stored.Id);
         if (Expand(landed))
         {
@@ -155,9 +155,9 @@ public sealed partial class CommandsViewModel
     /// <summary>The header's Category dropdown; the section it lands in is expanded so the selected row stays in sight.</summary>
     private void SetCategory(CommandItem command, CategoryId? category)
     {
-        var (group, stored) = RequireCommand(command.Id);
+        var (group, stored) = _store.RequireCommand(command.Id);
         var updated = _store.UpdateCommand(group.Id, stored with { CategoryId = category });
-        if (Expand(CommandSections.SectionOf(Scope, RequireGroup(group.Id), updated)))
+        if (Expand(CommandSections.SectionOf(Scope, _store.RequireGroup(group.Id), updated)))
         {
             Project();
         }
@@ -178,10 +178,7 @@ public sealed partial class CommandsViewModel
 
     private void UpdateCommand(CommandId id, Func<Command, Command> change)
     {
-        var (group, command) = RequireCommand(id);
+        var (group, command) = _store.RequireCommand(id);
         _store.UpdateCommand(group.Id, change(command));
     }
-
-    private (AppGroup Group, Command Command) RequireCommand(CommandId id)
-        => _store.FindCommand(id) ?? throw new KeyNotFoundException("That command no longer exists.");
 }

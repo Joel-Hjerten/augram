@@ -5,7 +5,7 @@ Projections over the Core and Engine stores (ADR-0002 §5a): a view model reads 
 ## What lives here
 
 - `StoreViewModel`: the base of the tabs that edit a store (below).
-- The tab view models: `Commands/CommandsViewModel` (one per Commands sub-tab; partial files per level, the trigger and its draft, the side panel's forms) with its edit view models, `Ignored/IgnoredViewModel` (one per Exclusions sub-tab; partials `.Panel`, `.PerCommand`, `.AllowedFor`) with its edit view models, `GesturesViewModel`.
+- The tab view models: `Commands/CommandsViewModel` (one per Commands sub-tab; partial files per level, and the internal collaborators `TriggerEditor` (the trigger and its draft), `StepEditor` (the step list), `SectionPanel` (the side panel's forms)) with its edit view models, `Ignored/IgnoredViewModel` (one per Exclusions sub-tab; partials `.Panel`, `.PerCommand`, `.AllowedFor`) with its edit view models, `GesturesViewModel`.
 - The other screens' and dialogs' view models: `AppSettingsViewModel`, `AppMatcherEditViewModel`, `TrainingViewModel`, `ImportViewModel`, `ExportViewModel`, `AugramImportViewModel`, `ConfigurationViewModel`, `SyncViewModel`, `SyncJoinViewModel`, `SyncConflictsViewModel`, `HealthViewModel`, `LogViewModel`, `RecognitionViewModel`, `MainWindowViewModel`.
 - Shared parts (below): `PanelEdit`, `UseOnEdit`, `CheckedSet`, `DraftText`; and `ExportItem`, `ExportKind`.
 - The Commands and Exclusions folders have their own READMEs: which partial holds which intent, the side panel, the trigger draft.

@@ -95,12 +95,12 @@ public sealed partial class CommandsViewModel
     private List<StepItem> StepItems(Command command)
     {
         var shown = command.StepsFor(_platform);
-        var editable = EditableSteps(command);
+        var editable = StepEditor.EditableSteps(command, _platform);
         return [.. shown.Select((step, index) => StepItemProjection.From(step, index, _platform) with { Step = editable[index] })];
     }
 
     /// <summary>
-    /// The selected row as the header shows it: with the trigger draft over it while one waits (<c>.TriggerDraft</c>) and the
+    /// The selected row as the header shows it: with the trigger draft over it while one waits (<see cref="TriggerEditor.WithDraft"/>) and the
     /// Options value its drag distance falls back to; without the Also in row where the button its stored trigger holds is this
     /// machine's stroke button (it holds nothing back here, as for the drag distance); with the step types "New step…" greys
     /// and why (<see cref="StepOffer.Refusals"/> over the draft's trigger while one waits), and for each step the types "Change
@@ -108,13 +108,13 @@ public sealed partial class CommandsViewModel
     /// </summary>
     private CommandHeaderItem? HeaderItem(CommandItem? row)
     {
-        if (WithDraft(row is null ? null : new CommandHeaderItem(row)) is not { } item)
+        if (_trigger.WithDraft(row is null ? null : new CommandHeaderItem(row)) is not { } item)
         {
             return null;
         }
 
         var command = _store.FindCommand(item.Id)?.Command;
-        var drafted = command is null ? null : DraftedTrigger(item.Id);
+        var drafted = command is null ? null : _trigger.DraftedTrigger(item.Id);
         return item with
         {
             OptionsDragDistancePx = OptionsDragDistancePx,
@@ -146,7 +146,7 @@ public sealed partial class CommandsViewModel
     /// <summary>
     /// Re-reads the selected command and its steps from the current projection: the section follows the
     /// command (a category change moves it), a selection that vanished is dropped, and the header shows the
-    /// trigger draft while one waits (<c>.TriggerDraft</c>).
+    /// trigger draft while one waits (<see cref="TriggerEditor"/>).
     /// </summary>
     private void ProjectSelection()
     {
@@ -187,4 +187,11 @@ public sealed partial class CommandsViewModel
 
         ProjectSidePanel();
     }
+
+    /// <summary>Shows the selected command in the header again, with the draft over its trigger while one waits.</summary>
+    private void ShowSelected() => SelectedCommand = HeaderItem(SelectedRow());
+
+    /// <summary>Shows the selected app group's, hold remap's or category's form (<see cref="SectionPanel"/>), or none.</summary>
+    private void ProjectSidePanel()
+        => _panel.Show(SelectedCommandId is null && SelectedSectionId is { } id ? Sections.FirstOrDefault(s => s.Id == id) : null);
 }

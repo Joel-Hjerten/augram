@@ -4,7 +4,17 @@ The Commands tab's view models: `CommandsViewModel` (one per sub-tab, Global and
 
 ## Where an intent goes
 
-`Handle(CommandTreeActionEventArgs)` (the tree and the header) and `Handle(StepListActionEventArgs)` (the step list) clear the message and run the intent inside `Guard`. One partial per job:
+`Handle(CommandTreeActionEventArgs)` (the tree and the header) and `Handle(StepListActionEventArgs)` (the step list) clear the message and run the intent inside `Guard`. The view model keeps the dispatch, the selection and the projection, and the intents of the tree; three internal collaborators own the rest, each with what the view model lends it through `ICommandsHost` (the message line, `Guard`, the selection, `ShowSelected`, `Reveal`, `ShowForm`, implemented explicitly so the public surface is unchanged):
+
+| Collaborator | Owns | State |
+|---|---|---|
+| `TriggerEditor` (`.Draft`, `.Conflict`) | the header's trigger and input intents, the trigger draft, Swap and Take it; asked for the header (`WithDraft`) and for the trigger a step is offered against (`DraftedTrigger`) | the draft, its only state |
+| `StepEditor` | the step list's intents (`Dispatch`), the step offer, `EditableSteps` | none: the expanded step is the view model's `SelectedStepIndex` |
+| `SectionPanel` | the side panel's three forms, each a `PanelEdit`, and their edits (`Show` at the end of every selection projection) | the three `PanelEdit`s |
+
+`CommandLookups` (`store.RequireCommand/RequireGroup/RequireHoldRemap`) is the one lookup with the "no longer exists" words, shared by all four. New code goes to its owner: a trigger or input edit to `TriggerEditor`, a step intent to `StepEditor`, a side-panel form to `SectionPanel`; no `CommandsViewModel` partial declares the draft, a `PanelEdit` or a step offer again.
+
+Which file holds an intent:
 
 | Intent (`CommandTreeAction`) | Partial | Store call |
 |---|---|---|
@@ -12,28 +22,28 @@ The Commands tab's view models: `CommandsViewModel` (one per sub-tab, Global and
 | NewSection, Rename/Delete/ToggleActive of a section | `.Sections` → `.Groups`, `.Categories`, `.HoldRemaps` | `AddGroup`/`UpdateGroup`/`RemoveGroup`; a category is an `UpdateGroup` of its group; `UpdateHoldRemap`/`RemoveHoldRemap`. Deleting asks first (`StoreViewModel.DeleteAsync`). |
 | NewCommand, Rename/Delete/ToggleActive of a command, Copy, Paste, SetCategory | `.Commands` | `AddCommand`, `UpdateCommand`, `RemoveCommand`; Paste names through `FreeNames`/`NameScope` and carries the category with `CategoryRules.Carried` |
 | NewHoldRemap, Copy of a hold remap | `.HoldRemaps` | `UpdateGroup` (the hold remap and its commands as one step) |
-| SetTriggerKind/Hold/WheelDirection/Button, SetInputKind/Input, PickGesture | `.Trigger`, `.Input` → `.TriggerDraft` | `UpdateCommand` through `SaveTrigger`, the steps fitted by `HoldRemapRules.FittedTo` (`WithTriggerHere`) |
-| SwapTrigger, TakeTrigger | `.TriggerConflict` | one `UpdateGroup` exchanging the two commands' triggers |
+| SetTriggerKind/Hold/WheelDirection/Button, SetInputKind/Input, PickGesture | `TriggerEditor` → `.Draft` | `UpdateCommand` through `SaveTrigger`, the steps fitted by `HoldRemapRules.FittedTo` (`WithTriggerHere`) |
+| SwapTrigger, TakeTrigger | `TriggerEditor.Conflict` (Take it selects the other through `ICommandsHost.Reveal`) | one `UpdateGroup` exchanging the two commands' triggers |
 | SetUseOn, UseConvertedOriginal, MarkOwnVersionChecked | `CommandsViewModel.cs` | `UpdateCommand` |
 | EditNotIn, EditAlsoIn | `.NotIn`, `.AlsoIn` (dialogs `NotInEditViewModel`, `AlsoInEditViewModel`) | `UpdateCommand`, or `UpdateCommandAddingIgnored` when Add app… made entries |
 | Export | `.Export` | none (`StoreViewModel.ExportAsync`) |
 | Undo, Redo | `CommandsViewModel.cs` | `Undo`/`Redo` |
-| Step intents (`StepListAction`) | `.Steps` | `UpdateCommand` with `WithStepsFor`; new steps from `StepOffer.NewStep`; a refused edit hands the list the stored steps again |
-| An edit in the side panel's form | `.GroupPanel`, `.HoldRemapPanel`, `.CategoryPanel` | `UpdateGroup`, `UpdateHoldRemap`, `UpdateGroup` of the category's group |
+| Step intents (`StepListAction`) | `.Steps` → `StepEditor` | `UpdateCommand` with `WithStepsFor`; new steps from `StepOffer.NewStep`; a refused edit hands the list the stored steps again |
+| An edit in the side panel's form | `SectionPanel` | `UpdateGroup`, `UpdateHoldRemap`, `UpdateGroup` of the category's group |
 
 ## The side panel
 
-While a section row (not a command) is selected, the panel shows its form: an app group's (`GroupEditViewModel`), a hold remap's (`HoldRemapEditViewModel`) or a category's (`CategoryEditViewModel`), each through a `ViewModels/PanelEdit`. **The form is rebuilt only when another section is selected**, so typing never loses focus or caret; for the same section the stored values are synced in (undo, a rename in the tree), never the form's own edit. A refused name keeps the typed text; a refused value a box cannot keep (both Use on boxes unticked, a hold key already used) is put back with `PanelEdit.Sync`. The edit view models validate nothing; their "Use on" is a `ViewModels/UseOnEdit`.
+While a section row (not a command) is selected, the panel shows its form: an app group's (`GroupEditViewModel`), a hold remap's (`HoldRemapEditViewModel`) or a category's (`CategoryEditViewModel`), each through a `ViewModels/PanelEdit` held by `SectionPanel`. **The form is rebuilt only when another section is selected**, so typing never loses focus or caret; for the same section the stored values are synced in (undo, a rename in the tree), never the form's own edit. A refused name keeps the typed text; a refused value a box cannot keep (both Use on boxes unticked, a hold key already used) is put back with `PanelEdit.Sync`. The edit view models validate nothing; their "Use on" is a `ViewModels/UseOnEdit`.
 
 ## The trigger draft
 
-A trigger edit the rules refuse waits as the selected command's draft (`.TriggerDraft`) instead of snapping back:
+A trigger edit the rules refuse waits as the selected command's draft (`TriggerEditor.Draft`) instead of snapping back:
 
 | State | How it gets there | What happens next |
 |---|---|---|
 | No draft | the start; any accepted save | an edit is saved at once (`TrySaveTrigger`: one store edit, none when nothing changes) |
 | Draft kept | an edit the rules refuse (`KeepDraft`: the stored trigger and the drafted one) | the header shows it with its note (`RefusalOf`); the next edit starts from it (`DraftedTrigger`) |
-| Draft with a conflict | refused only because another command of the group uses it here | the note offers Swap and Take it (`.TriggerConflict`) |
+| Draft with a conflict | refused only because another command of the group uses it here | the note offers Swap and Take it (`TriggerEditor.Conflict`) |
 | Settled | Swap or Take it | one `UpdateGroup`; the draft is gone |
 | Dropped | another selection; the command gone; its stored trigger changed (undo, sync); the rules now accept it (`WithDraft` saves nothing, it just stops showing) | back to no draft |
 

@@ -23,27 +23,30 @@ namespace Augram.App.ViewModels.Commands;
 /// group's categories, or the app groups), the selection, the selected command's steps, undo/redo
 /// availability and the message line. Turns the tree's and the step list's intents into store calls;
 /// the rules live in <see cref="MappingRules"/> and only their messages show here (a refused trigger edit
-/// waits as a draft in the header, with its note, instead: <c>.TriggerDraft</c>). UI-only state
+/// waits as a draft in the header, with its note, instead: <see cref="TriggerEditor"/>). UI-only state
 /// (selection, expanded sections, the trigger draft) is all it owns, and the in-memory clipboard is shared by both tabs, so a
 /// Global command copied on one pastes into an app group on the other; deleting it loses nothing.
 /// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
 /// process-lifetime singleton, so what the user opened stays open for the running session (tab
 /// switches, closing and reopening the window) and starts collapsed again on the next launch. This file
-/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, <c>.GroupPanel</c>, <c>.HoldRemapPanel</c> and
-/// <c>.CategoryPanel</c> keep the selected app group's, hold remap's or category's form in step with it, and <c>.Commands</c>,
-/// <c>.Sections</c>, <c>.Groups</c>, <c>.HoldRemaps</c>, <c>.Categories</c>, <c>.Trigger</c> (its draft <c>.TriggerDraft</c>, the
-/// draft's Swap and Take it <c>.TriggerConflict</c>), <c>.Input</c> and <c>.Steps</c> hold the intents of each level.
+/// holds the state and the dispatch; <c>.Projection</c> re-reads the store, and <c>.Commands</c>, <c>.Sections</c>,
+/// <c>.Groups</c>, <c>.HoldRemaps</c>, <c>.Categories</c>, <c>.NotIn</c> and <c>.AlsoIn</c> hold the intents of each level. Three
+/// internal collaborators hold the rest, each through <see cref="ICommandsHost"/>: <see cref="TriggerEditor"/> the header's
+/// trigger and input edits with their draft, Swap and Take it; <see cref="StepEditor"/> the step list's intents
+/// (<c>.Steps</c> is their entry); <see cref="SectionPanel"/> the side panel's forms.
 /// </summary>
-public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
+public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICommandsHost
 {
     private readonly MappingStore _store;
     private readonly GestureLibrary _gestures;
-    private readonly IGesturePickerPresenter _picker;
     private readonly IFormDialogPresenter _dialogs;
     private readonly CommandClipboard _clipboard;
     private readonly HostPlatform _platform;
     private readonly HashSet<SectionId> _expanded = [];
     private readonly SettingsFollower<(MouseButton StrokeButton, int DragDistancePx)>? _settings;
+    private readonly TriggerEditor _trigger;
+    private readonly StepEditor _steps;
+    private readonly SectionPanel _panel;
     private CommandId? _stepsOf;
 
     /// <summary>
@@ -72,10 +75,12 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
         Scope = scope;
         _store = store;
         _gestures = gestures;
-        _picker = picker;
         _dialogs = dialogs;
         _clipboard = clipboard;
         _platform = platform;
+        _trigger = new TriggerEditor(store, gestures, picker, platform, this);
+        _steps = new StepEditor(store, clipboard, platform, _trigger, this);
+        _panel = new SectionPanel(store, this);
         _store.Changed += OnStoreChanged;
         _gestures.Changed += OnStoreChanged;
         Project();
@@ -246,7 +251,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
                 break;
             case CommandTreeAction.SetTriggerKind or CommandTreeAction.SetTriggerHold or CommandTreeAction.SetWheelDirection or CommandTreeAction.SetTriggerButton
                 or CommandTreeAction.SetInputKind or CommandTreeAction.SetInput or CommandTreeAction.SwapTrigger or CommandTreeAction.TakeTrigger:
-                DispatchTrigger(e);
+                _trigger.Dispatch(e);
                 break;
             case CommandTreeAction.SetUseOn when e.Command is { } command && e.UseOn is { } useOn:
                 UpdateCommand(command.Id, stored => stored with { UseOn = useOn });
@@ -268,7 +273,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
                 SetCategory(command, category.Id);
                 break;
             case CommandTreeAction.PickGesture when e.Command is { } command:
-                _ = PickGestureAsync(command);
+                _ = _trigger.PickGestureAsync(command);
                 break;
             case CommandTreeAction.Undo:
                 _store.Undo();
@@ -278,4 +283,28 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable
                 break;
         }
     }
+
+    string? ICommandsHost.Message
+    {
+        get => Message;
+        set => Message = value;
+    }
+
+    int ICommandsHost.SelectedStepIndex
+    {
+        get => SelectedStepIndex;
+        set => SelectedStepIndex = value;
+    }
+
+    bool ICommandsHost.Guard(Action action) => Guard(action);
+
+    void ICommandsHost.ShowSelected() => ShowSelected();
+
+    void ICommandsHost.Reveal(CommandId id, bool otherPlatforms)
+    {
+        ShowOtherPlatforms |= otherPlatforms;
+        ShowCommand(id);
+    }
+
+    void ICommandsHost.ShowForm(FormScreen? form) => GroupForm = form;
 }

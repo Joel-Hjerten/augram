@@ -6,60 +6,28 @@ using Augram.Core.Mapping;
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
-/// The trigger draft of <see cref="CommandsViewModel"/> (Joel, 2026-10-09: a combination is composed through states that are
-/// not valid yet, such as Wheel chosen where both directions are taken, or the last button unticked before another is
-/// ticked). A trigger edit the rules refuse does not snap back: it waits as the draft of the selected command's trigger, the
-/// header shows it with a note saying what is wrong and how to fix it (<see cref="CommandHeaderItem.DraftNote"/>), the next edit
-/// starts from it, and as soon as the rules accept it, it is saved as one normal store edit and the draft is gone. Only the
-/// header shows a draft; the row keeps the stored trigger. It is UI state: selecting anything else drops it, and so does a
-/// store change that removes the command or changes its stored trigger (an undo, a sync) or after which the rules accept it.
-/// A draft refused only because another command of the group uses it here offers Swap and Take it (<c>.TriggerConflict</c>).
+/// The trigger draft (Joel, 2026-10-09: a combination is composed through states that are not valid yet, such as Wheel chosen
+/// where both directions are taken, or the last button unticked before another is ticked). A trigger edit the rules refuse
+/// does not snap back: it waits as the draft of the selected command's trigger, the header shows it with a note saying what
+/// is wrong and how to fix it (<see cref="CommandHeaderItem.DraftNote"/>), the next edit starts from it, and as soon as the
+/// rules accept it, it is saved as one normal store edit and the draft is gone. Only the header shows a draft; the row keeps
+/// the stored trigger. It is UI state: selecting anything else drops it, and so does a store change that removes the command
+/// or changes its stored trigger (an undo, a sync) or after which the rules accept it. A draft refused only because another
+/// command of the group uses it here offers Swap and Take it (<c>.Conflict</c>).
 /// </summary>
-public sealed partial class CommandsViewModel
+internal sealed partial class TriggerEditor
 {
     private TriggerDraft? _draft;
 
     /// <summary>The trigger the next edit of the command starts from: its draft while one waits, else what is stored here.</summary>
-    private Trigger DraftedTrigger(CommandId id)
-        => _draft is { } draft && draft.Id == id ? draft.Trigger : RequireCommand(id).Command.TriggerFor(_platform);
-
-    /// <summary>
-    /// Saves <paramref name="trigger"/> as the command's trigger here: one store edit (one undo step), or none when it is what is
-    /// stored already; either way the draft is gone. False, with the store and the draft untouched, when the rules refuse it.
-    /// </summary>
-    private bool TrySaveTrigger(CommandId id, Trigger trigger)
-    {
-        var waiting = _draft;
-        _draft = null;
-        if (trigger.Normalised() == RequireCommand(id).Command.TriggerFor(_platform))
-        {
-            return true;
-        }
-
-        try
-        {
-            SaveTrigger(id, trigger);
-            return true;
-        }
-        catch (MappingValidationException)
-        {
-            _draft = waiting;
-            return false;
-        }
-    }
-
-    /// <summary>Keeps <paramref name="trigger"/>, which the rules refused, as the draft over the command's stored trigger here.</summary>
-    private void KeepDraft(CommandId id, Trigger trigger)
-        => _draft = new TriggerDraft(id, RequireCommand(id).Command.TriggerFor(_platform), trigger.Normalised());
-
-    /// <summary>Shows the selected command in the header again, with the draft over its trigger while one waits.</summary>
-    private void ShowSelected() => SelectedCommand = HeaderItem(SelectedRow());
+    public Trigger DraftedTrigger(CommandId id)
+        => _draft is { } draft && draft.Id == id ? draft.Trigger : _store.RequireCommand(id).Command.TriggerFor(_platform);
 
     /// <summary>
     /// The selected row as the header shows it: with the draft over its trigger and the draft's note while one waits. A draft of
     /// another command, of one that is gone or whose stored trigger changed underneath it, or one the rules now accept, is dropped.
     /// </summary>
-    private CommandHeaderItem? WithDraft(CommandHeaderItem? item)
+    public CommandHeaderItem? WithDraft(CommandHeaderItem? item)
     {
         if (_draft is not { } draft)
         {
@@ -83,15 +51,44 @@ public sealed partial class CommandsViewModel
             shown = WithConflict(shown, found.Group, found.Command, draft, other);
         }
 
-        return StrokeButton is { } stroke ? (CommandHeaderItem)CommandSections.WithStrokeButtonNote(shown, stroke) : shown;
+        return _host.StrokeButton is { } stroke ? (CommandHeaderItem)CommandSections.WithStrokeButtonNote(shown, stroke) : shown;
     }
+
+    /// <summary>
+    /// Saves <paramref name="trigger"/> as the command's trigger here: one store edit (one undo step), or none when it is what is
+    /// stored already; either way the draft is gone. False, with the store and the draft untouched, when the rules refuse it.
+    /// </summary>
+    private bool TrySaveTrigger(CommandId id, Trigger trigger)
+    {
+        var waiting = _draft;
+        _draft = null;
+        if (trigger.Normalised() == _store.RequireCommand(id).Command.TriggerFor(_platform))
+        {
+            return true;
+        }
+
+        try
+        {
+            SaveTrigger(id, trigger);
+            return true;
+        }
+        catch (MappingValidationException)
+        {
+            _draft = waiting;
+            return false;
+        }
+    }
+
+    /// <summary>Keeps <paramref name="trigger"/>, which the rules refused, as the draft over the command's stored trigger here.</summary>
+    private void KeepDraft(CommandId id, Trigger trigger)
+        => _draft = new TriggerDraft(id, _store.RequireCommand(id).Command.TriggerFor(_platform), trigger.Normalised());
 
     /// <summary>
     /// Why the rules refuse <paramref name="trigger"/> as the command's trigger here, in plain words with how to fix it; null when
     /// they accept it. The rule is Core's (<see cref="MappingRules.EnsureValid(Command, AppGroup, IEnumerable{Command})"/>); this
     /// only finds the words: the button a wheel trigger lacks, the button a button trigger holds (plan 0005: "tick a button to
     /// hold, as Right for Right + Left."), or the command that already uses the trigger in the group (A7),
-    /// which is also what the note's Swap and Take it act on when it uses it on this platform (<c>.TriggerConflict</c>).
+    /// which is also what the note's Swap and Take it act on when it uses it on this platform (<c>.Conflict</c>).
     /// </summary>
     private DraftRefusal? RefusalOf(AppGroup group, Command command, Trigger trigger)
     {
