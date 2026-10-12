@@ -1,6 +1,7 @@
 using Augram.App.Components.Fields;
 using Augram.App.Components.Parts;
 using Augram.App.Declarations;
+using Augram.Core.Abstractions;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Run;
 using Avalonia.Controls;
@@ -32,7 +33,7 @@ public sealed class RunStepForm : IStepForm
     };
 
     /// <summary>"Run as administrator" is offered on Windows only.</summary>
-    public static bool OffersElevation => OperatingSystem.IsWindows();
+    public static bool OffersElevation => RunningPlatform.Current == HostPlatform.Windows;
 
     public string TypeKey => RunStepType.Instance.Key;
 

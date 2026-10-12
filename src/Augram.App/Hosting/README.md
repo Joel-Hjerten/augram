@@ -25,7 +25,7 @@ Process-level services and the composition: what runs for the life of the proces
 | Wait for the UI thread from a worker | `UiThread.IsCurrent` + `UiThread.Invoke(function, cancel)` | Only `Sync/SyncStoreThread` does this. |
 | Run something once after a delay (debounce, timeout, poll) | `OneShotTimer.Schedule(delay, action)` | A `System.Threading.Timer` per request, the action through the timer's marshal (none: the timer thread). Dispose the result to cancel; restart = dispose and schedule again. A request disposed after its timer fired but before the marshalled action ran is skipped. Users: the config save (250 ms, marshalled to the UI thread), sync's poll and change timers (no marshal), stroke-button detection's 5 s timeout. |
 | Follow part of the settings and push what moved | `SettingsFollower<T>(settings, select, apply)` | Remembers the last selected value; on a change that leaves it different, `apply(last, next)`. Dispose to unsubscribe. Users: `EngineSettingsLink` (whole `Settings`), `StartAtLoginLink` (`StartAtLogin`), `AppState` (`GeneralSettings`), `CommandsViewModel` (stroke button, drag distance). |
-| Animation or UI-only timing inside a control | `DispatcherTimer` / `Dispatcher.UIThread.Post` with a priority | Components keep these (a focus after layout, a render frame); they are not marshals. |
+| Animation or UI-only timing inside a control | `DispatcherTimer` / `Dispatcher.UIThread.Post` with a priority | Components keep these (a focus after layout, a render frame); they are not marshals. Each is allowlisted by file in `Architecture/OneHomeHostingTests` ([one-home guards](../../../docs/reference/one-home-guards.md)); a new one is added there with its reason. |
 
 ## Startup and shutdown order
 

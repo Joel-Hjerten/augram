@@ -11,7 +11,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Augram.App;
@@ -179,12 +178,12 @@ public sealed partial class App : Application
         listener.ShowRequested += (_, e) =>
         {
             log.Info(LogSources.App, "Asked to show the window by another launch", Who(e));
-            Dispatcher.UIThread.Post(ShowMainWindow);
+            UiThread.Post(ShowMainWindow);
         };
         listener.QuitRequested += (_, e) =>
         {
             log.Info(LogSources.App, "Asked to quit by another Augram", Who(e));
-            Dispatcher.UIThread.Post(() => desktop.Shutdown());
+            UiThread.Post(() => desktop.Shutdown());
         };
     }
 

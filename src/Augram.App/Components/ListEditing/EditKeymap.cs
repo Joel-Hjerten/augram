@@ -1,3 +1,5 @@
+using Augram.Core.Abstractions;
+
 namespace Augram.App.Components.ListEditing;
 
 /// <summary>
@@ -18,7 +20,7 @@ public sealed class EditKeymap
         _modifier = isMacOS ? "Cmd" : "Ctrl";
     }
 
-    public static EditKeymap Current { get; } = new(OperatingSystem.IsMacOS());
+    public static EditKeymap Current { get; } = new(RunningPlatform.Current == HostPlatform.MacOS);
 
     public bool IsMacOS { get; }
 

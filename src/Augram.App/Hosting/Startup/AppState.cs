@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Augram.App.Hosting.Launch;
+using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -66,7 +67,7 @@ public sealed class AppState : ObservableObject, IDisposable
     }
 
     /// <summary>Only the macOS menu bar has a template icon to choose against; Windows trays are always in colour.</summary>
-    public static bool CanChooseMenuBarIcon => OperatingSystem.IsMacOS();
+    public static bool CanChooseMenuBarIcon => RunningPlatform.Current == HostPlatform.MacOS;
 
     public void Toggle() => Enabled = !Enabled;
 

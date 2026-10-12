@@ -1,6 +1,6 @@
 # Augram.App.Tests
 
-Avalonia headless tests (`Avalonia.Headless.XUnit`) for components, view models and host services, plus `Architecture/` rules on the source itself: no `.axaml` under `src/Augram.App/Components/` may contain a literal colour (ADR-0002 §5b), and every `XField` declaration has a renderer registered under kind `X` (§5c).
+Avalonia headless tests (`Avalonia.Headless.XUnit`) for components, view models and host services, plus `Architecture/` rules on the source itself: no `.axaml` under `src/Augram.App/Components/` may contain a literal colour (ADR-0002 §5b), every `XField` declaration has a renderer registered under kind `X` (§5c), and the one-home guards (`OneHome*Tests`, over every `src/`, `tools/` and test project): a second implementation of a job plan 0007 folded fails with the home to use. Their table and how to add one: [docs/reference/one-home-guards.md](../../docs/reference/one-home-guards.md). `SourceScan` is their helper (comment-free source, allowlists with reasons that fail when stale); `RepositoryPaths` finds the repository.
 
 **May reference:** `Augram.App` (and everything it references), `Augram.TestSupport` (the shared fakes of the Core ports), Avalonia.Headless.XUnit, xunit.
 

@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using Augram.App.Dialogs;
+using Augram.App.Hosting;
 using Augram.App.Hosting.Launch;
 using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
@@ -88,8 +89,8 @@ public sealed partial class App
             OpenAsLaunched(launch, showsItself: true);
         }
 
-        ((MacLaunchEvent)_launchEvent!).WhenKnown(known => Dispatcher.UIThread.Post(() => Decide(known.IsLoginItem, known.Event)));
-        Dispatcher.UIThread.Post(() => DispatcherTimer.RunOnce(
+        ((MacLaunchEvent)_launchEvent!).WhenKnown(known => UiThread.Post(() => Decide(known.IsLoginItem, known.Event)));
+        UiThread.Post(() => DispatcherTimer.RunOnce(
             () =>
             {
                 if (!decided)
@@ -118,7 +119,7 @@ public sealed partial class App
             {
                 // Raised from inside AppKit's handling of the reopen event; shown from the loop, as a second launch's request is.
                 log.Info(LogSources.App, "Asked to show the window by a reopen");
-                Dispatcher.UIThread.Post(ShowMainWindow);
+                UiThread.Post(ShowMainWindow);
             }
         };
     }
