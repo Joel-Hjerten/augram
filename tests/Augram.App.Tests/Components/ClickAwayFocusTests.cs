@@ -9,7 +9,10 @@ using Xunit;
 
 namespace Augram.App.Tests.Components;
 
-/// <summary>A click outside the focused text box takes its focus away, so commit-on-leave editors commit (Joel, 2026-10-07).</summary>
+/// <summary>
+/// A click outside the focused text box takes its focus away, so commit-on-leave editors commit (Joel, 2026-10-07); Enter in a
+/// single-line one does the same (Joel, 2026-10-12).
+/// </summary>
 public sealed class ClickAwayFocusTests
 {
     [AvaloniaFact]
@@ -42,6 +45,30 @@ public sealed class ClickAwayFocusTests
 
         Assert.False(first.IsFocused);
         Assert.True(second.IsFocused);
+    }
+
+    [AvaloniaFact]
+    public void EnterDefocusesASingleLineTextBox_NotAMultiLineOne_NorOneThatHandledIt()
+    {
+        ClickAwayFocus.Register();
+        var single = new TextBox { Width = 150 };
+        var multi = new TextBox { Width = 150, AcceptsReturn = true };
+        var rename = new TextBox { Width = 150 };
+        rename.KeyDown += (_, e) => e.Handled = e.Key == Key.Enter;
+        var window = new Window { Width = 400, Height = 300, Content = new StackPanel { Children = { single, multi, rename } } };
+        window.Show();
+
+        Assert.True(single.Focus());
+        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Assert.False(single.IsFocused);
+
+        Assert.True(multi.Focus());
+        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Assert.True(multi.IsFocused);
+
+        Assert.True(rename.Focus());
+        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Assert.True(rename.IsFocused);
     }
 
     private static void Click(Window window, Point point)
