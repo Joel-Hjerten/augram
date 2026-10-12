@@ -180,11 +180,17 @@ public sealed partial class CommandsViewModel
         if (otherCommand)
         {
             _stepsOf = SelectedCommandId;
-            SelectedStepIndex = -1;
+            CloseSteps();
         }
-        else if (SelectedStepIndex >= steps.Count)
+        else
         {
-            SelectedStepIndex = steps.Count - 1;
+            // An undo, a redo or another tab's edit: the selected and open steps that still exist stay so.
+            if (SelectedStepIndex >= steps.Count)
+            {
+                SelectedStepIndex = steps.Count - 1;
+            }
+
+            OpenStepIndexes = StepIndexShift.Clamp(OpenStepIndexes, steps.Count);
         }
 
         ProjectSidePanel();

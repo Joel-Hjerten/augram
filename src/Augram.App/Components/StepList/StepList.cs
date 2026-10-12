@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.Parts;
 using Augram.App.Components.Steps;
@@ -15,9 +16,10 @@ namespace Augram.App.Components.StepList;
 /// <summary>
 /// Lookless step list of the selected command (F5a): <see cref="Steps"/> in, one
 /// <see cref="StepListActionEventArgs"/> out per intent. One <see cref="StepRow"/> per step in
-/// <c>PART_Rows</c>; the row at <see cref="SelectedIndex"/> is expanded with its type's form from
-/// <see cref="Forms"/>. A click on a step's header asks to open it, or to close it when it is the open one
-/// (Select with no step); the grip only drags (Joel, 0.11.4). <c>PART_New</c> opens the <see cref="StepTypePicker"/>
+/// <c>PART_Rows</c>; every row in <see cref="OpenIndexes"/> is expanded with its type's form from <see cref="Forms"/>, any
+/// number of them (Joel, 2026-10-12), and the row at <see cref="SelectedIndex"/> is the selected one, which the keys and the
+/// menu act on; selected is not open. A click on a step's header asks to open or close that step only (ToggleOpen); the grip
+/// only drags (Joel, 0.11.4), and a dragged step is closed while it is dragged, its form left behind. <c>PART_New</c> opens the <see cref="StepTypePicker"/>
 /// in a flyout, and the menu's "Change to…" another at the selected step's header (<c>StepList.Picker.cs</c>); the menu, the
 /// keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event.
 /// Rows are reused when the count is unchanged, so a form survives the store echoing its own edit back. While
@@ -33,6 +35,9 @@ public sealed partial class StepList : TemplatedControl
 
     public static readonly StyledProperty<int> SelectedIndexProperty =
         AvaloniaProperty.Register<StepList, int>(nameof(SelectedIndex), -1);
+
+    public static readonly StyledProperty<IReadOnlySet<int>> OpenIndexesProperty =
+        AvaloniaProperty.Register<StepList, IReadOnlySet<int>>(nameof(OpenIndexes), ImmutableSortedSet<int>.Empty);
 
     public static readonly StyledProperty<IReadOnlyList<IStepType>> StepTypesProperty =
         AvaloniaProperty.Register<StepList, IReadOnlyList<IStepType>>(nameof(StepTypes), []);
@@ -52,11 +57,12 @@ public sealed partial class StepList : TemplatedControl
     private readonly RowListHost _rows;
     private readonly StepDragReorder _drag;
     private Button? _new;
+    private StepRow? _dragClosed;
 
     public StepList()
     {
         _rows = new RowListHost(() => IsEditing);
-        _drag = new StepDragReorder(() => Rows, () => _rows.List, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to), OnDragStarted, OnHeaderClicked);
+        _drag = new StepDragReorder(() => Rows, () => _rows.List, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to), OnDragStarted, OnHeaderClicked, OnDragEnded);
     }
 
     public event EventHandler<StepListActionEventArgs>? ActionRequested;
@@ -67,11 +73,18 @@ public sealed partial class StepList : TemplatedControl
         set => SetValue(StepsProperty, value);
     }
 
-    /// <summary>The expanded step; -1 for none.</summary>
+    /// <summary>The selected step, which the keys and the menu act on; -1 for none. It is not opened by being selected.</summary>
     public int SelectedIndex
     {
         get => GetValue(SelectedIndexProperty);
         set => SetValue(SelectedIndexProperty, value);
+    }
+
+    /// <summary>The expanded steps, each with its form; empty for none.</summary>
+    public IReadOnlySet<int> OpenIndexes
+    {
+        get => GetValue(OpenIndexesProperty);
+        set => SetValue(OpenIndexesProperty, value);
     }
 
     /// <summary>What "New step…" offers; the picker drops the <c>Other</c> category itself.</summary>
@@ -113,7 +126,7 @@ public sealed partial class StepList : TemplatedControl
 
     public StepItem? SelectedStep => (_rows.SelectedItem as StepRow)?.Item;
 
-    /// <summary>True while keyboard focus is inside the expanded step's form; the list's key bindings stand down then.</summary>
+    /// <summary>True while keyboard focus is inside an open step's form; the list's key bindings stand down then.</summary>
     public bool IsEditing
     {
         get
@@ -135,7 +148,7 @@ public sealed partial class StepList : TemplatedControl
                 StepListMenu.Refresh(list.ContextMenu, SelectedStep, CanAddStep);
             };
 
-            // The menu aimed the selection at the right-clicked step; once it closes the open step is the selected one again.
+            // The menu aimed the selection at the right-clicked step; once it closes the host's selected step is selected again.
             list.ContextMenu.Closed += (_, _) => ApplySelection();
             KeyBindings.Clear();
             StepListMenu.BindKeys(this, EditKeymap.Current, Request, _rows.KeysEnabled);
@@ -152,7 +165,7 @@ public sealed partial class StepList : TemplatedControl
         {
             Rebuild();
         }
-        else if (change.Property == SelectedIndexProperty)
+        else if (change.Property == SelectedIndexProperty || change.Property == OpenIndexesProperty)
         {
             ApplySelection();
         }
@@ -205,7 +218,7 @@ public sealed partial class StepList : TemplatedControl
         ApplySelection();
     }
 
-    /// <summary>A user selection of another step asks to open it; reselecting the open one raises nothing.</summary>
+    /// <summary>A user selection of another step (the arrow keys, a press in its form) selects it for the keys; it opens nothing.</summary>
     private void OnSelectionChanged()
     {
         if (SelectedStep is { } step && step.Index != SelectedIndex)
@@ -214,17 +227,25 @@ public sealed partial class StepList : TemplatedControl
         }
     }
 
-    /// <summary>Expands the row at <see cref="SelectedIndex"/> (building or keeping its form) and selects it without raising Select.</summary>
+    /// <summary>
+    /// Expands the rows in <see cref="OpenIndexes"/> (building or keeping their forms) but the one being dragged, and selects the
+    /// row at <see cref="SelectedIndex"/> without raising Select.
+    /// </summary>
     private void ApplySelection()
     {
         StepRow? selected = null;
+        var open = OpenIndexes;
         foreach (var row in Rows)
         {
-            var expanded = row.Item?.Index == SelectedIndex;
+            if (row.Item is { } item && item.Index == SelectedIndex)
+            {
+                selected = row;
+            }
+
+            var expanded = row.Item is { } shown && open.Contains(shown.Index) && !ReferenceEquals(row, _dragClosed);
             row.IsExpanded = expanded;
             if (expanded)
             {
-                selected = row;
                 EnsureForm(row);
             }
             else
@@ -268,9 +289,9 @@ public sealed partial class StepList : TemplatedControl
 
     /// <summary>
     /// Right-click selects before the context menu opens, so the menu acts on the step under the pointer. A left press on a
-    /// step's header or grip goes to the drag tracker and is marked handled, so the list does not select (open) the step on
-    /// the press: it opens and closes on the click, and a press that becomes a drag leaves it closed (Joel, 0.11.4). Presses
-    /// in the open form and on the active box are theirs. Keyboard focus still moves to the step's container on the press:
+    /// step's header or grip goes to the drag tracker and is marked handled, so the list does not select the step on the
+    /// press: a header click selects it and opens or closes it, and a press that becomes a drag only moves it (Joel, 0.11.4).
+    /// Presses in an open form (which select its step) and on the active box are theirs. Keyboard focus still moves to the step's container on the press:
     /// Avalonia's focus manager does that on the tunnelling press, before this bubbling handler (StepListFocusTests).
     /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
@@ -288,21 +309,35 @@ public sealed partial class StepList : TemplatedControl
         }
     }
 
-    /// <summary>A click on a closed step's header opens it; on the open one's it closes it, leaving no step selected.</summary>
+    /// <summary>A click on a step's header opens it when closed and closes it when open; the other steps stay as they are.</summary>
     private void OnHeaderClicked(StepRow row)
     {
         if (row.Item is { } item)
         {
-            Raise(StepListAction.Select, row.IsExpanded ? null : item);
+            Raise(StepListAction.ToggleOpen, item);
         }
     }
 
-    /// <summary>A drag of the open step closes it first, so its form is not dragged along; the host leaves it closed after the drop.</summary>
+    /// <summary>
+    /// A drag of an open step closes it here while it is dragged, so its form is not dragged along; the host is not asked, so the
+    /// step is still open to it and opens again where it is dropped (or where it was, when the drag moves nothing).
+    /// </summary>
     private void OnDragStarted(StepRow row)
     {
         if (row.IsExpanded)
         {
-            Raise(StepListAction.Select, null);
+            _dragClosed = row;
+            ApplySelection();
+        }
+    }
+
+    /// <summary>The drag ended, before the drop's Reorder is raised: the dragged step shows its open state again.</summary>
+    private void OnDragEnded()
+    {
+        if (_dragClosed is not null)
+        {
+            _dragClosed = null;
+            ApplySelection();
         }
     }
 

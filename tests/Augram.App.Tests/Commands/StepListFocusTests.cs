@@ -35,7 +35,7 @@ public sealed class StepListFocusTests
         Click(window, StepPart(bench, 1, "PART_Name"));
         window.KeyPressQwerty(PhysicalKey.D, Modifier);
 
-        Assert.Equal([StepListAction.Select, StepListAction.Duplicate], steps.Select(action => action.Action));
+        Assert.Equal([StepListAction.ToggleOpen, StepListAction.Duplicate], steps.Select(action => action.Action));
         Assert.Equal(1, steps[1].Step!.Index);
         Assert.Equal(["Wait 10 ms", "Wait 20 ms", "Wait 20 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
 
@@ -60,13 +60,14 @@ public sealed class StepListFocusTests
         Assert.Equal(StepListAction.Paste, Assert.Single(steps).Action);
 
         // The open step's grip leaves it open, and the keys act on it.
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[2]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
         FocusTree(bench);
         Click(window, StepPart(bench, 2, "PART_Grip"));
         window.KeyPressQwerty(PhysicalKey.D, Modifier);
         Assert.Equal(StepListAction.Duplicate, steps[^1].Action);
         Assert.Equal(2, steps[^1].Step!.Index);
         Assert.Equal(3, vm.SelectedStepIndex);
+        Assert.Equal([2, 3], vm.OpenStepIndexes);
 
         // A drag of another step by its header: the open copy stays open where it is, and Delete removes it.
         FocusTree(bench);
@@ -80,6 +81,7 @@ public sealed class StepListFocusTests
         Assert.Equal(StepListAction.Reorder, steps[^1].Action);
         Assert.Equal(["Wait 20 ms", "Wait 10 ms", "Wait 30 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(3, vm.SelectedStepIndex);
+        Assert.Equal([2, 3], vm.OpenStepIndexes);
 
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
 
@@ -134,8 +136,9 @@ public sealed class StepListFocusTests
         window.MouseDown(point, MouseButton.Right);
         window.MouseUp(point, MouseButton.Right);
 
-        Assert.DoesNotContain(steps, action => action.Action == StepListAction.Select);
+        Assert.DoesNotContain(steps, action => action.Action is StepListAction.Select or StepListAction.ToggleOpen);
         Assert.Equal(0, vm.SelectedStepIndex);
+        Assert.Equal([0], vm.OpenStepIndexes);
         Assert.Equal(2, bench.StepsPart!.SelectedStep!.Index);
     }
 

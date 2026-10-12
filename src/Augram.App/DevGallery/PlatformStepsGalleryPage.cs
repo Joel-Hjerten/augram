@@ -68,6 +68,7 @@ public static class PlatformStepsGalleryPage
         var steps = new StepList { StepTypes = vm.StepTypes, HasCommand = true, CardHeader = stepSide };
         steps.Bind(StepList.StepsProperty, new Binding(nameof(CommandsViewModel.Steps)) { Source = vm });
         steps.Bind(StepList.SelectedIndexProperty, new Binding(nameof(CommandsViewModel.SelectedStepIndex)) { Source = vm });
+        steps.Bind(StepList.OpenIndexesProperty, new Binding(nameof(CommandsViewModel.OpenStepIndexes)) { Source = vm });
         steps.Bind(StepList.IsReadOnlyProperty, new Binding($"{nameof(CommandsViewModel.SelectedCommand)}.{nameof(CommandHeaderItem.StepSide)}.{nameof(StepSide.IsHere)}") { Source = vm, Converter = BoolConverters.Not });
         steps.ActionRequested += (_, e) => vm.Handle(e);
         return new StackPanel { Width = 760, Children = { header, steps } };

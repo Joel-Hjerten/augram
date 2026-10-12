@@ -16,9 +16,10 @@ namespace Augram.App.Tests.Commands;
 public sealed class CommandsViewModelStepTests
 {
     [AvaloniaFact]
-    public void AddAppendsADefaultStepAuthoredHereAndExpandsIt()
+    public void AddAppendsADefaultStepAuthoredHereAndOpensIt_TheOpenStepsStayOpen()
     {
         var (vm, store, _, _) = Select("Three steps");
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Add, type: WindowOpStepType.Instance));
 
@@ -27,36 +28,42 @@ public sealed class CommandsViewModelStepTests
         Assert.Equal("Minimize window", steps[3].Step.Summary);
         Assert.Equal(HostPlatform.Windows, steps[3].AuthoredOn);
         Assert.Equal(3, vm.SelectedStepIndex);
+        Assert.Equal([0, 3], vm.OpenStepIndexes);
         Assert.Equal(["Wait 10 ms", "Wait 20 ms", "Wait 30 ms", "Minimize window"], vm.Steps.Select(step => step.Summary));
         Assert.True(vm.CanUndo);
     }
 
     [AvaloniaFact]
-    public void EditReplacesTheStepRecordOneUndoStepPerEdit()
+    public void EditReplacesTheStepRecordOneUndoStepPerEdit_AndTheOpenStepsStayOpenThroughUndoAndRedo()
     {
         var (vm, store, _, _) = Select("Three steps");
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[1]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[1]));
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Edit, vm.Steps[1], edited: new DelayStep(99)));
         vm.Handle(new StepListActionEventArgs(StepListAction.Edit, vm.Steps[1], edited: new DelayStep(100)));
 
         Assert.Equal("Wait 100 ms", CommandsTestData.Find(store, "Three steps").Steps[1].Step.Summary);
         Assert.Equal(1, vm.SelectedStepIndex);
+        Assert.Equal([1, 2], vm.OpenStepIndexes);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
         Assert.Equal("Wait 99 ms", vm.Steps[1].Summary);
         vm.Handle(new StepListActionEventArgs(StepListAction.Redo));
         Assert.Equal("Wait 100 ms", vm.Steps[1].Summary);
+        Assert.Equal([1, 2], vm.OpenStepIndexes);
     }
 
     [AvaloniaFact]
-    public void DuplicateGoesDirectlyBelowAndPasteGoesToTheBottom()
+    public void DuplicateGoesDirectlyBelowAndPasteGoesToTheBottom_EachOpensTheNewStepAndKeepsTheOthersOpen()
     {
         var (vm, store, _, _) = Select("Three steps");
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Duplicate, vm.Steps[0]));
         Assert.Equal(["Wait 10 ms", "Wait 10 ms", "Wait 20 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(1, vm.SelectedStepIndex);
+        Assert.Equal([1, 3], vm.OpenStepIndexes);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Paste));
         Assert.Equal("Nothing to paste: copy a step first.", vm.Message);
@@ -67,6 +74,7 @@ public sealed class CommandsViewModelStepTests
 
         Assert.Equal(["Wait 10 ms", "Wait 10 ms", "Wait 20 ms", "Wait 30 ms", "Wait 20 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(4, vm.SelectedStepIndex);
+        Assert.Equal([1, 3, 4], vm.OpenStepIndexes);
         Assert.Equal(5, CommandsTestData.Find(store, "Three steps").Steps.Count);
     }
 
@@ -75,7 +83,8 @@ public sealed class CommandsViewModelStepTests
     {
         var confirm = new FakeConfirmPresenter();
         var (vm, store, _, dialogs) = Select("Three steps", confirm);
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[2]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[1]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Delete, vm.Steps[0]));
 
@@ -83,11 +92,14 @@ public sealed class CommandsViewModelStepTests
         Assert.Empty(confirm.Requests);
         Assert.Equal(["Wait 20 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(1, vm.SelectedStepIndex);
+        Assert.Equal([0, 1], vm.OpenStepIndexes);
         Assert.Equal($"Deleted step 'Wait 10 ms'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
+        // Deleting an open step closes only that one.
         vm.Handle(new StepListActionEventArgs(StepListAction.Delete, vm.Steps[1]));
         Assert.Equal(["Wait 20 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(-1, vm.SelectedStepIndex);
+        Assert.Equal([0], vm.OpenStepIndexes);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
         vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
@@ -98,43 +110,49 @@ public sealed class CommandsViewModelStepTests
     }
 
     [AvaloniaFact]
-    public void ToggleActiveAndReorderUpdateTheCommandAndTheOpenStepStaysTheOpenOne()
+    public void ToggleActiveAndReorderUpdateTheCommandAndEachStepKeepsItsOpenState()
     {
         var (vm, store, _, _) = Select("Three steps");
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[1]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[1]));
 
-        // The active box opens nothing (Joel, 0.11.4): Wait 20 ms stays the open step.
+        // The active box opens and closes nothing (Joel, 0.11.4).
         vm.Handle(new StepListActionEventArgs(StepListAction.ToggleActive, vm.Steps[0]));
         Assert.False(CommandsTestData.Find(store, "Three steps").Steps[0].IsActive);
         Assert.False(vm.Steps[0].IsActive);
         Assert.Equal(1, vm.SelectedStepIndex);
+        Assert.Equal([0, 1], vm.OpenStepIndexes);
 
-        // A reorder moves the open step with its step, and never opens the one dragged.
+        // A reorder moves each open step with its step, the dragged one too.
         vm.Handle(new StepListActionEventArgs(StepListAction.Reorder, vm.Steps[0], targetIndex: 2));
         Assert.Equal(["Wait 20 ms", "Wait 30 ms", "Wait 10 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(0, vm.SelectedStepIndex);
+        Assert.Equal([0, 2], vm.OpenStepIndexes);
         Assert.False(vm.Steps[2].IsActive);
 
-        vm.Handle(new StepListActionEventArgs(StepListAction.Reorder, vm.Steps[2], targetIndex: 0));
-        Assert.Equal(["Wait 10 ms", "Wait 20 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
+        vm.Handle(new StepListActionEventArgs(StepListAction.Reorder, vm.Steps[1], targetIndex: 0));
+        Assert.Equal(["Wait 30 ms", "Wait 20 ms", "Wait 10 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(1, vm.SelectedStepIndex);
-
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select));
-        vm.Handle(new StepListActionEventArgs(StepListAction.Reorder, vm.Steps[0], targetIndex: 2));
-        Assert.Equal(["Wait 20 ms", "Wait 30 ms", "Wait 10 ms"], vm.Steps.Select(step => step.Summary));
-        Assert.Equal(-1, vm.SelectedStepIndex);
+        Assert.Equal([1, 2], vm.OpenStepIndexes);
     }
 
+    /// <summary>Joel, 2026-10-12: more than one step can be open; selecting one opens nothing, a header click opens or closes its own.</summary>
     [AvaloniaFact]
-    public void SelectWithNoStepClosesTheOpenStep()
+    public void SelectOpensNothing_AndToggleOpenOpensOrClosesOnlyItsOwnStep()
     {
         var (vm, _, _, _) = Select("Three steps");
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[2]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
+        Assert.Equal([0, 2], vm.OpenStepIndexes);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[1]));
+        Assert.Equal(1, vm.SelectedStepIndex);
+        Assert.Equal([0, 2], vm.OpenStepIndexes);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
+
         Assert.Equal(2, vm.SelectedStepIndex);
-
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select));
-
-        Assert.Equal(-1, vm.SelectedStepIndex);
+        Assert.Equal([0], vm.OpenStepIndexes);
         Assert.Equal(3, vm.Steps.Count);
         Assert.False(vm.CanUndo);
     }
@@ -146,7 +164,7 @@ public sealed class CommandsViewModelStepTests
         var (vm, store, _, _) = Select("Three steps");
         vm.Handle(new StepListActionEventArgs(StepListAction.ToggleActive, vm.Steps[1]));
         store.ClearHistory();
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[0]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
 
         vm.Handle(new StepListActionEventArgs(StepListAction.ChangeType, vm.Steps[1], type: WindowOpStepType.Instance));
 
@@ -156,6 +174,7 @@ public sealed class CommandsViewModelStepTests
         Assert.False(steps[1].IsActive);
         Assert.Equal(HostPlatform.Windows, steps[1].AuthoredOn);
         Assert.Equal(1, vm.SelectedStepIndex);
+        Assert.Equal([0, 1], vm.OpenStepIndexes);
         Assert.Equal("Window", vm.Steps[1].TypeName);
         Assert.Equal($"Changed step 'Wait 20 ms' to Window. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
@@ -200,11 +219,14 @@ public sealed class CommandsViewModelStepTests
 
         var three = CommandsTestData.Item(vm, "Three steps");
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, CommandsTestData.Section(vm, "Uncategorized"), three));
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[2]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
         Assert.Equal(2, vm.SelectedStepIndex);
+        Assert.Equal([0, 2], vm.OpenStepIndexes);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, CommandsTestData.Section(vm, "Media"), CommandsTestData.Item(vm, "Volume up")));
         Assert.Equal(-1, vm.SelectedStepIndex);
+        Assert.Empty(vm.OpenStepIndexes);
         Assert.Equal("Volume up", Assert.Single(vm.Steps).Summary);
     }
 

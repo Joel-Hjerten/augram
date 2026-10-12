@@ -30,7 +30,7 @@ public static class ButtonTriggerGalleryPage
     {
         var (vm, store) = ViewModel();
         vm.ShowCommand(Find(store, "Magnifier").Id);
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[0]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
         return Screens.CommandsScreen.Declare(vm);
     }
 

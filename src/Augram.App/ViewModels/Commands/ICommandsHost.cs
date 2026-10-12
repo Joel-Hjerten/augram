@@ -21,8 +21,11 @@ internal interface ICommandsHost
     /// <summary>The selected command (<see cref="CommandsViewModel.SelectedCommandId"/>).</summary>
     CommandId? SelectedCommandId { get; }
 
-    /// <summary>The expanded step of the selected command (<see cref="CommandsViewModel.SelectedStepIndex"/>).</summary>
+    /// <summary>The selected step of the selected command, which the keys act on (<see cref="CommandsViewModel.SelectedStepIndex"/>).</summary>
     int SelectedStepIndex { get; set; }
+
+    /// <summary>The open steps of the selected command (<see cref="CommandsViewModel.OpenStepIndexes"/>).</summary>
+    IReadOnlySet<int> OpenStepIndexes { get; set; }
 
     /// <summary>Runs an intent; a refusal shows on the message line. False when it was refused (<c>StoreViewModel.Guard</c>).</summary>
     bool Guard(Action action);

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.Core.Abstractions;
@@ -13,8 +14,10 @@ namespace Augram.App.ViewModels.Commands;
 /// original, so the first edit on the other platform makes its own steps from what was running there
 /// (<see cref="Command.WithStepsFor"/>; <see cref="EditableSteps"/>). A step added (new, duplicated or pasted) or changed to
 /// another type is first offered to Core's <see cref="StepOffer"/>, as "New step…" and "Change to…" grey a type by, against
-/// the header's trigger (<see cref="TriggerEditor.DraftedTrigger"/>, a draft included). It owns no state: the expanded step
-/// is the view model's <see cref="CommandsViewModel.SelectedStepIndex"/>.
+/// the header's trigger (<see cref="TriggerEditor.DraftedTrigger"/>, a draft included). It owns no state: the selected step
+/// and the open ones are the view model's (<see cref="CommandsViewModel.SelectedStepIndex"/>,
+/// <see cref="CommandsViewModel.OpenStepIndexes"/>), carried across each edit by <see cref="StepIndexShift"/>: an action opens
+/// and closes nothing but its own step (Joel, 2026-10-12).
 /// </summary>
 internal sealed class StepEditor
 {
@@ -63,19 +66,21 @@ internal sealed class StepEditor
         var step = e.Step is { } item && item.Index >= 0 && item.Index < steps.Count ? item : null;
         switch (e.Action)
         {
-            case StepListAction.Select when step is not null:
-                _host.SelectedStepIndex = step.Index;
+            case StepListAction.Select:
+                // The keys follow; nothing opens or closes.
+                _host.SelectedStepIndex = step?.Index ?? -1;
                 break;
-            case StepListAction.Select when e.Step is null:
-                // A click on the open step's header, or a drag starting on it, closes it (Joel, 0.11.4).
-                _host.SelectedStepIndex = -1;
+            case StepListAction.ToggleOpen when step is not null:
+                // A click on a step's header opens or closes that step only; the others stay as they are (Joel, 2026-10-12).
+                _host.SelectedStepIndex = step.Index;
+                _host.OpenStepIndexes = StepIndexShift.Toggle(_host.OpenStepIndexes, step.Index);
                 break;
             case StepListAction.Add when e.Type is { } type:
                 var added = NewStep(type, command);
                 if (Offered(command, added))
                 {
                     steps.Add(new CommandStep(added, _platform));
-                    Commit(group, command, steps, steps.Count - 1);
+                    CommitInserted(group, command, steps, steps.Count - 1);
                 }
 
                 break;
@@ -86,7 +91,7 @@ internal sealed class StepEditor
                 if (Offered(command, changed.Step, replacing: step.Index))
                 {
                     steps[step.Index] = changed;
-                    Commit(group, command, steps, step.Index);
+                    Commit(group, command, steps, step.Index, _host.OpenStepIndexes.ToImmutableSortedSet().Add(step.Index));
                     _host.Message ??= $"Changed step '{step.Summary}' to {type.DisplayName}. {EditKeymap.Current.Undo} undoes it.";
                 }
 
@@ -95,13 +100,13 @@ internal sealed class StepEditor
                 // An edit is made in this platform's terms (the form shows its key names), so the step is authored here:
                 // a Windows "Win+X" kept unconverted in a Mac version, edited to Opt+Shift+X, still read and ran as Windows.
                 steps[step.Index] = steps[step.Index] with { Step = edited, AuthoredOn = _platform };
-                Commit(group, command, steps, step.Index);
+                Commit(group, command, steps, step.Index, _host.OpenStepIndexes);
                 break;
             case StepListAction.Duplicate when step is not null:
                 if (Offered(command, steps[step.Index].Step))
                 {
                     steps.Insert(step.Index + 1, steps[step.Index]);
-                    Commit(group, command, steps, step.Index + 1);
+                    CommitInserted(group, command, steps, step.Index + 1);
                 }
 
                 break;
@@ -119,28 +124,27 @@ internal sealed class StepEditor
                 if (Offered(command, copied.Step))
                 {
                     steps.Add(copied);
-                    Commit(group, command, steps, steps.Count - 1);
+                    CommitInserted(group, command, steps, steps.Count - 1);
                 }
 
                 break;
             case StepListAction.Delete when step is not null:
-                // A delete opens and closes nothing else (Joel, 0.14.4): the open step stays open (one up when it was below the
-                // deleted one); deleting the open step leaves none open.
+                // A delete opens and closes nothing else (Joel, 0.14.4): the open steps stay open (one up when below the deleted one).
                 steps.RemoveAt(step.Index);
-                var open = _host.SelectedStepIndex;
-                Commit(group, command, steps, open == step.Index ? -1 : open > step.Index ? open - 1 : open);
+                Commit(group, command, steps, StepIndexShift.AfterRemove(_host.SelectedStepIndex, step.Index), StepIndexShift.AfterRemove(_host.OpenStepIndexes, step.Index));
                 _host.Message = $"Deleted step '{step.Summary}'. {EditKeymap.Current.Undo} undoes it.";
                 break;
             case StepListAction.ToggleActive when step is not null:
                 // The active box opens and closes nothing (Joel, 0.11.4).
                 steps[step.Index] = steps[step.Index] with { IsActive = !steps[step.Index].IsActive };
-                Commit(group, command, steps, _host.SelectedStepIndex);
+                Commit(group, command, steps, _host.SelectedStepIndex, _host.OpenStepIndexes);
                 break;
             case StepListAction.Reorder when step is not null && e.TargetIndex >= 0 && e.TargetIndex < steps.Count && e.TargetIndex != step.Index:
                 var moved = steps[step.Index];
                 steps.RemoveAt(step.Index);
                 steps.Insert(e.TargetIndex, moved);
-                Commit(group, command, steps, e.IndexAfterReorder(_host.SelectedStepIndex));
+                // Open state travels with each step, the dragged one's too (the list closed it only while it was dragged).
+                Commit(group, command, steps, StepIndexShift.AfterMove(_host.SelectedStepIndex, step.Index, e.TargetIndex), StepIndexShift.AfterMove(_host.OpenStepIndexes, step.Index, e.TargetIndex));
                 break;
         }
     }
@@ -172,12 +176,17 @@ internal sealed class StepEditor
         return false;
     }
 
-    /// <summary>One store call per edit, then the step to leave expanded.</summary>
-    private void Commit(AppGroup group, Command command, IReadOnlyList<CommandStep> steps, int select)
+    /// <summary>A step was inserted at <paramref name="at"/> (new, duplicated, pasted): it is selected and opens; the open ones below it shift.</summary>
+    private void CommitInserted(AppGroup group, Command command, IReadOnlyList<CommandStep> steps, int at)
+        => Commit(group, command, steps, at, StepIndexShift.AfterInsert(_host.OpenStepIndexes, at));
+
+    /// <summary>One store call per edit, then the step to leave selected and the steps to leave open.</summary>
+    private void Commit(AppGroup group, Command command, IReadOnlyList<CommandStep> steps, int select, IReadOnlySet<int> open)
     {
         var forked = command.Origin is { } origin && origin != _platform && command.OwnVersion?.Platform != _platform;
         _store.UpdateCommand(group.Id, command.WithStepsFor(_platform, steps, DateTimeOffset.UtcNow));
         _host.SelectedStepIndex = select;
+        _host.OpenStepIndexes = open;
         if (forked)
         {
             _host.Message = $"'{command.Name}' now has its own steps here; the original keeps running where it was authored. {EditKeymap.Current.Undo} undoes it.";

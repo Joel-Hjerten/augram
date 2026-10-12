@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.Components.Steps;
@@ -149,7 +150,7 @@ public sealed class StepListHoldRemapTests
     {
         var actions = new List<StepListActionEventArgs>();
         var steps = new List<StepItem> { StepItemProjection.From(new CommandStep(new RemapStep(output), HostPlatform.Windows), 0, HostPlatform.Windows) };
-        var list = new StepList { Steps = steps, SelectedIndex = 0, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
+        var list = new StepList { Steps = steps, SelectedIndex = 0, OpenIndexes = ImmutableSortedSet.Create(0), StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
         list.ActionRequested += (_, e) => actions.Add(e);
         new Window { Content = list, Width = 800, Height = 800 }.Show();
         return (list, actions);

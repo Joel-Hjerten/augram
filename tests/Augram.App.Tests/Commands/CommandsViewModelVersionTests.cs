@@ -99,8 +99,13 @@ public sealed class CommandsViewModelVersionTests
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized"), Item(vm, "Three steps")));
         Assert.Equal(HostPlatform.MacOS, vm.SelectedCommand!.StepSide!.Shown);
         Assert.Null(vm.SelectedCommand.StepSide.CopyText);
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[2]));
+        Assert.Equal([0, 2], vm.OpenStepIndexes);
 
+        // The other side's steps start with none open.
         ShowStepsFor(vm, HostPlatform.Windows);
+        Assert.Empty(vm.OpenStepIndexes);
         var side = vm.SelectedCommand!.StepSide!;
         Assert.Equal(HostPlatform.Windows, side.Shown);
         Assert.False(side.IsHere);

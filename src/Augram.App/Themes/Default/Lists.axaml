@@ -451,6 +451,7 @@
                       <steps:StepList Name="PART_Steps"
                                       Steps="{TemplateBinding Steps}"
                                       SelectedIndex="{TemplateBinding SelectedStepIndex}"
+                                      OpenIndexes="{TemplateBinding OpenStepIndexes}"
                                       StepTypes="{TemplateBinding StepTypes}"
                                       HasCommand="{TemplateBinding HasCommand}"
                                       IsReadOnly="{TemplateBinding StepsReadOnly}"

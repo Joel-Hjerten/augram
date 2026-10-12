@@ -15,7 +15,7 @@ namespace Augram.App.Components.StepList;
 /// it starts the drag (the row captures the pointer, is marked <c>:dragging</c> and reported as started). While it drags the
 /// list shows the order a release would give (Joel, 0.11.11: "they should reorganize immediately and not after release"): the
 /// dragged row follows the pointer above the others, and the rows between its place and the target slide aside to make room
-/// (render offsets only, <see cref="StepRow.DragOffset"/>; nothing is stored). A release calls back once with (from, to)
+/// (render offsets only, <see cref="StepRow.DragOffset"/>; nothing is stored). A drag's end (dropped or lost) is reported once the rows are put back. A release then calls back once with (from, to)
 /// indexes, so a drag is one undo step; a lost capture (Escape, another window) puts every row back. The host moves the step;
 /// this class never does. Positions are measured in the surface's coordinates (the list), so rows may be any height.
 /// </summary>
@@ -30,6 +30,7 @@ internal sealed class StepDragReorder
     private readonly Action<int, int> _reorder;
     private readonly Action<StepRow> _started;
     private readonly Action<StepRow> _clicked;
+    private readonly Action _ended;
     private readonly List<StepRow> _shifted = [];
     private StepRow? _pressed;
     private Point _start;
@@ -38,13 +39,14 @@ internal sealed class StepDragReorder
     private bool _clickable;
     private bool _dragging;
 
-    public StepDragReorder(Func<IReadOnlyList<StepRow>> rows, Func<Visual?> surface, Action<int, int> reorder, Action<StepRow> started, Action<StepRow> clicked)
+    public StepDragReorder(Func<IReadOnlyList<StepRow>> rows, Func<Visual?> surface, Action<int, int> reorder, Action<StepRow> started, Action<StepRow> clicked, Action ended)
     {
         _rows = rows;
         _surface = surface;
         _reorder = reorder;
         _started = started;
         _clicked = clicked;
+        _ended = ended;
     }
 
     public void Attach(StepRow row)
@@ -235,9 +237,14 @@ internal sealed class StepDragReorder
             return;
         }
 
+        var dragged = _dragging;
         _pressed.SetDragging(false);
         _pressed = null;
         _dragging = false;
         _clickable = false;
+        if (dragged)
+        {
+            _ended();
+        }
     }
 }

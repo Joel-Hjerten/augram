@@ -13,8 +13,8 @@ namespace Augram.App.Components.StepList;
 
 /// <summary>
 /// Lookless row of the <see cref="StepList"/> (F5a): position, summary, type name, the F8 marker and
-/// the active toggle; the selected row is <c>:expanded</c> and shows its type's parameter
-/// <see cref="Form"/> in place (accordion). <c>:dragging</c> marks the row being dragged, and
+/// the active toggle; an open row is <c>:expanded</c> and shows its type's parameter
+/// <see cref="Form"/> in place (any number of rows may be open). <c>:dragging</c> marks the row being dragged, and
 /// <see cref="DragOffset"/> how far a drag has moved it on screen. The list remembers which step the form was built from and what it last emitted, so
 /// an edit does not rebuild the form under the user's hands while an undo does. Two parts tell the list
 /// where a press landed: <c>PART_Grip</c> (the drag handle and the number, <see cref="IsOnGrip"/>) and

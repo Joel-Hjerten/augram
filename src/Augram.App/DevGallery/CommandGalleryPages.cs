@@ -1,4 +1,5 @@
 #if DEBUG
+using System.Collections.Immutable;
 using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;
@@ -69,7 +70,7 @@ public static class CommandGalleryPages
     {
         var vm = WorkbenchViewModel(CommandsScope.Apps, out var store);
         vm.ShowCommand(store.Current.AllCommands().Single(pair => pair.Command.Name == "Orbit").Command.Id);
-        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[0]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.ToggleOpen, vm.Steps[0]));
         return Screens.CommandsScreen.Declare(vm);
     }
 
@@ -153,7 +154,7 @@ public static class CommandGalleryPages
         var steps = FakeSteps().Select((step, index) => StepItemProjection.From(step, index, RunningPlatform.Current)).ToList();
         return new FormScreen("StepList",
         [
-            new Section("Four steps, the first expanded; a header click opens or closes, drag to reorder, the check box toggles (local, no store)",
+            new Section("Four steps, the first and third open (any number may be); a header click opens or closes its step only, drag to reorder, the check box toggles (local, no store)",
             [
                 new CustomField("StepList", () => BuildLiveStepList(steps)),
             ]),
@@ -283,7 +284,7 @@ public static class CommandGalleryPages
 
     private static StepList BuildLiveStepList(List<StepItem> steps)
     {
-        var list = new StepList { Steps = steps, SelectedIndex = 0, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true, Width = 520 };
+        var list = new StepList { Steps = steps, SelectedIndex = 0, OpenIndexes = ImmutableSortedSet.Create(0, 2), StepTypes = StepRegistry.BuiltIn.All, HasCommand = true, Width = 520 };
         list.ActionRequested += (_, e) =>
         {
             var items = list.Steps.Select(item => item.Step).ToList();
@@ -292,18 +293,26 @@ public static class CommandGalleryPages
                 case StepListAction.Select:
                     list.SelectedIndex = e.Step?.Index ?? -1;
                     return;
+                case StepListAction.ToggleOpen when e.Step is { } step:
+                    list.SelectedIndex = step.Index;
+                    list.OpenIndexes = StepIndexShift.Toggle(list.OpenIndexes, step.Index);
+                    return;
                 case StepListAction.Reorder when e.Step is { } step:
                     var moved = items[step.Index];
                     items.RemoveAt(step.Index);
                     items.Insert(e.TargetIndex, moved);
-                    list.SelectedIndex = e.IndexAfterReorder(list.SelectedIndex);
+                    list.SelectedIndex = StepIndexShift.AfterMove(list.SelectedIndex, step.Index, e.TargetIndex);
+                    list.OpenIndexes = StepIndexShift.AfterMove(list.OpenIndexes, step.Index, e.TargetIndex);
                     break;
                 case StepListAction.Delete when e.Step is { } step:
                     items.RemoveAt(step.Index);
+                    list.SelectedIndex = StepIndexShift.AfterRemove(list.SelectedIndex, step.Index);
+                    list.OpenIndexes = StepIndexShift.AfterRemove(list.OpenIndexes, step.Index);
                     break;
                 case StepListAction.Add when e.Type is { } type:
                     items.Add(new CommandStep(type.CreateDefault(), HostPlatform.Windows));
                     list.SelectedIndex = items.Count - 1;
+                    list.OpenIndexes = StepIndexShift.AfterInsert(list.OpenIndexes, items.Count - 1);
                     break;
                 case StepListAction.Edit when e.Step is { } step && e.Edited is { } edited:
                     items[step.Index] = items[step.Index] with { Step = edited };

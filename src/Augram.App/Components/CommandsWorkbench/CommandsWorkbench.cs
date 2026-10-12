@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
@@ -45,6 +46,9 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public static readonly StyledProperty<int> SelectedStepIndexProperty =
         AvaloniaProperty.Register<CommandsWorkbench, int>(nameof(SelectedStepIndex), -1);
+
+    public static readonly StyledProperty<IReadOnlySet<int>> OpenStepIndexesProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, IReadOnlySet<int>>(nameof(OpenStepIndexes), ImmutableSortedSet<int>.Empty);
 
     public static readonly StyledProperty<IReadOnlyList<IStepType>> StepTypesProperty =
         AvaloniaProperty.Register<CommandsWorkbench, IReadOnlyList<IStepType>>(nameof(StepTypes), []);
@@ -138,6 +142,13 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         get => GetValue(SelectedStepIndexProperty);
         set => SetValue(SelectedStepIndexProperty, value);
+    }
+
+    /// <summary>The open steps (<see cref="StepList.StepList.OpenIndexes"/>).</summary>
+    public IReadOnlySet<int> OpenStepIndexes
+    {
+        get => GetValue(OpenStepIndexesProperty);
+        set => SetValue(OpenStepIndexesProperty, value);
     }
 
     public IReadOnlyList<IStepType> StepTypes

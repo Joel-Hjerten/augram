@@ -3,19 +3,25 @@ namespace Augram.App.Components.StepList;
 /// <summary>The intents a <see cref="StepList"/> raises for the host view model (F5a step editing); the event args carry the step and, where needed, the type, the edited step or the target index.</summary>
 public enum StepListAction
 {
-    /// <summary>The user selected a step, which the host expands in place; with no step, the open one was closed and none is selected.</summary>
+    /// <summary>The user selected a step (the arrow keys, a press in its form): the keys and the menu act on it; it opens and closes nothing.</summary>
     Select,
 
-    /// <summary>Append a default step of the chosen type, select and expand it.</summary>
+    /// <summary>
+    /// A click on a step's header: select it and open it, or close it when it is open. The other steps stay open or closed
+    /// (Joel, 2026-10-12: several steps may be open at once).
+    /// </summary>
+    ToggleOpen,
+
+    /// <summary>Append a default step of the chosen type, select and open it.</summary>
     Add,
 
     /// <summary>
     /// Replace the step with a default step of the chosen type (the menu's "Change to…"), keeping its on/off state and dropping its
-    /// settings; one undo step; select and expand it.
+    /// settings; one undo step; select and open it.
     /// </summary>
     ChangeType,
 
-    /// <summary>The expanded step's form produced a new step record; one undo step per edit.</summary>
+    /// <summary>An open step's form produced a new step record; one undo step per edit.</summary>
     Edit,
 
     /// <summary>A copy directly below the step (Ctrl+D).</summary>

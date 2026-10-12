@@ -36,7 +36,7 @@ internal static class StepListMenu
         }
     }
 
-    /// <summary><paramref name="canExecute"/> says no while the expanded step's form has keyboard focus, so Delete and Ctrl+D edit the field, not the list.</summary>
+    /// <summary><paramref name="canExecute"/> says no while an open step's form has keyboard focus, so Delete and Ctrl+D edit the field, not the list.</summary>
     public static void BindKeys(InputElement target, EditKeymap keymap, Action<StepListAction> request, Func<bool> canExecute)
         => ActionMenu<StepListAction>.BindKeys(
             target,

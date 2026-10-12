@@ -1,7 +1,9 @@
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.StepList;
+using Augram.App.ViewModels.Commands;
 using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
@@ -133,6 +135,7 @@ public sealed class StepListTests
 
         Click(window, () => Centre(Part(list.Rows[1], "PART_Name"), window));
         Assert.Equal(1, list.SelectedIndex);
+        Assert.Equal([1], list.OpenIndexes);
         Assert.True(list.Rows[1].IsExpanded);
         Assert.IsType<SectionForm>(list.Rows[1].Form);
 
@@ -141,13 +144,39 @@ public sealed class StepListTests
         Click(window, () => Part(list.Rows[1], "PART_FormHost").TranslatePoint(new Point(2, 2), window)!.Value);
         Assert.True(list.Rows[1].IsExpanded);
 
+        // Closed again, and still the selected step: the keys act on it.
         Click(window, () => Centre(Part(list.Rows[1], "PART_Name"), window));
-        Assert.Equal(-1, list.SelectedIndex);
+        Assert.Empty(list.OpenIndexes);
         Assert.False(list.Rows[1].IsExpanded);
         Assert.Null(list.Rows[1].Form);
-        Assert.Null(list.GetVisualDescendants().OfType<ListBox>().Single().SelectedItem);
-        Assert.All(actions, action => Assert.Equal(StepListAction.Select, action.Action));
-        Assert.Equal([1, -1], actions.Select(action => action.Step?.Index ?? -1));
+        Assert.Same(list.Rows[1], list.GetVisualDescendants().OfType<ListBox>().Single().SelectedItem);
+        Assert.All(actions, action => Assert.Equal(StepListAction.ToggleOpen, action.Action));
+        Assert.Equal([1, 1], actions.Select(action => action.Step!.Index));
+    }
+
+    /// <summary>Joel, 2026-10-12: more than one step can be open at a time; a header click opens or closes its own step only.</summary>
+    [AvaloniaFact]
+    public void TwoStepsOpenAtOnceByTheirHeaders_AndAHeaderClickClosesOnlyItsOwnStep()
+    {
+        var (list, actions, _) = Show(echoSelect: true);
+        var window = WindowOf(list);
+
+        Click(window, () => Centre(Part(list.Rows[0], "PART_Name"), window));
+        Click(window, () => Centre(Part(list.Rows[2], "PART_Name"), window));
+
+        Assert.Equal([0, 2], list.OpenIndexes);
+        Assert.Equal([true, false, true], list.Rows.Select(row => row.IsExpanded));
+        Assert.IsType<SectionForm>(list.Rows[0].Form);
+        Assert.IsType<SectionForm>(list.Rows[2].Form);
+        Assert.Equal(2, list.SelectedIndex);
+
+        Click(window, () => Centre(Part(list.Rows[0], "PART_Name"), window));
+
+        Assert.Equal([2], list.OpenIndexes);
+        Assert.Equal([false, false, true], list.Rows.Select(row => row.IsExpanded));
+        Assert.Null(list.Rows[0].Form);
+        Assert.IsType<SectionForm>(list.Rows[2].Form);
+        Assert.Equal([StepListAction.ToggleOpen, StepListAction.ToggleOpen, StepListAction.ToggleOpen], actions.Select(action => action.Action));
     }
 
     [AvaloniaFact]
@@ -241,22 +270,22 @@ public sealed class StepListTests
     }
 
     [AvaloniaFact]
-    public void ADragByTheGripOrStartedOnTheOpenStepClosesItAndTheDropStillReorders()
+    public void ADragByTheGripOrStartedOnAnOpenStepClosesItWhileDragged_TheOthersStayOpen_AndTheDropReorders()
     {
-        var (list, actions, _) = Show(selected: 0, echoSelect: true);
+        var (list, actions, _) = Show(selected: 0, echoSelect: true, open: [0, 1]);
         var window = WindowOf(list);
         Render();
         var from = Centre(Part(list.Rows[0], "PART_Grip"), window);
 
+        // Closed here only, so its form is not dragged along: the host is not asked, and the other open step stays open.
         window.MouseDown(from, MouseButton.Left);
         window.MouseMove(new Point(from.X, from.Y + StepDragReorder.ThresholdPx + 2));
         Assert.Contains(":dragging", list.Rows[0].Classes);
-        var close = Assert.Single(actions);
-        Assert.Equal(StepListAction.Select, close.Action);
-        Assert.Null(close.Step);
-        Assert.Equal(-1, list.SelectedIndex);
+        Assert.Empty(actions);
+        Assert.Equal([0, 1], list.OpenIndexes);
         Assert.False(list.Rows[0].IsExpanded);
         Assert.Null(list.Rows[0].Form);
+        Assert.True(list.Rows[1].IsExpanded);
 
         // The rows moved up when the form closed; the order follows the pointer from there.
         Render();
@@ -265,10 +294,12 @@ public sealed class StepListTests
         Assert.True(list.Rows[2].DragOffset < 0);
         window.MouseUp(to, MouseButton.Left);
 
-        Assert.Equal([StepListAction.Select, StepListAction.Reorder], actions.Select(action => action.Action));
-        Assert.Equal(0, actions[1].Step!.Index);
-        Assert.Equal(2, actions[1].TargetIndex);
-        Assert.Equal(-1, list.SelectedIndex);
+        var reorder = Assert.Single(actions);
+        Assert.Equal(StepListAction.Reorder, reorder.Action);
+        Assert.Equal((0, 2), (reorder.Step!.Index, reorder.TargetIndex));
+
+        // The drag is over: the step shows as open again (where this host, which moves nothing, still has it).
+        Assert.Equal([true, true, false], list.Rows.Select(row => row.IsExpanded));
     }
 
     [AvaloniaFact]
@@ -305,6 +336,7 @@ public sealed class StepListTests
         menu.Close();
 
         list.SelectedIndex = 1;
+        list.OpenIndexes = ImmutableSortedSet.Create(1);
         box.RaiseEvent(new ContextRequestedEventArgs());
         Assert.True(entry.IsEnabled);
         menu.Close();
@@ -371,22 +403,6 @@ public sealed class StepListTests
         Assert.Equal(12, picker.Offered.Count);
     }
 
-    [Theory]
-    [InlineData(0, 2, 0, 2)]
-    [InlineData(0, 2, 1, 0)]
-    [InlineData(0, 2, 2, 1)]
-    [InlineData(2, 0, 0, 1)]
-    [InlineData(2, 0, 1, 2)]
-    [InlineData(2, 0, 2, 0)]
-    [InlineData(0, 1, 2, 2)]
-    [InlineData(1, 2, -1, -1)]
-    public void AReorderMovesTheOpenStepWithItsStep(int from, int to, int open, int expected)
-    {
-        var step = StepItemProjection.From(new CommandStep(new DelayStep(10), HostPlatform.Windows), from, HostPlatform.Windows);
-
-        Assert.Equal(expected, new StepListActionEventArgs(StepListAction.Reorder, step, targetIndex: to).IndexAfterReorder(open));
-    }
-
     private static Window WindowOf(StepList list) => (Window)TopLevel.GetTopLevel(list)!;
 
     private static Control Part(StepRow row, string name)
@@ -414,8 +430,11 @@ public sealed class StepListTests
     private static IReadOnlyList<StepItem> Replace(IReadOnlyList<CommandStep> steps, int index, IStep step)
         => steps.Select((item, i) => StepItemProjection.From(i == index ? item with { Step = step } : item, i, HostPlatform.Windows)).ToList();
 
-    /// <summary>The three steps in a window, the one at <paramref name="selected"/> open; with <paramref name="echoSelect"/> the host answers Select as the view model does (the step opens; none closes the open one).</summary>
-    private static (StepList List, List<StepListActionEventArgs> Actions, IReadOnlyList<CommandStep> Steps) Show(int selected = -1, bool echoSelect = false)
+    /// <summary>
+    /// The three steps in a window, the one at <paramref name="selected"/> selected and open (or the ones in <paramref name="open"/>);
+    /// with <paramref name="echoSelect"/> the host answers Select and ToggleOpen as the view model does.
+    /// </summary>
+    private static (StepList List, List<StepListActionEventArgs> Actions, IReadOnlyList<CommandStep> Steps) Show(int selected = -1, bool echoSelect = false, int[]? open = null)
     {
         IReadOnlyList<CommandStep> steps =
         [
@@ -425,12 +444,18 @@ public sealed class StepListTests
         ];
         var actions = new List<StepListActionEventArgs>();
         var list = new StepList { Steps = steps.Select((step, index) => StepItemProjection.From(step, index, HostPlatform.Windows)).ToList(), SelectedIndex = selected, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
+        list.OpenIndexes = (open ?? (selected >= 0 ? [selected] : [])).ToImmutableSortedSet();
         list.ActionRequested += (_, e) =>
         {
             actions.Add(e);
-            if (echoSelect && e.Action == StepListAction.Select)
+            if (echoSelect && e.Action is StepListAction.Select or StepListAction.ToggleOpen)
             {
                 list.SelectedIndex = e.Step?.Index ?? -1;
+            }
+
+            if (echoSelect && e.Action == StepListAction.ToggleOpen && e.Step is { } step)
+            {
+                list.OpenIndexes = StepIndexShift.Toggle(list.OpenIndexes, step.Index);
             }
         };
         var window = new Window { Content = list, Width = 700, Height = 700 };

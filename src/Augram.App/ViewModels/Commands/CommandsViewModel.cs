@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
@@ -166,9 +167,19 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
     [ObservableProperty]
     public partial FormScreen? GroupForm { get; private set; }
 
-    /// <summary>The expanded step of the selected command; -1 for none.</summary>
+    /// <summary>
+    /// The selected step of the selected command: the one the step list's keys and menu act on; -1 for none. Selected is not
+    /// open: any number of steps are open (<see cref="OpenStepIndexes"/>).
+    /// </summary>
     [ObservableProperty]
     public partial int SelectedStepIndex { get; private set; } = -1;
+
+    /// <summary>
+    /// The open (expanded) steps of the selected command, any number of them (Joel, 2026-10-12); every step action opens and
+    /// closes nothing else (<see cref="StepIndexShift"/>). Another command, the other side's steps and a copy start with none.
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlySet<int> OpenStepIndexes { get; private set; } = ImmutableSortedSet<int>.Empty;
 
     [ObservableProperty]
     public partial bool CanUndo { get; private set; }
@@ -331,6 +342,12 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
     {
         get => SelectedStepIndex;
         set => SelectedStepIndex = value;
+    }
+
+    IReadOnlySet<int> ICommandsHost.OpenStepIndexes
+    {
+        get => OpenStepIndexes;
+        set => OpenStepIndexes = value;
     }
 
     bool ICommandsHost.Guard(Action action) => Guard(action);

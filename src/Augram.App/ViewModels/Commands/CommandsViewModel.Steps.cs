@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.ListEditing;
@@ -35,11 +36,18 @@ public sealed partial class CommandsViewModel
         }
     }
 
+    /// <summary>No step selected and none open: another command, the other side's steps, a copy from the other side.</summary>
+    private void CloseSteps()
+    {
+        SelectedStepIndex = -1;
+        OpenStepIndexes = ImmutableSortedSet<int>.Empty;
+    }
+
     /// <summary>The switch: shows <paramref name="platform"/>'s steps, none of them open. A view change, never an edit.</summary>
     private void ShowStepsFor(HostPlatform platform)
     {
         _stepsView.Shown = platform;
-        SelectedStepIndex = -1;
+        CloseSteps();
         ProjectSelection();
     }
 
@@ -58,7 +66,7 @@ public sealed partial class CommandsViewModel
 
         var side = _stepsView.Shown;
         _store.UpdateCommand(group.Id, own.Platform == side ? command.WithoutOwnVersion() : command.WithOwnVersionAsOriginal());
-        SelectedStepIndex = -1;
+        CloseSteps();
         Message = $"The {side.DisplayName()} steps of '{command.Name}' are the {side.Other().DisplayName()} steps now, converted. {EditKeymap.Current.Undo} brings them back.";
     }
 
