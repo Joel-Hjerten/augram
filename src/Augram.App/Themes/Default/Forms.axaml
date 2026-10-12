@@ -1070,6 +1070,11 @@
     <Setter Property="Theme" Value="{StaticResource SegmentRadioButton}" />
     <Setter Property="Margin" Value="0" />
   </Style>
+  <!-- A marked segment (Choice.Marked; the Steps for and Fields for switches' "this computer"): outlined in the accent's line,
+       selected or not, so the platform that runs here shows while the other side is in view (Joel, 0.14.1). -->
+  <Style Selector="RadioButton.button-radio.here /template/ Border#PART_Segment">
+    <Setter Property="BorderBrush" Value="{DynamicResource Accent.Line}" />
+  </Style>
   <!-- A form inside a form (a step's form in the gallery, a dialog shown on a page) takes no margin of its own. -->
   <Style Selector="form|SectionForm form|SectionForm /template/ ItemsControl#PART_Sections">
     <Setter Property="Margin" Value="0" />

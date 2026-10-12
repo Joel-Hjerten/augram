@@ -1,7 +1,10 @@
 namespace Augram.App.Declarations;
 
-/// <summary>One option of a dropdown or button-radio field: what the user sees and what the binding gets.</summary>
-public sealed record Choice<T>(string Label, T Value);
+/// <summary>
+/// One option of a dropdown or button-radio field: what the user sees and what the binding gets. <see cref="Marked"/> outlines a
+/// button-radio segment whether or not it is selected: this computer's platform on a "Fields for" switch (Joel, 0.14.1).
+/// </summary>
+public sealed record Choice<T>(string Label, T Value, bool Marked = false);
 
 public static class Choice
 {

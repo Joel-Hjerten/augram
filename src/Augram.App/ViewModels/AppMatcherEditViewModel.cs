@@ -192,7 +192,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
         [
             new Section(SectionTitle,
             [
-                new ButtonRadioField<HostPlatform>(PlatformSwitchLabel, [new(HostPlatform.Windows.DisplayName(), HostPlatform.Windows), new(HostPlatform.MacOS.DisplayName(), HostPlatform.MacOS)],
+                new ButtonRadioField<HostPlatform>(PlatformSwitchLabel, [new(HostPlatform.Windows.DisplayName(), HostPlatform.Windows, View.Here == HostPlatform.Windows), new(HostPlatform.MacOS.DisplayName(), HostPlatform.MacOS, View.Here == HostPlatform.MacOS)],
                     new DelegateBinding<HostPlatform>(() => View.Shown, value => View.Shown = value, View),
                     "Each platform has its own fields: a Windows field never applies on a Mac, nor a macOS one on Windows. Only this computer's are edited here; the other platform's show read-only."),
                 new NoteField(ReadOnlyLabel, new DelegateBinding<string>(() => PlatformSideView.EditNote(View.Shown), owner: View, propertyName: null))

@@ -9,6 +9,9 @@ public interface IChoiceField
 {
     IReadOnlyList<string> Labels { get; }
 
+    /// <summary>Per choice, whether it is marked (<see cref="Choice{T}.Marked"/>); the button-radio renderer outlines it.</summary>
+    IReadOnlyList<bool> Marked { get; }
+
     /// <summary>-1 when the bound value matches no choice.</summary>
     int SelectedIndex { get; set; }
 

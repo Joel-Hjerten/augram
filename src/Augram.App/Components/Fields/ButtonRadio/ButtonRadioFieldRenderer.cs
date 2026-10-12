@@ -20,6 +20,7 @@ public sealed class ButtonRadioFieldRenderer : IFieldRenderer
             var index = i;
             var button = new RadioButton { Content = choices.Labels[i], GroupName = group, IsEnabled = !choices.IsReadOnly };
             button.Classes.Add("button-radio");
+            button.Classes.Set("here", choices.Marked[i]);
             button.IsCheckedChanged += (_, _) =>
             {
                 if (button.IsChecked == true)

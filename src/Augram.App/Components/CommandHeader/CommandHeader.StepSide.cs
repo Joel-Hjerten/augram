@@ -103,15 +103,20 @@ public sealed partial class CommandHeader
         _applying = true;
         try
         {
-            var shown = Item?.StepSide?.Shown;
+            var side = Item?.StepSide;
+            var shown = side?.Shown;
+            // This computer's platform is outlined whichever side is in view (Joel, 0.14.1), as on the "Fields for" switch.
+            var here = side is null ? (HostPlatform?)null : side.IsHere ? side.Shown : side.Shown.Other();
             if (_stepsForWindows is not null)
             {
                 _stepsForWindows.IsChecked = shown == HostPlatform.Windows;
+                _stepsForWindows.Classes.Set("here", here == HostPlatform.Windows);
             }
 
             if (_stepsForMac is not null)
             {
                 _stepsForMac.IsChecked = shown == HostPlatform.MacOS;
+                _stepsForMac.Classes.Set("here", here == HostPlatform.MacOS);
             }
         }
         finally

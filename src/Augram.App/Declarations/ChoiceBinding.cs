@@ -13,12 +13,15 @@ public sealed class ChoiceBinding<T> : IChoiceField
         _choices = choices;
         _value = value;
         Labels = [.. choices.Select(choice => choice.Label)];
+        Marked = [.. choices.Select(choice => choice.Marked)];
         _value.Changed += (_, e) => Changed?.Invoke(this, e);
     }
 
     public event EventHandler? Changed;
 
     public IReadOnlyList<string> Labels { get; }
+
+    public IReadOnlyList<bool> Marked { get; }
 
     public bool IsReadOnly => _value.IsReadOnly;
 

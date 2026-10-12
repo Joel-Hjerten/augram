@@ -20,7 +20,7 @@ Each kind is a record here and a renderer in `Components/Fields/<Kind>/` (found 
 | Toggle | `ToggleField` | one bool |
 | Toggles | `TogglesField` + `ToggleOption` | a few bools on one row ("Use on ☑ Windows ☑ macOS"; the edit forms take it from `ViewModels/UseOnEdit.Declare`) |
 | CheckList | `CheckListField` + `CheckListItem` (`LiveItems` for a list that changes; an item's optional `Remove`, a `CheckListRemove`: while its `Removable` reads true the caption is muted, its note ("unused") shows and an ✕ removes it) | bools one under the other with a detail (the Not in, Also in, Allowed for and export dialogs; their ticks are a `ViewModels/CheckedSet`; the Not in and Also in dialogs set `Remove` through `ViewModels/Commands/RemovableEntries`) |
-| Dropdown, ButtonRadio | `DropdownField<T>`, `ButtonRadioField<T>` + `Choice<T>` | one of a few values; `ChoiceBinding<T>` maps a typed binding to indexes |
+| Dropdown, ButtonRadio | `DropdownField<T>`, `ButtonRadioField<T>` + `Choice<T>` | one of a few values; `ChoiceBinding<T>` maps a typed binding to indexes; a `Choice` may be `Marked` (a button-radio segment outlined in the accent line whether selected or not: this computer's platform on Fields for, 0.14.1) |
 | Text | `TextField` (`Multiline`) | a value stored on every keystroke |
 | CommittedText | `CommittedTextField` (`Wide`) | a value committed on leaving or Enter, reverted on Escape, its problem under it (Options › Sync's address and machine name over a `DraftText`) |
 | Number, Slider | `NumberField`, `SliderField` | a number in a range |
