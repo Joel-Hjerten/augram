@@ -94,7 +94,8 @@ internal static class ConfigRecovery
     /// </summary>
     private static void LoadGroup(MappingStore store, AppGroup group, Action<string>? notice)
     {
-        var shell = group.HeaderOnly();
+        // Global keeps the store's name: it is never renamed (MappingRules.EnsureNotRenamingGlobal), even by a hand-edited file.
+        var shell = group.IsGlobal ? group.HeaderOnly() with { Name = store.Global.Name } : group.HeaderOnly();
         if (!Try(() => _ = group.IsGlobal ? store.UpdateGroup(shell) : store.AddGroup(shell), $"App group '{group.Name}' ({group.Id})", notice))
         {
             return;

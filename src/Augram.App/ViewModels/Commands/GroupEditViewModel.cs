@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using Augram.App.Declarations;
-using Augram.Core.Abstractions;
+using Augram.App.Dialogs;
 using Augram.Core.Mapping;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -17,25 +17,26 @@ namespace Augram.App.ViewModels.Commands;
 /// <see cref="SyncFrom"/> re-reads a stored group after an undo or a rename in the tree. Nothing is validated here: the
 /// store's rules answer when the dialog confirms or the panel applies.
 /// </summary>
-public sealed partial class GroupEditViewModel : ObservableObject
+public sealed partial class GroupEditViewModel : ObservableObject, IDialogForm
 {
+    /// <summary>The dialog's title for a new group (the side panel shows the same form without one).</summary>
+    public const string NewTitle = "New app group";
+
     public GroupEditViewModel()
     {
         Identification = new AppMatcherEditViewModel(
-            () => UseOn,
+            () => UseOn.Value,
             "type its name, or stop using the group there",
             "None needed: every platform the group is used on has its own names.");
         Identification.PropertyChanged += OnIdentificationChanged;
+        UseOn.PropertyChanged += OnUseOnChanged;
     }
 
     [ObservableProperty]
     public partial string Name { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial bool UseOnWindows { get; set; } = true;
-
-    [ObservableProperty]
-    public partial bool UseOnMac { get; set; } = true;
+    /// <summary>Where the group is used; its changes are raised as this view model's own, after the identification's guess follows them.</summary>
+    public UseOnEdit UseOn { get; } = new();
 
     [ObservableProperty]
     public partial bool SuppressGlobals { get; set; }
@@ -46,7 +47,9 @@ public sealed partial class GroupEditViewModel : ObservableObject
     /// <summary>The app identification; its changes are raised as this view model's own (<see cref="AppMatcherEditViewModel.GuessText"/> among them).</summary>
     public AppMatcherEditViewModel Identification { get; }
 
-    private PlatformSet UseOn => PlatformSet.None.With(HostPlatform.Windows, UseOnWindows).With(HostPlatform.MacOS, UseOnMac);
+    string IDialogForm.DialogTitle => NewTitle;
+
+    string IDialogForm.DialogConfirmLabel => FormDialogs.CreateLabel;
 
     public static GroupEditViewModel From(AppGroup group)
     {
@@ -61,21 +64,20 @@ public sealed partial class GroupEditViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(group);
         Name = group.Name;
-        UseOnWindows = group.UseOn.Includes(HostPlatform.Windows);
-        UseOnMac = group.UseOn.Includes(HostPlatform.MacOS);
+        UseOn.SyncFrom(group.UseOn);
         SuppressGlobals = group.SuppressGlobals;
         IsActive = group.IsActive;
         Identification.SyncFrom(group.Matcher ?? AppMatcher.Empty);
     }
 
     /// <summary>A new group with these settings and no commands.</summary>
-    public AppGroup ToGroup(GroupId id) => new(id, Name, IsActive, SuppressGlobals, Identification.ToMatcher(), []) { UseOn = UseOn };
+    public AppGroup ToGroup(GroupId id) => new(id, Name, IsActive, SuppressGlobals, Identification.ToMatcher(), []) { UseOn = UseOn.Value };
 
     /// <summary>The existing group with these settings, its commands untouched.</summary>
     public AppGroup Apply(AppGroup existing)
     {
         ArgumentNullException.ThrowIfNull(existing);
-        return existing with { Name = Name, IsActive = IsActive, SuppressGlobals = SuppressGlobals, UseOn = UseOn, Matcher = Identification.ToMatcher() };
+        return existing with { Name = Name, IsActive = IsActive, SuppressGlobals = SuppressGlobals, UseOn = UseOn.Value, Matcher = Identification.ToMatcher() };
     }
 
     public FormScreen Declare() => new("App group",
@@ -84,21 +86,17 @@ public sealed partial class GroupEditViewModel : ObservableObject
         [
             new TextField("Name", new DelegateBinding<string>(() => Name, value => Name = value, this), "Shown in the command tree; unique among groups."),
             new ToggleField("Active", new DelegateBinding<bool>(() => IsActive, value => IsActive = value, this), "An inactive group and its commands never fire."),
-            new TogglesField(
-                "Use on",
-                [
-                    new ToggleOption(HostPlatform.Windows.DisplayName(), new DelegateBinding<bool>(() => UseOnWindows, value => UseOnWindows = value, this)),
-                    new ToggleOption(HostPlatform.MacOS.DisplayName(), new DelegateBinding<bool>(() => UseOnMac, value => UseOnMac = value, this)),
-                ],
-                "A platform left unticked never fires the group and hides it from its list unless Show other platforms is on."),
+            UseOn.Declare("A platform left unticked never fires the group and hides it from its list unless Show other platforms is on."),
             new ToggleField("Suppress global commands", new DelegateBinding<bool>(() => SuppressGlobals, value => SuppressGlobals = value, this), "SP.net's \"No Global Actions\": over this app only its own commands fire."),
         ]),
         .. Identification.Sections(),
     ]);
 
-    partial void OnUseOnWindowsChanged(bool value) => Identification.UsedOnChanged();
-
-    partial void OnUseOnMacChanged(bool value) => Identification.UsedOnChanged();
+    private void OnUseOnChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        Identification.UsedOnChanged();
+        OnPropertyChanged(e);
+    }
 
     private void OnIdentificationChanged(object? sender, PropertyChangedEventArgs e) => OnPropertyChanged(e);
 }

@@ -100,10 +100,6 @@ public sealed class ItemList : TemplatedControl
     {
         base.OnApplyTemplate(e);
         _rows = e.NameScope.Find<ListBox>("PART_Rows");
-        if (_rows is not null && Spec is { } spec)
-        {
-            ListRowBuilder.AttachActions(_rows, spec, () => SelectedItem);
-        }
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

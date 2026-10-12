@@ -76,7 +76,7 @@ public sealed class ExportPresenter : IExportPresenter
     public static FormDialogRequest Request(ExportViewModel viewModel)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
-        return new FormDialogRequest(ExportViewModel.Title, ExportViewModel.ConfirmLabel, Screen: viewModel.Declare())
+        return FormDialogs.Request(viewModel) with
         {
             CanConfirm = new DelegateBinding<bool>(() => viewModel.CanSave, owner: viewModel, propertyName: nameof(viewModel.CanSave)),
         };

@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
@@ -9,15 +8,16 @@ namespace Augram.App.ViewModels.Commands;
 /// (<c>.HoldRemapPanel</c>, plan 0002) and a category's on the Global tab (<c>.CategoryPanel</c>, Joel 2026-10-08;
 /// Uncategorized's too, an ordinary category since Joel's 2026-10-11). Shown while a section row, not a command, is selected. Each edit applies at once, one undo step
 /// each like a step edit; a rule the store refuses (an empty or taken name) shows on the message line and the field keeps
-/// what was typed. The form is rebuilt only when another section is selected, so typing never loses focus; a change from
-/// elsewhere (undo, a rename or the active box in the tree) is synced into it, but the panel's own edits are not echoed back.
+/// what was typed. Each form's lifecycle is a <see cref="PanelEdit{TEdit, TId}"/>: rebuilt only when another section is
+/// selected, so typing never loses focus; a change from elsewhere (undo, a rename or the active box in the tree) is synced
+/// into it, but the panel's own edits are not echoed back.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
-    private GroupEditViewModel? _groupEdit;
-    private GroupId? _groupEditId;
-    private bool _applyingGroupEdit;
-    private bool _syncingGroupEdit;
+    private PanelEdit<GroupEditViewModel, GroupId>? _groupPanel;
+
+    // GuessText is computed from the fields; its notice follows a real edit that is applied already.
+    private PanelEdit<GroupEditViewModel, GroupId> GroupPanel => _groupPanel ??= new(OnGroupEdited, nameof(AppMatcherEditViewModel.GuessText));
 
     /// <summary>Shows the selected app group's, hold remap's or category's form, or none.</summary>
     private void ProjectSidePanel()
@@ -26,83 +26,42 @@ public sealed partial class CommandsViewModel
         var group = section is null ? null : _store.FindGroup(section.Id.GroupId);
         if (section is { CanEditDefinition: true } && group is not null)
         {
-            DetachCategoryEdit();
-            DetachHoldRemapEdit();
+            CategoryPanel.Close();
+            HoldRemapPanel.Close();
             ProjectGroupPanel(group);
         }
         else if (section?.Id.HoldRemapId is { } holdRemapId && group?.FindHoldRemap(holdRemapId) is { } holdRemap)
         {
-            DetachGroupEdit();
-            DetachCategoryEdit();
+            GroupPanel.Close();
+            CategoryPanel.Close();
             ProjectHoldRemapPanel(group.Id, holdRemap);
         }
         else if (section?.Id.CategoryId is { } categoryId && group?.FindCategory(categoryId) is { } category)
         {
-            DetachGroupEdit();
-            DetachHoldRemapEdit();
+            GroupPanel.Close();
+            HoldRemapPanel.Close();
             ProjectCategoryPanel(group.Id, category);
         }
         else
         {
-            DetachGroupEdit();
-            DetachCategoryEdit();
-            DetachHoldRemapEdit();
+            GroupPanel.Close();
+            CategoryPanel.Close();
+            HoldRemapPanel.Close();
             GroupForm = null;
         }
     }
 
     private void ProjectGroupPanel(AppGroup group)
     {
-        if (_groupEdit is null || _groupEditId != group.Id)
+        if (GroupPanel.Show(group.Id, () => GroupEditViewModel.From(group), edit => edit.SyncFrom(group)) is { } shown)
         {
-            DetachGroupEdit();
-            _groupEdit = GroupEditViewModel.From(group);
-            _groupEditId = group.Id;
-            _groupEdit.PropertyChanged += OnGroupEdited;
-            GroupForm = _groupEdit.Declare();
-        }
-        else if (!_applyingGroupEdit)
-        {
-            _syncingGroupEdit = true;
-            try
-            {
-                _groupEdit.SyncFrom(group);
-            }
-            finally
-            {
-                _syncingGroupEdit = false;
-            }
+            GroupForm = shown.Declare();
         }
     }
 
-    private void OnGroupEdited(object? sender, PropertyChangedEventArgs e)
+    private void OnGroupEdited(GroupEditViewModel edit, GroupId id, string? property)
     {
-        // GuessText is computed from the fields; its notice follows a real edit that is applied already.
-        if (_syncingGroupEdit || e.PropertyName == nameof(AppMatcherEditViewModel.GuessText) || _groupEdit is not { } edit || _groupEditId is not { } id)
-        {
-            return;
-        }
-
         Message = null;
-        _applyingGroupEdit = true;
-        try
-        {
-            Guard(() => _store.UpdateGroup(edit.Apply(RequireGroup(id))));
-        }
-        finally
-        {
-            _applyingGroupEdit = false;
-        }
-    }
-
-    private void DetachGroupEdit()
-    {
-        if (_groupEdit is not null)
-        {
-            _groupEdit.PropertyChanged -= OnGroupEdited;
-        }
-
-        _groupEdit = null;
-        _groupEditId = null;
+        Guard(() => _store.UpdateGroup(edit.Apply(RequireGroup(id))));
     }
 }

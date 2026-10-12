@@ -1,7 +1,7 @@
+using System.Runtime.CompilerServices;
 using Augram.App.Declarations;
 using Augram.App.ViewModels;
 using Augram.Core.Sync;
-using Avalonia.Controls;
 
 namespace Augram.App.Screens;
 
@@ -46,7 +46,7 @@ public static class AugramImportScreen
                 {
                     Visible = new DelegateBinding<bool>(() => vm.HasSettings, owner: vm, propertyName: nameof(vm.HasSettings)),
                 },
-                new CustomField("Every differing item", () => ApplyToAll(vm), vm)
+                ApplyToAll(vm) with
                 {
                     Visible = new DelegateBinding<bool>(() => vm.HasConflicts, owner: vm, propertyName: nameof(vm.HasConflicts)),
                 },
@@ -66,16 +66,14 @@ public static class AugramImportScreen
         ]);
     }
 
-    /// <summary>A dropdown of the three choices and "Apply to all" beside it, as the StrokesPlus.net import has.</summary>
-    private static StackPanel ApplyToAll(AugramImportViewModel vm)
+    /// <summary>A dropdown of the three choices (the first chosen) and "Apply to all" beside it, as the StrokesPlus.net import has.</summary>
+    private static ButtonsField ApplyToAll(AugramImportViewModel vm, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
     {
-        var choice = new ComboBox { ItemsSource = AllChoices.Select(SyncConflictsViewModel.Label).ToList(), SelectedIndex = 0 };
-        choice.Classes.Add("field-editor");
-        var apply = new Button { Content = ApplyToAllLabel };
-        apply.Classes.Add("toolbar");
-        apply.Click += (_, _) => vm.ApplyToAll(AllChoices[Math.Max(0, choice.SelectedIndex)]);
-        var line = new StackPanel { Children = { choice, apply } };
-        line.Classes.Add("field-buttons");
-        return line;
+        var chosen = AllChoices[0];
+        var choices = AllChoices.Select(choice => new Choice<SyncChoice>(SyncConflictsViewModel.Label(choice), choice)).ToList();
+        return new ButtonsField("Every differing item", [new FieldButton(ApplyToAllLabel, () => vm.ApplyToAll(chosen))], File: file, Line: line)
+        {
+            Choice = new ChoiceBinding<SyncChoice>(choices, new DelegateBinding<SyncChoice>(() => chosen, value => chosen = value)),
+        };
     }
 }

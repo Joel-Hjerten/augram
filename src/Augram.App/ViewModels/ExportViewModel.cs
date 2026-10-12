@@ -1,6 +1,7 @@
 using System.Globalization;
 using Augram.App.Components.StepList;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.Core.Config;
 using Augram.Core.Mapping;
 using Augram.Core.Text;
@@ -18,7 +19,7 @@ namespace Augram.App.ViewModels;
 /// on the scope its entry point preselects (Options: everything; the Gestures toolbar: gestures only; an app group's or a
 /// category's menu: that group, or Global).
 /// </summary>
-public sealed partial class ExportViewModel : ObservableObject
+public sealed partial class ExportViewModel : ObservableObject, IDialogForm
 {
     public const string Title = "Export";
     public const string ConfirmLabel = "Save…";
@@ -29,7 +30,7 @@ public sealed partial class ExportViewModel : ObservableObject
     public const string ContentsHelp = "The file is Augram's own format (.augram.json): Import… on any Augram reads it, merging rather than replacing.";
 
     private readonly ConfigDocument _current;
-    private readonly HashSet<GroupId> _checked = [];
+    private readonly CheckedSet<GroupId> _checked;
 
     /// <param name="current">The configuration to export from: the stores' snapshot.</param>
     /// <param name="start">The scope to start on; a selection's groups and ignored apps start ticked.</param>
@@ -39,10 +40,13 @@ public sealed partial class ExportViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(start);
         _current = current;
         Items = [.. GroupItems(current.Mapping), .. IgnoredItems(current.Mapping)];
+        var ticked = start is ExportScope.Selection selected
+            ? Items.Where(item => (item.IsIgnoredApp ? selected.Ignored : selected.Groups).Contains(item.Id)).Select(item => item.Id)
+            : [];
+        _checked = new(ticked, Refresh);
         switch (start)
         {
-            case ExportScope.Selection selection:
-                _checked.UnionWith(Items.Where(item => (item.IsIgnoredApp ? selection.Ignored : selection.Groups).Contains(item.Id)).Select(item => item.Id));
+            case ExportScope.Selection:
                 Kind = ExportKind.Selected;
                 break;
             case ExportScope.GesturesScope:
@@ -66,6 +70,10 @@ public sealed partial class ExportViewModel : ObservableObject
     [ObservableProperty]
     public partial ExportKind Kind { get; set; }
 
+    string IDialogForm.DialogTitle => Title;
+
+    string IDialogForm.DialogConfirmLabel => ConfirmLabel;
+
     /// <summary>Global first, then the app groups by name, then the ignored apps by name.</summary>
     public IReadOnlyList<ExportItem> Items { get; }
 
@@ -88,8 +96,8 @@ public sealed partial class ExportViewModel : ObservableObject
     {
         ExportKind.GesturesOnly => ExportScope.GesturesOnly,
         ExportKind.Selected => ExportScope.Of(
-            Items.Where(item => !item.IsIgnoredApp && _checked.Contains(item.Id)).Select(item => item.Id),
-            Items.Where(item => item.IsIgnoredApp && _checked.Contains(item.Id)).Select(item => item.Id)),
+            Items.Where(item => !item.IsIgnoredApp && _checked.IsChecked(item.Id)).Select(item => item.Id),
+            Items.Where(item => item.IsIgnoredApp && _checked.IsChecked(item.Id)).Select(item => item.Id)),
         _ => ExportScope.Everything,
     };
 
@@ -100,16 +108,13 @@ public sealed partial class ExportViewModel : ObservableObject
     public bool IsChecked(ExportItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return _checked.Contains(item.Id);
+        return _checked.IsChecked(item.Id);
     }
 
     public void SetChecked(ExportItem item, bool value)
     {
         ArgumentNullException.ThrowIfNull(item);
-        if (value ? _checked.Add(item.Id) : _checked.Remove(item.Id))
-        {
-            Refresh();
-        }
+        _checked.SetChecked(item.Id, value);
     }
 
     /// <summary>The file the current choice writes, from the snapshot the dialog opened on.</summary>
@@ -138,7 +143,7 @@ public sealed partial class ExportViewModel : ObservableObject
     partial void OnKindChanged(ExportKind value) => Refresh();
 
     private CheckListItem Item(ExportItem item)
-        => new(item.Name, new DelegateBinding<bool>(() => IsChecked(item), value => SetChecked(item, value), this, propertyName: nameof(Contents)), item.Detail);
+        => _checked.Item(item.Name, item.Id, this, nameof(Contents), item.Detail);
 
     /// <summary>Recounts the file and tells every binding on the form (an empty name refreshes them all).</summary>
     private void Refresh()

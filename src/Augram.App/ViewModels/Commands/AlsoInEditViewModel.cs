@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.Core.Mapping;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -13,7 +14,7 @@ namespace Augram.App.ViewModels.Commands;
 /// ticked, which the host stores as one edit when the dialog is confirmed. What a list may hold is Core's
 /// (<see cref="MappingRules"/> keeps only such entries that exist, and none on a trigger that holds the stroke button).
 /// </summary>
-public sealed class AlsoInEditViewModel : ObservableObject
+public sealed class AlsoInEditViewModel : ObservableObject, IDialogForm
 {
     public const string Title = "Also in";
     public const string ConfirmLabel = "Save";
@@ -21,7 +22,7 @@ public sealed class AlsoInEditViewModel : ObservableObject
     public const string NoAppsText = "None on Exclusions › Global yet (an app there that disables Augram while focused never counts).";
 
     private readonly List<IgnoredApp> _entries;
-    private readonly HashSet<GroupId> _checked;
+    private readonly CheckedSet<GroupId> _checked;
 
     /// <param name="commandName">The command's name, for the section title.</param>
     /// <param name="ignored">The whole exclusion list: its Global entries without the disable-while-focused mode are offered.</param>
@@ -33,10 +34,14 @@ public sealed class AlsoInEditViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(alsoIn);
         CommandName = commandName;
         _entries = [.. ignored.Where(Offered).OrderBy(app => app.Name, MappingRules.NameComparer).ThenBy(app => app.Id.Value)];
-        _checked = [.. alsoIn.Where(id => _entries.Exists(app => app.Id == id))];
+        _checked = new(alsoIn.Where(id => _entries.Exists(app => app.Id == id)), () => OnPropertyChanged(nameof(AlsoIn)));
     }
 
     public string CommandName { get; }
+
+    string IDialogForm.DialogTitle => Title;
+
+    string IDialogForm.DialogConfirmLabel => ConfirmLabel;
 
     /// <summary>The entries offered, by name: Exclusions › Global, without the disable-while-focused mode.</summary>
     public IReadOnlyList<IgnoredApp> Entries => _entries;
@@ -59,16 +64,6 @@ public sealed class AlsoInEditViewModel : ObservableObject
         return !app.IsPerCommand && !app.DisableEntirely;
     }
 
-    public bool IsChecked(GroupId id) => _checked.Contains(id);
-
-    public void SetChecked(GroupId id, bool value)
-    {
-        if (value ? _checked.Add(id) : _checked.Remove(id))
-        {
-            OnPropertyChanged(nameof(AlsoIn));
-        }
-    }
-
     public FormScreen Declare() => new(Title,
     [
         new Section($"Where '{CommandName}' still works",
@@ -80,5 +75,5 @@ public sealed class AlsoInEditViewModel : ObservableObject
     ]);
 
     private CheckListItem Item(IgnoredApp app)
-        => new(app.Name, new DelegateBinding<bool>(() => IsChecked(app.Id), value => SetChecked(app.Id, value), this, propertyName: nameof(AlsoIn)), app.IsActive ? null : "inactive");
+        => _checked.Item(app.Name, app.Id, this, nameof(AlsoIn), app.IsActive ? null : "inactive");
 }

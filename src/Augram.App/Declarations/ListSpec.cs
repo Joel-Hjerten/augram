@@ -6,9 +6,8 @@ namespace Augram.App.Declarations;
 /// <summary>
 /// A declared list (ADR-0002 §5c), rendered by <c>ItemList</c>. Rows come from <see cref="Source"/>;
 /// <see cref="Columns"/> render text cells unless <see cref="RowComponent"/> supplies a control per row.
-/// <see cref="Filters"/> are applied by the renderer; <see cref="Toolbar"/>, <see cref="ContextMenu"/>
-/// and <see cref="Keymap"/> are the list's actions. <see cref="Ordering"/> is declared for the Gestures
-/// and step lists; drag-reordering itself lands with those screens.
+/// <see cref="Filters"/> are applied by the renderer; <see cref="Toolbar"/> holds the list's actions. A list
+/// with a menu, keys or drag-reordering is a component (the step list, the gesture grid), not a declared list.
 /// </summary>
 public sealed record ListSpec(
     string Title,
@@ -16,9 +15,6 @@ public sealed record ListSpec(
     IListSource Source,
     IReadOnlyList<ListAction>? Toolbar = null,
     IReadOnlyList<ListFilter>? Filters = null,
-    IReadOnlyList<ListAction>? ContextMenu = null,
-    IReadOnlyList<ListKey>? Keymap = null,
-    ListOrdering Ordering = ListOrdering.Sorted,
     bool AutoScroll = false,
     Func<object, Control>? RowComponent = null,
     [CallerFilePath] string File = "",

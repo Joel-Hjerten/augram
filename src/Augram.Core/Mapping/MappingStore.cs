@@ -61,11 +61,14 @@ public sealed partial class MappingStore
     }
 
     /// <summary>Replaces the group with the same id, commands and categories included (adding, renaming or deleting a category is this call: one undo step).</summary>
+    /// <exception cref="MappingValidationException">The change breaks a rule, renaming the Global group among them (<see cref="MappingRules.EnsureNotRenamingGlobal"/>).</exception>
     public AppGroup UpdateGroup(AppGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
         var groups = Current.Groups.ToArray();
-        groups[IndexOfGroup(group.Id)] = group;
+        var index = IndexOfGroup(group.Id);
+        MappingRules.EnsureNotRenamingGlobal(groups[index], group);
+        groups[index] = group;
         Commit(Current with { Groups = groups });
         return FindGroup(group.Id)!;
     }
@@ -237,15 +240,23 @@ public sealed partial class MappingStore
     private AppGroup RequireGroup(GroupId id) => Current.Groups[IndexOfGroup(id)];
 
     /// <summary>The current document with the command of the same id in that group replaced, not yet committed.</summary>
-    private MappingDocument WithCommandReplaced(GroupId groupId, Command command)
+    private MappingDocument WithCommandReplaced(GroupId groupId, Command command) => Replaced(Current, groupId, command);
+
+    /// <summary><paramref name="document"/> with the command of the same id in that group replaced, not validated.</summary>
+    private static MappingDocument Replaced(MappingDocument document, GroupId groupId, Command command)
     {
-        var index = IndexOfGroup(groupId);
-        var group = Current.Groups[index];
+        var index = IndexOf(document.Groups, group => group.Id == groupId);
+        if (index < 0)
+        {
+            throw new KeyNotFoundException($"No app group with id {groupId}.");
+        }
+
+        var group = document.Groups[index];
         var commands = group.Commands.ToArray();
         commands[IndexOfCommand(group, command.Id)] = command;
-        var groups = Current.Groups.ToArray();
+        var groups = document.Groups.ToArray();
         groups[index] = group with { Commands = commands };
-        return Current with { Groups = groups };
+        return document with { Groups = groups };
     }
 
     private (AppGroup Group, Command Command) RequireCommand(CommandId id)

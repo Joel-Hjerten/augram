@@ -22,7 +22,7 @@ public sealed partial class CommandsViewModel
         }
 
         var edit = NotInEditViewModel.For(command, _store.Current, _platform);
-        if (!await _dialogs.ShowAsync(new FormDialogRequest(NotInEditViewModel.Title, NotInEditViewModel.ConfirmLabel, Screen: edit.Declare())).ConfigureAwait(true))
+        if (!await _dialogs.ShowAsync(edit).ConfigureAwait(true))
         {
             return;
         }

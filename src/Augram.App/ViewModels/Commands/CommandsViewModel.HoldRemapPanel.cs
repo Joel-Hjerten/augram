@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
@@ -11,90 +10,38 @@ namespace Augram.App.ViewModels.Commands;
 /// the name that follows it are one step); a refused name shows its rule while the field keeps the text, and any other
 /// refused edit (a hold key the group already uses, both Use on boxes unticked) shows its rule and puts the form back on the
 /// stored values, since a capture field or a check box cannot keep a value the store refused the way a text field can. Undo
-/// and a rename in the tree are synced into the open form.
+/// and a rename in the tree are synced into the open form (<see cref="PanelEdit{TEdit, TId}"/>).
 /// </summary>
 public sealed partial class CommandsViewModel
 {
-    private HoldRemapEditViewModel? _holdRemapEdit;
-    private (GroupId Group, HoldRemapId HoldRemap)? _holdRemapEditId;
-    private bool _applyingHoldRemapEdit;
-    private bool _syncingHoldRemapEdit;
+    private PanelEdit<HoldRemapEditViewModel, (GroupId Group, HoldRemapId HoldRemap)>? _holdRemapPanel;
+
+    private PanelEdit<HoldRemapEditViewModel, (GroupId Group, HoldRemapId HoldRemap)> HoldRemapPanel => _holdRemapPanel ??= new(OnHoldRemapEdited);
 
     private void ProjectHoldRemapPanel(GroupId groupId, HoldRemap holdRemap)
     {
-        if (_holdRemapEdit is null || _holdRemapEditId != (groupId, holdRemap.Id))
+        if (HoldRemapPanel.Show((groupId, holdRemap.Id), () => HoldRemapEditViewModel.From(holdRemap), edit => edit.SyncFrom(holdRemap)) is { } shown)
         {
-            DetachHoldRemapEdit();
-            _holdRemapEdit = HoldRemapEditViewModel.From(holdRemap);
-            _holdRemapEditId = (groupId, holdRemap.Id);
-            _holdRemapEdit.PropertyChanged += OnHoldRemapEdited;
-            GroupForm = _holdRemapEdit.Declare();
-        }
-        else if (!_applyingHoldRemapEdit)
-        {
-            SyncHoldRemapEdit(holdRemap);
+            GroupForm = shown.Declare();
         }
     }
 
-    private void OnHoldRemapEdited(object? sender, PropertyChangedEventArgs e)
+    private void OnHoldRemapEdited(HoldRemapEditViewModel edit, (GroupId Group, HoldRemapId HoldRemap) id, string? property)
     {
-        if (_syncingHoldRemapEdit || _holdRemapEdit is not { } edit || _holdRemapEditId is not { } id)
-        {
-            return;
-        }
-
         Message = null;
-        _applyingHoldRemapEdit = true;
-        bool applied;
-        try
+        var applied = Guard(() =>
         {
-            applied = Guard(() =>
+            var stored = RequireHoldRemap(id.Group, id.HoldRemap);
+            var next = edit.Apply(stored);
+            if (next != stored)
             {
-                var stored = RequireHoldRemap(id.Group, id.HoldRemap);
-                var next = edit.Apply(stored);
-                if (next != stored)
-                {
-                    _store.UpdateHoldRemap(id.Group, next);
-                }
-            });
-        }
-        finally
-        {
-            _applyingHoldRemapEdit = false;
-        }
+                _store.UpdateHoldRemap(id.Group, next);
+            }
+        });
 
-        if (!applied && e.PropertyName != nameof(HoldRemapEditViewModel.Name) && _store.FindGroup(id.Group)?.FindHoldRemap(id.HoldRemap) is { } current)
+        if (!applied && property != nameof(HoldRemapEditViewModel.Name) && _store.FindGroup(id.Group)?.FindHoldRemap(id.HoldRemap) is { } current)
         {
-            SyncHoldRemapEdit(current);
+            HoldRemapPanel.Sync(form => form.SyncFrom(current));
         }
-    }
-
-    private void SyncHoldRemapEdit(HoldRemap holdRemap)
-    {
-        if (_holdRemapEdit is not { } edit)
-        {
-            return;
-        }
-
-        _syncingHoldRemapEdit = true;
-        try
-        {
-            edit.SyncFrom(holdRemap);
-        }
-        finally
-        {
-            _syncingHoldRemapEdit = false;
-        }
-    }
-
-    private void DetachHoldRemapEdit()
-    {
-        if (_holdRemapEdit is not null)
-        {
-            _holdRemapEdit.PropertyChanged -= OnHoldRemapEdited;
-        }
-
-        _holdRemapEdit = null;
-        _holdRemapEditId = null;
     }
 }

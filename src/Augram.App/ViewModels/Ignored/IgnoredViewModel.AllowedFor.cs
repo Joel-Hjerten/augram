@@ -34,7 +34,7 @@ public sealed partial class IgnoredViewModel
         }
 
         var edit = AllowedForEditViewModel.For(app, _store.Current, _platform);
-        if (!await _dialogs.ShowAsync(new FormDialogRequest(AllowedForEditViewModel.Title, AllowedForEditViewModel.ConfirmLabel, Screen: edit.Declare())).ConfigureAwait(true))
+        if (!await _dialogs.ShowAsync(edit).ConfigureAwait(true))
         {
             return;
         }

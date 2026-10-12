@@ -1,6 +1,5 @@
 using Augram.App.Declarations;
 using Augram.App.ViewModels;
-using Avalonia.Controls;
 
 namespace Augram.App.Screens;
 
@@ -31,28 +30,12 @@ public static class OptionsConfigurationSection
         ArgumentNullException.ThrowIfNull(vm);
         return new Section(Title,
         [
-            new CustomField(AugramFileLabel, () => Buttons((ExportLabel, () => _ = vm.ExportAsync()), (ImportLabel, () => _ = vm.ImportAsync())), vm, AugramFileHelp),
-            new CustomField(StrokesPlusLabel, () => Buttons((StrokesPlusImportLabel, () => _ = vm.ImportStrokesPlusAsync())), vm, StrokesPlusHelp),
+            new ButtonsField(AugramFileLabel, [new FieldButton(ExportLabel, () => _ = vm.ExportAsync()), new FieldButton(ImportLabel, () => _ = vm.ImportAsync())], AugramFileHelp),
+            new ButtonsField(StrokesPlusLabel, [new FieldButton(StrokesPlusImportLabel, () => _ = vm.ImportStrokesPlusAsync())], StrokesPlusHelp),
             new NoteField("Last result", new DelegateBinding<string>(() => vm.Status, owner: vm))
             {
                 Visible = new DelegateBinding<bool>(() => vm.HasStatus, owner: vm, propertyName: nameof(vm.HasStatus)),
             },
         ], SectionHelp);
-    }
-
-    /// <summary>Toolbar buttons side by side on one form line.</summary>
-    private static StackPanel Buttons(params (string Label, Action Click)[] buttons)
-    {
-        var line = new StackPanel();
-        line.Classes.Add("field-buttons");
-        foreach (var (label, click) in buttons)
-        {
-            var button = new Button { Content = label };
-            button.Classes.Add("toolbar");
-            button.Click += (_, _) => click();
-            line.Children.Add(button);
-        }
-
-        return line;
     }
 }

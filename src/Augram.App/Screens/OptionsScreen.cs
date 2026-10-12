@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Augram.App.Components.Fields;
 using Augram.App.Declarations;
 using Augram.App.ViewModels;
 using Augram.Core.Abstractions;
@@ -7,8 +6,6 @@ using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Recognition;
 using Augram.Core.Steps.Hotkey;
-using Avalonia.Controls;
-using Avalonia.Layout;
 
 namespace Augram.App.Screens;
 
@@ -139,8 +136,13 @@ public static class OptionsScreen
         new ButtonRadioField<MouseButton>("Stroke button", Choice.FromEnum<MouseButton>(),
             new DelegateBinding<MouseButton>(() => vm.StrokeButton, v => vm.StrokeButton = v, vm),
             "Hold this button and draw. Right is the fresh-install default; SP.net keeps Middle while it runs."),
-        new CustomField("Detect button", () => DetectButtonEditor(vm), vm,
-            "Press the button you want within 5 seconds. If nothing is seen, its vendor software consumes it before Augram can."),
+        new ButtonsField(
+            "Detect button",
+            [new FieldButton("Detect…", vm.DetectButton, new DelegateBinding<bool>(() => !vm.IsDetecting, owner: vm, propertyName: nameof(vm.IsDetecting)))],
+            "Press the button you want within 5 seconds. If nothing is seen, its vendor software consumes it before Augram can.")
+        {
+            Hint = new DelegateBinding<string>(() => vm.DetectStatus, owner: vm),
+        },
         IgnoreKeyToggles(vm),
         StartAtLogin(vm),
         StartAtLoginNote(vm),
@@ -217,23 +219,4 @@ public static class OptionsScreen
             new DelegateBinding<ScoringMode>(() => vm.ScoringMode, v => vm.ScoringMode = v, vm),
             "Corrected scores as StrokesPlus.net does. Legacy is the classic StrokesPlus maths, slightly more forgiving, kept for comparison."),
     ]);
-
-    /// <summary>A button that starts detect-to-assign (F1) and a status line beside it.</summary>
-    private static Control DetectButtonEditor(AppSettingsViewModel vm)
-    {
-        var detect = ToolbarButton("Detect…", vm.DetectButton, new DelegateBinding<bool>(() => !vm.IsDetecting, owner: vm, propertyName: nameof(vm.IsDetecting)));
-        var status = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-        status.Classes.Add("help");
-        BindingObserver.Attach(status, new DelegateBinding<string>(() => vm.DetectStatus, owner: vm), value => status.Text = value);
-        return new StackPanel { Orientation = Orientation.Horizontal, Children = { detect, status } };
-    }
-
-    private static Button ToolbarButton(string label, Action click, IValueBinding<bool> enabled)
-    {
-        var button = new Button { Content = label };
-        button.Classes.Add("toolbar");
-        button.Click += (_, _) => click();
-        BindingObserver.Attach(button, enabled, value => button.IsEnabled = value);
-        return button;
-    }
 }

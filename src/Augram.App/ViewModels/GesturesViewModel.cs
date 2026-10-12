@@ -22,8 +22,8 @@ namespace Augram.App.ViewModels;
 /// every library change; the tiles outline them and light them up on select), undo/redo availability and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
 /// a store call. Rules live in the library and <see cref="ConfusionCheck"/>; this only shows outcomes.
 /// The <see cref="MappingStore"/> is read for "Used by…" and written when a delete or "Keep this" changes
-/// which gesture a command is bound to; those edits are the commands' own undo steps on the Commands
-/// tab, apart from the library's (two stores, two histories: accepted for M2).
+/// which gesture a command is bound to (<see cref="MappingStore.UnbindGesture"/>, <see cref="MappingStore.RetargetGesture"/>);
+/// those edits are one undo step on the Commands tab, apart from the library's (two stores, two histories: accepted for M2).
 /// </summary>
 public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
 {
@@ -31,7 +31,6 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
 
     private readonly GestureLibrary _library;
     private readonly MappingStore _mapping;
-    private readonly GestureBindings _bindings;
     private readonly Func<RecognitionOptions> _options;
     private readonly ITrainingPresenter _training;
     private readonly IImportPresenter _import;
@@ -58,7 +57,6 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
         ArgumentNullException.ThrowIfNull(usedBy);
         _library = library;
         _mapping = mapping;
-        _bindings = new GestureBindings(mapping);
         _options = options;
         _training = training;
         _import = import;
@@ -177,7 +175,7 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
             : null;
         await DeleteAsync("Delete gesture", question, () =>
         {
-            var unbound = _bindings.Unbind(tile.Id);
+            var unbound = _mapping.UnbindGesture(tile.Id);
             var removed = _library.Remove(tile.Id);
             return unbound == 0
                 ? Deleted(removed.Name, GestureGridKeymap.Undo)
@@ -199,14 +197,7 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
             return;
         }
 
-        var retargeted = 0;
-        var unbound = 0;
-        foreach (var loser in losers)
-        {
-            var moved = _bindings.Retarget(loser, tile.Id);
-            retargeted += moved.Retargeted;
-            unbound += moved.Unbound;
-        }
+        var (retargeted, unbound) = _mapping.RetargetGesture(losers, tile.Id);
 
         var names = _library.All.Where(gesture => losers.Contains(gesture.Id)).Select(gesture => "'" + gesture.Name + "'").ToList();
         _library.ReplaceAll(_library.All.Where(gesture => !losers.Contains(gesture.Id)));
