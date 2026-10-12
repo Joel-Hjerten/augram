@@ -107,6 +107,14 @@ public sealed class AppearanceLinkTests
     }
 
     [Fact]
+    public void OnlyFrostedGlassKeepsItsGlassUnfocused()
+    {
+        Assert.True(WindowBackdrop.KeepsGlassUnfocused(WindowBackground.FrostedGlass));
+        Assert.False(WindowBackdrop.KeepsGlassUnfocused(WindowBackground.WallpaperTint));
+        Assert.False(WindowBackdrop.KeepsGlassUnfocused(WindowBackground.Solid));
+    }
+
+    [Fact]
     public void TheTintIsOpaqueWheneverTheSystemGivesNoGlass()
     {
         Assert.Equal(1, WindowBackdrop.TintOpacity(WindowBackground.FrostedGlass, 62, WindowTransparencyLevel.None, windows: true));

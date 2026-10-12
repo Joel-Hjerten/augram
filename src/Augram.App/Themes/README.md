@@ -13,7 +13,7 @@ The look of every component (ADR-0002 §5b): tokens, the one theme, and the link
 | `Default/Text.axaml` | The text roles (heading, title, group, body, secondary, badge, mono, …), last so they win; the role table is in its header. |
 | `AppearanceLink` | The one reader of Options › Appearance and the trail colour for the UI: theme, accent and picture colours per variant, corners, window backdrops. |
 | `AccentPalette` | One colour in, each theme variant's accent shades out. |
-| `WindowBackdrop` | The system glass and the tint over it (`Layer.Window` at the user's tint). |
+| `WindowBackdrop` | The system glass and the tint over it (`Layer.Window` at the user's tint); on macOS also the blur view's material and unfocused state (`Platform.MacOS/MacWindowGlass`: Frosted glass stays glass unfocused). |
 | `ThemeSelector` | The one line that picks the theme (`Active`), and loading it. |
 
 ## Rules

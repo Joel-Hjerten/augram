@@ -1,5 +1,6 @@
 using Augram.App.Themes;
 using Augram.App.Views;
+using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +18,7 @@ public static class MainWindowFactory
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(app);
-        var appearance = AppearanceLink.Follow(services.GetRequiredService<SettingsStore>(), app);
+        var appearance = AppearanceLink.Follow(services.GetRequiredService<SettingsStore>(), app, services.GetService<IEventLog>());
         var window = services.GetRequiredService<MainWindow>();
         appearance.Attach(window);
         return (window, appearance);

@@ -1,4 +1,5 @@
 using Augram.App.Hosting;
+using Augram.Core.Abstractions;
 using Augram.Core.Config;
 using Avalonia;
 using Avalonia.Controls;
@@ -33,30 +34,32 @@ public sealed class AppearanceLink
     private readonly IResourceDictionary _resources;
     private readonly Action<ThemeVariant> _setTheme;
     private readonly List<Window> _windows = [];
+    private readonly IEventLog? _log;
     private Settings _applied;
 
-    private AppearanceLink(IResourceDictionary resources, Action<ThemeVariant> setTheme, Settings current)
+    private AppearanceLink(IResourceDictionary resources, Action<ThemeVariant> setTheme, Settings current, IEventLog? log)
     {
         _resources = resources;
         _setTheme = setTheme;
         _applied = current;
+        _log = log;
     }
 
     public AppearanceSettings Current => _applied.Appearance;
 
-    public static AppearanceLink Follow(SettingsStore settings, Application app)
+    public static AppearanceLink Follow(SettingsStore settings, Application app, IEventLog? log = null)
     {
         ArgumentNullException.ThrowIfNull(app);
-        return Follow(settings, app.Resources, variant => app.RequestedThemeVariant = variant);
+        return Follow(settings, app.Resources, variant => app.RequestedThemeVariant = variant, log);
     }
 
     /// <summary>The link over any resources and theme setter (tests use their own).</summary>
-    internal static AppearanceLink Follow(SettingsStore settings, IResourceDictionary resources, Action<ThemeVariant> setTheme)
+    internal static AppearanceLink Follow(SettingsStore settings, IResourceDictionary resources, Action<ThemeVariant> setTheme, IEventLog? log = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(resources);
         ArgumentNullException.ThrowIfNull(setTheme);
-        var link = new AppearanceLink(resources, setTheme, settings.Current);
+        var link = new AppearanceLink(resources, setTheme, settings.Current, log);
         link.ApplyAll();
         settings.Changed += (_, _) =>
         {
@@ -76,7 +79,7 @@ public sealed class AppearanceLink
         }
 
         _windows.Add(window);
-        WindowBackdrop.Apply(window, Current);
+        WindowBackdrop.Apply(window, Current, _log);
         window.ActualThemeVariantChanged += (_, _) => WindowBackdrop.Paint(window, Current);
         window.PropertyChanged += (_, change) =>
         {
@@ -177,7 +180,7 @@ public sealed class AppearanceLink
         {
             foreach (var window in _windows)
             {
-                WindowBackdrop.Apply(window, now);
+                WindowBackdrop.Apply(window, now, _log);
             }
         }
     }

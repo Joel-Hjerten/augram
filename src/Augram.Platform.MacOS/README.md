@@ -6,13 +6,14 @@ macOS implementations of the same Core ports as `Augram.Platform.Windows`, throu
 
 **Must never contain:** Avalonia, SharpHook, business rules, or Windows types.
 
-**Who may name it:** nothing above the ports except the composition root (`CompositionRoot` and `Augram.App/Hosting/Modules`, which register the adapters), and three documented App-facing exceptions (ADR-0002 §2; plan 0007, Eng 17). Each is macOS-only with no Windows counterpart, so it has no Core port; it gets one only if a Windows equivalent appears:
+**Who may name it:** nothing above the ports except the composition root (`CompositionRoot` and `Augram.App/Hosting/Modules`, which register the adapters), and four documented App-facing exceptions (ADR-0002 §2; plan 0007, Eng 17; `MacWindowGlass` since 0.13.8). Each is macOS-only with no Windows counterpart, so it has no Core port; it gets one only if a Windows equivalent appears:
 
 | Type | Named by | Why there is no port |
 |---|---|---|
 | `MacStatusItem` (+ `MacMenuEntry`) | `Augram.App/Tray/MacTrayHost`, `Tray/TrayMenuEntries` | The menu-bar item; Windows uses Avalonia's `TrayIcon`. |
 | `MacDock` | `Augram.App/Hosting/MacDockPresence`, `App.Launch.cs` | The Dock icon's activation policy; Windows has no Dock. |
 | `Startup/MacLaunchEvent` | `Augram.App/App.Launch.cs` | Whether this launch was a login-item launch; Windows passes `--hidden` instead. |
+| `MacWindowGlass` | `Augram.App/Themes/WindowBackdrop` | The material and unfocused state of Avalonia's blur view (`NSVisualEffectView`, a direct subview of the window's content view): `UnderWindowBackground`, which follows the theme's appearance, instead of Avalonia's always-light material that turned an unfocused window white; Frosted glass stays glass unfocused, Wallpaper tint follows the active state. Windows' glass needs nothing (acrylic and Mica come from the system). Depends on Avalonia 11.3's view layout. **Not testable without a window server** (like `MacStatusItem`); the headless window has no macOS handle, so tests never reach it. |
 
 ## What is here
 

@@ -1,7 +1,12 @@
+using System.Runtime.Versioning;
+using Augram.Core.Abstractions;
 using Augram.Core.Config;
+using Augram.Core.Diagnostics;
+using Augram.Platform.MacOS;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using Avalonia.Platform;
 
 namespace Augram.App.Themes;
 
@@ -14,6 +19,8 @@ namespace Augram.App.Themes;
 /// </summary>
 public static class WindowBackdrop
 {
+    private static bool _warnedNoMacGlassView;
+
     /// <summary>What to ask the system for, best first; Avalonia takes the first the platform supports.</summary>
     public static IReadOnlyList<WindowTransparencyLevel> HintsFor(WindowBackground background, bool windows) => background switch
     {
@@ -40,7 +47,14 @@ public static class WindowBackdrop
         return background == WindowBackground.WallpaperTint && !windows ? 0.55 + (0.45 * tint) : tint;
     }
 
-    public static void Apply(Window window, AppearanceSettings appearance)
+    /// <summary>
+    /// Whether the glass stays while the window is unfocused, as on Windows: Frosted glass (acrylic) stays; Wallpaper tint
+    /// stands in for Mica, which turns solid unfocused. Used on macOS, where the system's glass is told so (Joel, 2026-10-12).
+    /// </summary>
+    public static bool KeepsGlassUnfocused(WindowBackground background) => background == WindowBackground.FrostedGlass;
+
+    /// <summary>Asks the system for the background's glass and paints the tint; <paramref name="log"/> hears once if macOS's glass cannot be set.</summary>
+    public static void Apply(Window window, AppearanceSettings appearance, IEventLog? log = null)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(appearance);
@@ -51,6 +65,11 @@ public static class WindowBackdrop
         if (!window.TransparencyLevelHint.SequenceEqual(hints))
         {
             window.TransparencyLevelHint = hints;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            SetMacGlass(window, appearance.WindowBackground, log);
         }
 
         Paint(window, appearance);
@@ -64,5 +83,24 @@ public static class WindowBackdrop
         var colour = window.TryFindResource("Layer.Window", window.ActualThemeVariant, out var value) && value is Color c ? c : Colors.Black;
         var opacity = TintOpacity(appearance.WindowBackground, appearance.TintPercent, window.ActualTransparencyLevel, OperatingSystem.IsWindows());
         window.Background = new ImmutableSolidColorBrush(colour, opacity);
+    }
+
+    /// <summary>
+    /// Avalonia's blur view is always light and follows the active state, so an unfocused window went white (2026-10-12):
+    /// this gives it a material that follows the theme, and the background's unfocused state. Only a real macOS window
+    /// has the handle; a headless one (tests) is skipped.
+    /// </summary>
+    [SupportedOSPlatform("macos")]
+    private static void SetMacGlass(Window window, WindowBackground background, IEventLog? log)
+    {
+        if (window.TryGetPlatformHandle() is not IMacOSTopLevelPlatformHandle handle
+            || MacWindowGlass.TrySet(handle.NSWindow, KeepsGlassUnfocused(background))
+            || _warnedNoMacGlassView)
+        {
+            return;
+        }
+
+        _warnedNoMacGlassView = true;
+        log?.Warning(LogSources.App, "The window's blur view was not found; unfocused, its glass may turn light", ("background", background));
     }
 }

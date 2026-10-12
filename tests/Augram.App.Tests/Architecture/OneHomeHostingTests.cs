@@ -100,7 +100,8 @@ public sealed partial class OneHomeHostingTests
             new Allowed(App + "App.Launch.cs", "the macOS launch event, observed before the main loop"),
             new Allowed(App + "Hosting/MacDockPresence.cs", "the macOS Dock icon follows the main window"),
             new Allowed(App + "Tray/MacTrayHost.cs", "the macOS menu-bar item is native"),
-            new Allowed(App + "Tray/TrayMenuEntries.cs", "the macOS menu-bar item's menu"));
+            new Allowed(App + "Tray/TrayMenuEntries.cs", "the macOS menu-bar item's menu"),
+            new Allowed(App + "Themes/WindowBackdrop.cs", "the macOS blur view's material and unfocused state"));
 
     [Fact]
     public void TabsAreDeclaredOnlyByTheirModules()
