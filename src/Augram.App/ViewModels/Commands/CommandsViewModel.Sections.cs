@@ -84,7 +84,7 @@ public sealed partial class CommandsViewModel
         }
         else if (section.CanToggleActive)
         {
-            _store.UpdateGroup(RequireGroup(section.Id.GroupId) with { IsActive = !section.IsActive });
+            _store.UpdateGroup(_store.RequireGroup(section.Id.GroupId) with { IsActive = !section.IsActive });
         }
     }
 }

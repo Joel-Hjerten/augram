@@ -9,7 +9,7 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// The hold remap half of <see cref="CommandsViewModel"/> (F9, plan 0002 step 4; the Apps tab): a hold remap is a section
 /// nested in its app group's (<see cref="CommandSections"/>). New hold remap (the group's menu) adds one with no hold key yet,
-/// selected so its form shows (<c>.HoldRemapPanel</c>); rename and the active box act on it; delete asks, then removes it with
+/// selected so its form shows (<see cref="SectionPanel"/>); rename and the active box act on it; delete asks, then removes it with
 /// its commands in one undo step (<see cref="MappingStore.RemoveHoldRemap"/>); copy takes it with its commands, and paste puts
 /// a copy into the target's app group in one undo step (fresh ids, a free name for the hold remap, its commands' names as they
 /// were; without its hold key when the group already uses that key, with the rule's words). The commands under it go through the ordinary command intents (<c>.Commands</c>).
@@ -24,7 +24,7 @@ public sealed partial class CommandsViewModel
             return;
         }
 
-        var group = RequireGroup(section.Id.GroupId);
+        var group = _store.RequireGroup(section.Id.GroupId);
         var name = FreeNames.Next(HoldRemap.DefaultName(KeyCode.None), group.HoldRemaps.Select(holdRemap => holdRemap.Name), MappingRules.NameComparer, stemFirst: true);
         var holdRemap = new HoldRemap(HoldRemapId.New(), name, KeyCode.None);
         var id = SectionId.ForHoldRemap(group.Id, holdRemap.Id);
@@ -35,11 +35,11 @@ public sealed partial class CommandsViewModel
     }
 
     private void RenameHoldRemap(GroupId groupId, HoldRemapId id, string name)
-        => _store.UpdateHoldRemap(groupId, RequireHoldRemap(groupId, id) with { Name = name });
+        => _store.UpdateHoldRemap(groupId, _store.RequireHoldRemap(groupId, id) with { Name = name });
 
     private void ToggleHoldRemapActive(GroupId groupId, HoldRemapId id)
     {
-        var holdRemap = RequireHoldRemap(groupId, id);
+        var holdRemap = _store.RequireHoldRemap(groupId, id);
         _store.UpdateHoldRemap(groupId, holdRemap with { IsActive = !holdRemap.IsActive });
     }
 
@@ -63,8 +63,8 @@ public sealed partial class CommandsViewModel
 
     private void CopyHoldRemap(GroupId groupId, HoldRemapId id)
     {
-        var group = RequireGroup(groupId);
-        var holdRemap = RequireHoldRemap(groupId, id);
+        var group = _store.RequireGroup(groupId);
+        var holdRemap = _store.RequireHoldRemap(groupId, id);
         var commands = group.Commands.Where(command => command.HoldRemapId == id).ToList();
         _clipboard.HoldRemap = new HoldRemapCopy(holdRemap, commands);
         var what = commands.Count == 1 ? "its command" : $"its {commands.Count} commands";
@@ -79,7 +79,7 @@ public sealed partial class CommandsViewModel
     /// </summary>
     private void PasteHoldRemap(HoldRemapCopy copy, SectionId target)
     {
-        var group = RequireGroup(target.GroupId);
+        var group = _store.RequireGroup(target.GroupId);
         var holdRemap = copy.HoldRemap with
         {
             Id = HoldRemapId.New(),
@@ -107,7 +107,4 @@ public sealed partial class CommandsViewModel
         Select(id, null);
         ProjectSelection();
     }
-
-    private HoldRemap RequireHoldRemap(GroupId groupId, HoldRemapId id)
-        => RequireGroup(groupId).FindHoldRemap(id) ?? throw new KeyNotFoundException("That hold remap no longer exists.");
 }

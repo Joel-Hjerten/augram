@@ -10,11 +10,11 @@ namespace Augram.App.ViewModels.Commands;
 /// uses it on this platform, the header's note offers to settle it in one edit: Swap gives the other command this command's
 /// stored trigger (or input) here; Take it leaves the other with none here and selects it, so it can be given a new one. Each
 /// is one <c>UpdateGroup</c>, so one undo step brings both back, and each command changes the way any trigger edit changes it
-/// (<c>WithTriggerHere</c>: an input brings its Remap output along, a command authored on the other platform gets its own
+/// (<see cref="WithTriggerHere"/>: an input brings its Remap output along, a command authored on the other platform gets its own
 /// version here, and the message says so). Each is offered only when a dry run of the group through Core's rules passes
 /// (<see cref="Accepts"/>), so neither is a button that is then refused.
 /// </summary>
-public sealed partial class CommandsViewModel
+internal sealed partial class TriggerEditor
 {
     /// <summary>The draft's header item with what its note offers against <paramref name="other"/>, the command that uses the draft here.</summary>
     private CommandHeaderItem WithConflict(CommandHeaderItem shown, AppGroup group, Command command, TriggerDraft draft, Command other)
@@ -32,13 +32,13 @@ public sealed partial class CommandsViewModel
     /// </summary>
     private void SettleConflict(CommandId id, bool take)
     {
-        var (group, command) = RequireCommand(id);
+        var (group, command) = _store.RequireCommand(id);
         if (_draft is not { } draft
             || draft.Id != id
             || command.TriggerFor(_platform) != draft.Stored
             || RefusalOf(group, command, draft.Trigger)?.TakenBy is not { } other)
         {
-            ShowSelected();
+            _host.ShowSelected();
             return;
         }
 
@@ -50,13 +50,12 @@ public sealed partial class CommandsViewModel
         if (take)
         {
             // A7 counts a command this platform leaves out too; the list then shows it greyed, so it can be selected.
-            ShowOtherPlatforms |= !group.IsCommandUsedOn(other, _platform);
-            ShowCommand(other.Id);
-            Message = $"'{other.Name}' has no {(group.HoldRemapOf(other) is null ? "trigger" : "input")} now: give it one.{undo}";
+            _host.Reveal(other.Id, otherPlatforms: !group.IsCommandUsedOn(other, _platform));
+            _host.Message = $"'{other.Name}' has no {(group.HoldRemapOf(other) is null ? "trigger" : "input")} now: give it one.{undo}";
         }
         else
         {
-            Message = $"Swapped with '{other.Name}', which now uses {Phrase(theirs)}.{undo}";
+            _host.Message = $"Swapped with '{other.Name}', which now uses {Phrase(theirs)}.{undo}";
         }
     }
 

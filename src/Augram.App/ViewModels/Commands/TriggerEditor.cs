@@ -1,27 +1,47 @@
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Components.ListEditing;
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
-/// The trigger half of <see cref="CommandsViewModel"/> (F1 "Triggers as combinations", Joel 2026-10-09): the kind (Gesture
-/// through the Select Gesture picker, Wheel, Button (plan 0005), No trigger), the wheel direction, a button trigger's pressed
-/// button and the "While holding" set. What is edited is
-/// this platform's trigger (<see cref="Command.TriggerFor"/>): the original where the command was authored, else its own; the
-/// first edit on the other platform makes it that platform's own, the way steps work (<see cref="Command.WithTriggerFor"/>).
-/// Changing between gesture and wheel keeps the keys and buttons held; choosing "No trigger" unbinds, and ticking keys or
-/// buttons then makes it a click trigger (<see cref="Trigger.WithHold"/>). Every edit goes through <see cref="EditTrigger"/>:
-/// it starts from the draft when one waits, is saved as one <c>UpdateCommand</c> when the rules accept it, and otherwise
-/// waits as the draft with its note (<c>.TriggerDraft</c>) instead of being refused.
+/// The header's trigger and input edits of <see cref="CommandsViewModel"/> (F1 "Triggers as combinations", Joel 2026-10-09):
+/// the kind (Gesture through the Select Gesture picker, Wheel, Button (plan 0005), No trigger), the wheel direction, a button
+/// trigger's pressed button and the "While holding" set; under a hold remap (F9, plan 0002 step 4) the input that takes a
+/// trigger's place (<see cref="Trigger.InputTrigger"/>). What is edited is this platform's trigger
+/// (<see cref="Command.TriggerFor"/>): the original where the command was authored, else its own; the first edit on the other
+/// platform makes it that platform's own, the way steps work (<see cref="Command.WithTriggerFor"/>). Changing between gesture
+/// and wheel keeps the keys and buttons held; choosing "No trigger" unbinds, and ticking keys or buttons then makes it a click
+/// trigger (<see cref="Trigger.WithHold"/>). Every edit goes through <see cref="EditTrigger"/>: it starts from the draft when
+/// one waits, is saved as one <c>UpdateCommand</c> when the rules accept it, and otherwise waits as the draft with its note
+/// (<c>.Draft</c>) instead of being refused; a draft another command uses here offers Swap and Take it (<c>.Conflict</c>).
+/// The draft is the one piece of state it owns; the view model asks it for the header (<see cref="WithDraft"/>) and for the
+/// trigger a step is offered against (<see cref="DraftedTrigger"/>).
 /// </summary>
-public sealed partial class CommandsViewModel
+internal sealed partial class TriggerEditor
 {
+    private readonly MappingStore _store;
+    private readonly GestureLibrary _gestures;
+    private readonly IGesturePickerPresenter _picker;
+    private readonly HostPlatform _platform;
+    private readonly ICommandsHost _host;
+
+    public TriggerEditor(MappingStore store, GestureLibrary gestures, IGesturePickerPresenter picker, HostPlatform platform, ICommandsHost host)
+    {
+        _store = store;
+        _gestures = gestures;
+        _picker = picker;
+        _platform = platform;
+        _host = host;
+    }
+
     /// <summary>The header's trigger and input intents: the kind, the set, the wheel direction, the pressed button, an input, and the draft's Swap and Take it.</summary>
-    private void DispatchTrigger(CommandTreeActionEventArgs e)
+    public void Dispatch(CommandTreeActionEventArgs e)
     {
         if (e.Command is not { } command)
         {
@@ -55,6 +75,25 @@ public sealed partial class CommandsViewModel
                 SettleConflict(command.Id, take: true);
                 break;
         }
+    }
+
+    /// <summary>The Select Gesture picker over the command's gesture (its draft's while one waits); a pick is a trigger edit.</summary>
+    public async Task PickGestureAsync(CommandItem command)
+    {
+        var current = DraftedTrigger(command.Id) is Trigger.GestureTrigger gesture ? gesture.GestureId : (GestureId?)null;
+        var result = await _picker.PickAsync(current).ConfigureAwait(true);
+        _host.Guard(() =>
+        {
+            switch (result.Outcome)
+            {
+                case GesturePickerOutcome.Selected when result.GestureId is { } id:
+                    EditTrigger(command.Id, trigger => Trigger.ForGesture(id, Held(trigger)));
+                    break;
+                case GesturePickerOutcome.NoGesture:
+                    EditTrigger(command.Id, _ => Trigger.None);
+                    break;
+            }
+        });
     }
 
     private void SetTriggerKind(CommandItem command, TriggerKind kind)
@@ -96,7 +135,7 @@ public sealed partial class CommandsViewModel
             KeepDraft(id, up);
         }
 
-        ShowSelected();
+        _host.ShowSelected();
     }
 
     /// <summary>
@@ -116,22 +155,45 @@ public sealed partial class CommandsViewModel
         EditTrigger(id, _ => Trigger.ForButton(MouseButton.Left, held));
     }
 
-    private async Task PickGestureAsync(CommandItem command)
+    /// <summary>
+    /// An input's kind (F9): choosing Wheel takes wheel up, else the free direction, else waits as wheel up; Buttons and Key
+    /// start empty, waiting for a button or a key, so a set being composed waits in the header instead of snapping back.
+    /// </summary>
+    private void SetInputKind(CommandItem command, InputKind kind)
     {
-        var current = DraftedTrigger(command.Id) is Trigger.GestureTrigger gesture ? gesture.GestureId : (GestureId?)null;
-        var result = await _picker.PickAsync(current).ConfigureAwait(true);
-        Guard(() =>
+        if (InputKindExtensions.KindOf(DraftedTrigger(command.Id)) == kind)
         {
-            switch (result.Outcome)
-            {
-                case GesturePickerOutcome.Selected when result.GestureId is { } id:
-                    EditTrigger(command.Id, trigger => Trigger.ForGesture(id, Held(trigger)));
-                    break;
-                case GesturePickerOutcome.NoGesture:
-                    EditTrigger(command.Id, _ => Trigger.None);
-                    break;
-            }
-        });
+            return;
+        }
+
+        switch (kind)
+        {
+            case InputKind.Buttons:
+                EditTrigger(command.Id, _ => Trigger.ForInput(new HoldInput.Buttons(HeldButtons.None)));
+                break;
+            case InputKind.Key:
+                EditTrigger(command.Id, _ => Trigger.ForInput(new HoldInput.Key(KeyCode.None)));
+                break;
+            case InputKind.Wheel:
+                ChooseWheelInput(command.Id);
+                break;
+            default:
+                EditTrigger(command.Id, _ => Trigger.None);
+                break;
+        }
+    }
+
+    private void SetInput(CommandItem command, HoldInput input) => EditTrigger(command.Id, _ => Trigger.ForInput(input));
+
+    private void ChooseWheelInput(CommandId id)
+    {
+        var up = Trigger.ForInput(new HoldInput.Wheel(WheelDirection.Up));
+        if (!TrySaveTrigger(id, up) && !TrySaveTrigger(id, Trigger.ForInput(new HoldInput.Wheel(WheelDirection.Down))))
+        {
+            KeepDraft(id, up);
+        }
+
+        _host.ShowSelected();
     }
 
     /// <summary>
@@ -146,7 +208,7 @@ public sealed partial class CommandsViewModel
             KeepDraft(id, trigger);
         }
 
-        ShowSelected();
+        _host.ShowSelected();
     }
 
     /// <summary>
@@ -165,7 +227,7 @@ public sealed partial class CommandsViewModel
     /// </summary>
     private void SaveTrigger(CommandId id, Trigger trigger)
     {
-        var (group, command) = RequireCommand(id);
+        var (group, command) = _store.RequireCommand(id);
         var forked = ForksHere(command);
         var stored = _store.UpdateCommand(group.Id, WithTriggerHere(command, trigger));
         var lines = new List<string>(2);
@@ -181,11 +243,31 @@ public sealed partial class CommandsViewModel
 
         if (lines.Count > 0)
         {
-            Message = $"{string.Join(" ", lines)} {EditKeymap.Current.Undo} undoes it.";
+            _host.Message = $"{string.Join(" ", lines)} {EditKeymap.Current.Undo} undoes it.";
         }
     }
 
     /// <summary>True when a trigger edit here makes the command this platform's own (F8: authored on the other platform, no own trigger here yet).</summary>
     private bool ForksHere(Command command)
         => command.Origin is { } origin && origin != _platform && !command.HasOwnTriggerOn(_platform);
+
+    /// <summary>
+    /// The command with <paramref name="trigger"/> as this platform's trigger, one edit: its steps are first fitted to it
+    /// (<see cref="HoldRemapRules.FittedTo(Core.Steps.IStep, Trigger)"/>: on an input, a Remap step's button output on a wheel
+    /// input becomes a notch the same way, a wheel output elsewhere Middle; on a button trigger, plan 0005 decision 8, a button
+    /// or wheel output becomes a key output with no key yet), so changing the input or the trigger is never refused for the
+    /// output, and the undo of it brings both back. Every trigger save and the draft's note go through this.
+    /// </summary>
+    private Command WithTriggerHere(Command command, Trigger trigger)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var steps = StepEditor.EditableSteps(command, _platform);
+        var fitted = steps.Select(step => step with { Step = HoldRemapRules.FittedTo(step.Step, trigger) }).ToList();
+        if (!fitted.SequenceEqual(steps))
+        {
+            command = command.WithStepsFor(_platform, fitted, now);
+        }
+
+        return command.WithTriggerFor(_platform, trigger, now);
+    }
 }

@@ -29,7 +29,7 @@ public sealed partial class CommandsViewModel
 
         Guard(() =>
         {
-            var (group, stored) = RequireCommand(item.Id);
+            var (group, stored) = _store.RequireCommand(item.Id);
             var notIn = edit.NotIn;
             if (edit.Added.Count > 0)
             {

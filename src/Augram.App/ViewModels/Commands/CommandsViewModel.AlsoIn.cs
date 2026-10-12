@@ -28,7 +28,7 @@ public sealed partial class CommandsViewModel
 
         Guard(() =>
         {
-            var (group, stored) = RequireCommand(item.Id);
+            var (group, stored) = _store.RequireCommand(item.Id);
             var alsoIn = edit.AlsoIn;
             if (!stored.AlsoIn.ToHashSet().SetEquals(alsoIn))
             {
