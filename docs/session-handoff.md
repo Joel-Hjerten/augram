@@ -20,9 +20,24 @@ Joel works on a **Windows 11 PC** and a **Mac**; both run Augram and sync throug
 
 **[Plan 0009, search and filter on the lists](plans/0009-search-and-filter.md): merged as 0.13.0, awaiting Joel's acceptance** (the plan's "Joel's acceptance check (PC)": type "down" on the Gestures tab; on Commands › Apps a group's name then a command's name; select the group, clear, it stays selected and expanded; Ctrl+F from a selected row; Exclusions on a name and a process name; the picker with starts-with first; close and reopen the window, every box empty).
 
-## 1. Waiting for the Mac (after the refactor)
+## 1. Mac session: start here (2026-10-12)
 
-The Mac goes straight from 0.7.0 to the current build. On the Mac: pull, build and test (`~/.dotnet/dotnet`), `node scripts/package.mjs mac --signed` (Joel quits the running Augram from the menu bar first; installing does not restart it), back up `~/Library/Application Support/Augram/augram.json`, Joel installs the `.pkg`. Then the "Done when" checks of [plan 0004](plans/0004-drag-distance-and-not-in.md) (step 4), [plan 0005](plans/0005-button-triggers.md) and [plan 0006](plans/0006-glass-look.md), which all name their Mac points. The ones most likely to need a decision:
+**Symptom (Joel, 2026-10-12):** he built the latest main on the Mac, but Augram shows the old UI and lacks most new sections. That means an old binary is on screen. The code is shared: `Augram.App` is the same Avalonia UI on both OSes, and no tab, section or glass look is Windows-only. Do not look for a Mac-specific UI bug until the steps below show that the 0.13.x build is the one running.
+
+**Diagnose first, in this order** (read-only; the agent does not launch the app, Joel does):
+1. **What is running?** The latest `App started` line in `~/Library/Application Support/Augram/logs/augram-<yyyyMMdd>.log` gives `version`, `commit` and `channel`. Main is **0.13.6** (`c93f5d9` or later). If it says 0.7.0, or a commit before `c93f5d9`, the old build is still the one on screen.
+2. **Most likely cause: the old Augram never quit.** One Augram runs at a time. A launch of the same channel from the same path (the installed app from `/Applications`, or a dev build rebuilt in place) only asks the running copy to show its window, then exits (`src/Augram.App/Hosting/README.md`, single instance, "Same channel and same executable"). Installing a `.pkg` does not restart a running Augram. Fix: Joel quits Augram from the menu bar (or `pkill -f Augram`), checks with `pgrep -fl Augram` that nothing is left, then starts the new one.
+3. **Is the checkout current?** Run `git status` and `git log -1 --oneline` (expect `main` at or after `c93f5d9`), and `git fetch` / `git pull` if it is behind. A detached HEAD or another branch from the 0.7.0 days would build the old UI.
+4. **Did the build land where it is launched?** The dev build is `src/Augram.App/bin/Debug/net10.0/Augram.dll`. The installed app is `/Applications/Augram.app`, which only changes when a new `.pkg` is installed. Check the timestamps of whichever one Joel starts. If the `.pkg` was built, its version is in the `package.mjs` output ("Augram 0.13.6 from commit …").
+
+**Then catch the Mac up:**
+1. Back up `~/Library/Application Support/Augram/augram.json` (to `augram.before-0.13.json`). The new build migrates the config from schema 4 to 7 and the sync format to 15.
+2. Pull. Then `~/.dotnet/dotnet build` and `~/.dotnet/dotnet test`. Fix anything red on macOS before going on.
+3. Joel quits Augram. Run `node scripts/package.mjs mac --signed` (the only form he allows). Joel installs the `.pkg` and starts Augram from Applications.
+4. Confirm the log's `App started` says 0.13.6. Sync then resumes on its own: the "uses a newer Augram" pause ends once the Mac reads sync format 15. Read the log for `sync`, `ignore` and `hold` warnings.
+5. Joel runs the Mac checks below.
+
+The Mac goes straight from 0.7.0 to the current build. After installing, run the "Done when" checks of [plan 0004](plans/0004-drag-distance-and-not-in.md) (step 4), [plan 0005](plans/0005-button-triggers.md) and [plan 0006](plans/0006-glass-look.md); each names its Mac points. Plan [0009](plans/0009-search-and-filter.md) (search and filter) has no Mac-specific code, but give it a quick look on the Mac. The points most likely to need a decision:
 - **The magnifier** (Global "magnifier": Button Left while holding Right, a Remap step Shift + Win + X, Also in Blender) syncs over with no Mac version. If the Mac's stroke button is Right, nothing is held back there; otherwise Right is held back on the Mac too. Its key output becomes Shift + Cmd + X: check what Eyeris's Mac shortcut is.
 - **Spine and Eyeris** Per command entries were made from Windows windows and hold Windows names only; they match nothing on the Mac until macOS names are filled in (the magnifier on a Spine window). Ask Joel whether he uses them on the Mac.
 - **Never seen on a real desktop yet:** the Add app… magnifier inside the modal Not in dialog, and a Used by link opening its command. The glass, title-bar drag, double-click and Options › Appearance live (plan 0006) on macOS.
