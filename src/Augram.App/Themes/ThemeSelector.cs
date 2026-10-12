@@ -15,9 +15,6 @@ public static class ThemeSelector
     /// <summary>The theme the app runs on: Default, the glass look (plan 0006).</summary>
     public static string Active { get; } = Default;
 
-    /// <summary>Whether the active theme draws the window's title bar itself, with the top-level tabs in it (plan 0006 decision 5).</summary>
-    public static bool DrawsTitleBar => Active == Default;
-
     public static IReadOnlyList<string> Names { get; } = [Default];
 
     public static Uri UriFor(string name)

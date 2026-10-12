@@ -1,5 +1,4 @@
 using Augram.App.Components.Shell;
-using Augram.App.Themes;
 using Augram.App.Views;
 using Avalonia;
 using Avalonia.Controls;
@@ -18,7 +17,6 @@ public sealed class ShellTitleBarTests
     [AvaloniaFact]
     public void TheWindowExtendsIntoTheTitleBarAndShowsItsTitleThere()
     {
-        Assert.True(ThemeSelector.DrawsTitleBar);
         var window = Show();
 
         Assert.True(window.ExtendClientAreaToDecorationsHint);

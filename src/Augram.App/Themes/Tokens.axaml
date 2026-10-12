@@ -83,31 +83,11 @@
   <CornerRadius x:Key="Radius.Tab">10,10,0,0</CornerRadius>
   <CornerRadius x:Key="Radius.Control">6</CornerRadius>
 
-  <!-- Colours -->
-  <Color x:Key="Color.Background">#1E1E1E</Color>
-  <Color x:Key="Color.Surface">#2A2A2A</Color>
-  <Color x:Key="Color.Border">#5A5A5A</Color>
-  <Color x:Key="Color.Text">#E6E6E6</Color>
-  <Color x:Key="Color.TextMuted">#A0A0A0</Color>
-  <Color x:Key="Color.Accent">#6CA0DC</Color>
-  <Color x:Key="Color.Danger">#E5484D</Color>
-
-  <SolidColorBrush x:Key="Brush.Background" Color="#1E1E1E" />
-  <SolidColorBrush x:Key="Brush.Surface" Color="#2A2A2A" />
-  <SolidColorBrush x:Key="Brush.Border" Color="#5A5A5A" />
-  <SolidColorBrush x:Key="Brush.Text" Color="#E6E6E6" />
-  <SolidColorBrush x:Key="Brush.TextMuted" Color="#A0A0A0" />
   <!-- Gesture pictures: end and start of the stroke's gradient. The running app replaces both with the trail colour and its
-       shaded start (Themes/AppearanceLink); these are what a root without it shows. Inactive: GlyphStartMuted to TextMuted. -->
+       shaded start (Themes/AppearanceLink); these are what a root without it shows. Inactive: Lists.GlyphStartMuted to
+       Lists.GlyphMuted (Default/Lists.axaml). -->
   <SolidColorBrush x:Key="Brush.Glyph" Color="#E6E6E6" />
   <SolidColorBrush x:Key="Brush.GlyphStart" Color="#4A6A92" />
-  <SolidColorBrush x:Key="Brush.GlyphStartMuted" Color="#4A4A4A" />
-  <SolidColorBrush x:Key="Brush.Accent" Color="#6CA0DC" />
-  <SolidColorBrush x:Key="Brush.Danger" Color="#E5484D" />
-  <!-- The cleaned shape drawn over the stroke in the shape cleanup preview (Gallery, plan M2 step 10). -->
-  <SolidColorBrush x:Key="Brush.Cleaned" Color="#F2C14E" />
-  <!-- Invisible but hit-testable: a row's background so a click on its empty part still reaches the row. -->
-  <SolidColorBrush x:Key="Brush.HitTest" Color="#00000000" />
 
   <!-- F1 inspector outline colours by nesting depth (ADR-0002 §5d) -->
   <Color x:Key="Inspector.Depth0">#D32F2F</Color>
@@ -125,8 +105,6 @@
   <Thickness x:Key="Pad.M">8</Thickness>
   <Thickness x:Key="Pad.L">16</Thickness>
   <Thickness x:Key="Border.Hairline">1</Thickness>
-  <Thickness x:Key="Border.Strong">2</Thickness>
-  <Thickness x:Key="Border.Bottom">0,0,0,1</Thickness>
   <!--
     List rows: one set of metrics for every row of every list (section headers, command rows, step rows,
     item-list rows), so all lists share one line height (Joel, 2026-10-07: the Apps headers were taller
@@ -142,9 +120,6 @@
   <x:Double x:Key="Row.ControlSize">24</x:Double>
   <!-- A gesture glyph or trigger badge inside a row. -->
   <x:Double x:Key="Row.GlyphSize">40</x:Double>
-  <!-- A small bordered tag inside a row (a command's category on the Apps tab). -->
-  <Thickness x:Key="Pad.Tag">4,0</Thickness>
-  <x:Double x:Key="Opacity.Dragging">0.5</x:Double>
   <!--
     Dialog windows, one set per window (Dialogs/DialogSize reads them; the training window's XAML too). A set has only the
     dimensions its window fixes: the form, confirmation and join dialogs size their height to the content.
@@ -215,8 +190,6 @@
   <CornerRadius x:Key="Swatch.FillCornerRadius">10</CornerRadius>
   <!-- The command tree's column on the Commands tab; the splitter beside it lets the user change it. -->
   <GridLength x:Key="Workbench.TreeWidth">380</GridLength>
-  <!-- The labels of the command header (Trigger, Category), so their dropdowns line up. -->
-  <x:Double x:Key="Header.LabelWidth">72</x:Double>
   <!-- The sync conflict list's fixed columns (item, choice); this machine's and the other machine's versions share the rest. -->
   <GridLength x:Key="SyncConflict.ItemColumn">200</GridLength>
   <GridLength x:Key="SyncConflict.ChoiceColumn">200</GridLength>
