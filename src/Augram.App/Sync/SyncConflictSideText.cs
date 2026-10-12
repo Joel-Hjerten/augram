@@ -18,19 +18,22 @@ namespace Augram.App.Sync;
 /// One version of a conflicting sync item in words, for the conflict list (F8 sync, conflicts; the Augram file
 /// import's differing items too): a gesture as its glyph and "Zig · 3 samples", anything else as a one-line summary,
 /// "deleted" for a side that has none, and a note when this build cannot read the version. Names a command's
-/// summary needs (its group, hold remap and gesture) are read from the stores' snapshots it is given.
+/// summary needs (its group, hold remap and gesture) are read from the stores' snapshots it is given; what an app group or an
+/// exclusion matches is worded for the platform it is given (<see cref="AppMatcher.Summary"/>, the Exclusions row's words).
 /// </summary>
 public sealed class SyncConflictSideText
 {
     private readonly IReadOnlyList<Gesture> _gestures;
     private readonly MappingDocument _mapping;
     private readonly StepRegistry _steps;
+    private readonly HostPlatform _platform;
 
-    public SyncConflictSideText(IReadOnlyList<Gesture> gestures, MappingDocument mapping, StepRegistry steps)
+    public SyncConflictSideText(IReadOnlyList<Gesture> gestures, MappingDocument mapping, StepRegistry steps, HostPlatform platform)
     {
         _gestures = gestures ?? throw new ArgumentNullException(nameof(gestures));
         _mapping = mapping ?? throw new ArgumentNullException(nameof(mapping));
         _steps = steps ?? throw new ArgumentNullException(nameof(steps));
+        _platform = platform;
     }
 
     /// <summary>The side for one version of the conflict's item: <paramref name="content"/> is its JSON, null when that machine deleted it.</summary>
@@ -103,9 +106,11 @@ public sealed class SyncConflictSideText
         return version.Trigger is { } own ? $"{platform} trigger: {TriggerText(own)}; {platform} steps: {steps}" : $"{platform} steps: {steps}";
     }
 
-    private static string GroupText(AppGroup group)
+    /// <summary>"Chrome: matches chrome.exe", "matches Google Chrome (guessed)", "matches nothing yet", "matches nothing on macOS".</summary>
+    private string GroupText(AppGroup group)
     {
-        var matches = group.Matcher is { WindowsProcessNames.Count: > 0 } matcher ? "matches " + string.Join(", ", matcher.WindowsProcessNames) : "matches no app yet";
+        var summary = (group.Matcher ?? AppMatcher.Empty).Summary(_platform);
+        var matches = summary.IsEmpty ? summary.Text : "matches " + summary.Text;
         return $"{group.Name}: {matches}{(group.SuppressGlobals ? ", suppresses global commands" : string.Empty)}{(group.IsActive ? string.Empty : " (inactive)")}";
     }
 
@@ -121,9 +126,10 @@ public sealed class SyncConflictSideText
         return string.Create(CultureInfo.InvariantCulture, $"{holdRemap.Name}: {key}, tap {holdRemap.TapTimeMs} ms{useOn}{(holdRemap.IsActive ? string.Empty : " (inactive)")}");
     }
 
-    private static string IgnoredText(IgnoredApp app)
+    /// <summary>"Game: game.exe, turns Augram off": the Exclusions row's summary of what it matches.</summary>
+    private string IgnoredText(IgnoredApp app)
     {
-        var matches = app.Matcher.WindowsProcessNames.Count > 0 ? string.Join(", ", app.Matcher.WindowsProcessNames) : "no app yet";
+        var matches = app.Matcher.Summary(_platform).Text;
         return $"{app.Name}: {matches}{(app.DisableEntirely ? ", turns Augram off" : string.Empty)}{(app.IsActive ? string.Empty : " (inactive)")}";
     }
 }

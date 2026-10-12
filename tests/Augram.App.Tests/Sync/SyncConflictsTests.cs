@@ -53,11 +53,26 @@ public sealed class SyncConflictsTests
         Assert.Equal("Chrome › Close tab: gesture Zig → Wait 30 ms", command.Mine.Text);
         Assert.Contains("Wait 120 ms", command.Theirs.Text, StringComparison.Ordinal);
 
-        Assert.Equal("Chrome: matches no app yet", vm.Entries[2].Mine.Text);
-        Assert.Equal("Google Chrome: matches no app yet, suppresses global commands", vm.Entries[2].Theirs.Text);
+        Assert.Equal("Chrome: matches nothing yet", vm.Entries[2].Mine.Text);
+        Assert.Equal("Google Chrome: matches nothing yet, suppresses global commands", vm.Entries[2].Theirs.Text);
         Assert.Equal(SyncConflictSide.DeletedText, vm.Entries[3].Theirs.Text);
         Assert.False(vm.Entries[3].Theirs.HasGlyph);
         Assert.Equal("4 conflicts with Mac", vm.Summary);
+    }
+
+    /// <summary>Joel, 2026-10-12: what an app group or an exclusion matches is worded for the platform, as the Exclusions row words it (<see cref="AppMatcher.Summary"/>).</summary>
+    [Fact]
+    public void AnAppGroupAndAnExclusionNameTheAppOfThePlatform()
+    {
+        var chrome = Chrome with { Matcher = AppMatcher.Empty with { WindowsProcessNames = ["chrome.exe"] } };
+        var game = new IgnoredApp(GroupId.New(), "Game", IsActive: true, AppMatcher.Empty with { WindowsProcessNames = ["game.exe"], MacProcessNames = ["Game"] }, DisableEntirely: true);
+        SyncConflict[] conflicts = [Conflict(new SyncItem.GroupItem(chrome), new SyncItem.GroupItem(chrome)), Conflict(new SyncItem.IgnoredItem(game), new SyncItem.IgnoredItem(game))];
+
+        string[] Texts(HostPlatform platform)
+            => [.. new SyncConflictsViewModel(conflicts, [Zig], MappingDocument.Empty, platform: platform).Entries.Select(entry => entry.Mine.Text)];
+
+        Assert.Equal(["Chrome: matches chrome.exe", "Game: game.exe, turns Augram off"], Texts(HostPlatform.Windows));
+        Assert.Equal(["Chrome: matches Google Chrome (guessed)", "Game: Game, turns Augram off"], Texts(HostPlatform.MacOS));
     }
 
     /// <summary>Plan 0002 step 2's sync item kind, labelled in the dialog (step 4): its header's name, hold key, tap time, Use on and active.</summary>
