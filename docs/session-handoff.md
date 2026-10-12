@@ -50,6 +50,8 @@ When Joel calls a plan done on both machines, move it to `docs/plans/completed/`
 
 ## 2. Open, awaiting Joel
 
+- **[Plan 0010](plans/0010-platform-step-lists.md), PROPOSED 2026-10-12 (Mac session):** a "Steps for: Unified · Windows · macOS" switch on a command's steps, and the other platform read-only on every "Fields for" switch. No format change. Waits for Joel's go-ahead and its three open questions; Joel wants the remaining Mac checks (section 1) first.
+
 - **The magnifier holds Right back everywhere at the Options value (10 px)**, so a right-drag in Spine and Eyeris waits 10 px. Two fixes offered (the magnifier's own drag distance 3, or Spine in its Not in); not chosen. Eyeris and Spine also drop the first pixels of a drag themselves ([learnings 0006](learnings/0006-other-programs-on-the-mouse.md)).
 - **Start at login has never run on a real login** (off on the PC). Check lists: [Hosting README](../src/Augram.App/Hosting/README.md) "Windows check list", Platform.MacOS README "Start at login on macOS".
 - **Export/import (plan 0003, PROPOSED):** "Decided for Joel" and "Questions for Joel" wait for him; his check list is plan 0003 step 5 (throwaway config folders, `--config-folder … --no-engine`). Follow-ups: plan 0003 "Follow-ups from Joel's questions".
