@@ -17,4 +17,7 @@ internal interface IWin32Foreground
 
     /// <summary>Presses and releases Alt through SendInput: the classic nudge that lifts the foreground lock.</summary>
     void SendAltTap();
+
+    /// <summary><c>GetLastError</c> right after a call, for the diagnostics line of an attempt that did not settle.</summary>
+    int LastError();
 }

@@ -45,6 +45,10 @@ public sealed class ForegroundActivatorTests
         Assert.Equal("Activation attempt failed", e.Message);
         Assert.Equal("set-foreground", ListEventLog.Property(e, "technique"));
         Assert.Equal("app.exe", ListEventLog.Property(e, "process"));
+        // Diagnostics for plan 0008's open question: what the call answered and what stayed in front.
+        Assert.Equal(false, ListEventLog.Property(e, "accepted"));
+        Assert.Equal(5, ListEventLog.Property(e, "error"));
+        Assert.Equal("O", ListEventLog.Property(e, "front"));
     }
 
     [Fact]
@@ -96,8 +100,8 @@ public sealed class ForegroundActivatorTests
 
         new ForegroundActivator(win, win, log, ms => { slept += 16; time.Advance(16); }, time).Activate(Identity());
 
-        // Four ticks reach the 50 ms budget per technique: 64 ms × 3, not 160 ms × 3.
-        Assert.Equal(192, slept);
+        // Polls at 0, 16, 32 and 48 ms; a fourth tick would land past the 50 ms budget. 48 ms × 3, not 160 ms × 3.
+        Assert.Equal(144, slept);
     }
 
     [Fact]

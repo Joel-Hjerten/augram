@@ -49,33 +49,52 @@ internal sealed class ForegroundActivator
         for (var i = 0; i < Techniques.Length; i++)
         {
             var technique = Techniques[i];
-            Attempt(i, window, foreground);
+            var (accepted, error) = Attempt(i, window, foreground);
             if (SettledOn(window))
             {
                 return new ActivationResult(true, technique, ElapsedMs(started));
             }
 
-            _log.Info(LogSources.Window, "Activation attempt failed", ("technique", technique), ("elapsedMs", ElapsedMs(started)), ("process", target.ProcessName));
+            // What Windows answered and what stayed in front: plan 0008's open question (the same call succeeds from a plain console process).
+            _log.Info(
+                LogSources.Window,
+                "Activation attempt failed",
+                ("technique", technique),
+                ("elapsedMs", ElapsedMs(started)),
+                ("accepted", accepted),
+                ("error", error),
+                ("front", _query.ClassName(_win.ForegroundWindow())),
+                ("process", target.ProcessName));
         }
 
         return new ActivationResult(false, "none", ElapsedMs(started));
     }
 
-    private void Attempt(int index, nint target, nint foreground)
+    /// <summary>One technique; returns <c>SetForegroundWindow</c>'s answer and the error code read right after it.</summary>
+    private (bool Accepted, int Error) Attempt(int index, nint target, nint foreground)
     {
+        (bool, int) result = default;
         switch (index)
         {
             case 0:
-                _win.SetForegroundWindow(target);
+                result = Call(target);
                 break;
             case 1:
-                WithAttachedInput(foreground, () => _win.SetForegroundWindow(target));
+                WithAttachedInput(foreground, () => result = Call(target));
                 break;
             default:
                 _win.SendAltTap();
-                _win.SetForegroundWindow(target);
+                result = Call(target);
                 break;
         }
+
+        return result;
+    }
+
+    private (bool Accepted, int Error) Call(nint target)
+    {
+        var accepted = _win.SetForegroundWindow(target);
+        return (accepted, accepted ? 0 : _win.LastError());
     }
 
     private void WithAttachedInput(nint foreground, Action call)
@@ -111,7 +130,8 @@ internal sealed class ForegroundActivator
                 return true;
             }
 
-            if (ElapsedMs(started) >= SettleMs)
+            // Stop when the next poll would land past the budget: with 16 ms ticks that is 48 ms, not 62.
+            if (ElapsedMs(started) + PollMs > SettleMs)
             {
                 return false;
             }
