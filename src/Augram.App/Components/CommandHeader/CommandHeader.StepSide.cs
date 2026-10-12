@@ -23,9 +23,6 @@ public sealed partial class CommandHeader
     public static readonly StyledProperty<string?> StepSideTextProperty =
         AvaloniaProperty.Register<CommandHeader, string?>(nameof(StepSideText));
 
-    public static readonly StyledProperty<string?> StepsEditNoteProperty =
-        AvaloniaProperty.Register<CommandHeader, string?>(nameof(StepsEditNote));
-
     public static readonly StyledProperty<string?> CopyStepsTextProperty =
         AvaloniaProperty.Register<CommandHeader, string?>(nameof(CopyStepsText));
 
@@ -50,13 +47,6 @@ public sealed partial class CommandHeader
     {
         get => GetValue(StepSideTextProperty);
         private set => SetValue(StepSideTextProperty, value);
-    }
-
-    /// <summary>On the other platform's side: "Edit on Windows"; null on this platform's.</summary>
-    public string? StepsEditNote
-    {
-        get => GetValue(StepsEditNoteProperty);
-        private set => SetValue(StepsEditNoteProperty, value);
     }
 
     /// <summary>"Copy from Windows" when both sides have their own steps; null hides the button.</summary>
@@ -95,10 +85,9 @@ public sealed partial class CommandHeader
     {
         HasStepSide = side is not null;
         StepSideText = side?.Label;
-        StepsEditNote = side?.EditNote;
         CopyStepsText = side?.CopyText;
         CanMarkChecked = side is { CanMarkChecked: true };
-        HasStepSideActions = side is not null && (side.EditNote is not null || side.CopyText is not null || side.CanMarkChecked);
+        HasStepSideActions = side is not null && (side.CopyText is not null || side.CanMarkChecked);
     }
 
     private void FindStepSideParts(TemplateAppliedEventArgs e)

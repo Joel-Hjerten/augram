@@ -891,11 +891,6 @@
                         </StackPanel>
                         <WrapPanel ItemSpacing="6" LineSpacing="4"
                                    IsVisible="{TemplateBinding HasStepSideActions}">
-                          <TextBlock Classes="bench-note"
-                                     Text="{TemplateBinding StepsEditNote}"
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,6,0"
-                                     IsVisible="{TemplateBinding StepsEditNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                           <Button Name="PART_CopySteps"
                                   Classes="toolbar"
                                   Content="{TemplateBinding CopyStepsText}"

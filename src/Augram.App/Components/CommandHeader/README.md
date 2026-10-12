@@ -1,6 +1,6 @@
 # CommandHeader
 
-The selected command's header on a Commands sub-tab (F5a): name, trigger (kind, gesture glyph and picker, "While holding", a button trigger's button, drag distance), or for a command under a hold remap its Input, then category, Use on, the Not in and Also in rows, the "Steps for" row (plan 0010: a Windows · macOS view switch with the side's label, the other side's "Edit on …", Copy from and Mark as checked; `CommandHeader.StepSide.cs` over `StepSide`), and a refused trigger's draft note with Take it and Swap. Everything only asks (`CommandTreeActionEventArgs` out, the same actions as the tree) and then shows its item again.
+The selected command's header on a Commands sub-tab (F5a): name, trigger (kind, gesture glyph and picker, "While holding", a button trigger's button, drag distance), or for a command under a hold remap its Input, then category, Use on, the Not in and Also in rows, the "Steps for" row (plan 0010: a Windows · macOS view switch with the side's label, the other side's "read-only here" in its label, Copy from and Mark as checked; `CommandHeader.StepSide.cs` over `StepSide`), and a refused trigger's draft note with Take it and Swap. Everything only asks (`CommandTreeActionEventArgs` out, the same actions as the tree) and then shows its item again.
 
 | Type | Job |
 |---|---|
