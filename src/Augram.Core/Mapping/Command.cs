@@ -122,8 +122,21 @@ public sealed partial record Command(
             ? new CommandStep(run, platform, step.IsActive)
             : step)];
 
-    /// <summary>Back to running the converted original on the own version's platform.</summary>
+    /// <summary>
+    /// Back to running the converted original on the own version's platform: "Copy from" on the own version's side (plan 0010
+    /// decision 5), which becomes inferred again and follows the original from then on.
+    /// </summary>
     public Command WithoutOwnVersion() => this with { OwnVersion = null };
+
+    /// <summary>
+    /// "Copy from" on the original's side (plan 0010 decisions 5 and 8): the own version's steps become the original, each
+    /// keeping the platform it was authored on, and the own version goes, so the side the original ran on becomes inferred
+    /// (converted from them) and follows them from then on. The trigger the own version's platform used (its own, else the
+    /// original's converted there) becomes the original's, so that platform keeps firing on what it fired on. Unchanged
+    /// without an own version.
+    /// </summary>
+    public Command WithOwnVersionAsOriginal()
+        => OwnVersion is { } own ? this with { Steps = own.Steps, Trigger = TriggerFor(own.Platform), OwnVersion = null } : this;
 
     /// <summary>The own version marked as checked against the current original, so it is no longer flagged.</summary>
     public Command WithOwnVersionChecked(DateTimeOffset now)

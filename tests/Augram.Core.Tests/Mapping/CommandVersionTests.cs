@@ -68,6 +68,21 @@ public sealed class CommandVersionTests
         Assert.Equal(new HotkeyStep(KeyModifiers.Meta, KeyCode.Backspace), back.PlanFor(HostPlatform.MacOS)[0].Run.Step);
     }
 
+    /// <summary>Plan 0010 decision 5: Copy from macOS on the Windows side; Windows then runs the macOS steps converted.</summary>
+    [Fact]
+    public void CopyingIntoTheOriginalsSideMakesTheOwnVersionsStepsTheOriginal_AndDropsIt()
+    {
+        var withMac = Make(CtrlBackspace).WithStepsFor(HostPlatform.MacOS, [OptBackspace], Now);
+
+        var copied = withMac.WithOwnVersionAsOriginal();
+
+        Assert.Null(copied.OwnVersion);
+        Assert.Equal([OptBackspace], copied.Steps);
+        Assert.Equal(HostPlatform.MacOS, copied.Origin);
+        Assert.Same(OptBackspace, copied.StepsFor(HostPlatform.Windows)[0]);
+        Assert.Same(copied, copied.WithOwnVersionAsOriginal());
+    }
+
     [Fact]
     public void TheConvertedStartAuthorsGuessesHere_AndKeepsAStepWithNoGuessAsItIs()
     {
