@@ -1,5 +1,4 @@
 using Augram.Core.Abstractions;
-using Augram.Core.Capture;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Scroll;
 using Augram.Core.Tests.Steps.Support;
@@ -23,7 +22,7 @@ public sealed class ScrollExecutionTests
         var result = Type.Execute(new ScrollStep(ScrollDirection.Right, 2), StepContexts.Create(input: input));
 
         Assert.True(result.Succeeded);
-        Assert.Equal(["scroll Right x2@100,200"], input.Calls);
+        Assert.Equal(["scroll Right x2@100,200"], input.All);
     }
 
     [Fact]
@@ -35,7 +34,7 @@ public sealed class ScrollExecutionTests
 
         Assert.True(result.Succeeded);
         string[] expected = ["press LeftControl", "press LeftShift", "scroll Down x3@100,200", "release LeftShift", "release LeftControl"];
-        Assert.Equal(expected, input.Calls);
+        Assert.Equal(expected, input.All);
     }
 
     [Fact]
@@ -45,7 +44,7 @@ public sealed class ScrollExecutionTests
 
         Type.Execute(new ScrollStep(ScrollDirection.Up, 0), StepContexts.Create(input: input));
 
-        Assert.Equal(["scroll Up x1@100,200"], input.Calls);
+        Assert.Equal(["scroll Up x1@100,200"], input.All);
     }
 
     [Fact]
@@ -56,7 +55,7 @@ public sealed class ScrollExecutionTests
         var result = Type.Execute(new ScrollStep(ScrollDirection.Up, 1, KeyModifiers.Control | KeyModifiers.Alt), StepContexts.Create(input: input));
 
         Assert.Equal((StepOutcome.Failed, "LeftControl press: Unsupported"), (result.Outcome, result.Reason));
-        Assert.Equal(["press LeftControl"], input.Calls);
+        Assert.Equal(["press LeftControl"], input.All);
     }
 
     [Fact]
@@ -67,7 +66,7 @@ public sealed class ScrollExecutionTests
         var result = Type.Execute(new ScrollStep(ScrollDirection.Up, 1, KeyModifiers.Control), StepContexts.Create(input: input));
 
         Assert.Equal((StepOutcome.Failed, "Ctrl + scroll up: Failed"), (result.Outcome, result.Reason));
-        Assert.Equal(["press LeftControl", "scroll Up x1@100,200", "release LeftControl"], input.Calls);
+        Assert.Equal(["press LeftControl", "scroll Up x1@100,200", "release LeftControl"], input.All);
     }
 
     [Fact]
@@ -78,56 +77,25 @@ public sealed class ScrollExecutionTests
         var result = Type.Execute(new ScrollStep(ScrollDirection.Down, 1, KeyModifiers.Control | KeyModifiers.Meta), StepContexts.Create(input: input));
 
         Assert.Equal((StepOutcome.Failed, "LeftMeta release: Failed"), (result.Outcome, result.Reason));
-        Assert.Equal(["press LeftControl", "press LeftMeta", "scroll Down x1@100,200", "release LeftMeta", "release LeftControl"], input.Calls);
+        Assert.Equal(["press LeftControl", "press LeftMeta", "scroll Down x1@100,200", "release LeftMeta", "release LeftControl"], input.All);
     }
 
     [Fact]
     public void ASimulatorThatThrowsStillGetsEveryPressedKeyReleased()
     {
-        var input = new ThrowingScroll();
+        var input = new FakeInputSimulator { OnInjection = ThrowOnScroll };
 
         Assert.Throws<InvalidOperationException>(() => Type.Execute(new ScrollStep(ScrollDirection.Up, 1, KeyModifiers.Control | KeyModifiers.Shift), StepContexts.Create(input: input)));
 
         Assert.Equal(["press LeftControl", "press LeftShift", "release LeftShift", "release LeftControl"], input.Keys);
     }
 
-    /// <summary>Records keys and throws from the wheel, as a broken input library would.</summary>
-    private sealed class ThrowingScroll : IInputSimulator
+    /// <summary>Throws from the wheel, as a broken input library would.</summary>
+    private static void ThrowOnScroll(string entry)
     {
-        public List<string> Keys { get; } = [];
-
-        public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => throw new InvalidOperationException("wheel gone");
-
-        public SimulationResult KeyPress(KeyCode key) => Record($"press {key}");
-
-        public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}");
-
-        public SimulationResult Click(MouseButton button, int x, int y) => SimulationResult.Success;
-
-        public SimulationResult Press(MouseButton button, int x, int y) => SimulationResult.Success;
-
-        public SimulationResult Release(MouseButton button) => SimulationResult.Success;
-
-        public bool RepostsRemapDrags => false;
-
-        public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y) => SimulationResult.Success;
-
-        public SimulationResult ReleaseRemapButton(MouseButton button) => SimulationResult.Success;
-
-        public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => SimulationResult.Unsupported;
-
-        public SimulationResult MoveTo(int x, int y) => SimulationResult.Success;
-
-        public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) => SimulationResult.Success;
-
-        public SimulationResult TypeText(string text) => SimulationResult.Success;
-
-        public SimulationResult TypeTextByKeys(string text) => SimulationResult.Success;
-
-        private SimulationResult Record(string call)
+        if (entry.StartsWith("scroll ", StringComparison.Ordinal))
         {
-            Keys.Add(call);
-            return SimulationResult.Success;
+            throw new InvalidOperationException("wheel gone");
         }
     }
 }

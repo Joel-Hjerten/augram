@@ -24,6 +24,9 @@ namespace Augram.App.DevGallery;
 /// gesture, Ctrl + Left + click), Steam games (an override to nothing), Photoshop with categories (and one command with
 /// "No category") and Blender with its Space hold remap (plan 0002), so every
 /// section kind, tag, marker, trigger badge and input has a case.
+/// The four presenters are the gallery's own on purpose (plan 0007 S16): the App cannot reference test code, and the
+/// test fakes they mirror (tests/Augram.App.Tests: <c>FakeGesturePickerPresenter</c>, <c>FakeFormDialogPresenter</c>,
+/// <c>FakeConfirmPresenter</c>, <c>FakeCommandLocator</c>) record and script answers, where these only answer at once.
 /// </summary>
 public static class CommandGalleryFakes
 {

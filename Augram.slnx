@@ -15,5 +15,6 @@
     <Project Path="tests/Augram.Platform.Windows.Tests/Augram.Platform.Windows.Tests.csproj" />
     <Project Path="tests/Augram.App.Tests/Augram.App.Tests.csproj" />
     <Project Path="tests/Augram.Sync.Git.Tests/Augram.Sync.Git.Tests.csproj" />
+    <Project Path="tests/Augram.TestSupport/Augram.TestSupport.csproj" />
   </Folder>
 </Solution>

@@ -4,7 +4,6 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.Remap;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -108,13 +107,13 @@ public sealed class RemapStepTests
     [Fact]
     public void TheCommandExecutorNeverRunsIt_SkippedWithTheReason_OneDebugLine_NoInput()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
         var input = new FakeInputSimulator();
 
         var result = Type.Execute(new RemapStep(new RemapOutput.Key(KeyCode.G)), StepContexts.Create(input: input, log: log));
 
         Assert.Equal(StepResult.Skipped(RemapStepType.NotRunHere), result);
-        Assert.Empty(input.Calls);
+        Assert.Empty(input.All);
         var entry = Assert.Single(log.Events);
         Assert.Equal((EventLevel.Debug, "steps", "Remap"), (entry.Level, entry.Source, entry.Message));
         Assert.Contains(new LogProperty("output", "G"), entry.Properties!);

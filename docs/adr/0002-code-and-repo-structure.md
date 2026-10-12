@@ -23,10 +23,11 @@ tests/
   Augram.Core.Tests/           recognizer fixtures (Joel's 90 templates), state-machine scripts, config round-trips
   Augram.Engine.Tests/
   Augram.App.Tests/            Avalonia headless tests for components and view models
+  Augram.TestSupport/          one fake per Core port, shared by the test projects (added 2026-10-12, plan 0007 S16); test code only
 docs/                          as today (requirements, adr, reference, plans, learnings)
 ```
 
-Allowed references: `App → Engine, Platform.*, Core` (plus `Import` and `Sync.Git`, which only the composition root and the import flow touch) · `Engine → Core` · `Platform.* → Core` · `Import → Core` · `Sync.Git → Core` · `Core → nothing`. An architecture test in `Core.Tests` fails the build if `Augram.Core` ever references Avalonia, SharpHook, `System.Windows.*`, or `System.Drawing`.
+Allowed references: `App → Engine, Platform.*, Core` (plus `Import` and `Sync.Git`, which only the composition root and the import flow touch) · `Engine → Core` · `Platform.* → Core` · `Import → Core` · `Sync.Git → Core` · `Core → nothing` · `TestSupport → Core`, referenced only by test projects (never by `src/`; the dev gallery keeps its own stand-ins). An architecture test in `Core.Tests` fails the build if `Augram.Core` ever references Avalonia, SharpHook, `System.Windows.*`, or `System.Drawing`.
 
 ### 2. Ports and adapters
 

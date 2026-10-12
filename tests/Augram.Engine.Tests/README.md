@@ -1,12 +1,12 @@
 # Augram.Engine.Tests
 
-xunit tests for `Augram.Engine`. No real global hook is ever installed (CI runners have no interactive desktop): everything is driven through the Core ports with the fakes in `Fakes/`. The two SharpHook adapters (`SharpHookInputSource`, `SharpHookInputSimulator`) are deliberately thin and untested against a desktop; the maps they rely on are (including the simulator's left/right modifier-key choice and its wheel notch).
+xunit tests for `Augram.Engine`. No real global hook is ever installed (CI runners have no interactive desktop): everything is driven through the Core ports with the shared fakes in `tests/Augram.TestSupport` (its README lists them and their options). The two SharpHook adapters (`SharpHookInputSource`, `SharpHookInputSimulator`) are deliberately thin and untested against a desktop; the maps they rely on are (including the simulator's left/right modifier-key choice and its wheel notch).
 
-**May reference:** `Augram.Engine` (and `Augram.Core` through it), xunit. `Augram.Engine` exposes its internals to this assembly.
+**May reference:** `Augram.Engine` (and `Augram.Core` through it), `Augram.TestSupport` (the shared port fakes), xunit. `Augram.Engine` exposes its internals to this assembly.
 
 | Folder | Covers |
 |---|---|
-| `Fakes/` | `FakeInputSource` (delivers raw input on the test thread and returns the hook decision; `ReportLost` fakes the OS killing the hook), `FakeInputSimulator` (records clicks and keys; a hotkey with right-hand modifiers as "hotkey Alt+F9 right Alt"), `FakeClock`, `FakeCursorProbe`, `FakeSystemEvents`, `FakeWindowSystem` (the window under the pointer and the focused one, their handles as the cheap keys or none, every call counted), `RecordingTrail`, `ListEventLog` (synchronous, for assertions) |
+| `Execution/ClickRelayTests` | a held-back click relayed with its keys: the whole injection (keys down, the click, the Ctrl tap for Alt, keys up in reverse) as one ordered list |
 | `Input/SuppressionShadowTests` | the hook-side decision equals the machine's Suppress/PassThrough for every state and event kind, over 2,000 random sequences with button changes, disabled presses, ignore key and hold-still cancels |
 | `Input/IgnorePairingTests` | A19 with the ignore list: the real `InputGate` over 2,000 random sequences while the watch's answer (over an ignored app, paused by a focused one) and the tray toggle flip between any two events, the test playing the worker; every stroke-button press and its release get the same decision and every hook decision equals the machine's |
 | `Hosting/IgnoreLookupTests` | one pass of the ignore-list watch without its thread: lookups deduplicated by window, a focus change re-checking a motionless pointer, the documented staleness (a still pointer without a focus change is not re-checked), focus asked only when due, the bounded rate without cheap keys, nothing looked up while nothing is watched |

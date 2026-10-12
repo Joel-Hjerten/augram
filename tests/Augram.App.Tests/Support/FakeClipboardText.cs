@@ -2,7 +2,7 @@ using Augram.App.Hosting;
 
 namespace Augram.App.Tests.Support;
 
-public sealed class FakeClipboard : IClipboardText
+public sealed class FakeClipboardText : IClipboardText
 {
     public string? Text { get; private set; }
 

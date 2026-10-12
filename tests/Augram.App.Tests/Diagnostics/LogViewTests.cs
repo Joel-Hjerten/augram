@@ -63,10 +63,10 @@ public sealed class LogViewTests
     private static LogEvent Event(EventLevel level, string source, string message) =>
         new(DateTimeOffset.Now, level, source, message);
 
-    private static (ItemList List, InMemorySink Sink, LogViewModel Vm, FakeClipboard Clipboard) Show()
+    private static (ItemList List, InMemorySink Sink, LogViewModel Vm, FakeClipboardText Clipboard) Show()
     {
         var sink = new InMemorySink();
-        var clipboard = new FakeClipboard();
+        var clipboard = new FakeClipboardText();
         var vm = new LogViewModel(sink, Path.Combine(Path.GetTempPath(), "augram-app-tests", "logs"), clipboard);
         var screen = (ListScreen)LogScreen.Declare(vm);
         var list = new ItemList { Spec = screen.Spec };

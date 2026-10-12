@@ -43,8 +43,8 @@ public sealed class ForegroundActivatorTests
         Assert.Equal(LogSources.Window, e.Source);
         Assert.Equal(EventLevel.Info, e.Level);
         Assert.Equal("Activation attempt failed", e.Message);
-        Assert.Equal("set-foreground", log.Property(e, "technique"));
-        Assert.Equal("app.exe", log.Property(e, "process"));
+        Assert.Equal("set-foreground", ListEventLog.Property(e, "technique"));
+        Assert.Equal("app.exe", ListEventLog.Property(e, "process"));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class ForegroundActivatorTests
         Assert.False(result.Succeeded);
         Assert.Equal("none", result.Technique);
         Assert.False(win.Attached);
-        Assert.Equal(["set-foreground", "attach-thread-input", "alt-tap"], log.Events.Select(e => log.Property(e, "technique")));
+        Assert.Equal(["set-foreground", "attach-thread-input", "alt-tap"], log.Events.Select(e => ListEventLog.Property(e, "technique")));
         Assert.All(log.Events, e => Assert.Equal(("Activation attempt failed", EventLevel.Info), (e.Message, e.Level)));
     }
 
@@ -96,15 +96,15 @@ public sealed class ForegroundActivatorTests
         Assert.DoesNotContain(win.Calls, c => c.StartsWith("attach", StringComparison.Ordinal));
     }
 
-    private static (FakeWin32 Win, RecordingEventLog Log) Setup(bool plain = false, bool attached = false, bool altTap = false)
+    private static (FakeWin32 Win, ListEventLog Log) Setup(bool plain = false, bool attached = false, bool altTap = false)
     {
         var win = new FakeWin32 { Foreground = Other, PlainSucceeds = plain, AttachedSucceeds = attached, AltTapSucceeds = altTap }
             .AddWindow(Target, "T", pid: 1, thread: 9)
             .AddWindow(Other, "O", pid: 2, thread: 5);
-        return (win, new RecordingEventLog());
+        return (win, new ListEventLog());
     }
 
-    private static ActivationResult Activate(FakeWin32 win, RecordingEventLog log)
+    private static ActivationResult Activate(FakeWin32 win, ListEventLog log)
         => new ForegroundActivator(win, win, log, _ => { }).Activate(Identity());
 
     private static WindowIdentity Identity() => new(Target, Target, "app.exe", null, null, [], 1, false, false);

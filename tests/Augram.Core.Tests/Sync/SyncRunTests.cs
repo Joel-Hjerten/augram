@@ -18,7 +18,7 @@ public sealed class SyncRunTests : TwoMachineTest
         var report = work.Sync();
 
         Assert.Equal(SyncStatus.Off, report.Status);
-        Assert.Null(work.Repository.PreparedUrl);
+        Assert.Empty(work.Repository.PreparedUrls);
         Assert.Empty(Remote.Files);
     }
 
@@ -192,7 +192,7 @@ public sealed class SyncRunTests : TwoMachineTest
 
         work.Sync();
 
-        var file = SyncFileSerializer.Read(Remote.Files[work.Id.ToString("D")], Mapping.Support.FakeStepType.Registry, notice: null);
+        var file = SyncFileSerializer.Read(Remote.Files[work.Id.ToString("D")], FakeStepType.Registry, notice: null);
         Assert.Equal(work.Id, file.MachineId);
         Assert.Equal("PC-WORK", file.MachineName);
         Assert.True(SyncItemSet.From(file.Gestures, file.Mapping).SameAs(work.Items.Contents()));

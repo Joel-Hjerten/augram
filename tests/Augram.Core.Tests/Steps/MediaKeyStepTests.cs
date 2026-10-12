@@ -3,7 +3,6 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.MediaKey;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -99,7 +98,7 @@ public sealed class MediaKeyStepTests
 
         Assert.True(result.Succeeded);
         string[] expected = ["press MediaNext", "release MediaNext"];
-        Assert.Equal(expected, input.Calls);
+        Assert.Equal(expected, input.All);
     }
 
     [Fact]
@@ -111,7 +110,7 @@ public sealed class MediaKeyStepTests
 
         Assert.Equal(StepOutcome.Failed, result.Outcome);
         Assert.Equal("VolumeMute press: Unsupported", result.Reason);
-        var call = Assert.Single(input.Calls);
+        var call = Assert.Single(input.All);
         Assert.Equal("press VolumeMute", call);
     }
 
@@ -124,13 +123,13 @@ public sealed class MediaKeyStepTests
 
         Assert.Equal(StepOutcome.Failed, result.Outcome);
         Assert.Equal("MediaStop release: Failed", result.Reason);
-        Assert.Equal(2, input.Calls.Count);
+        Assert.Equal(2, input.All.Count);
     }
 
     [Fact]
     public void EveryRunLogsOneDebugLine()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
 
         Type.Execute(new MediaKeyStep(MediaKeyKind.VolumeDown), StepContexts.Create(log: log));
 

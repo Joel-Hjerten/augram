@@ -203,10 +203,10 @@ public sealed class SyncServiceTests : SyncTestBase
     {
         var (work, home) = Joined();
         var workKey = work.Settings.Current.Sync.MachineId.ToString("D");
-        Remote.Write(workKey, Remote.Files[workKey].Replace(
+        Remote.Files[workKey] = Remote.Files[workKey].Replace(
             $"\"formatVersion\": {SyncFile.CurrentFormatVersion}",
             $"\"formatVersion\": {SyncFile.CurrentFormatVersion + 1}",
-            StringComparison.Ordinal));
+            StringComparison.Ordinal);
         var homeKey = home.Settings.Current.Sync.MachineId.ToString("D");
         var own = Remote.Files[homeKey];
 

@@ -2,7 +2,6 @@ using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Run;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -109,7 +108,7 @@ public sealed class RunExecutionTests
     [Fact]
     public void EveryRunLogsOneDebugLineWithTheFileButNeverTheArguments()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
         var launcher = new FakeProcessLauncher { Result = new ProcessLaunchResult(ProcessLaunchOutcome.Started, "still starting after 2 s") };
 
         Type.Execute(new RunStep("tool.exe", "--password hunter2", Elevated: true), StepContexts.Create(log: log) with { Processes = launcher });
@@ -129,7 +128,7 @@ public sealed class RunExecutionTests
     [Fact]
     public void NothingIsLoggedWhenDebugIsOff()
     {
-        var log = new CountingEventLog(EventLevel.Info);
+        var log = new ListEventLog(EventLevel.Info);
 
         Type.Execute(new RunStep("explorer"), StepContexts.Create(log: log) with { Processes = new FakeProcessLauncher() });
 

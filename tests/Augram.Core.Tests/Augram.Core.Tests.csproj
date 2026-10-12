@@ -7,11 +7,15 @@
     <ProjectReference Include="../../src/Augram.Core/Augram.Core.csproj" />
     <ProjectReference Include="../../src/Augram.Import.StrokesPlus/Augram.Import.StrokesPlus.csproj" />
     <ProjectReference Include="../../src/Augram.Sync.Git/Augram.Sync.Git.csproj" />
+    <ProjectReference Include="../Augram.TestSupport/Augram.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="GitHubActionsTestLogger" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Augram.TestSupport" />
   </ItemGroup>
 </Project>

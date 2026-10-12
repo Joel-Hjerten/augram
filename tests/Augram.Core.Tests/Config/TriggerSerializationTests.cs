@@ -2,7 +2,6 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 using Augram.Core.Mapping;
-using Augram.Core.Tests.Mapping.Support;
 using Xunit;
 using static Augram.Core.Tests.Mapping.Support.MappingFixtures;
 

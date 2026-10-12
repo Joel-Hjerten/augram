@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using Augram.Core.Abstractions;
@@ -95,7 +94,7 @@ public sealed class Win32ProcessLauncherTests
     public void ASlowStartAnswersStartedAfterTheWaitAndLogsTheLateOutcome()
     {
         using var release = new ManualResetEventSlim();
-        var log = new ConcurrentLog();
+        var log = new ListEventLog();
         var launcher = Launcher(_ => release.Wait(Generous) ? throw new Win32Exception(1223) : (IDisposable?)null, log, TimeSpan.FromMilliseconds(20));
 
         var result = launcher.Launch(new ProcessLaunch("taskkill.exe", "/f /im synthetic-emulator.exe", Elevated: true));
@@ -105,7 +104,7 @@ public sealed class Win32ProcessLauncherTests
         Assert.Empty(log.Events);
 
         release.Set();
-        var late = log.WaitForOne();
+        var late = Assert.Single(log.WaitForAny(Generous));
         Assert.Equal(EventLevel.Warning, late.Level);
         Assert.Equal("steps", late.Source);
         Assert.Equal("Run did not start", late.Message);
@@ -118,13 +117,13 @@ public sealed class Win32ProcessLauncherTests
     public void ALateSuccessIsLoggedAsInfo()
     {
         using var release = new ManualResetEventSlim();
-        var log = new ConcurrentLog();
+        var log = new ListEventLog();
         var launcher = Launcher(_ => release.Wait(Generous) ? (IDisposable?)null : throw new TimeoutException(), log, TimeSpan.FromMilliseconds(20));
 
         Assert.Equal(ProcessLaunchOutcome.Started, launcher.Launch(new ProcessLaunch(@"\\server\share\tool.exe")).Outcome);
 
         release.Set();
-        var late = log.WaitForOne();
+        var late = Assert.Single(log.WaitForAny(Generous));
         Assert.Equal(EventLevel.Info, late.Level);
         Assert.Equal("Run started late", late.Message);
     }
@@ -137,28 +136,5 @@ public sealed class Win32ProcessLauncherTests
         public bool Disposed { get; private set; }
 
         public void Dispose() => Disposed = true;
-    }
-
-    /// <summary>A log the start thread writes to while the test thread polls it.</summary>
-    private sealed class ConcurrentLog : IEventLog
-    {
-        private readonly ConcurrentQueue<LogEvent> _events = new();
-
-        public IReadOnlyList<LogEvent> Events => [.. _events];
-
-        public bool IsEnabled(EventLevel level) => true;
-
-        public void Log(LogEvent e) => _events.Enqueue(e);
-
-        public LogEvent WaitForOne()
-        {
-            var deadline = DateTime.UtcNow + Generous;
-            while (_events.IsEmpty && DateTime.UtcNow < deadline)
-            {
-                Thread.Sleep(10);
-            }
-
-            return Assert.Single(Events);
-        }
     }
 }

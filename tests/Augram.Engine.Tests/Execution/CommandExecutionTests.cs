@@ -8,7 +8,6 @@ using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.WindowOp;
 using Augram.Engine.Hosting;
-using Augram.Engine.Tests.Fakes;
 using Augram.Engine.Tests.Hosting;
 using Xunit;
 

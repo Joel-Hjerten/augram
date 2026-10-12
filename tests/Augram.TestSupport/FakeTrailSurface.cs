@@ -2,10 +2,10 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Config;
 
-namespace Augram.App.Tests.Support;
+namespace Augram.TestSupport;
 
 /// <summary>An <see cref="ITrailSurface"/> that reports whatever the test says and records every call in order, so a test can check what came before a show.</summary>
-internal sealed class FakeTrailSurface : ITrailSurface
+public sealed class FakeTrailSurface : ITrailSurface
 {
     public FakeTrailSurface(OverlayStyleReport report)
     {

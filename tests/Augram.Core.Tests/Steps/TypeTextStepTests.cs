@@ -1,10 +1,8 @@
 using Augram.Core.Abstractions;
-using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.TypeText;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -153,7 +151,7 @@ public sealed class TypeTextStepTests
         var result = Type.Execute(new TypeTextStep("fov 67.5", method), StepContexts.Create(input: input));
 
         Assert.Same(StepResult.Done, result);
-        Assert.Equal([expectedCall], input.Calls);
+        Assert.Equal([expectedCall], input.All);
     }
 
     [Theory]
@@ -168,7 +166,7 @@ public sealed class TypeTextStepTests
         Assert.Same(StepResult.Done, result);
         Assert.Equal(
             [$"{kind} one", "hotkey None+Enter", $"{kind} two", "hotkey None+Enter", "hotkey None+Enter", $"{kind} three", "hotkey None+Enter"],
-            input.Calls);
+            input.All);
     }
 
     [Fact]
@@ -180,7 +178,7 @@ public sealed class TypeTextStepTests
 
         Assert.Equal(StepOutcome.Skipped, result.Outcome);
         Assert.Equal("no text set", result.Reason);
-        Assert.Empty(input.Calls);
+        Assert.Empty(input.All);
     }
 
     [Fact]
@@ -193,7 +191,7 @@ public sealed class TypeTextStepTests
         Assert.Equal(StepOutcome.Failed, result.Outcome);
         Assert.Equal("typing by keys: character 6 has no key on a US layout; Unicode types any character", result.Reason);
         Assert.DoesNotContain("ö", result.Reason, StringComparison.Ordinal);
-        Assert.Empty(input.Calls);
+        Assert.Empty(input.All);
 
         Assert.Same(StepResult.Done, Type.Execute(new TypeTextStep("ok\nsmörgås", TypeTextMethod.Unicode), StepContexts.Create(input: input)));
     }
@@ -211,7 +209,7 @@ public sealed class TypeTextStepTests
 
         Assert.Equal(StepOutcome.Failed, result.Outcome);
         Assert.Equal(expectedReason, result.Reason);
-        Assert.Single(input.Calls);
+        Assert.Single(input.All);
     }
 
     [Fact]
@@ -223,7 +221,7 @@ public sealed class TypeTextStepTests
 
         Assert.Equal(StepOutcome.Failed, result.Outcome);
         Assert.Equal("Enter between lines: Failed", result.Reason);
-        Assert.Equal(["hotkey None+Enter"], input.Calls);
+        Assert.Equal(["hotkey None+Enter"], input.All);
     }
 
     [Fact]
@@ -237,26 +235,26 @@ public sealed class TypeTextStepTests
 
         Assert.Equal(StepOutcome.Skipped, result.Outcome);
         Assert.Equal("cancelled", result.Reason);
-        Assert.Empty(input.Calls);
+        Assert.Empty(input.All);
     }
 
     [Fact]
     public void CancellationIsHonouredBetweenLines()
     {
         using var cts = new CancellationTokenSource();
-        var input = new CancelOnTypeSimulator(cts);
+        var input = new FakeInputSimulator { OnInjection = entry => CancelOnText(entry, cts) };
 
         var result = Type.Execute(new TypeTextStep("one\ntwo"), StepContexts.Create(input: input, cancellation: cts.Token));
 
         Assert.Equal(StepOutcome.Skipped, result.Outcome);
         Assert.Equal("cancelled", result.Reason);
-        Assert.Equal(["text one"], input.Calls);
+        Assert.Equal(["text one"], input.All);
     }
 
     [Fact]
     public void TheLogLineCarriesTheLengthNeverTheText()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
         const string secret = "hunter2 is my password";
 
         Type.Execute(new TypeTextStep(secret + "\nsecond line", TypeTextMethod.Keys), StepContexts.Create(log: log));
@@ -270,55 +268,12 @@ public sealed class TypeTextStepTests
         Assert.DoesNotContain(line.Properties!, property => property.Value?.ToString()?.Contains("hunter2", StringComparison.Ordinal) == true);
     }
 
-    /// <summary>Records like the shared fake and cancels the command as the first text is typed, as a stop arriving mid-step would.</summary>
-    private sealed class CancelOnTypeSimulator : IInputSimulator
+    /// <summary>Cancels the command as the first text is typed, as a stop arriving mid-step would.</summary>
+    private static void CancelOnText(string entry, CancellationTokenSource cancellation)
     {
-        private readonly List<string> _calls = [];
-        private readonly CancellationTokenSource _cancellation;
-
-        public CancelOnTypeSimulator(CancellationTokenSource cancellation)
+        if (entry.StartsWith("text ", StringComparison.Ordinal))
         {
-            _cancellation = cancellation;
-        }
-
-        public IReadOnlyList<string> Calls => _calls;
-
-        public SimulationResult Click(MouseButton button, int x, int y) => Record($"click {button}");
-
-        public SimulationResult Press(MouseButton button, int x, int y) => Record($"down {button}");
-
-        public SimulationResult Release(MouseButton button) => Record($"up {button}");
-
-        public bool RepostsRemapDrags => false;
-
-        public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y) => Record($"remap down {button}");
-
-        public SimulationResult ReleaseRemapButton(MouseButton button) => Record($"remap up {button}");
-
-        public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => Record($"drag {button}");
-
-        public SimulationResult MoveTo(int x, int y) => Record($"move {x},{y}");
-
-        public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => Record($"scroll {direction}");
-
-        public SimulationResult KeyPress(KeyCode key) => Record($"press {key}");
-
-        public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}");
-
-        public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) => Record($"hotkey {modifiers}+{key}");
-
-        public SimulationResult TypeText(string text)
-        {
-            _cancellation.Cancel();
-            return Record($"text {text}");
-        }
-
-        public SimulationResult TypeTextByKeys(string text) => Record($"keys {text}");
-
-        private SimulationResult Record(string call)
-        {
-            _calls.Add(call);
-            return SimulationResult.Success;
+            cancellation.Cancel();
         }
     }
 }

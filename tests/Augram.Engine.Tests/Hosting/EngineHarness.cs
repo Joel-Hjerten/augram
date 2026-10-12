@@ -5,7 +5,6 @@ using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Recognition;
 using Augram.Engine.Hosting;
-using Augram.Engine.Tests.Fakes;
 
 namespace Augram.Engine.Tests.Hosting;
 

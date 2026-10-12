@@ -3,7 +3,6 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.Hotkey;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -149,12 +148,12 @@ public sealed class HotkeyStepTests
     public void ExecuteSendsTheModifiersAndKeyAsOneHotkey()
     {
         var input = new FakeInputSimulator();
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
 
         var result = Type.Execute(new HotkeyStep(KeyModifiers.Control | KeyModifiers.Shift, KeyCode.T), StepContexts.Create(input: input, log: log));
 
         Assert.Equal(StepResult.Done, result);
-        Assert.Equal(["hotkey Control, Shift+T"], input.Calls);
+        Assert.Equal(["hotkey Control, Shift+T"], input.All);
         var line = Assert.Single(log.Events);
         Assert.Equal((EventLevel.Debug, "steps", "Hotkey"), (line.Level, line.Source, line.Message));
         Assert.Contains(new LogProperty("keys", "Ctrl+Shift+T"), line.Properties!);
@@ -165,13 +164,13 @@ public sealed class HotkeyStepTests
     public void ExecutePassesTheRightHandSetThrough_CutDownToTheModifiers()
     {
         var input = new FakeInputSimulator();
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
 
         var result = Type.Execute(new HotkeyStep(KeyModifiers.Control | KeyModifiers.Alt, KeyCode.F9, KeyModifiers.Alt), StepContexts.Create(input: input, log: log));
         Type.Execute(new HotkeyStep(KeyModifiers.Control, KeyCode.T, KeyModifiers.Alt), StepContexts.Create(input: input));
 
         Assert.Equal(StepResult.Done, result);
-        Assert.Equal(["hotkey Control, Alt+F9 right Alt", "hotkey Control+T"], input.Calls);
+        Assert.Equal(["hotkey Control, Alt+F9 right Alt", "hotkey Control+T"], input.All);
         Assert.Contains(new LogProperty("keys", "Ctrl+RAlt+F9"), Assert.Single(log.Events).Properties!);
     }
 
@@ -184,7 +183,7 @@ public sealed class HotkeyStepTests
 
         Assert.Equal(StepOutcome.Skipped, result.Outcome);
         Assert.Equal("no key set", result.Reason);
-        Assert.Empty(input.Calls);
+        Assert.Empty(input.All);
     }
 
     [Theory]
@@ -198,6 +197,6 @@ public sealed class HotkeyStepTests
 
         Assert.Equal(StepOutcome.Failed, result.Outcome);
         Assert.Equal(expectedReason, result.Reason);
-        Assert.Single(input.Calls);
+        Assert.Single(input.All);
     }
 }

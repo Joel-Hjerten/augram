@@ -1,13 +1,13 @@
 using Augram.Core.Abstractions;
 
-namespace Augram.App.Tests.Sync.Support;
+namespace Augram.TestSupport;
 
 /// <summary>
-/// An in-memory <see cref="ISyncRepository"/> over a <see cref="SyncRemote"/>: no git, no network. Failures are
-/// switchable, every call is counted, <see cref="HoldPull"/> blocks the next pulls until released (a run in progress),
-/// and <see cref="MaxConcurrent"/> proves no two runs overlap.
+/// An in-memory <see cref="ISyncRepository"/> over a <see cref="SyncRemote"/>: no git, no network. Failures are switchable
+/// (<see cref="FailWith"/>, <see cref="FailPublishWith"/>), every prepare and pull is counted, <see cref="HoldPull"/> blocks
+/// the next pulls until released (a run in progress), and <see cref="MaxConcurrent"/> proves no two runs overlap.
 /// </summary>
-internal sealed class FakeSyncRepository : ISyncRepository
+public sealed class FakeSyncRepository : ISyncRepository
 {
     private readonly SyncRemote _remote;
     private readonly object _gate = new();
@@ -27,6 +27,9 @@ internal sealed class FakeSyncRepository : ISyncRepository
 
     /// <summary>When set, Prepare and Pull fail with this line.</summary>
     public string? FailWith { get; set; }
+
+    /// <summary>When set, Publish fails with this line and writes nothing.</summary>
+    public string? FailPublishWith { get; set; }
 
     public IReadOnlyList<string> PreparedUrls
     {
@@ -71,7 +74,7 @@ internal sealed class FakeSyncRepository : ISyncRepository
             _prepared.Add(repositoryUrl);
         }
 
-        return Result();
+        return Result(FailWith);
     }
 
     public SyncOperationResult Pull()
@@ -88,7 +91,7 @@ internal sealed class FakeSyncRepository : ISyncRepository
             }
 
             hold?.Wait(TimeSpan.FromSeconds(10));
-            return Result();
+            return Result(FailWith);
         }
         finally
         {
@@ -96,15 +99,20 @@ internal sealed class FakeSyncRepository : ISyncRepository
         }
     }
 
-    public IReadOnlyDictionary<string, string> ReadMachineFiles() => _remote.Files;
+    public IReadOnlyDictionary<string, string> ReadMachineFiles() => new Dictionary<string, string>(_remote.Files, StringComparer.OrdinalIgnoreCase);
 
     public SyncOperationResult Publish(string machineId, string content, string message)
     {
-        _remote.Write(machineId, content);
+        if (FailPublishWith is { } error)
+        {
+            return SyncOperationResult.Failed(error);
+        }
+
+        _remote.Write(machineId, content, message);
         return SyncOperationResult.Ok;
     }
 
-    private SyncOperationResult Result() => FailWith is { } error ? SyncOperationResult.Failed(error) : SyncOperationResult.Ok;
+    private static SyncOperationResult Result(string? error) => error is null ? SyncOperationResult.Ok : SyncOperationResult.Failed(error);
 
     private static void InterlockedMax(ref int target, int value)
     {

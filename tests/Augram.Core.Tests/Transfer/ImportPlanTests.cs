@@ -5,7 +5,6 @@ using Augram.Core.Mapping;
 using Augram.Core.Recognition;
 using Augram.Core.Sync;
 using Augram.Core.Tests.Fixtures;
-using Augram.Core.Tests.Mapping.Support;
 using Augram.Core.Transfer;
 using Xunit;
 using static Augram.Core.Tests.Mapping.Support.MappingFixtures;

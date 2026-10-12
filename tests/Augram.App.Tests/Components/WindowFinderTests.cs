@@ -1,6 +1,5 @@
 using Augram.App.Components;
 using Augram.App.Components.WindowFinder;
-using Augram.App.Tests.Support;
 using Augram.Core.Abstractions;
 using Avalonia;
 using Avalonia.Controls;
@@ -21,7 +20,7 @@ namespace Augram.App.Tests.Components;
 /// </summary>
 public sealed class WindowFinderTests
 {
-    private static readonly WindowIdentity Chrome = FakeWindowSystem.Window("chrome.exe", "Google Chrome", @"C:\Program Files\Google\Chrome\Application\chrome.exe", ["Chrome_RenderWidgetHostHWND", "Chrome_WidgetWin_1"]);
+    private static readonly WindowIdentity Chrome = FakeWindowSystem.WindowOf("chrome.exe", "Google Chrome", @"C:\Program Files\Google\Chrome\Application\chrome.exe", ["Chrome_RenderWidgetHostHWND", "Chrome_WidgetWin_1"]);
 
     // Far outside the 300 x 200 test window: the drag leaves it, as a real one does.
     private static readonly Point OverChrome = new(1200, 100);
@@ -48,7 +47,7 @@ public sealed class WindowFinderTests
 
         Assert.Same(Chrome, Assert.Single(picks));
         var screen = window.PointToScreen(OverChrome);
-        Assert.Equal((screen.X, screen.Y), windows.Asked[^1]);
+        Assert.Equal((screen.X, screen.Y), windows.Lookups[^1]);
         Assert.False(finder.IsFinding);
         Assert.DoesNotContain(":finding", finder.Classes);
         Assert.Same(idleCursor, finder.Cursor);

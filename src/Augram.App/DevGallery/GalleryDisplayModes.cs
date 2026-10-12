@@ -3,7 +3,8 @@ using Augram.Core.Abstractions;
 
 namespace Augram.App.DevGallery;
 
-/// <summary>A pretend 4K TV like Joel's (TV and 1000/1001 rates, HDR off) so the gallery's Display mode form has lists to show; it changes nothing.</summary>
+/// <summary>A pretend 4K TV like Joel's (TV and 1000/1001 rates, HDR off) so the gallery's Display mode form has lists to show; it changes nothing.
+/// The gallery's own (the App cannot reference test code); it mirrors <c>FakeDisplayModes.Tv</c> in tests/Augram.TestSupport.</summary>
 internal sealed class GalleryDisplayModes : IDisplayModes
 {
     private static readonly int[] LegacyRates = [23, 24, 25, 29, 30, 50, 59, 60, 100, 119, 120];

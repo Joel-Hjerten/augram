@@ -1,7 +1,7 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 
-namespace Augram.Engine.Tests.Fakes;
+namespace Augram.TestSupport;
 
 /// <summary>
 /// Records every injection; thread-safe because the worker and the executor call it. Clicks are in <see cref="Clicks"/>,
@@ -9,12 +9,16 @@ namespace Augram.Engine.Tests.Fakes;
 /// ("click Right@10,20", "down Right@10,20", "move 50,20", "scroll Down x1@10,20", "up Right"), so a test can check that every injected down got
 /// its up (A19). A hold remap's button output is recorded the same way, its modifiers in front ("down Shift+Middle@10,20",
 /// "up Middle"), and a re-posted drag as "drag Middle@15,20 by 5,0". <see cref="All"/> has both in the one order they were
-/// made (hold remaps interleave keys and buttons). <see cref="RepostsRemapDrags"/> is set for a simulator that asks the engine
-/// to re-post drags, as the macOS one does.
+/// made (hold remaps interleave keys and buttons). Key entries: "press VolumeUp", "release VolumeUp", "hotkey Control+W",
+/// "hotkey Alt+F9 right Alt", "text hi", "keys hi". <see cref="RepostsRemapDrags"/> is set for a simulator that asks the
+/// engine to re-post drags, as the macOS one does.
+/// Answers: <see cref="PressResult"/> for a key press, <see cref="ReleaseResult"/> for a key release,
+/// <see cref="OtherResult"/> for everything else; all succeed by default. <see cref="OnInjection"/> runs after each entry is
+/// recorded (a test cancels the command there, or throws as a broken input library would).
 /// <see cref="BlockOn"/> holds the calling thread inside the injection of that entry until <see cref="Unblock"/>, so a test
 /// can keep the worker busy while the hook decides.
 /// </summary>
-internal sealed class FakeInputSimulator : IInputSimulator
+public sealed class FakeInputSimulator : IInputSimulator
 {
     private readonly object _gate = new();
     private readonly List<(MouseButton Button, int X, int Y)> _clicks = [];
@@ -27,6 +31,15 @@ internal sealed class FakeInputSimulator : IInputSimulator
     public FakeInputSimulator(bool repostsRemapDrags = false) => RepostsRemapDrags = repostsRemapDrags;
 
     public bool RepostsRemapDrags { get; }
+
+    public SimulationResult PressResult { get; set; } = SimulationResult.Success;
+
+    public SimulationResult ReleaseResult { get; set; } = SimulationResult.Success;
+
+    public SimulationResult OtherResult { get; set; } = SimulationResult.Success;
+
+    /// <summary>Called with each entry right after it is recorded, on the injecting thread; an exception from it leaves the injection.</summary>
+    public Action<string>? OnInjection { get; set; }
 
     public IReadOnlyList<(MouseButton Button, int X, int Y)> Clicks
     {
@@ -115,19 +128,19 @@ internal sealed class FakeInputSimulator : IInputSimulator
 
     public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => RecordMouse($"scroll {direction} x{notches}@{x},{y}");
 
-    public SimulationResult KeyPress(KeyCode key) => Record($"press {key}");
+    public SimulationResult KeyPress(KeyCode key) => Record($"press {key}", PressResult);
 
-    public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}");
+    public SimulationResult KeyRelease(KeyCode key) => Record($"release {key}", ReleaseResult);
 
     /// <summary>"hotkey Control+W"; "hotkey Alt+F9 right Alt" when some modifiers are the right-hand key.</summary>
     public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) =>
-        Record(rightHand == KeyModifiers.None ? $"hotkey {modifiers}+{key}" : $"hotkey {modifiers}+{key} right {rightHand}");
+        Record(rightHand == KeyModifiers.None ? $"hotkey {modifiers}+{key}" : $"hotkey {modifiers}+{key} right {rightHand}", OtherResult);
 
-    public SimulationResult TypeText(string text) => Record($"text {text}");
+    public SimulationResult TypeText(string text) => Record($"text {text}", OtherResult);
 
-    public SimulationResult TypeTextByKeys(string text) => Record($"keys {text}");
+    public SimulationResult TypeTextByKeys(string text) => Record($"keys {text}", OtherResult);
 
-    private SimulationResult Record(string entry)
+    private SimulationResult Record(string entry, SimulationResult result)
     {
         lock (_gate)
         {
@@ -135,8 +148,8 @@ internal sealed class FakeInputSimulator : IInputSimulator
             _all.Add(entry);
         }
 
-        Wait(entry);
-        return SimulationResult.Success;
+        Injected(entry);
+        return result;
     }
 
     private SimulationResult RecordMouse(string entry)
@@ -147,12 +160,13 @@ internal sealed class FakeInputSimulator : IInputSimulator
             _all.Add(entry);
         }
 
-        Wait(entry);
-        return SimulationResult.Success;
+        Injected(entry);
+        return OtherResult;
     }
 
-    private void Wait(string entry)
+    private void Injected(string entry)
     {
+        OnInjection?.Invoke(entry);
         if (entry == Volatile.Read(ref _blockOn))
         {
             _released.Wait(TimeSpan.FromSeconds(30));

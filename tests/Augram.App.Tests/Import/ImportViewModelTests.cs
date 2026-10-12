@@ -1,6 +1,5 @@
 using Augram.App.Import;
 using Augram.App.Tests.Architecture;
-using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
 using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
@@ -22,7 +21,7 @@ public sealed class ImportViewModelTests
     public void LoadShowsStatsWarningsAndThePlanAgainstTheLibrary()
     {
         var mine = new GestureLibrary([Existing("Synthetic L Shape"), Existing("synthetic circle"), Existing("Keep")]);
-        var vm = new ImportViewModel(mine, new MappingStore(), new RecordingEventLog());
+        var vm = new ImportViewModel(mine, new MappingStore(), new ListEventLog());
 
         ImportPresenter.Read(vm, Fixture);
 
@@ -46,7 +45,7 @@ public sealed class ImportViewModelTests
         var circle = Existing("Synthetic Circle");
         var mine = new GestureLibrary([lShape, circle, Existing("Keep")]);
         var mapping = new MappingStore();
-        var log = new RecordingEventLog();
+        var log = new ListEventLog();
         var vm = new ImportViewModel(mine, mapping, log);
         var finished = 0;
         vm.Finished += (_, _) => finished++;
@@ -92,7 +91,7 @@ public sealed class ImportViewModelTests
         var mine = new GestureLibrary([upStock]);
         var existingClose = new Command(CommandId.New(), "Existing Close", Trigger.ForGesture(upStock.Id), IsActive: true, []);
         var mapping = new MappingStore(new MappingDocument([AppGroup.EmptyGlobal with { Commands = [existingClose] }], []));
-        var vm = new ImportViewModel(mine, mapping, new RecordingEventLog());
+        var vm = new ImportViewModel(mine, mapping, new ListEventLog());
 
         ImportPresenter.Read(vm, Fixture);
         Assert.Contains("2 command(s) will be added; 1 command(s) already exist and are skipped", vm.PlanText, StringComparison.Ordinal);
@@ -111,7 +110,7 @@ public sealed class ImportViewModelTests
     {
         var mine = new GestureLibrary();
         var mapping = new MappingStore();
-        var log = new RecordingEventLog();
+        var log = new ListEventLog();
         var vm = new ImportViewModel(mine, mapping, log);
 
         ImportPresenter.Read(vm, FullFixture);
@@ -134,7 +133,7 @@ public sealed class ImportViewModelTests
     [Fact]
     public void UnreadableFileBecomesAnErrorNotAnException()
     {
-        var vm = new ImportViewModel(new GestureLibrary(), new MappingStore(), new RecordingEventLog());
+        var vm = new ImportViewModel(new GestureLibrary(), new MappingStore(), new ListEventLog());
 
         ImportPresenter.Read(vm, Path.Combine(Path.GetTempPath(), "augram-missing-" + Guid.NewGuid().ToString("N") + ".json"));
 

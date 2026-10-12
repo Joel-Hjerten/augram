@@ -2,7 +2,6 @@ using System.Text.Json.Nodes;
 using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Unknown;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -39,7 +38,7 @@ public sealed class UnknownStepTests
     [Fact]
     public void ExecuteSkipsWithTheReasonAndLogsOneInfoLine()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
         var windows = new FakeWindowOperations();
         var input = new FakeInputSimulator();
 
@@ -50,7 +49,7 @@ public sealed class UnknownStepTests
         Assert.Equal(StepOutcome.Skipped, result.Outcome);
         Assert.Equal("this Augram cannot run it (unknown step type 'scroll'); update Augram", result.Reason);
         Assert.Empty(windows.Calls);
-        Assert.Empty(input.Calls);
+        Assert.Empty(input.All);
         var entry = Assert.Single(log.Events);
         Assert.Equal((EventLevel.Info, "Unknown step skipped"), (entry.Level, entry.Message));
         Assert.Contains(new LogProperty("type", "scroll"), entry.Properties!);

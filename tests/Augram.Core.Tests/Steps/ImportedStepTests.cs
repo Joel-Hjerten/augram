@@ -2,7 +2,6 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Delay;
 using Augram.Core.Steps.Imported;
-using Augram.Core.Tests.Diagnostics;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -106,7 +105,7 @@ public sealed class ImportedStepTests
     [Fact]
     public void ExecuteSkipsNamingTheMethodAndLogsOneInfoLine()
     {
-        var log = new CountingEventLog();
+        var log = new ListEventLog();
         var windows = new FakeWindowOperations();
         var input = new FakeInputSimulator();
 
@@ -117,7 +116,7 @@ public sealed class ImportedStepTests
         Assert.Equal(StepOutcome.Skipped, result.Outcome);
         Assert.Equal("imported step 'SendWinDown' is not supported yet", result.Reason);
         Assert.Empty(windows.Calls);
-        Assert.Empty(input.Calls);
+        Assert.Empty(input.All);
 
         var entry = Assert.Single(log.Events);
         Assert.Equal(EventLevel.Info, entry.Level);

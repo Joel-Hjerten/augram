@@ -20,7 +20,7 @@ public sealed class SyncJoinTests : TwoMachineTest
         Assert.True(report.Counts.IsEmpty);
         Assert.Equal(["sync from PC-WORK"], Remote.Messages);
         Assert.True(Remote.Files.ContainsKey(work.Id.ToString("D")));
-        Assert.Equal(SyncMachine.Url, work.Repository.PreparedUrl);
+        Assert.Equal(SyncMachine.Url, work.Repository.PreparedUrls[^1]);
         Assert.True(work.Items.SameAs(before.Contents()));
     }
 

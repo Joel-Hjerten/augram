@@ -9,7 +9,6 @@ using Augram.Core.Sync;
 using Augram.Core.Tests.Config;
 using Augram.Core.Tests.Fixtures;
 using Augram.Core.Tests.HoldRemaps.Support;
-using Augram.Core.Tests.Mapping.Support;
 using Augram.Core.Tests.Sync.Support;
 using Augram.Core.Transfer;
 
