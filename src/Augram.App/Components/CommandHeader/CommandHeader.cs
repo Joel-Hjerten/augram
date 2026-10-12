@@ -24,7 +24,8 @@ namespace Augram.App.Components.CommandHeader;
 /// trigger whose held buttons are handed back as drags has a Drag distance row (<c>CommandHeader.DragDistance.cs</c>), and a
 /// command not under a hold remap a Not in row (<c>CommandHeader.ExclusionRows.cs</c>; both plan 0004) and, when its trigger holds no
 /// stroke button, an Also in row (the same file, plan 0005). A draft another command uses
-/// here has Take it and Swap in its note (<c>CommandHeader.Conflict.cs</c>, Joel 2026-10-10).
+/// here has Take it and Swap in its note (<c>CommandHeader.Conflict.cs</c>, Joel 2026-10-10). Its last row is "Steps for", the
+/// switch between the platforms' steps with Copy from the other platform and Mark as checked (<c>CommandHeader.StepSide.cs</c>, plan 0010).
 /// </summary>
 public sealed partial class CommandHeader : TemplatedControl
 {
@@ -48,15 +49,6 @@ public sealed partial class CommandHeader : TemplatedControl
 
     public static readonly StyledProperty<bool> IsGestureKindProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(IsGestureKind));
-
-    public static readonly StyledProperty<string?> VersionTextProperty =
-        AvaloniaProperty.Register<CommandHeader, string?>(nameof(VersionText));
-
-    public static readonly StyledProperty<bool> HasOwnVersionHereProperty =
-        AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasOwnVersionHere));
-
-    public static readonly StyledProperty<bool> CanMarkCheckedProperty =
-        AvaloniaProperty.Register<CommandHeader, bool>(nameof(CanMarkChecked));
 
     public static readonly StyledProperty<bool> HasCategoriesProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasCategories));
@@ -133,27 +125,6 @@ public sealed partial class CommandHeader : TemplatedControl
         private set => SetValue(UseOnNoteProperty, value);
     }
 
-    /// <summary>F8: where this platform's steps come from and what an edit here does (<see cref="CommandItem.VersionText"/>).</summary>
-    public string? VersionText
-    {
-        get => GetValue(VersionTextProperty);
-        private set => SetValue(VersionTextProperty, value);
-    }
-
-    /// <summary>F8: this platform runs its own steps; shows "Use the converted original".</summary>
-    public bool HasOwnVersionHere
-    {
-        get => GetValue(HasOwnVersionHereProperty);
-        private set => SetValue(HasOwnVersionHereProperty, value);
-    }
-
-    /// <summary>F8: the own steps here were made before the original last changed; shows "Mark as checked".</summary>
-    public bool CanMarkChecked
-    {
-        get => GetValue(CanMarkCheckedProperty);
-        private set => SetValue(CanMarkCheckedProperty, value);
-    }
-
     /// <summary>The kind the dropdown shows; -1 without a command.</summary>
     public int KindIndex => _kind?.SelectedIndex ?? -1;
 
@@ -209,8 +180,9 @@ public sealed partial class CommandHeader : TemplatedControl
         FindInputParts(e);
         FindConflictParts(e);
         FindUseOnParts(e);
+        FindStepSideParts(e);
         Apply();
-        WireAction(e, "PART_UseConverted", CommandTreeAction.UseConvertedOriginal);
+        WireAction(e, "PART_CopySteps", CommandTreeAction.CopyStepsFromOtherPlatform);
         WireAction(e, "PART_MarkChecked", CommandTreeAction.MarkOwnVersionChecked);
         WireAction(e, "PART_PickGesture", CommandTreeAction.PickGesture);
     }
@@ -232,10 +204,8 @@ public sealed partial class CommandHeader : TemplatedControl
             DraftNote = item?.DraftNote;
             ShowConflict(item);
             HasCategories = item is { Categories.Count: > 0 };
-            VersionText = item?.VersionText;
             UseOnNote = item?.UseOnLimitText;
-            HasOwnVersionHere = item is { HasOwnVersionHere: true };
-            CanMarkChecked = item is { HasOwnVersionHere: true, IsOwnVersionStale: true };
+            ShowStepSide(item?.StepSide);
             Apply();
         }
     }
@@ -256,6 +226,7 @@ public sealed partial class CommandHeader : TemplatedControl
     {
         var item = Item;
         ApplyUseOn(item);
+        ApplyStepSide();
         _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
         ApplyHold();
         ApplyDragDistance();

@@ -57,6 +57,9 @@ public sealed class CommandsWorkbench : TemplatedControl
     public static readonly StyledProperty<bool> IsUnderHoldRemapProperty =
         AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(IsUnderHoldRemap));
 
+    public static readonly StyledProperty<bool> StepsReadOnlyProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, bool>(nameof(StepsReadOnly));
+
     public static readonly StyledProperty<IReadOnlyDictionary<IStepType, string>> StepRefusalsProperty =
         AvaloniaProperty.Register<CommandsWorkbench, IReadOnlyDictionary<IStepType, string>>(nameof(StepRefusals), ReadOnlyDictionary<IStepType, string>.Empty);
 
@@ -160,6 +163,13 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         get => GetValue(IsUnderHoldRemapProperty);
         private set => SetValue(IsUnderHoldRemapProperty, value);
+    }
+
+    /// <summary>The steps in view are the other platform's (plan 0010, <see cref="CommandHeaderItem.StepSide"/>): the step list is read-only.</summary>
+    public bool StepsReadOnly
+    {
+        get => GetValue(StepsReadOnlyProperty);
+        private set => SetValue(StepsReadOnlyProperty, value);
     }
 
     /// <summary>
@@ -317,6 +327,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         {
             HasCommand = SelectedCommand is not null;
             IsUnderHoldRemap = SelectedCommand is { IsUnderHoldRemap: true };
+            StepsReadOnly = SelectedCommand is { StepSide.IsHere: false };
             StepRefusals = SelectedCommand?.StepRefusals ?? ReadOnlyDictionary<IStepType, string>.Empty;
             ChangeRefusals = SelectedCommand?.ChangeRefusals ?? [];
 

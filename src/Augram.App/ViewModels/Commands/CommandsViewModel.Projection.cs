@@ -1,8 +1,6 @@
 using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.SearchBox;
-using Augram.App.Components.StepList;
-using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
 
@@ -96,17 +94,6 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// This platform's steps (F8): each row reads as the stored step does here ("Ctrl+W → Cmd+W"), and the step its form edits
-    /// is the one an edit here starts from, the converted step where this platform has no own steps yet.
-    /// </summary>
-    private List<StepItem> StepItems(Command command)
-    {
-        var shown = command.StepsFor(_platform);
-        var editable = StepEditor.EditableSteps(command, _platform);
-        return [.. shown.Select((step, index) => StepItemProjection.From(step, index, _platform) with { Step = editable[index] })];
-    }
-
-    /// <summary>
     /// The selected row as the header shows it: with the trigger draft over it while one waits (<see cref="TriggerEditor.WithDraft"/>) and the
     /// Options value its drag distance falls back to; without the Also in row where the button its stored trigger holds is this
     /// machine's stroke button (it holds nothing back here, as for the drag distance); with the step types "New step…" greys
@@ -126,6 +113,7 @@ public sealed partial class CommandsViewModel
         {
             OptionsDragDistancePx = OptionsDragDistancePx,
             StrokeButton = StrokeButton,
+            StepSide = command is null ? null : StepSideOf(command),
             CanSetAlsoIn = item.CanSetAlsoIn && (StrokeButton is not { } stroke || row!.Trigger.Hold.ForStrokeButton(stroke).HandsBackDrags),
             StepRefusals = command is null ? item.StepRefusals : StepOffer.Refusals(StepTypes, command, _platform, drafted),
             ChangeRefusals = command is null
@@ -179,10 +167,17 @@ public sealed partial class CommandsViewModel
             PlatformFilterNudges++;
         }
 
+        var otherCommand = _stepsOf != SelectedCommandId;
+        if (otherCommand)
+        {
+            // Another command opens on this platform's steps (plan 0010 decision 1).
+            _stepsView.Reset();
+        }
+
         SelectedCommand = HeaderItem(selected);
         var steps = selected is null ? [] : StepItems(_store.FindCommand(selected.Id)!.Value.Command);
         Steps = steps;
-        if (_stepsOf != SelectedCommandId)
+        if (otherCommand)
         {
             _stepsOf = SelectedCommandId;
             SelectedStepIndex = -1;

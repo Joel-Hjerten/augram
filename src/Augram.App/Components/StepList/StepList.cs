@@ -4,6 +4,7 @@ using Augram.App.Components.Steps;
 using Augram.Core.Steps;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -19,8 +20,11 @@ namespace Augram.App.Components.StepList;
 /// (Select with no step); the grip only drags (Joel, 0.11.4). <c>PART_New</c> opens the <see cref="StepTypePicker"/>
 /// in a flyout, and the menu's "Change to…" another at the selected step's header (<c>StepList.Picker.cs</c>); the menu, the
 /// keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event.
-/// Rows are reused when the count is unchanged, so a form survives the store echoing its own edit back.
+/// Rows are reused when the count is unchanged, so a form survives the store echoing its own edit back. While
+/// <see cref="IsReadOnly"/> (plan 0010: the other platform's steps, a peek) it is <c>:readonly</c>: no New step…, no menu,
+/// no drag, no step opens, and it raises nothing but Undo and Redo.
 /// </summary>
+[PseudoClasses(":readonly")]
 public sealed partial class StepList : TemplatedControl
 {
     public static readonly StyledProperty<IReadOnlyList<StepItem>> StepsProperty =
@@ -34,6 +38,9 @@ public sealed partial class StepList : TemplatedControl
 
     public static readonly StyledProperty<bool> HasCommandProperty =
         AvaloniaProperty.Register<StepList, bool>(nameof(HasCommand));
+
+    public static readonly StyledProperty<bool> IsReadOnlyProperty =
+        AvaloniaProperty.Register<StepList, bool>(nameof(IsReadOnly));
 
     public static readonly StyledProperty<IReadOnlyList<StepRow>> RowsProperty =
         AvaloniaProperty.Register<StepList, IReadOnlyList<StepRow>>(nameof(Rows), []);
@@ -77,6 +84,13 @@ public sealed partial class StepList : TemplatedControl
         set => SetValue(HasCommandProperty, value);
     }
 
+    /// <summary>The steps shown are the other platform's (plan 0010 decision 6): read, never edited here.</summary>
+    public bool IsReadOnly
+    {
+        get => GetValue(IsReadOnlyProperty);
+        set => SetValue(IsReadOnlyProperty, value);
+    }
+
     public IReadOnlyList<StepRow> Rows
     {
         get => GetValue(RowsProperty);
@@ -104,7 +118,11 @@ public sealed partial class StepList : TemplatedControl
         if (_rows.Attach(e.NameScope.Find<ListBox>("PART_Rows"), OnSelectionChanged) is { } list)
         {
             list.ContextMenu = StepListMenu.Build(Request);
-            list.ContextMenu.Opening += (_, _) => StepListMenu.Refresh(list.ContextMenu, SelectedStep, CanAddStep);
+            list.ContextMenu.Opening += (_, args) =>
+            {
+                args.Cancel = IsReadOnly;
+                StepListMenu.Refresh(list.ContextMenu, SelectedStep, CanAddStep);
+            };
             KeyBindings.Clear();
             StepListMenu.BindKeys(this, EditKeymap.Current, Request, _rows.KeysEnabled);
             ApplySelection();
@@ -128,6 +146,14 @@ public sealed partial class StepList : TemplatedControl
         {
             RebuildForms();
         }
+        else if (change.Property == IsReadOnlyProperty)
+        {
+            PseudoClasses.Set(":readonly", IsReadOnly);
+            foreach (var row in Rows)
+            {
+                row.IsReadOnly = IsReadOnly;
+            }
+        }
         else
         {
             SyncPicker(change);
@@ -149,7 +175,7 @@ public sealed partial class StepList : TemplatedControl
             var rows = new List<StepRow>(steps.Count);
             foreach (var step in steps)
             {
-                var row = new StepRow { Item = step };
+                var row = new StepRow { Item = step, IsReadOnly = IsReadOnly };
                 row.ActiveToggled += (_, _) => Raise(StepListAction.ToggleActive, row.Item);
                 row.PointerPressed += OnRowPressed;
                 _drag.Attach(row);
@@ -235,7 +261,7 @@ public sealed partial class StepList : TemplatedControl
     /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is not StepRow row || _rows.List is null)
+        if (sender is not StepRow row || _rows.List is null || IsReadOnly)
         {
             return;
         }
@@ -303,5 +329,10 @@ public sealed partial class StepList : TemplatedControl
     }
 
     private void Raise(StepListAction action, StepItem? step, IStepType? type = null, IStep? edited = null, int targetIndex = -1)
-        => ActionRequested?.Invoke(this, new StepListActionEventArgs(action, step, type, edited, targetIndex));
+    {
+        if (!IsReadOnly || action is StepListAction.Undo or StepListAction.Redo)
+        {
+            ActionRequested?.Invoke(this, new StepListActionEventArgs(action, step, type, edited, targetIndex));
+        }
+    }
 }

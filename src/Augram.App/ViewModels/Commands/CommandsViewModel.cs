@@ -25,7 +25,7 @@ namespace Augram.App.ViewModels.Commands;
 /// availability and the message line. Turns the tree's and the step list's intents into store calls;
 /// the rules live in <see cref="MappingRules"/> and only their messages show here (a refused trigger edit
 /// waits as a draft in the header, with its note, instead: <see cref="TriggerEditor"/>). UI-only state
-/// (selection, expanded sections, the search text, the trigger draft) is all it owns, and the in-memory clipboard is shared by both tabs, so a
+/// (selection, expanded sections, the search text, the trigger draft, which platform's steps are in view) is all it owns, and the in-memory clipboard is shared by both tabs, so a
 /// Global command copied on one pastes into an app group on the other; deleting it loses nothing.
 /// Sections start collapsed (Joel, 2026-10-07: a long list otherwise); each tab's view model is a
 /// process-lifetime singleton, so what the user opened stays open for the running session (tab
@@ -48,6 +48,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
     private readonly TriggerEditor _trigger;
     private readonly StepEditor _steps;
     private readonly SectionPanel _panel;
+    private readonly PlatformSideView _stepsView;
     private CommandId? _stepsOf;
     private (SectionId? Section, CommandId? Command)? _selectionBeforeSearch;
 
@@ -83,6 +84,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
         _trigger = new TriggerEditor(store, gestures, picker, platform, this);
         _steps = new StepEditor(store, clipboard, platform, _trigger, this);
         _panel = new SectionPanel(store, this);
+        _stepsView = new PlatformSideView(platform);
         _store.Changed += OnStoreChanged;
         _gestures.Changed += OnStoreChanged;
         Project();
@@ -295,9 +297,11 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
             case CommandTreeAction.EditAlsoIn when e.Command is { } command:
                 _ = EditAlsoInAsync(command);
                 break;
-            case CommandTreeAction.UseConvertedOriginal when e.Command is { } command:
-                UpdateCommand(command.Id, stored => stored.WithoutOwnVersion());
-                Message = $"'{command.Name}' runs the converted original here again. {EditKeymap.Current.Undo} brings its own steps back.";
+            case CommandTreeAction.ShowStepsFor when e.Platform is { } platform:
+                ShowStepsFor(platform);
+                break;
+            case CommandTreeAction.CopyStepsFromOtherPlatform when e.Command is { } command:
+                CopyStepsFromOtherPlatform(command);
                 break;
             case CommandTreeAction.MarkOwnVersionChecked when e.Command is { } command:
                 UpdateCommand(command.Id, stored => stored.WithOwnVersionChecked(DateTimeOffset.UtcNow));

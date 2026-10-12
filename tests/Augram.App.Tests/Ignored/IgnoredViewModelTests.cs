@@ -72,6 +72,15 @@ public sealed class IgnoredViewModelTests
     }
 
     [AvaloniaFact]
+    public void TheOtherPlatformsFieldsAreReadOnly()
+    {
+        var (vm, _, _, _) = Create();
+        vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, Item(vm, "Blender")));
+
+        IdentificationForm.AssertOnlyThisPlatformEdits(vm.Detail!);
+    }
+
+    [AvaloniaFact]
     public void ARefusedEdit_ShowsTheRule_AndTheFieldKeepsWhatWasTyped()
     {
         var (vm, store, _, _) = Create();

@@ -216,6 +216,15 @@ public sealed class CommandsViewModelTests
     }
 
     [AvaloniaFact]
+    public void TheGroupFormsOtherPlatformFieldsAreReadOnly()
+    {
+        var (vm, _, _, _) = Create();
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Chrome")));
+
+        IdentificationForm.AssertOnlyThisPlatformEdits(vm.GroupForm!);
+    }
+
+    [AvaloniaFact]
     public void APanelEditIsOneUndoStepAndUndoShowsInTheSameForm()
     {
         var (vm, store, _, _) = Create();

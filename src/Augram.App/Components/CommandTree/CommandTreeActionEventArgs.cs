@@ -1,3 +1,4 @@
+using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
@@ -7,7 +8,7 @@ namespace Augram.App.Components.CommandTree;
 /// One <see cref="CommandTreeAction"/> with the section and command it applies to, the new name for
 /// Rename, the kind for SetTriggerKind, the chosen category for SetCategory, the set for SetTriggerHold, the
 /// direction for SetWheelDirection, the pressed button for SetTriggerButton, and for a command under a hold remap the kind for
-/// SetInputKind and the input for SetInput.
+/// SetInputKind and the input for SetInput, and the platform for ShowStepsFor.
 /// </summary>
 public sealed class CommandTreeActionEventArgs : EventArgs
 {
@@ -23,8 +24,10 @@ public sealed class CommandTreeActionEventArgs : EventArgs
         WheelDirection? wheel = null,
         InputKind? inputKind = null,
         HoldInput? input = null,
-        MouseButton? button = null)
+        MouseButton? button = null,
+        HostPlatform? platform = null)
     {
+        Platform = platform;
         Hold = hold;
         Wheel = wheel;
         Button = button;
@@ -63,6 +66,9 @@ public sealed class CommandTreeActionEventArgs : EventArgs
 
     /// <summary>The pressed button a <see cref="CommandTreeAction.SetTriggerButton"/> asks for (plan 0005).</summary>
     public MouseButton? Button { get; }
+
+    /// <summary>The side a <see cref="CommandTreeAction.ShowStepsFor"/> asks to show (plan 0010).</summary>
+    public HostPlatform? Platform { get; }
 
     /// <summary>The input kind a <see cref="CommandTreeAction.SetInputKind"/> asks for.</summary>
     public InputKind? InputKind { get; }

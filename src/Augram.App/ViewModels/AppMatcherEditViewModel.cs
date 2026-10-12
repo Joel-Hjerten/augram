@@ -11,7 +11,7 @@ namespace Augram.App.ViewModels;
 /// group on Commands › Apps (<c>GroupEditViewModel</c>) and an ignored app on the Exclusions tab (<c>IgnoredEditViewModel</c>).
 /// Laid out as StrokesPlus.net's App Definition (Joel, 2026-10-09): one row per field, each a text box, a magnifier and a
 /// Use Regex check box (<see cref="PatternField"/>), under a Windows | macOS switch (<see cref="View"/>) that flips the same
-/// rows between the two platforms' values: the executable names (comma-separated; the known-app guess shows in an empty
+/// rows between the two platforms' values, the other platform's read-only with "Edit on Windows" (plan 0010 decision 7): the executable names (comma-separated; the known-app guess shows in an empty
 /// box), the executable path and the window title on both, the root, parent and control titles and the four classes on
 /// Windows only (<c>.WindowDetails</c>), then the full-screen rule (A21) for both. A magnifier shows only on this machine's
 /// side, since only its windows are on screen (<c>.Picking</c>). <see cref="Sections"/> are its part of the host's
@@ -25,10 +25,13 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
     public const string SectionTitle = "App identification";
     public const string PlatformSwitchLabel = "Fields for";
 
+    /// <summary>The label of the other side's note ("Edit on Windows", <see cref="PlatformSideView.EditNote"/>; plan 0010 decision 7).</summary>
+    public const string ReadOnlyLabel = "Read-only";
+
     private readonly Func<PlatformSet> _usedOn;
     private readonly string _noGuessAdvice;
     private readonly string _noneNeeded;
-    private AppMatcherFormView? _view;
+    private PlatformSideView? _view;
 
     /// <param name="usedOn">The platforms the host is used on: the guess is shown for those only.</param>
     /// <param name="noGuessAdvice">What to do about a platform without names or a guess ("type its name, or stop using the group there").</param>
@@ -41,8 +44,8 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
         _noneNeeded = noneNeeded;
     }
 
-    /// <summary>Which platform's fields show; opens on this machine's. Not a matcher field.</summary>
-    public AppMatcherFormView View => _view ??= new AppMatcherFormView(Platform);
+    /// <summary>Which platform's fields show; opens on this machine's, and only those are edited here (plan 0010 decision 7). Not a matcher field.</summary>
+    public PlatformSideView View => _view ??= new PlatformSideView(Platform);
 
     /// <summary>Windows executable file names, comma-separated: "chrome.exe, msedge.exe".</summary>
     [ObservableProperty]
@@ -184,14 +187,18 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
     {
         var changes = new FormChanges(this, View);
         bool Mac() => View.Shown == HostPlatform.MacOS;
-        var here = new DelegateBinding<bool>(() => View.Shown == Platform, owner: View, propertyName: null);
+        var here = new DelegateBinding<bool>(() => View.IsHere, owner: View, propertyName: null);
         return
         [
             new Section(SectionTitle,
             [
                 new ButtonRadioField<HostPlatform>(PlatformSwitchLabel, [new(HostPlatform.Windows.DisplayName(), HostPlatform.Windows), new(HostPlatform.MacOS.DisplayName(), HostPlatform.MacOS)],
                     new DelegateBinding<HostPlatform>(() => View.Shown, value => View.Shown = value, View),
-                    "Each platform has its own fields: a Windows field never applies on a Mac, nor a macOS one on Windows."),
+                    "Each platform has its own fields: a Windows field never applies on a Mac, nor a macOS one on Windows. Only this computer's are edited here; the other platform's show read-only."),
+                new NoteField(ReadOnlyLabel, new DelegateBinding<string>(() => PlatformSideView.EditNote(View.Shown), owner: View, propertyName: null))
+                {
+                    Visible = new DelegateBinding<bool>(() => !View.IsHere, owner: View, propertyName: null),
+                },
                 new PatternField("Executable",
                     new DelegateBinding<string>(() => Mac() ? MacNames : WindowsNames, value => { if (Mac()) { MacNames = value; } else { WindowsNames = value; } }, changes, propertyName: null),
                     new DelegateBinding<bool>(() => Mac() ? MacNamesAreRegex : WindowsNamesAreRegex, value => { if (Mac()) { MacNamesAreRegex = value; } else { WindowsNamesAreRegex = value; } }, changes, propertyName: null),
@@ -199,6 +206,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
                 {
                     Finder = WindowFinderAccessory.Finder(window => window.ProcessName, window => TakeExecutable(window)),
                     FinderVisible = here,
+                    Enabled = here,
                     Placeholder = new DelegateBinding<string>(() => GuessFor(View.Shown), owner: changes, propertyName: null),
                 },
                 new PatternField("Executable path",
@@ -208,6 +216,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
                 {
                     Finder = WindowFinderAccessory.Finder(PathOf, TakePath),
                     FinderVisible = here,
+                    Enabled = here,
                 },
                 new PatternField("Window title",
                     new DelegateBinding<string>(() => Mac() ? MacWindowTitle : WindowTitle, value => { if (Mac()) { MacWindowTitle = value; } else { WindowTitle = value; } }, changes, propertyName: null),
@@ -216,6 +225,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
                 {
                     Finder = WindowFinderAccessory.Finder(TitleOf, TakeTitle),
                     FinderVisible = here,
+                    Enabled = here,
                 },
                 .. WindowFieldRows(),
                 new ToggleField("Not when full screen", new DelegateBinding<bool>(() => IgnoreWhenFullScreen, value => IgnoreWhenFullScreen = value, this), "Both platforms: matches nothing while the window covers its whole screen."),

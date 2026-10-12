@@ -65,12 +65,6 @@ public record CommandItem(
     /// <summary>F8: not used on the platform Augram runs on (its group, category or itself leave it out); listed greyed only while the list shows other platforms.</summary>
     public bool IsElsewhere { get; init; }
 
-    /// <summary>F8: the header's line about this platform's steps (original, converted, own version, changed since); null for none.</summary>
-    public string? VersionText { get; init; }
-
-    /// <summary>F8: this platform runs its own steps, which "Use the converted original" drops.</summary>
-    public bool HasOwnVersionHere { get; init; }
-
     /// <summary>F8: the own version was made before the original last changed.</summary>
     public bool IsOwnVersionStale { get; init; }
 

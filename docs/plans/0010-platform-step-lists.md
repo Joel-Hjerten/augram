@@ -1,6 +1,6 @@
 # Plan 0010: a command's steps per platform, seen side by side, and read-only fields for the other platform
 
-Status: **PROPOSED (2026-10-12, Mac session), revised the same evening, wording settled; waiting for Joel's go-ahead.** Origin: Joel, 2026-10-12, on the Mac, after the magnifier's own macOS version kept a Windows step that read "Alt+Shift+X · from Windows" while it ran Opt+Shift+X (fixed in 0.13.9). He first asked for a "Unified · Windows · macOS" switch, then rethought it: "Perhaps we only have Win and macOS, no unified tab. … the fields toggle is not setting a state but rather just switching views and allowing the copy."
+Status: **BUILT as 0.14.0 (2026-10-12, Mac session), awaiting Joel's check.** Proposed and revised the same day, wording settled. Origin: Joel, 2026-10-12, on the Mac, after the magnifier's own macOS version kept a Windows step that read "Alt+Shift+X · from Windows" while it ran Opt+Shift+X (fixed in 0.13.9). He first asked for a "Unified · Windows · macOS" switch, then rethought it: "Perhaps we only have Win and macOS, no unified tab. … the fields toggle is not setting a state but rather just switching views and allowing the copy."
 
 ## Decisions (Joel, 2026-10-12)
 

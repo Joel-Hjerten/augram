@@ -70,6 +70,15 @@ public sealed class IgnoredPerCommandTests
     }
 
     [AvaloniaFact]
+    public void TheOtherPlatformsFieldsAreReadOnly()
+    {
+        var (_, vm, _, _, _, _) = Create();
+        vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, Item(vm, "Spine")));
+
+        IdentificationForm.AssertOnlyThisPlatformEdits(vm.Detail!);
+    }
+
+    [AvaloniaFact]
     public void TheUsedByLinksRender_AndAClickOpensTheCommand()
     {
         var (_, vm, store, _, _, locator) = Create();

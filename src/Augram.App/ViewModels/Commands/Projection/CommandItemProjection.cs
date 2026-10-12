@@ -53,8 +53,6 @@ public static class CommandItemProjection
             UseOnLimit = group.UseOnLimitFor(command),
             UseOnLimitText = LimitLine(group, command),
             IsElsewhere = !usedHere,
-            VersionText = VersionLine(command, here),
-            HasOwnVersionHere = command.OwnVersion?.Platform == here,
             IsOwnVersionStale = command.IsOwnVersionStale,
             CanSetNotIn = holdRemap is null,
             NotIn = command.NotIn,
@@ -89,34 +87,6 @@ public static class CommandItemProjection
         }
 
         return $"Set by {string.Join(" and ", by)}: {StepPlatformMarker.Only(limit)}";
-    }
-
-    /// <summary>
-    /// The header's line about this platform's steps (F8): where they come from and what an edit here does; null for a
-    /// command authored here without an own version elsewhere, or with no steps yet.
-    /// </summary>
-    private static string? VersionLine(Command command, HostPlatform here)
-    {
-        var name = here.DisplayName();
-        if (command.OwnVersion is { } own && own.Platform == here)
-        {
-            var origin = here.Other().DisplayName();
-            return command.IsOwnVersionStale
-                ? $"Own {name} steps. The {origin} original changed since they were made: check them, then mark them as checked."
-                : $"Own {name} steps; the {origin} original runs on {origin}.";
-        }
-
-        if (command.OwnVersion is { } other)
-        {
-            var otherName = other.Platform.DisplayName();
-            return command.IsOwnVersionStale
-                ? $"{name} original. {otherName} has its own steps, made before this original last changed."
-                : $"{name} original. {otherName} has its own steps.";
-        }
-
-        return command.Origin is { } authored && authored != here
-            ? $"{authored.DisplayName()} original, converted for {name}. Editing a step here makes own {name} steps; {authored.DisplayName()} keeps the original."
-            : null;
     }
 
     /// <summary>

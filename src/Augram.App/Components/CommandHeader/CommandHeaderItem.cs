@@ -37,6 +37,9 @@ public sealed record CommandHeaderItem : CommandItem
     /// </summary>
     public IReadOnlyList<IReadOnlyDictionary<IStepType, string>> ChangeRefusals { get; init; } = [];
 
+    /// <summary>The "Steps for" row (plan 0010): the side of the steps in view, its label, note and buttons; null hides the row.</summary>
+    public StepSide? StepSide { get; init; }
+
     /// <summary>
     /// Options › Strokes › Capture's button drag distance (plan 0004), what a trigger without its own falls back to: the header's
     /// "Options value (10 px)".

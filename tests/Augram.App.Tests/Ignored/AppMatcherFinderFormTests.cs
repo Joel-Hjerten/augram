@@ -42,7 +42,7 @@ public sealed class AppMatcherFinderFormTests
 
         edit.View.Shown = HostPlatform.MacOS;
 
-        Assert.Equal(["Executable", "Executable path", "Window title", "Not when full screen"], rows.Where(row => row.IsVisible).Select(row => row.Label).Skip(1));
+        Assert.Equal(["Read-only", "Executable", "Executable path", "Window title", "Not when full screen"], rows.Where(row => row.IsVisible).Select(row => row.Label).Skip(1));
         Assert.Empty(FinderLabels(rows));
     }
 

@@ -42,8 +42,17 @@ public enum CommandTreeAction
     /// <summary>Choose the Exclusions › Global entries a command still works over (plan 0005; the header's Also in › Change…): the host opens the check list.</summary>
     EditAlsoIn,
 
-    /// <summary>Drop this platform's own steps; it runs the converted original again (F8).</summary>
-    UseConvertedOriginal,
+    /// <summary>
+    /// Show the command's steps for a platform (plan 0010 decision 1; the header's "Steps for" switch,
+    /// <see cref="CommandTreeActionEventArgs.Platform"/>): a view change only, never an edit.
+    /// </summary>
+    ShowStepsFor,
+
+    /// <summary>
+    /// Copy from the other platform (plan 0010 decision 5; the header's "Copy from Windows"): the side of the steps in view
+    /// drops its own steps and takes the other side's, converted, so it is inferred again; one undo step.
+    /// </summary>
+    CopyStepsFromOtherPlatform,
 
     /// <summary>Mark this platform's own steps as checked against the current original, clearing the "original changed" flag (F8).</summary>
     MarkOwnVersionChecked,

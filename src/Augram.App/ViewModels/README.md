@@ -26,6 +26,7 @@ Projections over the Core and Engine stores (ADR-0002 §5a): a view model reads 
 | An edit form's "Use on ☑ Windows ☑ macOS" | `UseOnEdit` | `Value` (a `PlatformSet`), `SyncFrom`, `Declare(help)`; the form exposes it as `UseOn` and raises its changes as its own (`UseOnWindows`, `UseOnMac`). |
 | A check-list dialog's ticks | `CheckedSet<TId>` | Owns the ticked ids, calls back on a real change, builds each `CheckListItem` (`Item(caption, id, owner, propertyName, detail)`). Not in, Also in, Allowed for, export. |
 | A form shown in the form dialog | implement `Dialogs/IDialogForm` | `DialogTitle`, `DialogConfirmLabel`, `Declare()`; show with `IFormDialogPresenter.ShowAsync(form)` (`Dialogs/FormDialogs`). The new group and exclusion forms, Not in, Also in, Allowed for, export. |
+| Which platform's side a per-platform view shows (Fields for, Steps for) | `PlatformSideView` | UI state only, opens on this machine's platform (`Here`); the other side is read-only with `EditNote` ("Edit on Windows"; plan 0010). Never a second view-state type. |
 | What a matcher matches here, in words | `Core/Mapping/AppMatcher.Summary(platform)` | The Exclusions row, the Apps tab's "no macOS name", the identification form's guess. |
 | A command's "where", in words | `Core/Mapping/CommandNames.Label(group, command)` | "Global › Media › Volume up", "Blender › Space › Orbit": every list, link, message and log line. |
 

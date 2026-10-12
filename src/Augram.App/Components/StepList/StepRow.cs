@@ -21,7 +21,7 @@ namespace Augram.App.Components.StepList;
 /// <c>PART_FormHost</c> (around the form, <see cref="IsInForm"/>); the rest of the card is its header.
 /// <c>PART_Header</c>, the header line, is where the list anchors the "Change to…" picker (<see cref="HeaderPart"/>).
 /// </summary>
-[PseudoClasses(":expanded", ":dragging")]
+[PseudoClasses(":expanded", ":dragging", ":readonly")]
 public sealed class StepRow : ItemRow
 {
     public static readonly StyledProperty<StepItem?> ItemProperty =
@@ -44,6 +44,9 @@ public sealed class StepRow : ItemRow
 
     public static readonly StyledProperty<bool> IsExpandedProperty =
         AvaloniaProperty.Register<StepRow, bool>(nameof(IsExpanded));
+
+    public static readonly StyledProperty<bool> IsReadOnlyProperty =
+        AvaloniaProperty.Register<StepRow, bool>(nameof(IsReadOnly));
 
     public static readonly StyledProperty<Control?> FormProperty =
         AvaloniaProperty.Register<StepRow, Control?>(nameof(Form));
@@ -96,6 +99,13 @@ public sealed class StepRow : ItemRow
     {
         get => GetValue(IsExpandedProperty);
         set => SetValue(IsExpandedProperty, value);
+    }
+
+    /// <summary>A row of the other platform's steps (plan 0010): <c>:readonly</c>, no grip and its active box disabled.</summary>
+    public bool IsReadOnly
+    {
+        get => GetValue(IsReadOnlyProperty);
+        set => SetValue(IsReadOnlyProperty, value);
     }
 
     /// <summary>The type's parameter form while expanded; null otherwise.</summary>
@@ -172,6 +182,10 @@ public sealed class StepRow : ItemRow
         else if (change.Property == IsExpandedProperty)
         {
             PseudoClasses.Set(":expanded", IsExpanded);
+        }
+        else if (change.Property == IsReadOnlyProperty)
+        {
+            PseudoClasses.Set(":readonly", IsReadOnly);
         }
     }
 }

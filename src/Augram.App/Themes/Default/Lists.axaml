@@ -453,6 +453,7 @@
                                       SelectedIndex="{TemplateBinding SelectedStepIndex}"
                                       StepTypes="{TemplateBinding StepTypes}"
                                       HasCommand="{TemplateBinding HasCommand}"
+                                      IsReadOnly="{TemplateBinding StepsReadOnly}"
                                       StepRefusals="{TemplateBinding StepRefusals}"
                                       ChangeRefusals="{TemplateBinding ChangeRefusals}"
                                       FormContext="{TemplateBinding StepFormContext}" />
@@ -874,12 +875,33 @@
                         <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
                         <TextBlock Name="PART_AlsoInText" Classes="bench-value" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
                       </DockPanel>
-                      <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <TextBlock Classes="bench-note" Text="{TemplateBinding VersionText}" />
-                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}">
-                          <Button Name="PART_UseConverted" Classes="toolbar" Content="Use the converted original" IsVisible="{TemplateBinding HasOwnVersionHere}" />
-                          <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
+                      <!-- Plan 0010: which platform's steps the list below shows (a view switch, the "Fields for" look), the side's label,
+                           and on the other platform's side its note; Copy from and Mark as checked when they apply. -->
+                      <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasStepSide}">
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                          <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Classes="bench-label" Text="Steps for" />
+                            <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.StepsForHelp}" />
+                          </StackPanel>
+                          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <RadioButton Name="PART_StepsForWindows" Classes="button-radio" Content="Windows" />
+                            <RadioButton Name="PART_StepsForMac" Classes="button-radio" Content="macOS" />
+                          </StackPanel>
+                          <TextBlock Classes="bench-value" Text="{TemplateBinding StepSideText}" VerticalAlignment="Center" />
                         </StackPanel>
+                        <WrapPanel ItemSpacing="6" LineSpacing="4"
+                                   IsVisible="{TemplateBinding HasStepSideActions}">
+                          <TextBlock Classes="bench-note"
+                                     Text="{TemplateBinding StepsEditNote}"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,6,0"
+                                     IsVisible="{TemplateBinding StepsEditNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                          <Button Name="PART_CopySteps"
+                                  Classes="toolbar"
+                                  Content="{TemplateBinding CopyStepsText}"
+                                  IsVisible="{TemplateBinding CopyStepsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                          <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
+                        </WrapPanel>
                       </StackPanel>
                     </StackPanel>
                   </Panel>
@@ -907,6 +929,7 @@
                     <Button Name="PART_New"
                             Classes="toolbar"
                             Content="New step…"
+                            IsVisible="{TemplateBinding IsReadOnly, Converter={x:Static BoolConverters.Not}}"
                             IsEnabled="{TemplateBinding CanAddStep}"
                             ToolTip.Tip="{TemplateBinding NewStepRefusal}"
                             ToolTip.ShowOnDisabled="True" />
@@ -1266,6 +1289,17 @@
   </Style>
   <Style Selector="tree|SectionRow:elsewhere, tree|CommandRow:elsewhere">
     <Setter Property="Opacity" Value="0.55" />
+  </Style>
+  <!-- Plan 0010: the other platform's steps, a peek drawn a step back as the other platform's rows are (:elsewhere): no grip,
+       the active box only shows. -->
+  <Style Selector="steps|StepList:readonly /template/ ListBox#PART_Rows">
+    <Setter Property="Opacity" Value="0.55" />
+  </Style>
+  <Style Selector="steps|StepRow:readonly /template/ TextBlock.drag-handle">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="steps|StepRow:readonly /template/ CheckBox#PART_Active">
+    <Setter Property="IsEnabled" Value="False" />
   </Style>
 
   <!-- A section header's chevron: right while collapsed, down while open. -->

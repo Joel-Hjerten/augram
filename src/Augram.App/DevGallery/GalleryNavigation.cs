@@ -47,6 +47,7 @@ public static class GalleryNavigation
         new("Trigger conflict", Key + ".triggerconflict", TriggerConflictGalleryPage.Page),
         new("Button trigger", Key + ".buttontrigger", ButtonTriggerGalleryPage.WorkbenchPage),
         new("Button trigger states", Key + ".buttontrigger.states", ButtonTriggerGalleryPage.Page),
+        new("Steps per platform", Key + ".platformsteps", PlatformStepsGalleryPage.Page),
         new("StepList", Key + ".steplist", CommandGalleryPages.StepListPage),
         new("StepForms", Key + ".stepforms", CommandGalleryPages.StepFormsPage),
         new("StepTypePicker", Key + ".steptypepicker", CommandGalleryPages.StepTypePickerPage),
