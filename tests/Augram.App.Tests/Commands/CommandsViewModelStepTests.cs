@@ -71,18 +71,26 @@ public sealed class CommandsViewModelStepTests
     }
 
     [AvaloniaFact]
-    public void DeleteAsksNothingSelectsTheNeighbourAndUndoRestores()
+    public void DeleteAsksNothing_OpensAndClosesNothingElse_AndUndoRestores()
     {
         var confirm = new FakeConfirmPresenter();
         var (vm, store, _, dialogs) = Select("Three steps", confirm);
+        vm.Handle(new StepListActionEventArgs(StepListAction.Select, vm.Steps[2]));
 
-        vm.Handle(new StepListActionEventArgs(StepListAction.Delete, vm.Steps[2]));
+        vm.Handle(new StepListActionEventArgs(StepListAction.Delete, vm.Steps[0]));
 
         Assert.Empty(dialogs.Requests);
         Assert.Empty(confirm.Requests);
-        Assert.Equal(["Wait 10 ms", "Wait 20 ms"], vm.Steps.Select(step => step.Summary));
+        Assert.Equal(["Wait 20 ms", "Wait 30 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(1, vm.SelectedStepIndex);
-        Assert.Equal($"Deleted step 'Wait 30 ms'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Deleted step 'Wait 10 ms'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Delete, vm.Steps[1]));
+        Assert.Equal(["Wait 20 ms"], vm.Steps.Select(step => step.Summary));
+        Assert.Equal(-1, vm.SelectedStepIndex);
+
+        vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
+        vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
         Assert.Equal(3, CommandsTestData.Find(store, "Three steps").Steps.Count);

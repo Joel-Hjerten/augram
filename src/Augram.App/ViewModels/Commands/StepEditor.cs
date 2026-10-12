@@ -124,8 +124,11 @@ internal sealed class StepEditor
 
                 break;
             case StepListAction.Delete when step is not null:
+                // A delete opens and closes nothing else (Joel, 0.14.4): the open step stays open (one up when it was below the
+                // deleted one); deleting the open step leaves none open.
                 steps.RemoveAt(step.Index);
-                Commit(group, command, steps, Math.Min(step.Index, steps.Count - 1));
+                var open = _host.SelectedStepIndex;
+                Commit(group, command, steps, open == step.Index ? -1 : open > step.Index ? open - 1 : open);
                 _host.Message = $"Deleted step '{step.Summary}'. {EditKeymap.Current.Undo} undoes it.";
                 break;
             case StepListAction.ToggleActive when step is not null:
