@@ -17,12 +17,13 @@ namespace Augram.App.Components.CommandsWorkbench;
 /// <summary>
 /// Lookless layout of a Commands sub-tab (F5a, F7; Global and Apps since 2026-10-07): the
 /// <see cref="CommandTree.CommandTree"/> (<c>PART_Tree</c>) beside the selected command's
-/// <see cref="CommandHeader.CommandHeader"/> (<c>PART_Header</c>) and <see cref="StepList.StepList"/> (<c>PART_Steps</c>),
+/// <see cref="CommandHeader.CommandHeader"/> (<c>PART_Header</c>) and <see cref="StepList.StepList"/> (<c>PART_Steps</c>), whose
+/// card's first row is the "Steps for" <see cref="StepSideBar"/> (<c>PART_StepSide</c>, plan 0010),
 /// or, while an app group, hold remap or category row is selected, its form (<see cref="GroupForm"/>, <c>PART_GroupForm</c>), with
 /// the message line. Both sub-tabs use it; what differs (the sections, the tree's heading, the
 /// new-section label, the help line) comes in as properties. Where the step panel sits is the template's
 /// choice (ADR-0002 §5b). It passes properties down and raises its parts' intents up unchanged:
-/// <see cref="TreeActionRequested"/> for the tree and the header, <see cref="StepActionRequested"/> for
+/// <see cref="TreeActionRequested"/> for the tree, the header and the Steps for row, <see cref="StepActionRequested"/> for
 /// the step list.
 /// </summary>
 public sealed class CommandsWorkbench : TemplatedControl
@@ -274,6 +275,9 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public StepList.StepList? StepsPart { get; private set; }
 
+    /// <summary>The "Steps for" row, the first row of the steps' card (plan 0010, 0.14.3).</summary>
+    public StepSideBar? StepSidePart { get; private set; }
+
     public SectionForm.SectionForm? GroupFormPart { get; private set; }
 
     /// <summary>
@@ -294,6 +298,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         TreePart = e.NameScope.Find<CommandTree.CommandTree>("PART_Tree");
         HeaderPart = e.NameScope.Find<CommandHeader.CommandHeader>("PART_Header");
         StepsPart = e.NameScope.Find<StepList.StepList>("PART_Steps");
+        StepSidePart = e.NameScope.Find<StepSideBar>("PART_StepSide");
         GroupFormPart = e.NameScope.Find<SectionForm.SectionForm>("PART_GroupForm");
         CommandScrollPart = e.NameScope.Find<ScrollViewer>("PART_CommandScroll");
         if (GroupFormPart is not null)
@@ -313,6 +318,13 @@ public sealed class CommandsWorkbench : TemplatedControl
             HeaderPart.ActionRequested += (_, args) => TreeActionRequested?.Invoke(this, args);
         }
 
+        if (StepSidePart is not null)
+        {
+            // Set from here, not template-bound: the row is the step list's content, presented inside its template.
+            StepSidePart.Item = SelectedCommand;
+            StepSidePart.ActionRequested += (_, args) => TreeActionRequested?.Invoke(this, args);
+        }
+
         if (StepsPart is not null)
         {
             Region.Mark(StepsPart, "Step list");
@@ -326,6 +338,7 @@ public sealed class CommandsWorkbench : TemplatedControl
         if (change.Property == SelectedCommandProperty)
         {
             HasCommand = SelectedCommand is not null;
+            StepSidePart?.Item = SelectedCommand;
             IsUnderHoldRemap = SelectedCommand is { IsUnderHoldRemap: true };
             StepsReadOnly = SelectedCommand is { StepSide.IsHere: false };
             StepRefusals = SelectedCommand?.StepRefusals ?? ReadOnlyDictionary<IStepType, string>.Empty;

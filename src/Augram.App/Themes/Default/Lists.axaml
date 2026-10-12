@@ -456,7 +456,11 @@
                                       IsReadOnly="{TemplateBinding StepsReadOnly}"
                                       StepRefusals="{TemplateBinding StepRefusals}"
                                       ChangeRefusals="{TemplateBinding ChangeRefusals}"
-                                      FormContext="{TemplateBinding StepFormContext}" />
+                                      FormContext="{TemplateBinding StepFormContext}">
+                        <steps:StepList.CardHeader>
+                          <header:StepSideBar Name="PART_StepSide" />
+                        </steps:StepList.CardHeader>
+                      </steps:StepList>
                     </StackPanel>
                   </ScrollViewer>
                   <form:SectionForm Name="PART_GroupForm"
@@ -875,34 +879,52 @@
                         <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
                         <TextBlock Name="PART_AlsoInText" Classes="bench-value" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
                       </DockPanel>
-                      <!-- Plan 0010: which platform's steps the list below shows (a view switch, the "Fields for" look, this computer's
-                           platform outlined), then Copy from and Mark as checked when they apply, Copy first so it never moves, and on the
-                           other platform's side its note last (Joel, 0.14.2: one line, no label). -->
-                      <WrapPanel ItemSpacing="{StaticResource Space.M}" LineSpacing="4" IsVisible="{TemplateBinding HasStepSide}">
-                          <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Classes="bench-label" Text="Steps for" />
-                            <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.StepsForHelp}" />
-                          </StackPanel>
-                          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <RadioButton Name="PART_StepsForWindows" Classes="button-radio" Content="Windows" />
-                            <RadioButton Name="PART_StepsForMac" Classes="button-radio" Content="macOS" />
-                          </StackPanel>
-                          <Button Name="PART_CopySteps"
-                                  Classes="toolbar"
-                                  Content="{TemplateBinding CopyStepsText}"
-                                  IsVisible="{TemplateBinding CopyStepsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                          <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
-                          <TextBlock Classes="bench-note"
-                                     Text="{TemplateBinding StepSideText}"
-                                     VerticalAlignment="Center"
-                                     IsVisible="{TemplateBinding StepSideText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                      </WrapPanel>
                     </StackPanel>
                   </Panel>
                 </Border>
                 <Border BorderBrush="{DynamicResource Layer.EdgeTop}" BorderThickness="0,1,0,0" CornerRadius="{DynamicResource Radius.Panel}" IsHitTestVisible="False" />
               </Panel>
             </StackPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- The "Steps for" row (plan 0010), the first row of the Steps card (Joel, 0.14.3: as "Fields for" is of App identification).
+           Padded as a form row (Form.RowPadding, Form.RowMinHeight), and split from the steps under it by a form card's row line
+           (Layer.Divider). Without a command it is not drawn at all. -->
+      <ControlTheme x:Key="{x:Type header:StepSideBar}" TargetType="header:StepSideBar">
+        <Setter Property="Padding" Value="{StaticResource Form.RowPadding}" />
+        <Setter Property="MinHeight" Value="{StaticResource Form.RowMinHeight}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Padding="{TemplateBinding Padding}"
+                    MinHeight="{TemplateBinding MinHeight}"
+                    BorderBrush="{DynamicResource Layer.Divider}"
+                    BorderThickness="0,0,0,1"
+                    IsVisible="{TemplateBinding HasStepSide}">
+              <!-- Plan 0010: which platform's steps the list shows (a view switch, the "Fields for" look, this computer's platform
+                   outlined), then Copy from and Mark as checked when they apply, Copy first so it never moves, and on the other
+                   platform's side its note last (Joel, 0.14.2: one line). -->
+              <WrapPanel VerticalAlignment="Center" ItemSpacing="{StaticResource Space.M}" LineSpacing="4">
+                  <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Classes="bench-label" Text="Steps for" />
+                    <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:StepSideBar.StepsForHelp}" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <RadioButton Name="PART_StepsForWindows" Classes="button-radio" Content="Windows" />
+                    <RadioButton Name="PART_StepsForMac" Classes="button-radio" Content="macOS" />
+                  </StackPanel>
+                  <Button Name="PART_CopySteps"
+                          Classes="toolbar"
+                          Content="{TemplateBinding CopyStepsText}"
+                          IsVisible="{TemplateBinding CopyStepsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
+                  <TextBlock Classes="bench-note"
+                             Text="{TemplateBinding StepSideText}"
+                             VerticalAlignment="Center"
+                             IsVisible="{TemplateBinding StepSideText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </WrapPanel>
+            </Border>
           </ControlTemplate>
         </Setter>
       </ControlTheme>
@@ -934,6 +956,11 @@
                         BorderBrush="{DynamicResource Layer.Edge}"
                         BorderThickness="{StaticResource Border.Hairline}"
                         CornerRadius="{DynamicResource Radius.Panel}">
+                <StackPanel>
+                <!-- The card's first row (CardHeader: the workbench's "Steps for", which draws its own row line); nothing when null. -->
+                <ContentPresenter Name="PART_CardHeader"
+                                  Content="{TemplateBinding CardHeader}"
+                                  IsVisible="{TemplateBinding CardHeader, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
                          ItemContainerTheme="{StaticResource Lists.Step}"
@@ -949,6 +976,7 @@
                     </ItemsPanelTemplate>
                   </ListBox.ItemsPanel>
                 </ListBox>
+                </StackPanel>
                 </Border>
                 <Border BorderBrush="{DynamicResource Layer.EdgeTop}" BorderThickness="0,1,0,0" CornerRadius="{DynamicResource Radius.Panel}" IsHitTestVisible="False" />
               </Panel>

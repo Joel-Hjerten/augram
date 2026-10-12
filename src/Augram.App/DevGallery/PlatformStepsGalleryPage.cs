@@ -50,7 +50,7 @@ public static class PlatformStepsGalleryPage
         ]);
     }
 
-    /// <summary>The header and the steps of <paramref name="name"/> on <paramref name="here"/>, with <paramref name="side"/>'s steps in view.</summary>
+    /// <summary>The header and the steps of <paramref name="name"/> on <paramref name="here"/>, with <paramref name="side"/>'s steps in view; the Steps for row is the steps card's first row, as on the workbench.</summary>
     private static StackPanel Panel(HostPlatform here, string name, HostPlatform side)
     {
         var library = new GestureLibrary(StarterGestures.All());
@@ -62,7 +62,10 @@ public static class PlatformStepsGalleryPage
         var header = new CommandHeader();
         header.Bind(CommandHeader.ItemProperty, new Binding(nameof(CommandsViewModel.SelectedCommand)) { Source = vm });
         header.ActionRequested += (_, e) => vm.Handle(e);
-        var steps = new StepList { StepTypes = vm.StepTypes, HasCommand = true };
+        var stepSide = new StepSideBar();
+        stepSide.Bind(StepSideBar.ItemProperty, new Binding(nameof(CommandsViewModel.SelectedCommand)) { Source = vm });
+        stepSide.ActionRequested += (_, e) => vm.Handle(e);
+        var steps = new StepList { StepTypes = vm.StepTypes, HasCommand = true, CardHeader = stepSide };
         steps.Bind(StepList.StepsProperty, new Binding(nameof(CommandsViewModel.Steps)) { Source = vm });
         steps.Bind(StepList.SelectedIndexProperty, new Binding(nameof(CommandsViewModel.SelectedStepIndex)) { Source = vm });
         steps.Bind(StepList.IsReadOnlyProperty, new Binding($"{nameof(CommandsViewModel.SelectedCommand)}.{nameof(CommandHeaderItem.StepSide)}.{nameof(StepSide.IsHere)}") { Source = vm, Converter = BoolConverters.Not });

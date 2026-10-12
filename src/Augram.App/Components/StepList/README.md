@@ -1,6 +1,6 @@
 # StepList
 
-The selected command's steps (F5a): `Steps` (`StepItem`s) in, one `StepListActionEventArgs` out. `IsReadOnly` (plan 0010: the other platform's steps) makes it `:readonly`, rows included: no New step…, menu, drag or open form, muted, and only Undo and Redo raised. The selected row expands with its type's form (accordion); rows are reused while the count is unchanged and the open form is kept unless its step changed shape (`EnsureForm`).
+The selected command's steps (F5a): `Steps` (`StepItem`s) in, one `StepListActionEventArgs` out. `IsReadOnly` (plan 0010: the other platform's steps) makes it `:readonly`, rows included: no New step…, menu, drag or open form, muted, and only Undo and Redo raised. `CardHeader` is one optional slot drawn as the card's first row, above the steps (null draws nothing); the list never looks inside it (the workbench's "Steps for" `CommandHeader/StepSideBar`, which draws its own row line). The selected row expands with its type's form (accordion); rows are reused while the count is unchanged and the open form is kept unless its step changed shape (`EnsureForm`).
 
 | Type | Job |
 |---|---|

@@ -24,8 +24,8 @@ namespace Augram.App.Components.CommandHeader;
 /// trigger whose held buttons are handed back as drags has a Drag distance row (<c>CommandHeader.DragDistance.cs</c>), and a
 /// command not under a hold remap a Not in row (<c>CommandHeader.ExclusionRows.cs</c>; both plan 0004) and, when its trigger holds no
 /// stroke button, an Also in row (the same file, plan 0005). A draft another command uses
-/// here has Take it and Swap in its note (<c>CommandHeader.Conflict.cs</c>, Joel 2026-10-10). Its last row is "Steps for", the
-/// switch between the platforms' steps with Copy from the other platform and Mark as checked (<c>CommandHeader.StepSide.cs</c>, plan 0010).
+/// here has Take it and Swap in its note (<c>CommandHeader.Conflict.cs</c>, Joel 2026-10-10). The "Steps for" row (plan 0010) is not
+/// here: it is <see cref="StepSideBar"/>, the first row of the Steps card (0.14.3).
 /// </summary>
 public sealed partial class CommandHeader : TemplatedControl
 {
@@ -180,10 +180,7 @@ public sealed partial class CommandHeader : TemplatedControl
         FindInputParts(e);
         FindConflictParts(e);
         FindUseOnParts(e);
-        FindStepSideParts(e);
         Apply();
-        WireAction(e, "PART_CopySteps", CommandTreeAction.CopyStepsFromOtherPlatform);
-        WireAction(e, "PART_MarkChecked", CommandTreeAction.MarkOwnVersionChecked);
         WireAction(e, "PART_PickGesture", CommandTreeAction.PickGesture);
     }
 
@@ -205,7 +202,6 @@ public sealed partial class CommandHeader : TemplatedControl
             ShowConflict(item);
             HasCategories = item is { Categories.Count: > 0 };
             UseOnNote = item?.UseOnLimitText;
-            ShowStepSide(item?.StepSide);
             Apply();
         }
     }
@@ -226,7 +222,6 @@ public sealed partial class CommandHeader : TemplatedControl
     {
         var item = Item;
         ApplyUseOn(item);
-        ApplyStepSide();
         _kind?.Show(KindLabels, item is null ? -1 : TriggerKindExtensions.All.ToList().IndexOf(item.TriggerKind));
         ApplyHold();
         ApplyDragDistance();

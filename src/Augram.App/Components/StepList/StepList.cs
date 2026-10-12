@@ -22,7 +22,8 @@ namespace Augram.App.Components.StepList;
 /// keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event.
 /// Rows are reused when the count is unchanged, so a form survives the store echoing its own edit back. While
 /// <see cref="IsReadOnly"/> (plan 0010: the other platform's steps, a peek) it is <c>:readonly</c>: no New step…, no menu,
-/// no drag, no step opens, and it raises nothing but Undo and Redo.
+/// no drag, no step opens, and it raises nothing but Undo and Redo. <see cref="CardHeader"/>, when set, is drawn as the card's
+/// first row above the steps, split from them as a form card's rows are (the workbench puts the "Steps for" row there, 0.14.3).
 /// </summary>
 [PseudoClasses(":readonly")]
 public sealed partial class StepList : TemplatedControl
@@ -41,6 +42,9 @@ public sealed partial class StepList : TemplatedControl
 
     public static readonly StyledProperty<bool> IsReadOnlyProperty =
         AvaloniaProperty.Register<StepList, bool>(nameof(IsReadOnly));
+
+    public static readonly StyledProperty<object?> CardHeaderProperty =
+        AvaloniaProperty.Register<StepList, object?>(nameof(CardHeader));
 
     public static readonly StyledProperty<IReadOnlyList<StepRow>> RowsProperty =
         AvaloniaProperty.Register<StepList, IReadOnlyList<StepRow>>(nameof(Rows), []);
@@ -89,6 +93,13 @@ public sealed partial class StepList : TemplatedControl
     {
         get => GetValue(IsReadOnlyProperty);
         set => SetValue(IsReadOnlyProperty, value);
+    }
+
+    /// <summary>The card's first row, above the steps (a control); null draws none. The list never looks inside it.</summary>
+    public object? CardHeader
+    {
+        get => GetValue(CardHeaderProperty);
+        set => SetValue(CardHeaderProperty, value);
     }
 
     public IReadOnlyList<StepRow> Rows
