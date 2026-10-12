@@ -1,60 +1,55 @@
-# Plan 0010: a command's steps per platform, and read-only fields for the other platform
+# Plan 0010: a command's steps per platform, seen side by side, and read-only fields for the other platform
 
-Status: **PROPOSED (2026-10-12, Mac session), waiting for Joel's go-ahead.** Origin: Joel, 2026-10-12, on the Mac, after the magnifier's own macOS version kept a Windows step that read "Alt+Shift+X · from Windows" while it ran Opt+Shift+X (fixed in 0.13.9). He asked whether steps should have a Windows list and a macOS list, unified while they are the same and both listed where they differ, and pointed at the "Fields for: Windows | macOS" switch that Exclusions and the Per command identification already have: "[Unified, Windows, macOS] perhaps?".
+Status: **PROPOSED (2026-10-12, Mac session), revised the same evening; waiting for Joel's go-ahead.** Origin: Joel, 2026-10-12, on the Mac, after the magnifier's own macOS version kept a Windows step that read "Alt+Shift+X · from Windows" while it ran Opt+Shift+X (fixed in 0.13.9). He first asked for a "Unified · Windows · macOS" switch, then rethought it: "Perhaps we only have Win and macOS, no unified tab. … the fields toggle is not setting a state but rather just switching views and allowing the copy."
 
-## Decisions (Joel and the lead, 2026-10-12)
+## Decisions (Joel, 2026-10-12)
 
-1. **A "Steps for" switch above a command's steps: Unified · Windows · macOS.** The same segmented control as app identification's "Fields for" (`ButtonRadioField`), not a new one.
-2. **Unified means one list that Augram converts between the platforms** (F8's best guess: Ctrl+W ↔ Cmd+W, the exception table, "needs a macOS version" where there is no guess). It is selected while the command has no own version. An edit in Unified changes that one list, so it reaches both platforms. The edited step is authored on the machine it was edited on (0.13.9's rule), and the other platform runs its conversion. The step markers ("Cmd+W → Ctrl+W", "from Windows · converted") keep that visible.
-3. **This platform's segment (macOS on a Mac, Windows on the PC) edits this platform's steps only.** The first edit there splits the lists: this platform gets its own list and the other keeps exactly what it ran before. After a split the switch shows this platform, and the command row says "own macOS version" as today.
-4. **The other platform's segment is a read-only peek** (Joel: "I don't think it makes a lot of sense for any of the Fields for toggles to allow you to edit the other platform"). It shows the steps as they run there, in that platform's key names, with a note "Edit on Windows" (or "Edit on macOS"). Why: nothing about the other platform can be captured, picked or tried from this machine, each machine writes only its own side so the two cannot both change one list, and "you change what runs here" is one rule for the whole app.
-5. **Choosing a segment only changes the view; an edit moves it.** Peeking is free and never saved. A command opens on Unified when it has no own version, else on this platform. An edit in Unified stays in Unified; a split (decision 3) moves to this platform.
-6. **Back to Unified after a split asks which list to keep**: "Keep the macOS steps for both" or "Keep the Windows steps for both". The kept list becomes the one list; the other is dropped. One undo step gives the split back. This replaces today's "Use the converted original" button (keeping the original's side is what that button did).
-7. **The same read-only rule for every "Fields for" switch**: Exclusions › Global, Exclusions › Per command, and the Apps tab's app identification. Today they let the Mac edit the Windows fields; after this plan the other platform's side shows its values read-only with the same "Edit on Windows" note. The known-app guess (`Core/Mapping/KnownApps`) still fills the other side for common apps, as today. Creating an entry on one machine leaves the other side empty (or guessed) until that machine edits it.
-8. **No format change.** A command already holds the original list (`Steps`, each step with its `authoredOn`) and at most one own version (`OwnVersion`, for the platform that is not the origin). Unified is "no own version", a split is "an own version", and the choices in decision 6 are `WithoutOwnVersion` and its mirror. Config schema 7 and sync format 15 stay; nothing new crosses machines.
+1. **A "Steps for: Windows · macOS" switch above a command's steps**, the same segmented control as app identification's "Fields for" (`ButtonRadioField`). **It only switches the view**; it never sets anything. It opens on the platform Augram runs on.
+2. **The platform you are on is the one that runs, and it is drawn that way.** Its side is the normal, editable list, labelled as running here ("macOS · runs here"). The other side is a peek: read-only, drawn a step back (muted, no edit controls), labelled with where its steps come from (below), with a note "Edit on Windows".
+3. **A side is either its own or inferred.** A command made on the Mac has macOS steps; the Windows side is inferred: the macOS steps converted (F8's best guess: Cmd+W → Ctrl+W, the exception table, "needs a Windows version" where there is no guess). An inferred side follows the other side's current steps: an edit on the Mac reaches the inferred Windows side through the conversion.
+4. **An edit on your platform makes your side its own.** On the PC, the inferred Windows steps are there by default; the first edit there makes them Windows' own, and from then on nothing done on the PC changes the macOS side, and nothing done on the Mac changes the Windows side. Today's "own macOS version" marker and the stale flag ("· Windows original changed", Mark as checked) stay.
+5. **Copy from the other platform**: one button that throws a side's own steps away and takes the other side's steps, converted (the side becomes inferred again, so it follows the other side from then on). It acts on **the side in view**: standing on Windows it reads "Copy from macOS"; with the macOS side open it reads "Copy from Windows". Shown only when the side in view has its own steps (an inferred side already is the other side's). One undo step.
+6. **The other side is never edited field by field.** Copy (decision 5) is the one way to change it from here: a whole-list replace, deliberate and undoable. Why: nothing about the other platform can be captured, picked or tried from this machine, each machine writes only its own side's fields, and "you change what runs here" is one rule for the whole app.
+7. **The same read-only rule for every "Fields for" switch** (Exclusions › Global, Exclusions › Per command, the Apps tab's app identification): the other platform's side shows its values read-only with the "Edit on Windows" note. Today they let the Mac edit the Windows fields. The known-app guess (`Core/Mapping/KnownApps`) still fills the other side for common apps. Copy is not offered there (an exe name or a window class does not convert).
+8. **No format change.** It is the model a command already has: the original list (`Steps`, each step with its `authoredOn`) is the side it was made on; `OwnVersion` is the other side's own steps; no own version means that side is inferred. Copy into the own version's side is `WithoutOwnVersion`; copy into the original's side makes the own version's steps the original and drops the own version. Config schema 7 and sync format 15 stay.
 
 ## What changes
 
 **Core (`Augram.Core/Mapping/Command`)**
-- An edit in Unified writes the original list even on the platform that is not the origin (today `WithStepsFor` sends every edit there to the own version). A new method beside `WithStepsFor`, for example `WithUnifiedSteps(steps)`.
-- A split made on the origin's platform: the own version goes to the *other* platform as `ConvertedFor(other)`, then the edit lands on the original. Today a split can only be made from the non-origin platform.
-- `Origin` is read from the first step's `authoredOn` when there is no own version. Once Unified edits can mix where steps were authored, the origin must not flip under an existing own version. Fix the origin when a split is made, or derive it from the own version's platform only (it already does that when one exists); step 1 settles which and tests it.
-- "Keep this side for both": with the original's side, `WithoutOwnVersion` (as today); with the own version's side, its steps become the original and the own version is dropped.
+- "Copy into the original's side": the own version's steps become the original (their `authoredOn` already says where they were made) and the own version goes. Beside `WithoutOwnVersion`, which is already "copy into the own version's side". Both one store call, so one undo step.
 
 **App**
-- `ViewModels/Commands` (steps): the switch's view state lives beside the selection, never in the store, like `AppMatcherFormView`. The step list binds to the chosen side. On the other platform's side, the list's add, edit, remove, reorder, paste, change-to and capture actions are off; the note says where to edit.
-- `Components/CommandHeader`: the version text and "Use the converted original" give way to the switch and the keep-which-list question (decision 6). "Mark as checked" for a stale own version stays.
+- `ViewModels/Commands` (steps): the switch's view state lives beside the selection, never in the store, like `AppMatcherFormView`; it resets to this platform when another command is selected. The step list binds to the side in view. On the other side, add, edit, remove, reorder, paste, change-to and capture are off.
+- `Components/CommandHeader` and the step list's look: the running side's label, the peek's muted look and its "Edit on …" note, the Copy button (decision 5). "Use the converted original" goes (Copy from Windows on the macOS side is the same thing). Mark as checked stays.
 - `ViewModels/AppMatcherEditViewModel` and its form: the other platform's fields read-only, with the note (decision 7).
-- Words and markers in `Components/StepList/StepPlatformMarker` stay; the read-only side reads each step with `SummaryOn(that platform)` of its plan there.
+- `Components/StepList/StepPlatformMarker`: the peek reads each step as it runs on that platform, in its key names.
 
-**Docs**: requirements F8 (the switch, Unified, read-only other side), `ViewModels/Commands/README.md` (own versions), the App README's rules of the road if the read-only rule needs a line, learnings only if something surprises.
+**Docs**: requirements F8 (the view switch, own and inferred sides, Copy, the read-only other side), `ViewModels/Commands/README.md` (own versions), the App README's rules of the road for the read-only rule.
 
 ## Tests (one per behaviour, beside the neighbours)
 
-- Core: a Unified edit on the non-origin platform changes the original and makes no own version; a split from the origin's platform gives the other platform its converted list; the origin does not flip after a mixed Unified edit; keeping either side for both.
-- App, Commands: the switch opens on Unified without an own version and on this platform with one; an edit on this platform's side splits and moves the switch; the other side is read-only (no edit reaches the store) and reads in that platform's names; Unified after a split asks, and undo restores the split.
+- Core: copying into the original's side makes the own version's steps the original and drops it; into the own version's side drops it (exists today, keep).
+- App, Commands: the switch opens on this platform and resets on another selection; the other side is read-only (no edit reaches the store) and reads in that platform's key names; an edit on this platform's inferred side makes it own and leaves the other side's steps unchanged; Copy on either side replaces that side's steps with the other's, one undo restores them; Copy is hidden on an inferred side.
 - App, app identification: the other platform's fields are read-only on Exclusions › Global, › Per command and the Apps tab.
-- A UiShots render of the switch in each state, dark and light; no new test for the look.
+- A UiShots render of both sides of a command with its own macOS steps, dark and light; no new test for the look.
 
 ## Steps
 
-1. **Core** (agent, effort medium: `Core/Mapping` is outside the high-effort folders). Decisions 2, 3, 6 and the origin rule, with their tests.
-2. **App, steps** (agent, medium; after step 1). The switch, the read-only side, the keep-which-list question, the header's buttons. Version **0.14.0**.
-3. **App, app identification** (same agent as step 2, or the lead if it stays small). Decision 7.
+1. **Core** (lead or agent, effort medium: `Core/Mapping` is outside the high-effort folders). Decision 8's copy into the original's side, with its test.
+2. **App, steps** (agent, medium; after step 1). Decisions 1–6. Version **0.14.0**.
+3. **App, app identification** (same agent, or the lead if it stays small). Decision 7.
 4. **Joel's check, Mac then PC.** Below.
 
 ## Joel's check
 
 On the Mac, then on the PC:
-- A command with the same steps on both opens on **Unified**. Editing a hotkey there shows the other platform's conversion in the step's marker, and the other machine runs it after sync.
-- Choosing **macOS** and changing a step gives the Mac its own list; the row says "own macOS version"; the PC still runs what it ran before.
-- Choosing **Windows** on the Mac shows the Windows steps in Windows key names, with "Edit on Windows", and nothing there can be changed.
-- Choosing **Unified** on a split command asks which list to keep; the undo key gives the split back.
-- Exclusions and the Apps tab: the Windows fields are read-only on the Mac, the macOS fields read-only on the PC.
+- A command opens on this platform's side, labelled as running here. Switching to the other side shows its steps in that platform's key names, muted, with "Edit on …", and nothing there can be changed except by Copy.
+- A command made on the PC shows its macOS side inferred (converted) on the Mac. Editing a step there makes the macOS side its own; the PC still runs what it ran before.
+- On a command with its own macOS steps: on the macOS side, Copy from Windows brings back the converted Windows steps; on the Windows side, Copy from macOS makes the PC run the macOS steps (converted). The undo key gives the old steps back either time.
+- Exclusions and the Apps tab: the Windows fields are read-only on the Mac, the macOS fields on the PC.
 - The magnifier and Open Explorer read clearly: the Windows side "Shift+Win+X" and "explorer", the macOS side Joel's own steps.
 
 ## Open questions for Joel
 
-1. **The Unified segment's name.** "Unified", "Both" or "Same on both"? The plan says Unified, his word.
-2. **The row marker after a split.** Keep "own macOS version", or say "differs on Windows"?
-3. **A Unified edit on the non-origin machine re-authors only the steps it touches** (the rest keep where they were made). The alternative is to re-author the whole list on the machine that edits it. The plan takes the first: it changes only what the edit touched.
+1. **The label of the side that runs**: "macOS · runs here", or just the switch's selected segment with a small "runs here" tag?
+2. **Copy's wording**: "Copy from macOS", or "Use the macOS steps here" (it replaces, it does not append)?
