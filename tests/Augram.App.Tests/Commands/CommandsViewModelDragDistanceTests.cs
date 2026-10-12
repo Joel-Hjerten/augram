@@ -1,3 +1,4 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
@@ -48,7 +49,7 @@ public sealed class CommandsViewModelDragDistanceTests
         // A command under a hold remap has an input, never a drag distance.
         var (blender, _, _) = HoldRemapTestData.CreateBlender();
         var pan = blender.Sections.SelectMany(section => section.Commands).Single(command => command.Name == "Pan");
-        Assert.False(pan.ShowsDragDistance);
+        Assert.False(Header(pan).ShowsDragDistance);
     }
 
     [AvaloniaFact]
@@ -154,7 +155,7 @@ public sealed class CommandsViewModelDragDistanceTests
     {
         var (vm, _) = GlobalWithRightWheelVolume();
         var actions = new List<CommandTreeActionEventArgs>();
-        var header = new CommandHeader { Item = Item(vm, "Volume up") };
+        var header = new CommandHeader { Item = Header(Item(vm, "Volume up")) };
         header.ActionRequested += (_, e) => actions.Add(e);
         new Window { Content = header }.Show();
 

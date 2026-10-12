@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Mapping;
@@ -119,7 +120,7 @@ public sealed class CommandsViewModelGlobalTests
         Assert.Equal(CategoryRules.UncategorizedId, Find(store, "Minimize").CategoryId);
         Assert.Equal(["Media", "Uncategorized"], Names(vm));
         Assert.Equal(["Close window", "Minimize", "Three steps"], Section(vm, "Uncategorized").Commands.Select(command => command.Name));
-        Assert.Equal($"Deleted 'Window'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Deleted 'Window'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
 
@@ -161,7 +162,7 @@ public sealed class CommandsViewModelGlobalTests
         Assert.Equal(["Media"], store.Global.Categories.Select(category => category.Name));
         Assert.Equal(["Media"], Names(vm));
         Assert.Null(vm.SelectedSectionId);
-        Assert.Equal($"Deleted 'Uncategorized'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Deleted 'Uncategorized'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
         // One undo brings it back with all three; the next brings Window back.
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));

@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.Core.Abstractions;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
@@ -57,7 +58,7 @@ public sealed partial class CommandsViewModel
             1 => $"Delete hold remap '{holdRemap.Name}' and its command?",
             _ => $"Delete hold remap '{holdRemap.Name}' and its {count} commands?",
         };
-        await DeleteAsync("Delete hold remap", question, () => Deleted(_store.RemoveHoldRemap(groupId, id).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
+        await DeleteAsync("Delete hold remap", question, () => Deleted(_store.RemoveHoldRemap(groupId, id).Name, EditKeymap.Current.Undo)).ConfigureAwait(true);
     }
 
     private void CopyHoldRemap(GroupId groupId, HoldRemapId id)
@@ -67,7 +68,7 @@ public sealed partial class CommandsViewModel
         var commands = group.Commands.Where(command => command.HoldRemapId == id).ToList();
         _clipboard.HoldRemap = new HoldRemapCopy(holdRemap, commands);
         var what = commands.Count == 1 ? "its command" : $"its {commands.Count} commands";
-        Message = $"Copied '{holdRemap.Name}' with {what}. Paste it into an app group with {CommandsKeymap.Current.Paste}.";
+        Message = $"Copied '{holdRemap.Name}' with {what}. Paste it into an app group with {EditKeymap.Current.Paste}.";
     }
 
     /// <summary>

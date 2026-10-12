@@ -1,4 +1,5 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.CommandHeader;
+using Augram.App.Components.ListEditing;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
@@ -16,7 +17,7 @@ namespace Augram.App.ViewModels.Commands;
 public sealed partial class CommandsViewModel
 {
     /// <summary>The draft's header item with what its note offers against <paramref name="other"/>, the command that uses the draft here.</summary>
-    private CommandItem WithConflict(CommandItem shown, AppGroup group, Command command, TriggerDraft draft, Command other)
+    private CommandHeaderItem WithConflict(CommandHeaderItem shown, AppGroup group, Command command, TriggerDraft draft, Command other)
     {
         var canSwap = draft.Stored.IsBound && Accepts(Exchanged(group, command, draft.Trigger, other, draft.Stored));
         var canTake = Accepts(Exchanged(group, command, draft.Trigger, other, Trigger.None));
@@ -45,7 +46,7 @@ public sealed partial class CommandsViewModel
         var theirs = take ? Trigger.None : draft.Stored;
         _store.UpdateGroup(Exchanged(group, command, draft.Trigger, other, theirs));
         _draft = null;
-        var undo = $"{ForkLine(forked)} {CommandsKeymap.Current.Undo} undoes both.";
+        var undo = $"{ForkLine(forked)} {EditKeymap.Current.Undo} undoes both.";
         if (take)
         {
             // A7 counts a command this platform leaves out too; the list then shows it greyed, so it can be selected.

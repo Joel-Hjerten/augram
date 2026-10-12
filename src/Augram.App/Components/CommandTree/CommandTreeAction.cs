@@ -1,7 +1,7 @@
 namespace Augram.App.Components.CommandTree;
 
 /// <summary>
-/// The intents a <see cref="CommandTree"/> (and the <see cref="CommandHeader"/>) raises for the host
+/// The intents a <see cref="CommandTree"/> (and the <see cref="CommandHeader.CommandHeader"/>) raises for the host
 /// view model (F5a list editing). The event args say which section and command they apply to: an
 /// action with a command set acts on the command, one with only a section set acts on the section.
 /// A section is an app group on the Apps tab and a category on the Global tab; what
@@ -85,7 +85,7 @@ public enum CommandTreeAction
 
     /// <summary>
     /// Swap (the draft note's button, Joel 2026-10-10): the command takes its draft trigger (or input), and the command that
-    /// uses it here (<see cref="CommandItem.ConflictName"/>) takes the command's stored one; one undo step.
+    /// uses it here (<see cref="CommandHeader.CommandHeaderItem.ConflictName"/>) takes the command's stored one; one undo step.
     /// </summary>
     SwapTrigger,
 

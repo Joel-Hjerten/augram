@@ -1,3 +1,5 @@
+using Augram.App.Components.ListEditing;
+using Augram.App.Components.Parts;
 using Augram.Core.Mapping;
 using Avalonia;
 using Avalonia.Controls;
@@ -176,7 +178,7 @@ public sealed class CommandTree : TemplatedControl
             _list.ContextMenu = CommandTreeMenu.Build(Request);
             _list.ContextMenu.Opening += (_, _) => CommandTreeMenu.Refresh(_list.ContextMenu, SelectedSection, SelectedCommand, NewSectionLabel);
             KeyBindings.Clear();
-            CommandTreeMenu.BindKeys(this, CommandsKeymap.Current, Request, () => !IsEditing);
+            CommandTreeMenu.BindKeys(this, EditKeymap.Current, Request, () => !IsEditing);
             _list.SelectionChanged += (_, _) =>
             {
                 if (!_applying)
@@ -187,7 +189,7 @@ public sealed class CommandTree : TemplatedControl
             ApplySelection();
         }
 
-        Wire(e, "PART_NewSection", CommandTreeAction.NewSection);
+        e.OnClick("PART_NewSection", () => Request(CommandTreeAction.NewSection));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -234,13 +236,6 @@ public sealed class CommandTree : TemplatedControl
         timer.Start();
     }
 
-    private void Wire(TemplateAppliedEventArgs e, string part, CommandTreeAction action)
-    {
-        if (e.NameScope.Find<Button>(part) is { } button)
-        {
-            button.Click += (_, _) => Request(action);
-        }
-    }
 
     private void BeginRename(ItemRow? row)
     {

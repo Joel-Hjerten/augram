@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.StepList;
+using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
@@ -92,7 +93,7 @@ public sealed class StepListTests
     {
         var (list, actions, _) = Show(selected: 1);
         var window = (Window)TopLevel.GetTopLevel(list)!;
-        var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
         var box = list.GetVisualDescendants().OfType<ListBox>().Single();
         Assert.True(box.ContainerFromItem(box.SelectedItem!)!.Focus());
 
@@ -119,7 +120,7 @@ public sealed class StepListTests
         Assert.True(list.IsEditing);
 
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
-        window.KeyPressQwerty(PhysicalKey.D, CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control);
+        window.KeyPressQwerty(PhysicalKey.D, EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control);
 
         Assert.Empty(actions);
     }
@@ -381,7 +382,7 @@ public sealed class StepListTests
     [InlineData(1, 2, -1, -1)]
     public void AReorderMovesTheOpenStepWithItsStep(int from, int to, int open, int expected)
     {
-        var step = StepItem.From(new CommandStep(new DelayStep(10), HostPlatform.Windows), from, HostPlatform.Windows);
+        var step = StepItemProjection.From(new CommandStep(new DelayStep(10), HostPlatform.Windows), from, HostPlatform.Windows);
 
         Assert.Equal(expected, new StepListActionEventArgs(StepListAction.Reorder, step, targetIndex: to).IndexAfterReorder(open));
     }
@@ -411,7 +412,7 @@ public sealed class StepListTests
         => row.TranslatePoint(new Point(row.Bounds.Width / 2, row.Bounds.Height / 2), window)!.Value;
 
     private static IReadOnlyList<StepItem> Replace(IReadOnlyList<CommandStep> steps, int index, IStep step)
-        => steps.Select((item, i) => StepItem.From(i == index ? item with { Step = step } : item, i, HostPlatform.Windows)).ToList();
+        => steps.Select((item, i) => StepItemProjection.From(i == index ? item with { Step = step } : item, i, HostPlatform.Windows)).ToList();
 
     /// <summary>The three steps in a window, the one at <paramref name="selected"/> open; with <paramref name="echoSelect"/> the host answers Select as the view model does (the step opens; none closes the open one).</summary>
     private static (StepList List, List<StepListActionEventArgs> Actions, IReadOnlyList<CommandStep> Steps) Show(int selected = -1, bool echoSelect = false)
@@ -423,7 +424,7 @@ public sealed class StepListTests
             new(new MediaKeyStep(MediaKeyKind.PlayPause), HostPlatform.Windows, IsActive: false),
         ];
         var actions = new List<StepListActionEventArgs>();
-        var list = new StepList { Steps = steps.Select((step, index) => StepItem.From(step, index, HostPlatform.Windows)).ToList(), SelectedIndex = selected, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
+        var list = new StepList { Steps = steps.Select((step, index) => StepItemProjection.From(step, index, HostPlatform.Windows)).ToList(), SelectedIndex = selected, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
         list.ActionRequested += (_, e) =>
         {
             actions.Add(e);

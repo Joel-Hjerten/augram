@@ -55,6 +55,7 @@ public static class GalleryNavigation
         new("Sync join", Key + ".syncjoin", SyncGalleryPages.JoinPage),
         new("Sync conflicts", Key + ".syncconflicts", SyncGalleryPages.ConflictsPage),
         new("Transfer", Key + ".transfer", TransferGalleryPages.Page),
+        new("Capture fields", Key + ".capturefields", CaptureGalleryPage.Page),
     ];
 
     private static ScreenDeclaration SectionFormPage()

@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Declarations;
 using Augram.App.Screens;
 using Augram.App.ViewModels.Commands;
@@ -79,7 +80,7 @@ public sealed class SectionNewCommandTests
     [AvaloniaFact]
     public void WithNothingSelectedNoHeaderShowsItAndTheNewKeyMakesNothing()
     {
-        var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
         foreach (var scope in new[] { CommandsScope.Global, CommandsScope.Apps })
         {
             var (vm, store, _, _) = Create(scope);

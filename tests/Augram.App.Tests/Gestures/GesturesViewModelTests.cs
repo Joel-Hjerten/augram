@@ -1,4 +1,5 @@
 using Augram.App.Components.GestureGrid;
+using Augram.App.Components.ListEditing;
 using Augram.App.Tests.Support;
 using Augram.App.ViewModels;
 using Augram.Core.Gestures;
@@ -108,7 +109,7 @@ public sealed class GesturesViewModelTests
         Assert.Equal(Trigger.ForGesture(up.Id), f.Mapping.FindCommand(chromeClose.Id)!.Value.Command.Trigger);
         Assert.Equal(Trigger.None, f.Mapping.FindCommand(globalTwin.Id)!.Value.Command.Trigger);
         Assert.Empty(f.Mapping.UsedBy(twin.Id));
-        Assert.Equal($"Kept 'Up'; deleted 'Up twin'. 1 command retargeted to 'Up'; 1 command unbound (its group already used 'Up'). {GestureGridKeymap.Undo} undoes the delete; the Commands tab undoes the retargeting.", f.Vm.Message);
+        Assert.Equal($"Kept 'Up'; deleted 'Up twin'. 1 command retargeted to 'Up'; 1 command unbound (its group already used 'Up'). {EditKeymap.Current.Undo} undoes the delete; the Commands tab undoes the retargeting.", f.Vm.Message);
     }
 
     [AvaloniaFact]

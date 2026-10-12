@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
@@ -45,7 +46,7 @@ public sealed partial class CommandsViewModel
     private void CopyCommand(CommandItem command)
     {
         _clipboard.Command = RequireCommand(command.Id).Command;
-        Message = $"Copied '{command.Name}'. Paste it into a group or a category with {CommandsKeymap.Current.Paste}.";
+        Message = $"Copied '{command.Name}'. Paste it into a group or a category with {EditKeymap.Current.Paste}.";
     }
 
     /// <summary>
@@ -149,7 +150,7 @@ public sealed partial class CommandsViewModel
     }
 
     private async Task DeleteCommandAsync(CommandItem command)
-        => await DeleteAsync("Delete command", $"Delete command '{command.Name}'?", () => Deleted(_store.RemoveCommand(command.Id).Name, CommandsKeymap.Current.Undo)).ConfigureAwait(true);
+        => await DeleteAsync("Delete command", $"Delete command '{command.Name}'?", () => Deleted(_store.RemoveCommand(command.Id).Name, EditKeymap.Current.Undo)).ConfigureAwait(true);
 
     /// <summary>The header's Category dropdown; the section it lands in is expanded so the selected row stays in sight.</summary>
     private void SetCategory(CommandItem command, CategoryId? category)

@@ -1,3 +1,4 @@
+using Augram.App.Components.Parts;
 using Augram.Core.Gestures;
 using Augram.Core.Sync;
 using Avalonia;
@@ -10,7 +11,7 @@ namespace Augram.App.Components.SyncConflictList;
 /// Lookless row of the sync conflict list (F8 sync): the item's name and detail line, this machine's version and the
 /// other machine's side by side (a gesture as two glyphs, row class <c>row-glyph</c>, so what differs is visible;
 /// anything else as a one-line summary, or "deleted"), and the choice dropdown <c>PART_Choice</c> offering the
-/// entry's choices. Picking one sets <see cref="SelectedChoice"/> and raises <see cref="ChoiceChanged"/>; the frame
+/// entry's choices (an <see cref="AskingDropdown"/>, so what it shows is always <see cref="SelectedChoice"/>). Picking one sets <see cref="SelectedChoice"/> and raises <see cref="ChoiceChanged"/>; the frame
 /// is the shared row frame (row rule), so every list row looks the same.
 /// </summary>
 public sealed class SyncConflictRow : TemplatedControl
@@ -45,9 +46,7 @@ public sealed class SyncConflictRow : TemplatedControl
     public static readonly StyledProperty<bool> HasTheirsGlyphProperty =
         AvaloniaProperty.Register<SyncConflictRow, bool>(nameof(HasTheirsGlyph));
 
-    private ComboBox? _choice;
-    private SyncConflictEntry? _labelsFor;
-    private bool _applying;
+    private AskingDropdown? _choice;
 
     public event EventHandler<SyncChoice>? ChoiceChanged;
 
@@ -136,18 +135,15 @@ public sealed class SyncConflictRow : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
-        _choice = e.NameScope.Find<ComboBox>("PART_Choice");
-        _labelsFor = null;
-        if (_choice is not null)
-        {
-            _choice.SelectionChanged += (_, _) =>
+        _choice = e.NameScope.Find<ComboBox>("PART_Choice") is { } box
+            ? new AskingDropdown(box, index =>
             {
-                if (!_applying && Entry is { } entry && _choice.SelectedIndex >= 0 && _choice.SelectedIndex < entry.Choices.Count)
+                if (Entry is { } entry && index < entry.Choices.Count)
                 {
-                    Choose(entry.Choices[_choice.SelectedIndex].Value);
+                    Choose(entry.Choices[index].Value);
                 }
-            };
-        }
+            })
+            : null;
 
         ApplyChoice();
     }
@@ -180,28 +176,5 @@ public sealed class SyncConflictRow : TemplatedControl
     }
 
     private void ApplyChoice()
-    {
-        if (_choice is null)
-        {
-            return;
-        }
-
-        _applying = true;
-        try
-        {
-            var entry = Entry;
-            if (!ReferenceEquals(_labelsFor, entry))
-            {
-                _labelsFor = entry;
-                _choice.ItemsSource = ChoiceLabels;
-            }
-
-            var choices = entry?.Choices ?? [];
-            _choice.SelectedIndex = choices.ToList().FindIndex(choice => choice.Value == SelectedChoice);
-        }
-        finally
-        {
-            _applying = false;
-        }
-    }
+        => _choice?.Show(ChoiceLabels, (Entry?.Choices ?? []).ToList().FindIndex(choice => choice.Value == SelectedChoice));
 }

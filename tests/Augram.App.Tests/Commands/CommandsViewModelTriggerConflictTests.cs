@@ -1,5 +1,7 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.GesturePicker;
+using Augram.App.Components.ListEditing;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
@@ -36,14 +38,14 @@ public sealed class CommandsViewModelTriggerConflictTests
         var header = vm.SelectedCommand!;
         Assert.Equal("Not saved yet: 'Zoom Out' already uses Right + wheel up here. Change the direction, a button or a key.", header.DraftNote);
         Assert.Equal(("Zoom Out", true, true), (header.ConflictName, header.CanSwapTrigger, header.CanTakeTrigger));
-        Assert.Null(Item(vm, "Zoom In").ConflictName);
+        Assert.IsNotType<CommandHeaderItem>(Item(vm, "Zoom In"));
 
         Handle(vm, CommandTreeAction.SwapTrigger);
 
         Assert.Equal((RightWheelUp, RightWheelDown), (Find(store, "Zoom In").Trigger, Find(store, "Zoom Out").Trigger));
         Assert.Equal("Zoom In", vm.SelectedCommand!.Name);
         Assert.Equal((null, null, false, false), (vm.SelectedCommand.DraftNote, vm.SelectedCommand.ConflictName, vm.SelectedCommand.CanSwapTrigger, vm.SelectedCommand.CanTakeTrigger));
-        Assert.Equal($"Swapped with 'Zoom Out', which now uses Right + wheel down. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+        Assert.Equal($"Swapped with 'Zoom Out', which now uses Right + wheel down. {EditKeymap.Current.Undo} undoes both.", vm.Message);
 
         Handle(vm, CommandTreeAction.Undo);
 
@@ -65,7 +67,7 @@ public sealed class CommandsViewModelTriggerConflictTests
         Assert.Equal("Zoom Out", vm.SelectedCommand!.Name);
         Assert.Null(vm.SelectedCommand.DraftNote);
         Assert.True(Section(vm, "Media").IsExpanded);
-        Assert.Equal($"'Zoom Out' has no trigger now: give it one. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+        Assert.Equal($"'Zoom Out' has no trigger now: give it one. {EditKeymap.Current.Undo} undoes both.", vm.Message);
 
         Handle(vm, CommandTreeAction.Undo);
 
@@ -106,7 +108,7 @@ public sealed class CommandsViewModelTriggerConflictTests
         Assert.Equal(Trigger.ForGesture(Up), Find(store, "Minimize").Trigger);
         Assert.Same(Trigger.None, Find(store, "Close window").Trigger);
         Assert.Equal("Close window", vm.SelectedCommand!.Name);
-        Assert.Equal($"'Close window' has no trigger now: give it one. {CommandsKeymap.Current.Undo} undoes both.", vm.Message);
+        Assert.Equal($"'Close window' has no trigger now: give it one. {EditKeymap.Current.Undo} undoes both.", vm.Message);
     }
 
     [AvaloniaFact]
@@ -205,7 +207,7 @@ public sealed class CommandsViewModelTriggerConflictTests
     private static Command Zoom(string name, Trigger trigger)
         => new(CommandId.New(), name, trigger, IsActive: true, [new CommandStep(new DelayStep(10), HostPlatform.Windows)]);
 
-    private static void AssertOffersNothing(CommandItem item)
+    private static void AssertOffersNothing(CommandHeaderItem item)
         => Assert.Equal((null, false, false), (item.ConflictName, item.CanSwapTrigger, item.CanTakeTrigger));
 
     private static void Select(CommandsViewModel vm, string name)

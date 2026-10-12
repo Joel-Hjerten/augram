@@ -1,4 +1,4 @@
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
 using Augram.App.Components.SectionForm;
 using Augram.App.Components.Steps;
 using Augram.Core.Abstractions;

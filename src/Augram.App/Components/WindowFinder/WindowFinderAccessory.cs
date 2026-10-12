@@ -1,3 +1,4 @@
+using Augram.App.Components.Parts;
 using Augram.Core.Abstractions;
 using Avalonia.Controls;
 
@@ -29,12 +30,6 @@ public static class WindowFinderAccessory
     public static Func<Control> UseButton(Action use)
     {
         ArgumentNullException.ThrowIfNull(use);
-        return () =>
-        {
-            var button = new Button { Content = UseLabel };
-            button.Classes.Add("toolbar");
-            button.Click += (_, _) => use();
-            return button;
-        };
+        return () => ToolbarButton.Create(UseLabel, use);
     }
 }

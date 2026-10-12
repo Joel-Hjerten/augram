@@ -78,7 +78,7 @@ public sealed class IgnoredAllowedForTests
         Assert.True(store.FindIgnored(Blender.Id)!.DisableEntirely);
         Assert.Empty(Find(store, "Magnifier").AlsoIn);
         Assert.Empty(Find(store, "Back").AlsoIn);
-        Assert.Equal($"'Blender' disables Augram while focused now, so it left the Also in of 2 commands. {Augram.App.Components.CommandTree.CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"'Blender' disables Augram while focused now, so it left the Also in of 2 commands. {Augram.App.Components.ListEditing.EditKeymap.Current.Undo} undoes it.", vm.Message);
         Assert.False(AllowedFor(vm.Detail!).Visible!.Get());
 
         store.Undo();

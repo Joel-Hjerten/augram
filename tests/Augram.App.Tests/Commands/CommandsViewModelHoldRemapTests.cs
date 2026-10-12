@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
@@ -109,7 +110,7 @@ public sealed class CommandsViewModelHoldRemapTests
         Assert.Empty(Blender(store).HoldRemaps);
         Assert.Equal(["Undo"], Blender(store).Commands.Select(command => command.Name));
         Assert.Equal(["Blender", "Chrome"], Names(vm));
-        Assert.Equal($"Deleted 'Space'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Deleted 'Space'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
 
@@ -183,7 +184,7 @@ public sealed class CommandsViewModelHoldRemapTests
         Assert.True(CommandTreeMenu.Allows(CommandTreeAction.Copy, HoldRemapSection(vm, "Space"), null));
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Copy, HoldRemapSection(vm, "Space")));
-        Assert.Equal($"Copied 'Space' with its 4 commands. Paste it into an app group with {CommandsKeymap.Current.Paste}.", vm.Message);
+        Assert.Equal($"Copied 'Space' with its 4 commands. Paste it into an app group with {EditKeymap.Current.Paste}.", vm.Message);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Paste, Section(vm, "Chrome")));
 

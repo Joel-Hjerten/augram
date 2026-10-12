@@ -1,39 +1,35 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Avalonia.Controls;
 using Avalonia.Input;
-using CommunityToolkit.Mvvm.Input;
 
 namespace Augram.App.Components.StepList;
 
 /// <summary>
-/// Builds the context menu and key bindings of a <see cref="StepList"/> (F5a); every entry ends in one <see cref="StepListAction"/>.
-/// New step… and Change to… (Joel, 2026-10-11; no key) open the list's step type picker first, which raises Add or ChangeType.
+/// The context menu and key bindings of a <see cref="StepList"/> (F5a), on <see cref="ActionMenu{TAction}"/>; every entry ends in
+/// one <see cref="StepListAction"/>. New step… and Change to… (Joel, 2026-10-11; no key) open the list's step type picker first,
+/// which raises Add or ChangeType.
 /// </summary>
 internal static class StepListMenu
 {
-    public static ContextMenu Build(Action<StepListAction> request)
-    {
-        var menu = new ContextMenu();
-        menu.Items.Add(Item("New step…", StepListAction.Add, request));
-        menu.Items.Add(Item("Change to…", StepListAction.ChangeType, request));
-        menu.Items.Add(Item("Duplicate below", StepListAction.Duplicate, request));
-        menu.Items.Add(Item("Copy", StepListAction.Copy, request));
-        menu.Items.Add(Item("Paste at bottom", StepListAction.Paste, request));
-        menu.Items.Add(Item("Delete", StepListAction.Delete, request));
-        return menu;
-    }
+    public static ContextMenu Build(Action<StepListAction> request) => ActionMenu<StepListAction>.Build(
+        request,
+        ("New step…", StepListAction.Add),
+        ("Change to…", StepListAction.ChangeType),
+        ("Duplicate below", StepListAction.Duplicate),
+        ("Copy", StepListAction.Copy),
+        ("Paste at bottom", StepListAction.Paste),
+        ("Delete", StepListAction.Delete));
 
     /// <summary>Entries that need a selected step (Change to…, Duplicate below, Copy, Delete) are disabled without one, and New step… while no type can be added (<see cref="StepList.CanAddStep"/>).</summary>
     public static void Refresh(ContextMenu menu, StepItem? selected, bool canAdd)
     {
-        ArgumentNullException.ThrowIfNull(menu);
-        foreach (var item in menu.Items.OfType<MenuItem>())
+        foreach (var (item, action) in ActionMenu<StepListAction>.Entries(menu))
         {
-            if (item.Tag is StepListAction.ChangeType or StepListAction.Duplicate or StepListAction.Copy or StepListAction.Delete)
+            if (action is StepListAction.ChangeType or StepListAction.Duplicate or StepListAction.Copy or StepListAction.Delete)
             {
                 item.IsEnabled = selected is not null;
             }
-            else if (item.Tag is StepListAction.Add)
+            else if (action is StepListAction.Add)
             {
                 item.IsEnabled = canAdd;
             }
@@ -41,24 +37,16 @@ internal static class StepListMenu
     }
 
     /// <summary><paramref name="canExecute"/> says no while the expanded step's form has keyboard focus, so Delete and Ctrl+D edit the field, not the list.</summary>
-    public static void BindKeys(InputElement target, CommandsKeymap keymap, Action<StepListAction> request, Func<bool> canExecute)
-    {
-        Bind(target, keymap.New, StepListAction.Add, request, canExecute);
-        Bind(target, keymap.Duplicate, StepListAction.Duplicate, request, canExecute);
-        Bind(target, keymap.Copy, StepListAction.Copy, request, canExecute);
-        Bind(target, keymap.Paste, StepListAction.Paste, request, canExecute);
-        Bind(target, keymap.Delete, StepListAction.Delete, request, canExecute);
-        Bind(target, keymap.Undo, StepListAction.Undo, request, canExecute);
-        Bind(target, keymap.Redo, StepListAction.Redo, request, canExecute);
-    }
-
-    private static MenuItem Item(string header, StepListAction action, Action<StepListAction> request)
-    {
-        var item = new MenuItem { Header = header, Tag = action };
-        item.Click += (_, _) => request(action);
-        return item;
-    }
-
-    private static void Bind(InputElement target, string gesture, StepListAction action, Action<StepListAction> request, Func<bool> canExecute)
-        => target.KeyBindings.Add(new KeyBinding { Gesture = KeyGesture.Parse(gesture), Command = new RelayCommand(() => request(action), canExecute) });
+    public static void BindKeys(InputElement target, EditKeymap keymap, Action<StepListAction> request, Func<bool> canExecute)
+        => ActionMenu<StepListAction>.BindKeys(
+            target,
+            request,
+            canExecute,
+            (keymap.New, StepListAction.Add),
+            (keymap.Duplicate, StepListAction.Duplicate),
+            (keymap.Copy, StepListAction.Copy),
+            (keymap.Paste, StepListAction.Paste),
+            (keymap.Delete, StepListAction.Delete),
+            (keymap.Undo, StepListAction.Undo),
+            (keymap.Redo, StepListAction.Redo));
 }

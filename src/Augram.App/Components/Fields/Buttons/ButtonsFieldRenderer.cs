@@ -1,3 +1,4 @@
+using Augram.App.Components.Parts;
 using Augram.App.Declarations;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -67,9 +68,7 @@ public sealed class ButtonsFieldRenderer : IFieldRenderer
 
     private static Button Button(FieldButton declared)
     {
-        var button = new Button { Content = declared.Label };
-        button.Classes.Add("toolbar");
-        button.Click += (_, _) => declared.Click();
+        var button = ToolbarButton.Create(declared.Label, declared.Click);
         if (declared.Enabled is { } enabled)
         {
             BindingObserver.Attach(button, enabled, value => button.IsEnabled = value);

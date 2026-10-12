@@ -38,7 +38,7 @@ public sealed partial class StepList
 
     /// <summary>
     /// The step types the command cannot take a step of now, each with its reason; the picker greys them. The workbench sets it
-    /// from the selected command's <c>CommandItem.StepRefusals</c> (Core's <c>StepOffer</c>); empty offers every type.
+    /// from the selected command's <c>CommandHeaderItem.StepRefusals</c> (Core's <c>StepOffer</c>); empty offers every type.
     /// </summary>
     public IReadOnlyDictionary<IStepType, string> StepRefusals
     {
@@ -48,7 +48,7 @@ public sealed partial class StepList
 
     /// <summary>
     /// By step index, the types each step cannot be changed to now, each with its reason (its own type among them); "Change to…"
-    /// greys them for the step it changes. The workbench sets it from the selected command's <c>CommandItem.ChangeRefusals</c>
+    /// greys them for the step it changes. The workbench sets it from the selected command's <c>CommandHeaderItem.ChangeRefusals</c>
     /// (Core's <c>StepOffer.ChangeRefusals</c>); a step it has no entry for is offered every type.
     /// </summary>
     public IReadOnlyList<IReadOnlyDictionary<IStepType, string>> ChangeRefusals

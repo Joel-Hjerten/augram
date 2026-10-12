@@ -1,4 +1,5 @@
 using Augram.App.Components.GestureGrid;
+using Augram.App.Components.Parts;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
@@ -92,10 +93,10 @@ public sealed class GesturePicker : TemplatedControl
             Select(_selectedId);
         }
 
-        Wire(e, "PART_Ok", Accept);
-        Wire(e, "PART_Cancel", Cancel);
-        Wire(e, "PART_NoGesture", ChooseNoGesture);
-        Wire(e, "PART_NewGesture", () => NewGestureRequested?.Invoke(this, EventArgs.Empty));
+        e.OnClick("PART_Ok", Accept);
+        e.OnClick("PART_Cancel", Cancel);
+        e.OnClick("PART_NoGesture", ChooseNoGesture);
+        e.OnClick("PART_NewGesture", () => NewGestureRequested?.Invoke(this, EventArgs.Empty));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -108,11 +109,4 @@ public sealed class GesturePicker : TemplatedControl
         }
     }
 
-    private static void Wire(TemplateAppliedEventArgs e, string part, Action action)
-    {
-        if (e.NameScope.Find<Button>(part) is { } button)
-        {
-            button.Click += (_, _) => action();
-        }
-    }
 }

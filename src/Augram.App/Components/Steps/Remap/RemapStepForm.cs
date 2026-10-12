@@ -1,4 +1,5 @@
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
+using Augram.App.Components.Steps.Scroll;
 using Augram.App.Declarations;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
@@ -39,18 +40,6 @@ public sealed class RemapStepForm : IStepForm
     private static readonly IReadOnlyList<Choice<MouseButton>> Buttons =
         [.. HeldButtonsExtensions.DisplayOrder.Select(button => new Choice<MouseButton>(button.ToString(), button))];
 
-    private static readonly IReadOnlyList<Choice<ScrollDirection>> Directions =
-    [
-        new("Up", ScrollDirection.Up),
-        new("Down", ScrollDirection.Down),
-        new("Left (sideways)", ScrollDirection.Left),
-        new("Right (sideways)", ScrollDirection.Right),
-    ];
-
-    // Built per form, not once per type: the key names follow HotkeyText.Names, which follows RunningPlatform once the App sets it at startup.
-    private static IReadOnlyList<Choice<KeyCode>> Keys =>
-        [.. Enum.GetValues<KeyCode>().Select(key => new Choice<KeyCode>(key == KeyCode.None ? HotkeyCaptureBox.EmptyText : HotkeyText.KeyName(key), key))];
-
     public string TypeKey => RemapStepType.Instance.Key;
 
     public Control Build(IStep current, Action<IStep> changed) => Build(current, changed, StepFormContext.None);
@@ -69,10 +58,10 @@ public sealed class RemapStepForm : IStepForm
                 new DropdownField<RemapOutputKind>("Output", kinds, form.Binding(() => form.Output.Kind, form.SetKind), onButtonTrigger ? ButtonTriggerOutputHelp : OutputHelp),
                 new DropdownField<MouseButton>("Button", Buttons, form.Binding(() => form.ShownButton, form.SetButton)) { Visible = form.Shows(RemapOutputKind.Button) },
                 new CustomField("Keys", () => form.KeyBox, Help: "Capture, press the key or the combination, then Accept or click anywhere else.") { Visible = form.Shows(RemapOutputKind.Key) },
-                new DropdownField<KeyCode>("Key", Keys, form.Binding(() => form.ShownKey, form.SetKey), "Also for a key the capture cannot see.") { Visible = form.Shows(RemapOutputKind.Key) },
-                new DropdownField<ScrollDirection>("Direction", Directions, form.Binding(() => form.ShownDirection, form.SetDirection)) { Visible = form.Shows(RemapOutputKind.Wheel) },
+                new DropdownField<KeyCode>("Key", HotkeyChoices.Keys, form.Binding(() => form.ShownKey, form.SetKey), "Also for a key the capture cannot see.") { Visible = form.Shows(RemapOutputKind.Key) },
+                new DropdownField<ScrollDirection>("Direction", ScrollStepForm.Directions, form.Binding(() => form.ShownDirection, form.SetDirection)) { Visible = form.Shows(RemapOutputKind.Wheel) },
                 .. ModifierToggles(form),
-                new TogglesField("Keys held", [.. HotkeyKeys.LeftKeys(HotkeyKeys.AllModifiers).Select(key => form.Plain(HotkeyKeys.ModifierOf(key)))], ButtonModifiersHelp)
+                new TogglesField("Keys held", form.HeldKeys(), ButtonModifiersHelp)
                 {
                     Visible = form.Hides(RemapOutputKind.Key),
                 },
@@ -84,14 +73,13 @@ public sealed class RemapStepForm : IStepForm
 
     /// <summary>A key output's four modifiers, each a <see cref="ModifierToggle"/> with its "R" (right-hand) toggle, as the Hotkey form's.</summary>
     private static IEnumerable<Field> ModifierToggles(State form)
-        => HotkeyKeys.LeftKeys(HotkeyKeys.AllModifiers).Select(key => HotkeyKeys.ModifierOf(key)).Select(flag =>
+        => HotkeyChoices.Modifiers.Select(flag =>
             (Field)new CustomField(HotkeyText.Format(flag, KeyCode.None), form.Toggle(flag)) { Visible = form.Shows(RemapOutputKind.Key) });
 
-    /// <summary>The form's one output and the editors that follow it; every change goes through <see cref="Emit"/>.</summary>
+    /// <summary>The form's one output (a <see cref="StepFormState{TStep}"/>) and what it remembers per kind; every change goes through <see cref="Emit"/>.</summary>
     private sealed class State
     {
-        private readonly Action<RemapOutput> _changed;
-        private readonly List<Action> _refresh = [];
+        private readonly StepFormState<RemapOutput> _form;
         private MouseButton _button = MouseButton.Middle;
         private KeyCode _key = KeyCode.None;
         private KeyModifiers _rightHand = KeyModifiers.None;
@@ -99,26 +87,20 @@ public sealed class RemapStepForm : IStepForm
 
         public State(RemapOutput output, Action<RemapOutput> changed)
         {
-            Output = output;
-            _changed = changed;
+            _form = new StepFormState<RemapOutput>(output, changed) { Accepted = Remember };
             Remember(output);
             KeyBox = new HotkeyCaptureBox();
             KeyBox.Committed += (_, e) => Emit(new RemapOutput.Key(e.Key, e.Modifiers, e.RightHand & e.Modifiers));
-            _refresh.Add(ShowKeyBox);
+            _form.OnEdit(ShowKeyBox);
             ShowKeyBox();
         }
 
-        public RemapOutput Output { get; private set; }
+        public RemapOutput Output => _form.Current;
 
         /// <summary>The capture field of a key output: the key and its modifiers (and their sides) in one press.</summary>
         public HotkeyCaptureBox KeyBox { get; }
 
-        public DelegateBinding<T> Binding<T>(Func<T> get, Action<T> set)
-        {
-            var binding = new DelegateBinding<T>(get, set, propertyName: null);
-            _refresh.Add(binding.NotifyChanged);
-            return binding;
-        }
+        public DelegateBinding<T> Binding<T>(Func<T> get, Action<T> set) => _form.Refreshed(get, set);
 
         public IValueBinding<bool> Shows(RemapOutputKind kind) => Binding(() => Output.Kind == kind, _ => { });
 
@@ -164,50 +146,24 @@ public sealed class RemapStepForm : IStepForm
 
         public ScrollDirection ShownDirection => Output is RemapOutput.Wheel wheel ? wheel.Direction : _direction;
 
-        /// <summary>One check box of a button's or a wheel's modifiers.</summary>
-        public ToggleOption Plain(KeyModifiers flag) => new(
-            HotkeyText.Format(flag, KeyCode.None),
-            Binding(() => (Output.Modifiers & flag) != 0, on => Emit(Output with { Modifiers = on ? Output.Modifiers | flag : Output.Modifiers & ~flag })));
+        /// <summary>The check boxes of a button's or a wheel's modifiers.</summary>
+        public IReadOnlyList<ToggleOption> HeldKeys()
+            => HotkeyChoices.HeldKeys(() => Output.Modifiers, modifiers => Emit(Output with { Modifiers = modifiers }), _form.OnEdit);
 
         /// <summary>A key output's modifier with its right-hand toggle; built now, so its refresh is registered before any edit.</summary>
-        public Func<Control> Toggle(KeyModifiers flag)
-        {
-            var toggle = new ModifierToggle();
-            void Show()
-            {
-                toggle.IsOn = (Output.Modifiers & flag) != 0;
-                toggle.IsRightHand = Output is RemapOutput.Key { RightHand: var right } && (right & flag) != 0;
-            }
-
-            Show();
-            _refresh.Add(Show);
-            toggle.Toggled += (_, _) =>
+        public Func<Control> Toggle(KeyModifiers flag) => HotkeyChoices.ModifierToggle(
+            flag,
+            () => (Output.Modifiers, Output is RemapOutput.Key key ? key.RightHand : KeyModifiers.None),
+            (modifiers, right) =>
             {
                 if (Output is RemapOutput.Key key)
                 {
-                    var modifiers = toggle.IsOn ? key.Modifiers | flag : key.Modifiers & ~flag;
-                    var right = toggle.IsRightHand ? key.RightHand | flag : key.RightHand & ~flag;
                     Emit(key with { Modifiers = modifiers, RightHand = right & modifiers });
                 }
-            };
-            return () => toggle;
-        }
+            },
+            _form.OnEdit);
 
-        private void Emit(RemapOutput next)
-        {
-            if (next == Output)
-            {
-                return;
-            }
-
-            Output = next;
-            Remember(next);
-            _changed(next);
-            foreach (var refresh in _refresh)
-            {
-                refresh();
-            }
-        }
+        private void Emit(RemapOutput next) => _form.Emit(next);
 
         private void Remember(RemapOutput output)
         {

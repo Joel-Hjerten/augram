@@ -1,4 +1,5 @@
 using Augram.App.Components.Fields;
+using Augram.App.Components.Parts;
 using Augram.App.Declarations;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Run;
@@ -38,42 +39,31 @@ public sealed class RunStepForm : IStepForm
     public Control Build(IStep current, Action<IStep> changed)
     {
         ArgumentNullException.ThrowIfNull(changed);
-        var state = StepParameters.Expect<RunStep>(current, RunStepType.Instance);
-        void Emit(RunStep next)
-        {
-            if (next == state)
-            {
-                return;
-            }
-
-            state = next;
-            changed(next);
-        }
-
-        var file = new DelegateBinding<string>(() => state.File, value => Emit(state with { File = value }), propertyName: nameof(RunStep.File));
+        var form = new StepFormState<RunStep>(StepParameters.Expect<RunStep>(current, RunStepType.Instance), changed);
+        var file = form.Bind(() => form.Current.File, value => form.Emit(form.Current with { File = value }), propertyName: nameof(RunStep.File));
         var fields = new List<Field>
         {
             new CustomField("Program", () => ProgramLine(file), Help: ProgramHelp),
             new TextField(
                 "Arguments",
-                new DelegateBinding<string>(() => state.Arguments, value => Emit(state with { Arguments = value })),
+                form.Bind(() => form.Current.Arguments, value => form.Emit(form.Current with { Arguments = value })),
                 "Everything after the program on a command line: /f /im yuzu.exe. Not written to the log."),
             new TextField(
                 "Start in",
-                new DelegateBinding<string>(() => state.WorkingDirectory, value => Emit(state with { WorkingDirectory = value })),
+                form.Bind(() => form.Current.WorkingDirectory, value => form.Emit(form.Current with { WorkingDirectory = value })),
                 "Optional folder the program starts in; empty is your home folder."),
         };
         if (OffersElevation)
         {
             fields.Add(new ToggleField(
                 ElevatedLabel,
-                new DelegateBinding<bool>(() => state.Elevated, value => Emit(state with { Elevated = value })),
+                form.Bind(() => form.Current.Elevated, value => form.Emit(form.Current with { Elevated = value })),
                 "Asks for administrator rights (the UAC prompt) every time it runs; declining skips the step."));
         }
 
         fields.Add(new ToggleField(
             HiddenLabel,
-            new DelegateBinding<bool>(() => state.Hidden, value => Emit(state with { Hidden = value })),
+            form.Bind(() => form.Current.Hidden, value => form.Emit(form.Current with { Hidden = value })),
             OffersElevation ? "Starts without a window: for console tools such as taskkill." : "Starts the app hidden, in the background."));
         return new SectionForm.SectionForm { Screen = new FormScreen("Run", [new Section("Run", fields)]) };
     }
@@ -81,9 +71,8 @@ public sealed class RunStepForm : IStepForm
     /// <summary>Browse… then the text field, on one line.</summary>
     private static DockPanel ProgramLine(DelegateBinding<string> file)
     {
-        var browse = new Button { Content = BrowseLabel };
-        browse.Classes.Add("toolbar");
-        browse.Click += (_, _) => _ = BrowseAsync(browse, file);
+        Button? browse = null;
+        browse = ToolbarButton.Create(BrowseLabel, () => _ = BrowseAsync(browse!, file));
         DockPanel.SetDock(browse, Dock.Left);
         var line = new DockPanel { Children = { browse, FieldRendererRegistry.Default.Build(new TextField("Program", file)) } };
         line.Classes.Add("field-line");

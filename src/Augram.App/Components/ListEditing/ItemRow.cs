@@ -1,0 +1,226 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Metadata;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+
+namespace Augram.App.Components.ListEditing;
+
+/// <summary>
+/// What every row of an editable list shares (F5a): the command tree's section and command rows, the step list's rows, the
+/// Exclusions lists' rows and the gesture grid's tiles. An active toggle (the template's <c>PART_Active</c> check box, when it
+/// has one, raising <see cref="ActiveToggled"/> only for a user click) and, when <see cref="CanRename"/>, in-place rename
+/// through <c>PART_NameEditor</c>, the one rename editor: <see cref="BeginEdit"/> shows it with the current name, Enter or
+/// leaving the editor raises <see cref="RenameCommitted"/>, Escape reverts. Rows never touch a store; their list forwards the
+/// events to its host. Greyed via <c>:inactive</c>.
+/// </summary>
+[PseudoClasses(":editing", ":inactive")]
+public abstract class ItemRow : TemplatedControl
+{
+    public static readonly StyledProperty<string> NameTextProperty =
+        AvaloniaProperty.Register<ItemRow, string>(nameof(NameText), string.Empty);
+
+    public static readonly StyledProperty<bool> IsActiveProperty =
+        AvaloniaProperty.Register<ItemRow, bool>(nameof(IsActive), true);
+
+    public static readonly StyledProperty<bool> IsEditingProperty =
+        AvaloniaProperty.Register<ItemRow, bool>(nameof(IsEditing));
+
+    public static readonly StyledProperty<bool> CanRenameProperty =
+        AvaloniaProperty.Register<ItemRow, bool>(nameof(CanRename), true);
+
+    private TextBox? _editor;
+    private CheckBox? _active;
+    private Control? _name;
+
+    protected ItemRow()
+    {
+        AddHandler(PointerPressedEvent, (_, e) => LastPressClickCount = e.ClickCount, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    /// <summary>Raised with the trimmed new name when the user presses Enter in the editor.</summary>
+    public event EventHandler<string>? RenameCommitted;
+
+    /// <summary>Raised when the user clicks the active check box; the host flips the flag in the store.</summary>
+    public event EventHandler? ActiveToggled;
+
+    public string NameText
+    {
+        get => GetValue(NameTextProperty);
+        protected set => SetValue(NameTextProperty, value);
+    }
+
+    public bool IsActive
+    {
+        get => GetValue(IsActiveProperty);
+        protected set => SetValue(IsActiveProperty, value);
+    }
+
+    public bool IsEditing
+    {
+        get => GetValue(IsEditingProperty);
+        private set => SetValue(IsEditingProperty, value);
+    }
+
+    /// <summary>The click count of the last press on this row: 2 for the second click of a double click.</summary>
+    internal int LastPressClickCount { get; private set; }
+
+    /// <summary>Whether a pointer event landed on one of the row's own controls (a button such as the expander or the active box, or the name editor) rather than on the row itself.</summary>
+    internal bool IsFromOwnControl(Visual? source)
+    {
+        for (var visual = source; visual is not null && visual != this; visual = visual.GetVisualParent())
+        {
+            if (visual is Button or TextBox)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether the pointer is over the name text: the template's <c>PART_Name</c> as laid out, which the themes dock left and size
+    /// to its text. Judged by position, not by the event's source: a text block without a background is not hit at every point
+    /// of its bounds.
+    /// </summary>
+    internal bool IsOnName(PointerEventArgs e)
+        => _name is { IsEffectivelyVisible: true } name && new Rect(name.Bounds.Size).Contains(e.GetPosition(name));
+
+    /// <summary>
+    /// Whether a press is the second click of a double click that renames this row (the tree starts the editor): the left button,
+    /// on the row rather than on one of its own controls, while it can be renamed and is not being edited, and where
+    /// <see cref="RenamesAt"/> says. The one rule, so a header's press never both toggles and renames.
+    /// </summary>
+    internal bool IsRenameClick(PointerPressedEventArgs e)
+        => e.ClickCount == 2
+            && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            && CanRename
+            && !IsEditing
+            && !IsFromOwnControl(e.Source as Visual)
+            && RenamesAt(e);
+
+    /// <summary>Where on the row a double click renames it: anywhere on a command row; a section header narrows it to its name.</summary>
+    protected virtual bool RenamesAt(PointerEventArgs e) => true;
+
+    /// <summary>False for steps (and a section row before it has its item).</summary>
+    public bool CanRename
+    {
+        get => GetValue(CanRenameProperty);
+        protected set => SetValue(CanRenameProperty, value);
+    }
+
+    public void BeginEdit()
+    {
+        if (!CanRename)
+        {
+            return;
+        }
+
+        IsEditing = true;
+        StartEditor();
+    }
+
+    public void CancelEdit() => IsEditing = false;
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+        _name = e.NameScope.Find<Control>("PART_Name");
+        _editor = e.NameScope.Find<TextBox>("PART_NameEditor");
+        if (_editor is not null)
+        {
+            _editor.KeyDown += OnEditorKeyDown;
+            _editor.LostFocus += (_, _) => CommitOnLeave();
+
+            // A row created by the store change that made it (a fresh "New command N") is asked to edit
+            // before it has a template; the editor starts here instead.
+            if (IsEditing)
+            {
+                StartEditor();
+            }
+        }
+
+        _active = e.NameScope.Find<CheckBox>("PART_Active");
+        if (_active is not null)
+        {
+            _active.IsChecked = IsActive;
+            _active.IsCheckedChanged += OnActiveChanged;
+        }
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == IsEditingProperty)
+        {
+            PseudoClasses.Set(":editing", IsEditing);
+        }
+        else if (change.Property == IsActiveProperty)
+        {
+            PseudoClasses.Set(":inactive", !IsActive);
+            if (_active is not null && _active.IsChecked != IsActive)
+            {
+                _active.IsChecked = IsActive;
+            }
+        }
+    }
+
+    private void StartEditor()
+    {
+        if (_editor is not null)
+        {
+            _editor.Text = NameText;
+            _editor.Focus();
+            _editor.SelectAll();
+        }
+    }
+
+    private void OnActiveChanged(object? sender, EventArgs e)
+    {
+        if (_active is not null && _active.IsChecked != IsActive)
+        {
+            ActiveToggled?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Leaving the editor (a click elsewhere, Tab) accepts the name, as Enter does (Joel, 2026-10-07); Escape has already
+    /// ended the edit by then. The rename is raised after the input event that moved focus has finished, so a click on
+    /// another row selects it first and the store change that follows does not rebuild the rows under that click. An
+    /// unchanged name raises nothing.
+    /// </summary>
+    private void CommitOnLeave()
+    {
+        if (!IsEditing)
+        {
+            return;
+        }
+
+        var name = _editor?.Text?.Trim() ?? string.Empty;
+        IsEditing = false;
+        if (!string.Equals(name, NameText, StringComparison.Ordinal))
+        {
+            Dispatcher.UIThread.Post(() => RenameCommitted?.Invoke(this, name));
+        }
+    }
+
+    private void OnEditorKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            var name = _editor?.Text?.Trim() ?? string.Empty;
+            IsEditing = false;
+            RenameCommitted?.Invoke(this, name);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            CancelEdit();
+            e.Handled = true;
+        }
+    }
+}

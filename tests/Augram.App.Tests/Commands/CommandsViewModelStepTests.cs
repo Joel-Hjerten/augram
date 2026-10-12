@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.Tests.Support;
 using Augram.Core.Abstractions;
@@ -81,7 +82,7 @@ public sealed class CommandsViewModelStepTests
         Assert.Empty(confirm.Requests);
         Assert.Equal(["Wait 10 ms", "Wait 20 ms"], vm.Steps.Select(step => step.Summary));
         Assert.Equal(1, vm.SelectedStepIndex);
-        Assert.Equal($"Deleted step 'Wait 30 ms'. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Deleted step 'Wait 30 ms'. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
         Assert.Equal(3, CommandsTestData.Find(store, "Three steps").Steps.Count);
@@ -148,7 +149,7 @@ public sealed class CommandsViewModelStepTests
         Assert.Equal(HostPlatform.Windows, steps[1].AuthoredOn);
         Assert.Equal(1, vm.SelectedStepIndex);
         Assert.Equal("Window", vm.Steps[1].TypeName);
-        Assert.Equal($"Changed step 'Wait 20 ms' to Window. {CommandsKeymap.Current.Undo} undoes it.", vm.Message);
+        Assert.Equal($"Changed step 'Wait 20 ms' to Window. {EditKeymap.Current.Undo} undoes it.", vm.Message);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Undo));
 

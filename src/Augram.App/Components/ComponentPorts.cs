@@ -1,5 +1,4 @@
-using Augram.App.Components.ButtonDetect;
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
 using Augram.Core.Abstractions;
 using Avalonia;
 using Avalonia.Controls;

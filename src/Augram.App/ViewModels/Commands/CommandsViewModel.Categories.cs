@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.Core.Mapping;
 
 namespace Augram.App.ViewModels.Commands;
@@ -75,7 +76,7 @@ public sealed partial class CommandsViewModel
                 Categories = [.. current.Categories.Where(existing => existing.Id != id)],
                 Commands = [.. commands],
             });
-            return Deleted(category.Name, CommandsKeymap.Current.Undo);
+            return Deleted(category.Name, EditKeymap.Current.Undo);
         }).ConfigureAwait(true);
     }
 }

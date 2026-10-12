@@ -47,8 +47,6 @@ internal sealed class StepDragReorder
         _clicked = clicked;
     }
 
-    public bool IsDragging => _dragging;
-
     public void Attach(StepRow row)
     {
         row.PointerMoved += OnMoved;

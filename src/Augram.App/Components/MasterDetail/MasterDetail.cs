@@ -1,4 +1,5 @@
-using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
+using Augram.App.Components.Parts;
 using Augram.App.Declarations;
 using Augram.App.Inspector;
 using Avalonia;
@@ -14,7 +15,7 @@ namespace Augram.App.Components.MasterDetail;
 /// <see cref="MasterItem"/>s as <see cref="MasterRow"/>s (<c>PART_Rows</c>) under a heading and the new button
 /// (<c>PART_New</c>, labelled <see cref="NewLabel"/>), the selected item's declared form (<see cref="Detail"/>, rendered by
 /// a <c>SectionForm</c> in <c>PART_Detail</c>) beside it, the help line under the list and the message line at the bottom.
-/// It looks like a Commands sub-tab and shares its keymap (<see cref="CommandsKeymap"/>): the rename key or a double click
+/// It looks like a Commands sub-tab and shares its keymap (<see cref="EditKeymap"/>): the rename key or a double click
 /// renames in place, Delete deletes, the new and undo keys work, and the right-click menu offers new, rename, delete and, while
 /// the host gives it a label (<see cref="MoveLabel"/>), a move to the host's other list.
 /// Every intent leaves as one <see cref="ActionRequested"/>; the host owns the selection (<see cref="SelectedId"/>) and the
@@ -159,7 +160,7 @@ public sealed class MasterDetail : TemplatedControl
             _list.ContextMenu.Opening += (_, _) => MasterDetailMenu.Refresh(_list.ContextMenu, NewLabel, MoveLabel, SelectedItem is not null);
             // On the list, not on this control: the form beside it has text boxes where Delete and the undo key belong to the text.
             _list.KeyBindings.Clear();
-            MasterDetailMenu.BindKeys(_list, CommandsKeymap.Current, Request, () => !IsEditing);
+            MasterDetailMenu.BindKeys(_list, EditKeymap.Current, Request, () => !IsEditing);
             _list.SelectionChanged += (_, _) =>
             {
                 if (!_applying)
@@ -170,10 +171,7 @@ public sealed class MasterDetail : TemplatedControl
             ApplySelection();
         }
 
-        if (e.NameScope.Find<Button>("PART_New") is { } newButton)
-        {
-            newButton.Click += (_, _) => Request(MasterDetailAction.New);
-        }
+        e.OnClick("PART_New", () => Request(MasterDetailAction.New));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

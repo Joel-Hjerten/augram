@@ -1,6 +1,5 @@
 using System.Runtime.Versioning;
-using Augram.App.Components.ButtonDetect;
-using Augram.App.Components.HotkeyCapture;
+using Augram.App.Components.Capture;
 using Augram.App.Hosting.Launch;
 using Augram.App.Hosting.Startup;
 using Augram.App.Overlay;

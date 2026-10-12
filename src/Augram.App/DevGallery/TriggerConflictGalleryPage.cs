@@ -1,4 +1,5 @@
 #if DEBUG
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Declarations;
 using Augram.App.ViewModels.Commands;

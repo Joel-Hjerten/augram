@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandsWorkbench;
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.ListEditing;
 using Augram.App.Declarations;
 using Augram.App.Hosting;
 using Augram.App.Screens;
@@ -114,7 +115,7 @@ public sealed class CommandTreeTests
         tree.SelectedCommandId = Item(vm, "Close tab").Id;
         FocusSelectedRow(tree);
 
-        window.KeyPressQwerty(CommandsKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
+        window.KeyPressQwerty(EditKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
 
         Assert.True(tree.IsEditing);
         window.KeyPressQwerty(PhysicalKey.Delete, RawInputModifiers.None);
@@ -185,7 +186,7 @@ public sealed class CommandTreeTests
     {
         var (tree, actions, vm) = Show();
         var window = (Window)TopLevel.GetTopLevel(tree)!;
-        var modifier = CommandsKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        var modifier = EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control;
         tree.SelectedSectionId = Section(vm, "Chrome").Id;
         tree.SelectedCommandId = Item(vm, "Close tab").Id;
         FocusSelectedRow(tree);
@@ -455,7 +456,7 @@ public sealed class CommandTreeTests
         // What a click on a header does: the toggle comes back as new sections and every row is rebuilt.
         tree.Sections = vm.Sections.ToList();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        window.KeyPressQwerty(CommandsKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
+        window.KeyPressQwerty(EditKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter, RawInputModifiers.None);
 
         Assert.True(tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome").IsEditing);
     }

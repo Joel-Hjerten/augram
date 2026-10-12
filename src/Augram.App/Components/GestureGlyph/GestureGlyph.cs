@@ -3,15 +3,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
-using Avalonia.Media;
 
 namespace Augram.App.Components.GestureGlyph;
 
 /// <summary>
 /// Lookless gesture icon (F4): <see cref="Points"/> in, <see cref="StrokePoints"/> out that the theme's template draws
 /// with a <see cref="GlyphStroke"/> named <c>PART_Stroke</c> (dim at the start, full colour at the arrowhead; Joel,
-/// 2026-10-08), and the same as a <see cref="Geometry"/> for anything that wants a path. Both are rebuilt only when the
-/// points or the size change, by <see cref="GlyphGeometry"/>; <see cref="IsActive"/> false sets the
+/// 2026-10-08), rebuilt only when the points or the size change, by <see cref="GlyphGeometry"/>; <see cref="IsActive"/> false sets the
 /// <c>:inactive</c> pseudo-class so the theme can grey it (F3). Works at any size: a 48 px row tile
 /// or a 300 px training preview, the theme decides.
 /// </summary>
@@ -26,9 +24,6 @@ public sealed class GestureGlyph : TemplatedControl
 
     public static readonly StyledProperty<double> ArrowLengthProperty =
         AvaloniaProperty.Register<GestureGlyph, double>(nameof(ArrowLength), 8);
-
-    public static readonly StyledProperty<Geometry?> GeometryProperty =
-        AvaloniaProperty.Register<GestureGlyph, Geometry?>(nameof(Geometry));
 
     public static readonly StyledProperty<IReadOnlyList<Point>?> StrokePointsProperty =
         AvaloniaProperty.Register<GestureGlyph, IReadOnlyList<Point>?>(nameof(StrokePoints));
@@ -61,14 +56,7 @@ public sealed class GestureGlyph : TemplatedControl
         set => SetValue(ArrowLengthProperty, value);
     }
 
-    /// <summary>The polyline plus arrowhead in this control's coordinates; the template's <c>Path</c> binds it.</summary>
-    public Geometry? Geometry
-    {
-        get => GetValue(GeometryProperty);
-        private set => SetValue(GeometryProperty, value);
-    }
-
-    /// <summary>The same stroke as points in this control's coordinates, for the template's <see cref="GlyphStroke"/> (the start-to-end gradient).</summary>
+    /// <summary>The stroke as points in this control's coordinates, for the template's <see cref="GlyphStroke"/> (the start-to-end gradient).</summary>
     public IReadOnlyList<Point>? StrokePoints
     {
         get => GetValue(StrokePointsProperty);
@@ -108,7 +96,6 @@ public sealed class GestureGlyph : TemplatedControl
         var hasPoints = points is { Count: > 0 };
         PseudoClasses.Set(":empty", !hasPoints);
         var drawable = hasPoints && size.Width > 0 && size.Height > 0;
-        Geometry = drawable ? GlyphGeometry.Build(points!, size, Padding, ArrowLength) : null;
         StrokePoints = drawable ? GlyphGeometry.StrokePoints(points!, size, Padding) : null;
     }
 }

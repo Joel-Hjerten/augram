@@ -1,10 +1,8 @@
+using Augram.App.Components.ListEditing;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
-using Avalonia.Controls.Primitives;
-using Avalonia.Input;
-using Avalonia.Threading;
 
 namespace Augram.App.Components.GestureGrid;
 
@@ -12,27 +10,19 @@ namespace Augram.App.Components.GestureGrid;
 /// Lookless tile of the gesture grid: glyph above name, greyed via the <c>:inactive</c> pseudo-class,
 /// outlined via <c>:duplicate</c> when the item has duplicates (A7), and marked <c>:partner</c> with the
 /// score while the selected tile is a duplicate of it.
-/// Rename edits in place (F5a): <see cref="BeginEdit"/> shows the template's <c>PART_NameEditor</c>
-/// with the current name; Enter or leaving the editor raises <see cref="RenameCommitted"/>, Escape reverts. The tile
-/// never touches a store; the grid forwards the commit to its host.
+/// Rename edits in place through <see cref="ItemRow"/> (F5a), the one rename editor: <see cref="ItemRow.BeginEdit"/> shows the
+/// template's <c>PART_NameEditor</c> with the current name; Enter or leaving the editor raises <see cref="ItemRow.RenameCommitted"/>,
+/// Escape reverts. A tile has no active box (its template has no <c>PART_Active</c>), and can be renamed only once it has an
+/// item. The tile never touches a store; the grid forwards the commit to its host.
 /// </summary>
-[PseudoClasses(":inactive", ":editing", ":duplicate", ":partner")]
-public sealed class GestureTile : TemplatedControl
+[PseudoClasses(":duplicate", ":partner")]
+public sealed class GestureTile : ItemRow
 {
     public static readonly StyledProperty<GestureTileItem?> ItemProperty =
         AvaloniaProperty.Register<GestureTile, GestureTileItem?>(nameof(Item));
 
-    public static readonly StyledProperty<string> NameTextProperty =
-        AvaloniaProperty.Register<GestureTile, string>(nameof(NameText), string.Empty);
-
     public static readonly StyledProperty<IReadOnlyList<GesturePoint>?> PointsProperty =
         AvaloniaProperty.Register<GestureTile, IReadOnlyList<GesturePoint>?>(nameof(Points));
-
-    public static readonly StyledProperty<bool> IsActiveProperty =
-        AvaloniaProperty.Register<GestureTile, bool>(nameof(IsActive), true);
-
-    public static readonly StyledProperty<bool> IsEditingProperty =
-        AvaloniaProperty.Register<GestureTile, bool>(nameof(IsEditing));
 
     public static readonly StyledProperty<bool> HasDuplicatesProperty =
         AvaloniaProperty.Register<GestureTile, bool>(nameof(HasDuplicates));
@@ -40,10 +30,10 @@ public sealed class GestureTile : TemplatedControl
     public static readonly StyledProperty<string?> PartnerScoreTextProperty =
         AvaloniaProperty.Register<GestureTile, string?>(nameof(PartnerScoreText));
 
-    private TextBox? _editor;
-
-    /// <summary>Raised with the trimmed new name when the user presses Enter in the editor.</summary>
-    public event EventHandler<string>? RenameCommitted;
+    public GestureTile()
+    {
+        CanRename = false;
+    }
 
     public GestureTileItem? Item
     {
@@ -51,28 +41,10 @@ public sealed class GestureTile : TemplatedControl
         set => SetValue(ItemProperty, value);
     }
 
-    public string NameText
-    {
-        get => GetValue(NameTextProperty);
-        private set => SetValue(NameTextProperty, value);
-    }
-
     public IReadOnlyList<GesturePoint>? Points
     {
         get => GetValue(PointsProperty);
         private set => SetValue(PointsProperty, value);
-    }
-
-    public bool IsActive
-    {
-        get => GetValue(IsActiveProperty);
-        private set => SetValue(IsActiveProperty, value);
-    }
-
-    public bool IsEditing
-    {
-        get => GetValue(IsEditingProperty);
-        private set => SetValue(IsEditingProperty, value);
     }
 
     public bool HasDuplicates
@@ -92,35 +64,6 @@ public sealed class GestureTile : TemplatedControl
     public void SetPartner(double? score)
         => PartnerScoreText = score is { } value ? Math.Round(value).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%" : null;
 
-    public void BeginEdit()
-    {
-        if (Item is null)
-        {
-            return;
-        }
-
-        IsEditing = true;
-        if (_editor is not null)
-        {
-            _editor.Text = Item.Name;
-            _editor.Focus();
-            _editor.SelectAll();
-        }
-    }
-
-    public void CancelEdit() => IsEditing = false;
-
-    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-    {
-        base.OnApplyTemplate(e);
-        _editor = e.NameScope.Find<TextBox>("PART_NameEditor");
-        if (_editor is not null)
-        {
-            _editor.KeyDown += OnEditorKeyDown;
-            _editor.LostFocus += (_, _) => CommitOnLeave();
-        }
-    }
-
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -131,6 +74,7 @@ public sealed class GestureTile : TemplatedControl
             Points = item?.Points;
             IsActive = item?.IsActive ?? true;
             HasDuplicates = item?.HasDuplicates ?? false;
+            CanRename = item is not null;
         }
         else if (change.Property == HasDuplicatesProperty)
         {
@@ -139,51 +83,6 @@ public sealed class GestureTile : TemplatedControl
         else if (change.Property == PartnerScoreTextProperty)
         {
             PseudoClasses.Set(":partner", PartnerScoreText is not null);
-        }
-        else if (change.Property == IsActiveProperty)
-        {
-            PseudoClasses.Set(":inactive", !IsActive);
-        }
-        else if (change.Property == IsEditingProperty)
-        {
-            PseudoClasses.Set(":editing", IsEditing);
-        }
-    }
-
-    /// <summary>
-    /// Leaving the editor (a click elsewhere, Tab) accepts the name, as Enter does (Joel, 2026-10-07); Escape has already
-    /// ended the edit by then. The rename is raised after the input event that moved focus has finished, so a click on
-    /// another row selects it first and the store change that follows does not rebuild the rows under that click. An
-    /// unchanged name raises nothing.
-    /// </summary>
-    private void CommitOnLeave()
-    {
-        if (!IsEditing)
-        {
-            return;
-        }
-
-        var name = _editor?.Text?.Trim() ?? string.Empty;
-        IsEditing = false;
-        if (!string.Equals(name, NameText, StringComparison.Ordinal))
-        {
-            Dispatcher.UIThread.Post(() => RenameCommitted?.Invoke(this, name));
-        }
-    }
-
-    private void OnEditorKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            var name = _editor?.Text?.Trim() ?? string.Empty;
-            IsEditing = false;
-            RenameCommitted?.Invoke(this, name);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Escape)
-        {
-            CancelEdit();
-            e.Handled = true;
         }
     }
 }

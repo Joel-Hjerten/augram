@@ -1,3 +1,5 @@
+using Augram.App.Components.ListEditing;
+using Augram.App.Components.Parts;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
@@ -81,7 +83,7 @@ public sealed class GestureGrid : TemplatedControl
         }
     }
 
-    /// <summary>Starts in-place rename of the selected tile (F2/Return or the menu).</summary>
+    /// <summary>Starts in-place rename of the selected tile (the rename keys of <see cref="EditKeymap"/> or the menu).</summary>
     public void BeginRename() => (_list?.SelectedItem as GestureTile)?.BeginEdit();
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -95,7 +97,7 @@ public sealed class GestureGrid : TemplatedControl
             // On the grid, not the list: key bindings are evaluated from the focused element upwards,
             // so they work from a focused tile and from the toolbar buttons alike.
             KeyBindings.Clear();
-            GestureGridMenu.BindKeys(this, Request, () => !IsEditing);
+            GestureGridMenu.BindKeys(this, EditKeymap.Current, Request, () => !IsEditing);
             _list.SelectionChanged += (_, _) =>
             {
                 _selectedId = SelectedTile?.Id ?? _selectedId;
@@ -108,11 +110,11 @@ public sealed class GestureGrid : TemplatedControl
             }
         }
 
-        Wire(e, "PART_New", GestureGridAction.New);
-        Wire(e, "PART_Import", GestureGridAction.Import);
-        Wire(e, "PART_Export", GestureGridAction.Export);
-        Wire(e, "PART_Undo", GestureGridAction.Undo);
-        Wire(e, "PART_Redo", GestureGridAction.Redo);
+        e.OnClick("PART_New", () => Request(GestureGridAction.New));
+        e.OnClick("PART_Import", () => Request(GestureGridAction.Import));
+        e.OnClick("PART_Export", () => Request(GestureGridAction.Export));
+        e.OnClick("PART_Undo", () => Request(GestureGridAction.Undo));
+        e.OnClick("PART_Redo", () => Request(GestureGridAction.Redo));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -124,13 +126,6 @@ public sealed class GestureGrid : TemplatedControl
         }
     }
 
-    private void Wire(TemplateAppliedEventArgs e, string part, GestureGridAction action)
-    {
-        if (e.NameScope.Find<Button>(part) is { } button)
-        {
-            button.Click += (_, _) => Request(action);
-        }
-    }
 
     private void Rebuild()
     {

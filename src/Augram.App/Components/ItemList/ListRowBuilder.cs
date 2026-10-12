@@ -1,4 +1,5 @@
 using Augram.App.Components.Fields;
+using Augram.App.Components.Parts;
 using Augram.App.Declarations;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -22,10 +23,7 @@ internal static class ListRowBuilder
 
         foreach (var action in spec.Toolbar ?? [])
         {
-            var button = new Button { Content = action.Label };
-            button.Classes.Add("toolbar");
-            button.Click += (_, _) => action.Execute(selected());
-            items.Add(button);
+            items.Add(ToolbarButton.Create(action.Label, () => action.Execute(selected())));
         }
 
         return items;

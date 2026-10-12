@@ -1,5 +1,7 @@
+using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.StepList;
+using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Capture;
 using Augram.Core.Mapping;
 
@@ -94,7 +96,7 @@ public sealed partial class CommandsViewModel
     {
         var shown = command.StepsFor(_platform);
         var editable = EditableSteps(command);
-        return [.. shown.Select((step, index) => StepItem.From(step, index, _platform) with { Step = editable[index] })];
+        return [.. shown.Select((step, index) => StepItemProjection.From(step, index, _platform) with { Step = editable[index] })];
     }
 
     /// <summary>
@@ -104,9 +106,9 @@ public sealed partial class CommandsViewModel
     /// and why (<see cref="StepOffer.Refusals"/> over the draft's trigger while one waits), and for each step the types "Change
     /// to…" greys for it (<see cref="StepOffer.ChangeRefusals"/>, the same way).
     /// </summary>
-    private CommandItem? HeaderItem(CommandItem? row)
+    private CommandHeaderItem? HeaderItem(CommandItem? row)
     {
-        if (WithDraft(row) is not { } item)
+        if (WithDraft(row is null ? null : new CommandHeaderItem(row)) is not { } item)
         {
             return null;
         }

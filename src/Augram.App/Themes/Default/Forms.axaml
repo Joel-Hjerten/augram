@@ -4,7 +4,7 @@
         xmlns:form="using:Augram.App.Components.SectionForm"
         xmlns:text="using:Augram.App.Components.TextPanel"
         xmlns:color="using:Augram.App.Components.Fields.Color"
-        xmlns:hk="using:Augram.App.Components.HotkeyCapture"
+        xmlns:hk="using:Augram.App.Components.Capture"
         xmlns:wf="using:Augram.App.Components.WindowFinder">
   <!--
     The glass look's forms, text and standard controls (plan 0006 step 4; visual reference

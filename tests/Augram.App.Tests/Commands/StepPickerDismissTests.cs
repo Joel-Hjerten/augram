@@ -1,4 +1,5 @@
 using Augram.App.Components.StepList;
+using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
@@ -61,7 +62,7 @@ public sealed class StepPickerDismissTests
             new(new WindowOpStep(WindowOperation.Center), HostPlatform.Windows),
             new(new DelayStep(50), HostPlatform.Windows),
         ];
-        var list = new StepList { Steps = steps.Select((step, index) => StepItem.From(step, index, HostPlatform.Windows)).ToList(), SelectedIndex = 1, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
+        var list = new StepList { Steps = steps.Select((step, index) => StepItemProjection.From(step, index, HostPlatform.Windows)).ToList(), SelectedIndex = 1, StepTypes = StepRegistry.BuiltIn.All, HasCommand = true };
         var window = new Window { Content = list, Width = 700, Height = 700 };
         window.Show();
         return list;
