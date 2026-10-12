@@ -487,6 +487,28 @@ public sealed class CommandTreeTests
         Assert.True(tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome").IsEditing);
     }
 
+    [AvaloniaFact]
+    public void AfterEnterEndsAGroupsRename_AndTheRowsAreRebuilt_TheRenameKeyStartsAnother()
+    {
+        // Joel, 2026-10-12: renaming an app group a second time needed a click on it first.
+        var (tree, actions, vm) = Show();
+        var window = (Window)TopLevel.GetTopLevel(tree)!;
+        var renameKey = EditKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter;
+        tree.SelectedSectionId = Section(vm, "Chrome").Id;
+        FocusSelectedRow(tree);
+
+        window.KeyPressQwerty(renameKey, RawInputModifiers.None);
+        Assert.True(tree.IsEditing);
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+
+        // The store change the rename makes comes back as new sections, and every row is rebuilt.
+        tree.Sections = vm.Sections.ToList();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        window.KeyPressQwerty(renameKey, RawInputModifiers.None);
+
+        Assert.True(tree.Rows.OfType<SectionRow>().Single(row => row.NameText == "Chrome").IsEditing);
+    }
+
     private static List<string> ShowingNewCommand(CommandTree tree)
         => [.. tree.Rows.OfType<SectionRow>().Where(row => row.ShowsNewCommand).Select(row => row.NameText)];
 

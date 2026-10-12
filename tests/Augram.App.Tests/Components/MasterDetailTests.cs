@@ -120,6 +120,30 @@ public sealed class MasterDetailTests
     }
 
     [AvaloniaFact]
+    public void AfterEnterOrEscapeEndsARename_TheRenameKeyStartsAnotherWithoutAClick()
+    {
+        // Joel, 2026-10-12: the hidden editor took the focus with it, so the rename key did nothing until a click on the row.
+        var (view, _) = Show();
+        var window = (Window)TopLevel.GetTopLevel(view)!;
+        var renameKey = EditKeymap.Current.Rename == "F2" ? PhysicalKey.F2 : PhysicalKey.Enter;
+        view.SelectedId = VMware.Id;
+        FocusSelectedRow(view);
+
+        window.KeyPressQwerty(renameKey, RawInputModifiers.None);
+        Assert.True(view.IsEditing);
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        Assert.False(view.IsEditing);
+
+        window.KeyPressQwerty(renameKey, RawInputModifiers.None);
+        Assert.True(view.IsEditing);
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Assert.False(view.IsEditing);
+
+        window.KeyPressQwerty(renameKey, RawInputModifiers.None);
+        Assert.True(view.IsEditing);
+    }
+
+    [AvaloniaFact]
     public void KeysTypedInTheDetailForm_BelongToItsText_NotToTheList()
     {
         var (view, actions) = Show();

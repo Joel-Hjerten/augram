@@ -14,8 +14,9 @@ namespace Augram.App.Components.ListEditing;
 /// Exclusions lists' rows and the gesture grid's tiles. An active toggle (the template's <c>PART_Active</c> check box, when it
 /// has one, raising <see cref="ActiveToggled"/> only for a user click) and, when <see cref="CanRename"/>, in-place rename
 /// through <c>PART_NameEditor</c>, the one rename editor: <see cref="BeginEdit"/> shows it with the current name, Enter or
-/// leaving the editor raises <see cref="RenameCommitted"/>, Escape reverts. Rows never touch a store; their list forwards the
-/// events to its host. Greyed via <c>:inactive</c>.
+/// leaving the editor raises <see cref="RenameCommitted"/>, Escape reverts. Enter and Escape hand the focus back to the row's
+/// list item, so the rename key works again at once. Rows never touch a store; their list forwards the events to its host.
+/// Greyed via <c>:inactive</c>.
 /// </summary>
 [PseudoClasses(":editing", ":inactive")]
 public abstract class ItemRow : TemplatedControl
@@ -214,13 +215,22 @@ public abstract class ItemRow : TemplatedControl
         {
             var name = _editor?.Text?.Trim() ?? string.Empty;
             IsEditing = false;
+            FocusListItem();
             RenameCommitted?.Invoke(this, name);
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)
         {
             CancelEdit();
+            FocusListItem();
             e.Handled = true;
         }
     }
+
+    /// <summary>
+    /// The focus back to the row's list item when Enter or Escape ends the edit: the hidden editor drops it otherwise, and the
+    /// list's keys (the rename key among them) stop reaching the list until a click (Joel, 2026-10-12). Before the rename is
+    /// raised, so the rebuild it causes moves the focus on to the row's replacement (<see cref="RowListHost.Replace"/>).
+    /// </summary>
+    private void FocusListItem() => this.FindAncestorOfType<ListBoxItem>()?.Focus();
 }
