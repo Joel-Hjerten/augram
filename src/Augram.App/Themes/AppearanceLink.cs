@@ -1,10 +1,10 @@
+using Augram.App.Hosting;
 using Augram.Core.Config;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Styling;
-using Avalonia.Threading;
 
 namespace Augram.App.Themes;
 
@@ -61,7 +61,7 @@ public sealed class AppearanceLink
         settings.Changed += (_, _) =>
         {
             var current = settings.Current;
-            Dispatcher.UIThread.Post(() => link.Update(current));
+            UiThread.Post(() => link.Update(current));
         };
         return link;
     }

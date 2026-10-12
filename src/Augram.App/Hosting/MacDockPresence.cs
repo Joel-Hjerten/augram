@@ -2,7 +2,6 @@ using System.Runtime.Versioning;
 using Augram.Platform.MacOS;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Threading;
 
 namespace Augram.App.Hosting;
 
@@ -26,7 +25,7 @@ internal static class MacDockPresence
             else if (e.Property == Window.WindowStateProperty && window.WindowState == WindowState.Minimized)
             {
                 // After the state change has settled; showing the window again restores it (App.ShowMainWindow).
-                Dispatcher.UIThread.Post(window.Hide);
+                UiThread.Post(window.Hide);
             }
         };
     }
