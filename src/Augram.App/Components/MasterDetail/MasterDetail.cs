@@ -6,7 +6,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using Avalonia.Threading;
 
 namespace Augram.App.Components.MasterDetail;
 
@@ -56,8 +55,12 @@ public sealed class MasterDetail : TemplatedControl
     public static readonly StyledProperty<string?> MessageProperty =
         AvaloniaProperty.Register<MasterDetail, string?>(nameof(Message));
 
-    private ListBox? _list;
-    private bool _applying;
+    private readonly RowListHost _rows;
+
+    public MasterDetail()
+    {
+        _rows = new RowListHost(() => IsEditing, FocusAfterRebuild.SelectedRow);
+    }
 
     public event EventHandler<MasterDetailActionEventArgs>? ActionRequested;
 
@@ -135,13 +138,13 @@ public sealed class MasterDetail : TemplatedControl
 
     public SectionForm.SectionForm? DetailPart { get; private set; }
 
-    public MasterItem? SelectedItem => (_list?.SelectedItem as MasterRow)?.Item;
+    public MasterItem? SelectedItem => (_rows.SelectedItem as MasterRow)?.Item;
 
     /// <summary>True while a row's name is being edited in place; the key bindings stand down then.</summary>
-    public bool IsEditing => Rows.Any(row => row is ItemRow { IsEditing: true });
+    public bool IsEditing => RowListHost.AnyEditing(Rows);
 
     /// <summary>Selects the item's row and starts renaming it in place.</summary>
-    public void BeginRename(Guid id) => BeginRename(Find(id));
+    public void BeginRename(Guid id) => _rows.BeginRename(Find(id));
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
@@ -152,22 +155,14 @@ public sealed class MasterDetail : TemplatedControl
             Region.Mark(DetailPart, "Detail form");
         }
 
-        _list = e.NameScope.Find<ListBox>("PART_Rows");
-        if (_list is not null)
+        if (_rows.Attach(e.NameScope.Find<ListBox>("PART_Rows"), () => Raise(MasterDetailAction.Select, SelectedItem)) is { } list)
         {
-            Region.Mark(_list, Heading.Length > 0 ? Heading : "List");
-            _list.ContextMenu = MasterDetailMenu.Build(NewLabel, Request);
-            _list.ContextMenu.Opening += (_, _) => MasterDetailMenu.Refresh(_list.ContextMenu, NewLabel, MoveLabel, SelectedItem is not null);
+            Region.Mark(list, Heading.Length > 0 ? Heading : "List");
+            list.ContextMenu = MasterDetailMenu.Build(NewLabel, Request);
+            list.ContextMenu.Opening += (_, _) => MasterDetailMenu.Refresh(list.ContextMenu, NewLabel, MoveLabel, SelectedItem is not null);
             // On the list, not on this control: the form beside it has text boxes where Delete and the undo key belong to the text.
-            _list.KeyBindings.Clear();
-            MasterDetailMenu.BindKeys(_list, EditKeymap.Current, Request, () => !IsEditing);
-            _list.SelectionChanged += (_, _) =>
-            {
-                if (!_applying)
-                {
-                    Raise(MasterDetailAction.Select, SelectedItem);
-                }
-            };
+            list.KeyBindings.Clear();
+            MasterDetailMenu.BindKeys(list, EditKeymap.Current, Request, _rows.KeysEnabled);
             ApplySelection();
         }
 
@@ -194,7 +189,6 @@ public sealed class MasterDetail : TemplatedControl
     /// <summary>Replaces every row; a list that had the keyboard focus gives it to the selected row's replacement, so the keys keep working.</summary>
     private void Rebuild()
     {
-        var hadFocus = _list?.IsKeyboardFocusWithin == true;
         var rows = new List<Control>(Items.Count);
         foreach (var item in Items)
         {
@@ -205,63 +199,27 @@ public sealed class MasterDetail : TemplatedControl
             rows.Add(row);
         }
 
-        // Replacing the rows clears the list's selection at once; that is not the user selecting nothing.
-        Quietly(() => Rows = rows);
-        ApplySelection();
-        if (hadFocus)
-        {
-            Dispatcher.UIThread.Post(() => (_list?.SelectedItem is { } selected ? _list.ContainerFromItem(selected) : null)?.Focus(), DispatcherPriority.Loaded);
-        }
+        _rows.Replace(() => Rows = rows, ApplySelection);
     }
 
     private MasterRow? Find(Guid id) => Rows.OfType<MasterRow>().FirstOrDefault(row => row.Item?.Id == id);
 
-    private void ApplySelection()
-    {
-        if (_list is not null)
-        {
-            Quietly(() => _list.SelectedItem = SelectedId is { } id ? Find(id) : null);
-        }
-    }
+    private void ApplySelection() => _rows.SelectQuietly(SelectedId is { } id ? Find(id) : null);
 
-    private void Quietly(Action change)
-    {
-        _applying = true;
-        try
-        {
-            change();
-        }
-        finally
-        {
-            _applying = false;
-        }
-    }
-
-    private void BeginRename(MasterRow? row)
-    {
-        if (_list is not null && row is not null)
-        {
-            _list.SelectedItem = row;
-            row.BeginEdit();
-        }
-    }
-
-    /// <summary>Right-click selects before the menu opens; a double click on a row's name or summary renames it.</summary>
+    /// <summary>
+    /// Right-click selects before the menu opens; a double click on a row's name or summary renames it
+    /// (<see cref="ItemRow.IsRenameClick"/>: a row here can always be renamed, anywhere on it).
+    /// </summary>
     private void OnRowPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is not MasterRow row || _list is null)
+        if (sender is not MasterRow row || _rows.List is null)
         {
             return;
         }
 
-        var properties = e.GetCurrentPoint(row).Properties;
-        if (properties.IsRightButtonPressed)
+        if (!_rows.SelectOnRightPress(row, e))
         {
-            _list.SelectedItem = row;
-        }
-        else if (properties.IsLeftButtonPressed && e.ClickCount == 2 && !row.IsEditing && !row.IsFromOwnControl(e.Source as Visual))
-        {
-            Dispatcher.UIThread.Post(() => BeginRename(row));
+            _rows.RenameOnDoubleClick(row, e, _rows.BeginRename);
         }
     }
 
@@ -271,7 +229,7 @@ public sealed class MasterDetail : TemplatedControl
         switch (action)
         {
             case MasterDetailAction.Rename:
-                BeginRename(_list?.SelectedItem as MasterRow);
+                _rows.BeginRename(_rows.SelectedItem as MasterRow);
                 break;
             case MasterDetailAction.Delete or MasterDetailAction.Move when SelectedItem is { } item:
                 Raise(action, item);
