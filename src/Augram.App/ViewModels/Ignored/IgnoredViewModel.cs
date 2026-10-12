@@ -1,5 +1,6 @@
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.MasterDetail;
+using Augram.App.Components.SearchBox;
 using Augram.App.Dialogs;
 using Augram.App.Navigation;
 using Augram.Core.Abstractions;
@@ -12,8 +13,9 @@ namespace Augram.App.ViewModels.Ignored;
 /// One Exclusions sub-tab's projection over <see cref="MappingStore"/> (F5 ignore list; plan 0001 M2 step 6; SP.net's Ignore
 /// List; Global / Per command, plan 0004; the UI word is "Exclusions" since plan 0005, the code's stays "Ignored"): the entries of
 /// its <see cref="Scope"/> as <see cref="MasterItem"/>s sorted by name (name,
-/// active, the mode or what uses it, and what the entry matches on this platform), the selection and the selected app's form
-/// (<c>.Panel</c>), and the message line. Turns the <see cref="MasterDetail"/>'s intents into store calls: a new app through
+/// active, the mode or what uses it, and what the entry matches on this platform), narrowed by the search box (plan 0009:
+/// <see cref="SearchText"/>, UI-only, on the name or the summary; a hidden selected entry keeps its form), the selection and the
+/// selected app's form (<c>.Panel</c>), and the message line. Turns the <see cref="MasterDetail"/>'s intents into store calls: a new app through
 /// the declared form in a dialog, rename in place, the active box, a move to the other list (<c>.PerCommand</c>), delete after
 /// a confirmation, undo and redo on the store's one history (the Commands tab's too). The rules live in
 /// <see cref="MappingRules"/>; only their messages show here. The engine follows every change through the store
@@ -77,6 +79,10 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
     [ObservableProperty]
     public partial Guid? SelectedId { get; private set; }
 
+    /// <summary>The search box's text (plan 0009): entries whose name or summary matches (<see cref="SearchQuery"/>); never persisted, cleared when the main window hides.</summary>
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = string.Empty;
+
     public void Handle(MasterDetailActionEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
@@ -89,6 +95,8 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
         _store.Changed -= OnStoreChanged;
         Panel.Close();
     }
+
+    partial void OnSearchTextChanged(string value) => Project();
 
     private void Dispatch(MasterDetailActionEventArgs e)
     {
@@ -151,11 +159,13 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
 
     private void Project()
     {
+        var search = SearchQuery.Parse(SearchText);
         Items = [.. _store.Current.Ignored
             .Where(app => app.Scope == Scope)
             .OrderBy(app => app.Name, MappingRules.NameComparer)
             .ThenBy(app => app.Id.Value)
-            .Select(app => new MasterItem(app.Id.Value, app.Name, app.IsActive, Summary(app)))];
+            .Select(app => new MasterItem(app.Id.Value, app.Name, app.IsActive, Summary(app)))
+            .Where(item => search.Matches(item.Name, item.Summary))];
         // Gone, or moved to the other list.
         if (SelectedId is { } id && Find(id)?.Scope != Scope)
         {

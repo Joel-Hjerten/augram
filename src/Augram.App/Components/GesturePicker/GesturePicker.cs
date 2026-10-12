@@ -1,11 +1,13 @@
 using Augram.App.Components.GestureGrid;
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.Parts;
+using Augram.App.Components.SearchBox;
 using Augram.App.Dialogs;
 using Augram.Core.Gestures;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 
 namespace Augram.App.Components.GesturePicker;
 
@@ -16,7 +18,9 @@ namespace Augram.App.Components.GesturePicker;
 /// before them.
 /// Every way out raises <see cref="Closed"/> with a <see cref="GesturePickerResult"/>; New Gesture…
 /// raises <see cref="NewGestureRequested"/> for the host to open training, and the host selects the
-/// accepted gesture through <see cref="Select"/>. Selection survives a tile rebuild by id.
+/// accepted gesture through <see cref="Select"/>. Selection survives a tile rebuild by id. The search box above the tiles
+/// (<c>PART_Search</c>, plan 0009) is two-way bound to <see cref="SearchText"/>; the presenter narrows and orders the tiles by it
+/// (the names starting with the text first), and <see cref="EmptyText"/> says "No gestures match 'xyz'" while nothing is left.
 /// </summary>
 public sealed class GesturePicker : TemplatedControl
 {
@@ -28,6 +32,12 @@ public sealed class GesturePicker : TemplatedControl
 
     public static readonly StyledProperty<bool> HasSelectionProperty =
         AvaloniaProperty.Register<GesturePicker, bool>(nameof(HasSelection));
+
+    public static readonly StyledProperty<string> SearchTextProperty =
+        AvaloniaProperty.Register<GesturePicker, string>(nameof(SearchText), string.Empty, defaultBindingMode: BindingMode.TwoWay);
+
+    public static readonly StyledProperty<string?> EmptyTextProperty =
+        AvaloniaProperty.Register<GesturePicker, string?>(nameof(EmptyText));
 
     private readonly RowListHost _rows = new(static () => false);
     private GestureId? _selectedId;
@@ -53,6 +63,20 @@ public sealed class GesturePicker : TemplatedControl
     {
         get => GetValue(HasSelectionProperty);
         private set => SetValue(HasSelectionProperty, value);
+    }
+
+    /// <summary>The search box's text (plan 0009), two-way: the presenter narrows <see cref="Tiles"/> by it.</summary>
+    public string SearchText
+    {
+        get => GetValue(SearchTextProperty);
+        set => SetValue(SearchTextProperty, value);
+    }
+
+    /// <summary>"No gestures match 'xyz'" while the search leaves no tile; null otherwise (the template hides it).</summary>
+    public string? EmptyText
+    {
+        get => GetValue(EmptyTextProperty);
+        private set => SetValue(EmptyTextProperty, value);
     }
 
     public GestureId? SelectedId => (_rows.SelectedItem as GestureTile)?.Item?.Id ?? _selectedId;
@@ -107,7 +131,18 @@ public sealed class GesturePicker : TemplatedControl
         {
             TileControls = [.. Tiles.Select(item => new GestureTile { Item = item })];
             Select(_selectedId);
+            ProjectEmptyText();
         }
+        else if (change.Property == SearchTextProperty)
+        {
+            ProjectEmptyText();
+        }
+    }
+
+    private void ProjectEmptyText()
+    {
+        var search = SearchQuery.Parse(SearchText);
+        EmptyText = Tiles.Count == 0 && !search.IsEmpty ? search.NoneMatch("gestures") : null;
     }
 
     private void OnSelectionChanged()

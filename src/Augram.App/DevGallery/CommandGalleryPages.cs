@@ -39,12 +39,13 @@ public static class CommandGalleryPages
     /// without a category) and Window; New category names one in place. Window is open and selected, so its header shows New
     /// command and the side panel its form.
     /// </summary>
-    public static ScreenDeclaration GlobalWorkbenchPage()
+    public static ScreenDeclaration GlobalWorkbenchPage(string? search = null)
     {
         var vm = WorkbenchViewModel(CommandsScope.Global, out _);
         var window = vm.Sections.Single(section => section.Name == "Window");
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.ToggleExpanded, window));
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, window));
+        vm.SearchText = search ?? string.Empty;
         return Screens.CommandsScreen.Declare(vm);
     }
 
@@ -52,10 +53,11 @@ public static class CommandGalleryPages
     /// The Apps sub-tab over the same fake mapping: Chrome, Photoshop (category tags, the header's Category dropdown), Steam games.
     /// Chrome's Close tab is selected, so Chrome's header shows New command.
     /// </summary>
-    public static ScreenDeclaration AppsWorkbenchPage()
+    public static ScreenDeclaration AppsWorkbenchPage(string? search = null)
     {
         var vm = WorkbenchViewModel(CommandsScope.Apps, out var store);
-        vm.ShowCommand(store.Current.AllCommands().Single(pair => pair.Group.Name == "Chrome" && pair.Command.Name == "Close tab").Command.Id);
+        vm.ShowCommand(store.Current.AllCommands().Single(pair => pair.Group.Name == "Chrome" && pair.Command.Name == (search is null ? "Close tab" : "Zoom in")).Command.Id);
+        vm.SearchText = search ?? string.Empty;
         return Screens.CommandsScreen.Declare(vm);
     }
 

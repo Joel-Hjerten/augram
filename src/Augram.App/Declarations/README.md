@@ -44,4 +44,4 @@ Any kind can carry `Visible`, `Enabled` and `Accessory` (`Field`); `StretchesEdi
 
 ## Lists
 
-`ListSpec`: title, columns, source, toolbar, filters, auto-scroll, row component. A list with a menu, keys or drag-reordering is a component (step list, gesture grid), not a declared list.
+`ListSpec`: title, columns, source, toolbar, filters, a `ListSearch` (plan 0009: the box's text as a `IValueBinding<string>`, the row's searchable text, and the rows' word for "No lines match 'xyz'"), auto-scroll, row component. A list with a menu, keys or drag-reordering is a component (step list, gesture grid), not a declared list.

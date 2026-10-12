@@ -11,7 +11,8 @@ namespace Augram.App.Tests.Architecture;
 /// <summary>
 /// One home per list and component mechanism (plan 0007 S14, S14b; docs/reference/one-home-guards.md): the edit keys, menus,
 /// rename in place, asking dropdowns, template parts, toolbar buttons, step form state, hotkey choices, the header's own
-/// fields, item projections, and a list's selection, focus and clicks (RowListHost).
+/// fields, item projections, a list's selection, focus and clicks (RowListHost), and the lists' search (plan 0009: the rule
+/// in SearchQuery, the box SearchBox).
 /// </summary>
 public sealed partial class OneHomeComponentTests
 {
@@ -110,6 +111,24 @@ public sealed partial class OneHomeComponentTests
     }
 
     [Fact]
+    public void SearchesCompareTextOnlyInSearchQuery()
+        => AssertOnlyIn(
+            CaseInsensitiveCompare(),
+            Code(Components, "src/Augram.App/ViewModels"),
+            "Use Components/SearchBox/SearchQuery (Parse, Matches, StartsWith) for a search; nothing else compares text case-insensitively for one (plan 0009).",
+            new Allowed(Components + "SearchBox/SearchQuery.cs", "the home"),
+            new Allowed("src/Augram.App/ViewModels/AppMatcherEditViewModel.Picking.cs", "a picked window's process name against the matcher's list: an equality, not a search", "names.Contains(window.ProcessName"));
+
+    [Fact]
+    public void TheClearGlyphBelongsToTheSearchBox()
+        => AssertOnlyIn(
+            ClearGlyph(),
+            Code(Components).Concat(Markup("src/Augram.App/Themes")),
+            "A text box with a clear glyph is Components/SearchBox/SearchBox; put the box in the toolbar instead of another one (plan 0009).",
+            new Allowed("src/Augram.App/Themes/Default/Forms.axaml", "the SearchBox template", "InnerRightContent"),
+            new Allowed("src/Augram.App/Themes/Default/Forms.axaml", "the SearchBox template's glyph", "Content=\"\u2715\""));
+
+    [Fact]
     public void ListSelectionFocusAndClicksLiveInRowListHost()
         => AssertOnlyIn(
             ListMechanics(),
@@ -127,6 +146,14 @@ public sealed partial class OneHomeComponentTests
 
     [GeneratedRegex(@"\bnew\s+(?:MenuItem|KeyBinding)\b")]
     private static partial Regex MenuOrBinding();
+
+    // Contains(…, OrdinalIgnoreCase) or StartsWith(…, OrdinalIgnoreCase): what a second search rule would have to write.
+    [GeneratedRegex(@"\.(?:Contains|StartsWith)\([^;]*?OrdinalIgnoreCase")]
+    private static partial Regex CaseInsensitiveCompare();
+
+    // A text box's inner content, or the ✕ glyph: what a second search box would be built from.
+    [GeneratedRegex(@"InnerRightContent|Content=""\u2715""")]
+    private static partial Regex ClearGlyph();
 
     [GeneratedRegex(@"PART_NameEditor")]
     private static partial Regex NameEditor();

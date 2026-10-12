@@ -28,6 +28,7 @@ public static class RecognitionScreen
                 new ListColumn("Result", row => RecognitionViewModel.Result((RecognitionLogEntry)row), 240),
             ],
             Source: vm.Source,
+            Search: new ListSearch(new DelegateBinding<string>(() => vm.SearchText, v => vm.SearchText = v, vm), RecognitionViewModel.SearchableText, "strokes"),
             AutoScroll: true));
     }
 }

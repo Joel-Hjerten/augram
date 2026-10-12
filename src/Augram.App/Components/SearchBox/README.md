@@ -1,0 +1,15 @@
+# SearchBox
+
+Search on the lists (plan 0009): one lookless box for every list's toolbar and one home for the matching rule. The Gestures tab, the gesture picker, Commands › Global and › Apps and Exclusions › Global and › Per command carry the box in their templates; a `ListSpec` list (Log, Recognition) gets it through `Declarations/ListSearch`.
+
+| Type | Job |
+|---|---|
+| `SearchBox` | The box: `Text` (two-way; filtering happens on every change, no Enter), `Placeholder`, `PART_Text` and the clear glyph `PART_Clear` (shown while there is text). Escape in the box clears it and is swallowed, so a dialog around it stays open; with nothing to clear it passes on. `Focus()` lands in the text with it selected (the lists' find key, `EditKeymap.Find`: Ctrl+F, Cmd+F on macOS). `IsTyping` says the text has the focus: a list whose keys are bound on the list control itself (the command tree, the gesture grid) counts it as editing, so Delete and Enter edit the text. Tokens only (`Editor.SearchMinWidth`; the template in `Themes/Default/Forms.axaml`, the glyph's class `search-clear`). |
+| `SearchQuery` | The rule (decision 2): `Parse(text)` splits at spaces; `Matches(name)` is true when every word is a case-insensitive substring of the name (`Matches(name, summary)` when it is in either); `IsEmpty`; `StartsWith(name)` for the picker's order; `NoneMatch(plural)` is the empty state's sentence ("No commands match 'xyz'", decision 7). The one place a search compares text; nothing else calls `Contains(…, OrdinalIgnoreCase)` for a search (`OneHomeComponentTests.SearchesCompareTextOnlyInSearchQuery`). |
+
+## How a list uses it
+
+- **State.** The text is UI-only state on the list's view model (`SearchText`, like `ShowOtherPlatforms`), two-way bound through the component (`CommandsWorkbench` → `CommandTree`; `GestureGrid`; `MasterDetail`). It is never persisted; `Hosting/HiddenWindowReset` clears every box when the main window hides (decision 8), so a hidden filter never makes rows look lost on the next open.
+- **Filtering.** The view model applies `SearchQuery` where it projects its items: `CommandSections.For` (the tree rule, decision 4), `GesturesViewModel.Project`, `IgnoredViewModel.Project` (name or summary), `GesturePickerPresenter` (starts-with first); `ItemList.Refresh` beside the dropdown filters.
+- **Empty state.** The component shows `SearchQuery.NoneMatch` in its list's place while the search leaves nothing (`EmptyText`); a list that is empty without a search shows what it showed before.
+- **Keys.** Ctrl+F / Cmd+F is `EditKeymap.Find`, bound by each list's `…Menu.BindKeys` to a `Find` action the component answers itself by focusing the box (as Rename starts the editor); no key is bound outside `ListEditing/ActionMenu`.

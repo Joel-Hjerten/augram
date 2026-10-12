@@ -51,6 +51,8 @@ This page is the map: each folder's README says what lives there, which type to 
 
 **A step type's form.** `Components/Steps/<Name>/<Name>StepForm.cs`: an `IStepForm` with `TypeKey => <Name>StepType.Instance.Key` whose `Build(current, changed)` returns a `SectionForm` over a declared `FormScreen`; every binding setter builds the new step record and calls `changed`. It is found by assembly scan (`StepFormRegistry`), so nothing else is edited; `StepFormRegistryTests` fails while a built-in type has no form. Add it to the gallery's StepForms page.
 
+**A search box on a list.** A declared list: `Search:` on its `ListSpec` (a `ListSearch` over a `SearchText` property of the view model). A list component: a `SearchText` property two-way bound to `Components/SearchBox/SearchBox` in its template, the rule `SearchQuery` where the view model projects its items, a `Find` action on `EditKeymap.Find`, and the view model in `Hosting/HiddenWindowReset` (`Components/SearchBox/README.md`).
+
 **A screen.** `Screens/<Name>Screen.cs` with `Declare(viewModel)` returning a `FormScreen`, `ListScreen`, `TextScreen` or `ComponentScreen` (one shared component filling the tab, bound to the view model in `Declare`; the Gestures grid). A new screen *shape* needs an `IScreenRenderer` under `Components/ScreenHost/` (also found by scan).
 
 **A tab or sub-tab.** One `NavEntry` from the tab's module (`Hosting/Modules/<Tab>Module.NavEntry`) pointing at the screen's `Declare`, listed in `Navigation/AppNavigation.cs`. Keys are unique across levels; `Shell.SelectedKey` can select any of them.

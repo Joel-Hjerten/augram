@@ -42,6 +42,7 @@ public static class CommandsScreen
         bench.Bind(CommandsWorkbench.PlatformFilterNudgesProperty, new Binding(nameof(CommandsViewModel.PlatformFilterNudges)));
         bench.Bind(CommandsWorkbench.SelectedStepIndexProperty, new Binding(nameof(CommandsViewModel.SelectedStepIndex)));
         bench.Bind(CommandsWorkbench.MessageProperty, new Binding(nameof(CommandsViewModel.Message)));
+        bench.Bind(CommandsWorkbench.SearchTextProperty, new Binding(nameof(CommandsViewModel.SearchText)) { Mode = BindingMode.TwoWay });
         bench.TreeActionRequested += (_, e) => vm.Handle(e);
         bench.StepActionRequested += (_, e) => vm.Handle(e);
         vm.RenameRequested += (_, id) => bench.BeginRename(id);

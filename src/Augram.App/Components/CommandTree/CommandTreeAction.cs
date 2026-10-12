@@ -30,6 +30,9 @@ public enum CommandTreeAction
     /// <summary>Show or hide the groups and commands used only on the other platform (F8; the toolbar toggle).</summary>
     ToggleOtherPlatforms,
 
+    /// <summary>The find key (plan 0009): the tree focuses its search box itself; the host never sees it.</summary>
+    Find,
+
     /// <summary>Set where the command takes part (F8 "Use on"; the header's two check boxes; <see cref="CommandTreeActionEventArgs.UseOn"/>).</summary>
     SetUseOn,
 

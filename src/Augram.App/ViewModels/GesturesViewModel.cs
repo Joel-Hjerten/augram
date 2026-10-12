@@ -1,5 +1,6 @@
 using Augram.App.Components.GestureGrid;
 using Augram.App.Components.ListEditing;
+using Augram.App.Components.SearchBox;
 using Augram.App.Dialogs;
 using Augram.App.Import;
 using Augram.App.Training;
@@ -20,8 +21,9 @@ namespace Augram.App.ViewModels;
 /// <summary>
 /// The Gestures tab's projection over <see cref="GestureLibrary"/> (F3, F4, F5a, A7): tiles sorted by
 /// name with their A7 duplicates (pairs at or above the duplicate cut-off, recomputed, debounced, after
-/// every library change; the tiles outline them and light them up on select), undo/redo availability and the handler that turns a <see cref="GestureGridActionEventArgs"/> into
-/// a store call. Rules live in the library and <see cref="ConfusionCheck"/>; this only shows outcomes.
+/// every library change; the tiles outline them and light them up on select), narrowed by the search box (plan 0009:
+/// <see cref="SearchText"/>, UI-only; a hidden partner is simply not lit), undo/redo availability and the handler that turns a
+/// <see cref="GestureGridActionEventArgs"/> into a store call. Rules live in the library and <see cref="ConfusionCheck"/>; this only shows outcomes.
 /// The <see cref="MappingStore"/> is read for "Used by…" and written when a delete or "Keep this" changes
 /// which gesture a command is bound to (<see cref="MappingStore.UnbindGesture"/>, <see cref="MappingStore.RetargetGesture"/>);
 /// those edits are one undo step on the Commands tab, apart from the library's (two stores, two histories: accepted for M2).
@@ -81,6 +83,10 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
     [ObservableProperty]
     public partial IReadOnlyList<ConfusionPair> ConfusionPairs { get; private set; } = [];
 
+    /// <summary>The search box's text (plan 0009): tiles whose name matches (<see cref="SearchQuery"/>); never persisted, cleared when the main window hides.</summary>
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = string.Empty;
+
     public void Handle(GestureGridActionEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
@@ -101,6 +107,8 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
         _diagnosticTimer.Stop();
         _library.Changed -= OnStoreChanged;
     }
+
+    partial void OnSearchTextChanged(string value) => Project();
 
     private void Dispatch(GestureGridActionEventArgs e)
     {
@@ -233,7 +241,9 @@ public sealed partial class GesturesViewModel : StoreViewModel, IDisposable
 
     private void Project()
     {
+        var search = SearchQuery.Parse(SearchText);
         Tiles = _library.All
+            .Where(gesture => search.Matches(gesture.Name))
             .OrderBy(gesture => gesture.Name, GestureRules.NameComparer)
             .Select(gesture => GestureTileItem.From(gesture, ConfusionPairs))
             .ToList();

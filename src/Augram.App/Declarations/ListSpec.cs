@@ -6,8 +6,9 @@ namespace Augram.App.Declarations;
 /// <summary>
 /// A declared list (ADR-0002 §5c), rendered by <c>ItemList</c>. Rows come from <see cref="Source"/>;
 /// <see cref="Columns"/> render text cells unless <see cref="RowComponent"/> supplies a control per row.
-/// <see cref="Filters"/> are applied by the renderer; <see cref="Toolbar"/> holds the list's actions. A list
-/// with a menu, keys or drag-reordering is a component (the step list, the gesture grid), not a declared list.
+/// <see cref="Filters"/> and the <see cref="Search"/> box are applied by the renderer; <see cref="Toolbar"/> holds the
+/// list's actions. A list with a menu, keys or drag-reordering is a component (the step list, the gesture grid), not a
+/// declared list.
 /// </summary>
 public sealed record ListSpec(
     string Title,
@@ -17,6 +18,7 @@ public sealed record ListSpec(
     IReadOnlyList<ListFilter>? Filters = null,
     bool AutoScroll = false,
     Func<object, Control>? RowComponent = null,
+    ListSearch? Search = null,
     [CallerFilePath] string File = "",
     [CallerLineNumber] int Line = 0)
 {

@@ -79,7 +79,33 @@ public sealed class ItemListTests
         Assert.Equal(1, Grid.GetColumn(glyph));
     }
 
-    private static (ItemList List, List<FakeRow> Rows, DelegateBinding<string> Filter) Show()
+    /// <summary>Plan 0009: the spec's search narrows the rows together with the dropdown filters; the box sits after them on the toolbar; nothing left says so.</summary>
+    [AvaloniaFact]
+    public void AListSearchNarrowsTheRowsWithTheFilters()
+    {
+        var text = string.Empty;
+        var search = new DelegateBinding<string>(() => text, v => text = v);
+        var (list, _, filter) = Show(search);
+        var box = Assert.IsType<Augram.App.Components.SearchBox.SearchBox>(list.ToolbarItems[1]);
+        Assert.Equal(3, list.ToolbarItems.Count);
+
+        box.Text = "t";
+        Assert.Equal(["two", "three"], list.Rows.Cast<FakeRow>().Select(row => row.Message));
+        Assert.Null(list.EmptyText);
+
+        filter.Set("warn");
+        list.Refresh();
+        Assert.Equal("two", Assert.Single(list.Rows.Cast<FakeRow>()).Message);
+
+        search.Set("nothing here");
+        search.NotifyChanged();
+        list.Refresh();
+        Assert.Empty(list.Rows);
+        Assert.Equal("No rows match 'nothing here'", list.EmptyText);
+        Assert.Equal("nothing here", box.Text);
+    }
+
+    private static (ItemList List, List<FakeRow> Rows, DelegateBinding<string> Filter) Show(DelegateBinding<string>? search = null)
     {
         var rows = new List<FakeRow>
         {
@@ -99,7 +125,8 @@ public sealed class ItemListTests
             ],
             Source: new ListSource<FakeRow>(() => rows),
             Toolbar: [new ListAction("Clear", rows.Clear)],
-            Filters: [new ListFilter("Level", ["All", "info", "warn"], filter, (row, level) => level == "All" || ((FakeRow)row).Level == level)]);
+            Filters: [new ListFilter("Level", ["All", "info", "warn"], filter, (row, level) => level == "All" || ((FakeRow)row).Level == level)],
+            Search: search is null ? null : new ListSearch(search, row => ((FakeRow)row).Message));
         var list = new ItemList { Spec = spec };
         var window = new Window { Content = list };
         window.Show();

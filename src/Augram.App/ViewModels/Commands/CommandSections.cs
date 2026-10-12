@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.SearchBox;
 using Augram.App.Components.StepList;
 using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Abstractions;
@@ -16,7 +17,8 @@ namespace Augram.App.ViewModels.Commands;
 /// in it, holding the commands under that hold remap; the Global tab has the Global group's categories by name, every Global
 /// command being in one (Uncategorized is an ordinary category the rules make for a command left without one, Joel
 /// 2026-10-11). The one place that decides which commands a tab holds, which section a command
-/// sits in, what a section header can do and what the header's Category dropdown offers.
+/// sits in, what a section header can do and what the header's Category dropdown offers; and, after the platform filter, what
+/// the search box leaves (<see cref="Narrow"/>, plan 0009 decision 4).
 /// </summary>
 internal static class CommandSections
 {
@@ -30,17 +32,65 @@ internal static class CommandSections
     /// The sections of a tab as they read on <paramref name="here"/>. An app group, a category or a command not used here (F8
     /// "Use on"; a command is not used here when its group, its category or itself leaves this platform out,
     /// <see cref="AppGroup.IsCommandUsedOn"/>) is left out unless <paramref name="showOtherPlatforms"/>, and is then marked
-    /// "Windows only" and greyed; a category's commands follow it.
+    /// "Windows only" and greyed; a category's commands follow it. A <paramref name="search"/> then narrows what is left
+    /// (<see cref="Narrow"/>).
     /// </summary>
-    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms = false, MouseButton? strokeButton = null)
+    public static IReadOnlyList<SectionItem> For(CommandsScope scope, MappingDocument document, IReadOnlySet<SectionId> expanded, Func<GestureId, Gesture?> findGesture, HostPlatform here, bool showOtherPlatforms = false, MouseButton? strokeButton = null, SearchQuery? search = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<SectionItem> sections = scope == CommandsScope.Global
             ? GlobalSections(document, expanded, findGesture, here, showOtherPlatforms)
             : [.. document.Groups.Where(group => !group.IsGlobal && (showOtherPlatforms || group.IsUsedOn(here))).SelectMany(group => GroupSections(document, group, expanded, findGesture, here, showOtherPlatforms))];
-        return strokeButton is { } stroke
-            ? [.. sections.Select(section => section with { Commands = [.. section.Commands.Select(item => WithStrokeButtonNote(item, stroke))] })]
-            : sections;
+        if (strokeButton is { } stroke)
+        {
+            sections = [.. sections.Select(section => section with { Commands = [.. section.Commands.Select(item => WithStrokeButtonNote(item, stroke))] })];
+        }
+
+        return Narrow(sections, search ?? SearchQuery.Empty);
+    }
+
+    /// <summary>
+    /// The tree rule of the search (plan 0009 decision 4): a section whose name matches shows with all its commands, expanded; a
+    /// command that matches by name, or by its category tag on the Apps tab (the category is the second level there), shows
+    /// under its section with the section's other commands hidden, the section expanded; everything else is hidden. A nested
+    /// section (a hold remap) that shows keeps the section it is nested in shown and expanded, since the tree lists it only
+    /// under an open parent. An empty query leaves the sections as they are, the saved expanded set in charge.
+    /// </summary>
+    public static IReadOnlyList<SectionItem> Narrow(IReadOnlyList<SectionItem> sections, SearchQuery search)
+    {
+        ArgumentNullException.ThrowIfNull(sections);
+        ArgumentNullException.ThrowIfNull(search);
+        if (search.IsEmpty)
+        {
+            return sections;
+        }
+
+        var shown = new Dictionary<SectionId, SectionItem>();
+        foreach (var section in sections)
+        {
+            if (search.Matches(section.Name))
+            {
+                shown[section.Id] = section with { IsExpanded = true };
+                continue;
+            }
+
+            var commands = section.Commands.Where(command => search.Matches(command.Name) || (command.CategoryLabel is { } category && search.Matches(category))).ToList();
+            if (commands.Count > 0)
+            {
+                shown[section.Id] = section with { IsExpanded = true, Commands = commands };
+            }
+        }
+
+        // A hold remap that shows needs its group's header open above it; the group's own commands stay hidden.
+        foreach (var section in sections)
+        {
+            if (section.Id.Parent is { } parent && shown.ContainsKey(section.Id) && !shown.ContainsKey(parent) && sections.FirstOrDefault(item => item.Id == parent) is { } group)
+            {
+                shown[parent] = group with { IsExpanded = true, Commands = [] };
+            }
+        }
+
+        return [.. sections.Where(section => shown.ContainsKey(section.Id)).Select(section => shown[section.Id])];
     }
 
     /// <summary>

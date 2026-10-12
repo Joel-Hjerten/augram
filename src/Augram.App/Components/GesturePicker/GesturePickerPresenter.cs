@@ -1,4 +1,5 @@
 using Augram.App.Components.GestureGrid;
+using Augram.App.Components.SearchBox;
 using Augram.App.Dialogs;
 using Augram.App.Training;
 using Augram.Core.Gestures;
@@ -8,7 +9,8 @@ namespace Augram.App.Components.GesturePicker;
 
 /// <summary>
 /// Shows the Select Gesture picker as a <see cref="GesturePickerWindow"/> owned by the main window
-/// (F3). The tiles follow the library while the window is open. New Gesture… opens the shared
+/// (F3). The tiles follow the library while the window is open, narrowed by the picker's search box (plan 0009: the gestures
+/// whose name starts with the text first, then the rest, each half by name; <see cref="Tiles"/>). New Gesture… opens the shared
 /// training popup through <see cref="ITrainingPresenter"/>; when that session ends Accepted, the
 /// gesture the library gained is selected in the picker (the session reports only the outcome, so
 /// the presenter diffs the library's ids around the training).
@@ -31,11 +33,19 @@ public sealed class GesturePickerPresenter : IGesturePickerPresenter
 
     public async Task<GesturePickerResult> PickAsync(GestureId? current)
     {
-        var picker = new GesturePicker { Tiles = Tiles() };
+        var picker = new GesturePicker { Tiles = Tiles(_library.All, SearchQuery.Empty) };
         picker.Select(current);
         var window = new GesturePickerWindow(picker);
         var answer = new TaskCompletionSource<GesturePickerResult>();
-        void OnLibraryChanged(object? sender, EventArgs e) => picker.Tiles = Tiles();
+        void Refilter() => picker.Tiles = Tiles(_library.All, SearchQuery.Parse(picker.SearchText));
+        void OnLibraryChanged(object? sender, EventArgs e) => Refilter();
+        picker.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == GesturePicker.SearchTextProperty)
+            {
+                Refilter();
+            }
+        };
 
         picker.Closed += (_, result) =>
         {
@@ -54,8 +64,20 @@ public sealed class GesturePickerPresenter : IGesturePickerPresenter
         return await answer.Task.ConfigureAwait(true);
     }
 
-    private IReadOnlyList<GestureTileItem> Tiles() =>
-        [.. _library.All.OrderBy(gesture => gesture.Name, GestureRules.NameComparer).Select(GestureTileItem.From)];
+    /// <summary>The picker's tiles for a search (plan 0009 decision 2): the matches whose name starts with the text first, then the other matches, each by name.</summary>
+    internal static IReadOnlyList<GestureTileItem> Tiles(IEnumerable<Gesture> gestures, SearchQuery search)
+    {
+        ArgumentNullException.ThrowIfNull(gestures);
+        ArgumentNullException.ThrowIfNull(search);
+        return
+        [
+            .. gestures
+                .Where(gesture => search.Matches(gesture.Name))
+                .OrderByDescending(gesture => search.StartsWith(gesture.Name))
+                .ThenBy(gesture => gesture.Name, GestureRules.NameComparer)
+                .Select(GestureTileItem.From),
+        ];
+    }
 
     private void BeginTraining(GesturePicker picker)
     {

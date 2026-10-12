@@ -10,6 +10,7 @@ using Augram.Core.Steps;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 
 namespace Augram.App.Components.CommandsWorkbench;
 
@@ -91,6 +92,9 @@ public sealed class CommandsWorkbench : TemplatedControl
 
     public static readonly StyledProperty<string> TreeHelpProperty =
         AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(TreeHelp), string.Empty);
+
+    public static readonly StyledProperty<string> SearchTextProperty =
+        AvaloniaProperty.Register<CommandsWorkbench, string>(nameof(SearchText), string.Empty, defaultBindingMode: BindingMode.TwoWay);
 
     public event EventHandler<CommandTreeActionEventArgs>? TreeActionRequested;
 
@@ -245,6 +249,13 @@ public sealed class CommandsWorkbench : TemplatedControl
     {
         get => GetValue(TreeHelpProperty);
         set => SetValue(TreeHelpProperty, value);
+    }
+
+    /// <summary>The tree's search text (<see cref="CommandTree.CommandTree.SearchText"/>, plan 0009), two-way between the box and the host.</summary>
+    public string SearchText
+    {
+        get => GetValue(SearchTextProperty);
+        set => SetValue(SearchTextProperty, value);
     }
 
     public CommandTree.CommandTree? TreePart { get; private set; }

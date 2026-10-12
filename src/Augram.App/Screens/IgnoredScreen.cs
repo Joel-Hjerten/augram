@@ -36,6 +36,7 @@ public static class IgnoredScreen
         view.Bind(MasterDetail.SelectedIdProperty, new Binding(nameof(IgnoredViewModel.SelectedId)));
         view.Bind(MasterDetail.DetailProperty, new Binding(nameof(IgnoredViewModel.Detail)));
         view.Bind(MasterDetail.MessageProperty, new Binding(nameof(IgnoredViewModel.Message)));
+        view.Bind(MasterDetail.SearchTextProperty, new Binding(nameof(IgnoredViewModel.SearchText)) { Mode = BindingMode.TwoWay });
         view.ActionRequested += (_, e) => vm.Handle(e);
         return view;
     }

@@ -5,7 +5,7 @@ using Augram.Engine.Diagnostics;
 
 namespace Augram.App.Screens;
 
-/// <summary>Diagnostics › Log (N4): the live tail with level/source filters and the two paste-at-an-agent actions.</summary>
+/// <summary>Diagnostics › Log (N4): the live tail with level/source filters, the search box (plan 0009) and the two paste-at-an-agent actions.</summary>
 public static class LogScreen
 {
     public static ScreenDeclaration Declare(LogViewModel vm)
@@ -33,6 +33,7 @@ public static class LogScreen
                 new ListFilter("Source", LogViewModel.Sources,
                     new DelegateBinding<string>(() => vm.SourceFilter, v => vm.SourceFilter = v, vm), LogViewModel.MatchesSource),
             ],
+            Search: new ListSearch(new DelegateBinding<string>(() => vm.SearchText, v => vm.SearchText = v, vm), LogViewModel.SearchableText, "lines"),
             AutoScroll: true));
     }
 }

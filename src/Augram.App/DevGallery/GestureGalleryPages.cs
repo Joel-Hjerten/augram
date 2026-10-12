@@ -39,7 +39,8 @@ public static class GestureGalleryPages
             ]),
         ]);
 
-    public static ScreenDeclaration GridPage()
+    /// <summary>The Gestures tab over the starter set, every fifth gesture inactive; <paramref name="search"/> in its search box (plan 0009).</summary>
+    public static ScreenDeclaration GridPage(string? search = null)
     {
         var library = new GestureLibrary(Starter.Select((gesture, i) => i % 5 == 4 ? gesture with { IsActive = false } : gesture));
         var mapping = new Core.Mapping.MappingStore();
@@ -51,6 +52,7 @@ public static class GestureGalleryPages
             mapping,
             new UsedBy.UsedByPresenter(mapping, library, () => null),
             new Dialogs.ConfirmPresenter());
+        vm.SearchText = search ?? string.Empty;
         return Screens.GesturesScreen.Declare(vm);
     }
 

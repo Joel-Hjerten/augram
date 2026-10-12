@@ -210,6 +210,24 @@ public sealed class GesturesViewModelTests
         Assert.All(f.Vm.ConfusionPairs, pair => Assert.True(pair.Score >= ConfusionCheck.DuplicateCutOff));
     }
 
+    /// <summary>Plan 0009: the search box narrows the tiles by name (every word a substring, case-insensitive); clearing shows them all again.</summary>
+    [AvaloniaFact]
+    public void TheSearchTextNarrowsTheTilesByName()
+    {
+        var f = Create();
+        var all = f.Vm.Tiles.Count;
+
+        f.Vm.SearchText = "DOWN";
+
+        Assert.NotEmpty(f.Vm.Tiles);
+        Assert.All(f.Vm.Tiles, tile => Assert.Contains("down", tile.Name, StringComparison.OrdinalIgnoreCase));
+        Assert.True(f.Vm.Tiles.Count < all);
+
+        f.Vm.SearchText = string.Empty;
+
+        Assert.Equal(all, f.Vm.Tiles.Count);
+    }
+
     private static Fixture Create()
     {
         var library = new GestureLibrary(StarterGestures.All());

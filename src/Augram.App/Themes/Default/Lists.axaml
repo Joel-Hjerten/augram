@@ -16,7 +16,8 @@
         xmlns:md="using:Augram.App.Components.MasterDetail"
         xmlns:sync="using:Augram.App.Components.SyncConflictList"
         xmlns:wf="using:Augram.App.Components.WindowFinder"
-        xmlns:hk="using:Augram.App.Components.Capture">
+        xmlns:hk="using:Augram.App.Components.Capture"
+        xmlns:search="using:Augram.App.Components.SearchBox">
   <!--
     The glass look for lists, panels and the workbenches (plan 0006 step 4; visual reference
     design/mockups/augram-glass-theme.html: .island, .ihead, .row, .gt, .tag, .steps, .ggrid, .log). Included by Default.axaml
@@ -224,6 +225,11 @@
                 </Grid>
                 <!-- The column titles line up with the cells: the list's margin, its row's edge and a cell's padding. -->
                 <ContentPresenter DockPanel.Dock="Top" Content="{TemplateBinding HeaderRow}" Margin="11,0,11,2" />
+                <!-- "No lines match 'xyz'" while the search leaves nothing (plan 0009 decision 7). -->
+                <TextBlock DockPanel.Dock="Top"
+                           Classes="panel-empty"
+                           Text="{TemplateBinding EmptyText}"
+                           IsVisible="{TemplateBinding EmptyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
                          ItemTemplate="{TemplateBinding RowTemplate}"
@@ -335,12 +341,18 @@
                     <Button Name="PART_Export" Classes="toolbar" Content="Export…" />
                     <Button Name="PART_Undo" Classes="toolbar" Content="Undo" IsEnabled="{TemplateBinding CanUndo}" />
                     <Button Name="PART_Redo" Classes="toolbar" Content="Redo" IsEnabled="{TemplateBinding CanRedo}" />
+                    <search:SearchBox Name="PART_Search" Text="{TemplateBinding SearchText, Mode=TwoWay}" />
                   </WrapPanel>
                 </Grid>
                 <TextBlock DockPanel.Dock="Bottom"
                            Classes="panel-message"
                            Text="{TemplateBinding Message}"
                            IsVisible="{TemplateBinding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <!-- "No gestures match 'xyz'" while the search leaves nothing (plan 0009 decision 7). -->
+                <TextBlock DockPanel.Dock="Top"
+                           Classes="panel-empty"
+                           Text="{TemplateBinding EmptyText}"
+                           IsVisible="{TemplateBinding EmptyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <ListBox Name="PART_Tiles"
                          ItemsSource="{TemplateBinding TileControls}"
                          ItemContainerTheme="{StaticResource Lists.Tile}"
@@ -426,6 +438,7 @@
                                   PlatformFilterLabel="{TemplateBinding PlatformFilterLabel}"
                                   ShowsOtherPlatforms="{TemplateBinding ShowsOtherPlatforms}"
                                   PlatformFilterNudges="{TemplateBinding PlatformFilterNudges}"
+                                  SearchText="{TemplateBinding SearchText, Mode=TwoWay}"
                                   HelpText="{TemplateBinding TreeHelp}" />
                 <GridSplitter Grid.Column="1" Theme="{StaticResource Lists.Splitter}" ResizeDirection="Columns" />
                 <Panel Grid.Column="2">
@@ -479,8 +492,14 @@
                                   Content="{TemplateBinding PlatformFilterLabel}"
                                   ToolTip.Tip="{x:Static tree:CommandTree.PlatformFilterHelp}"
                                   IsVisible="{TemplateBinding PlatformFilterLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <search:SearchBox Name="PART_Search" Text="{TemplateBinding SearchText, Mode=TwoWay}" />
                   </WrapPanel>
                 </StackPanel>
+                <!-- "No commands match 'xyz'" while the search leaves nothing (plan 0009 decision 7). -->
+                <TextBlock DockPanel.Dock="Top"
+                           Classes="panel-empty"
+                           Text="{TemplateBinding EmptyText}"
+                           IsVisible="{TemplateBinding EmptyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <ListBox Name="PART_Rows"
                          ItemsSource="{TemplateBinding Rows}"
                          ItemContainerTheme="{StaticResource Lists.Row}"
@@ -617,8 +636,14 @@
                       </StackPanel>
                       <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
                         <Button Name="PART_New" Classes="toolbar primary" Content="{TemplateBinding NewLabel}" />
+                        <search:SearchBox Name="PART_Search" Text="{TemplateBinding SearchText, Mode=TwoWay}" />
                       </WrapPanel>
                     </Grid>
+                    <!-- "No apps match 'xyz'" while the search leaves nothing (plan 0009 decision 7). -->
+                    <TextBlock DockPanel.Dock="Top"
+                               Classes="panel-empty"
+                               Text="{TemplateBinding EmptyText}"
+                               IsVisible="{TemplateBinding EmptyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <ListBox Name="PART_Rows"
                              ItemsSource="{TemplateBinding Rows}"
                              ItemContainerTheme="{StaticResource Lists.Row}"
@@ -957,25 +982,39 @@
                   <Button Name="PART_NoGesture" Classes="toolbar" Content="No Gesture" />
                   <Button Name="PART_NewGesture" Classes="toolbar" Content="New Gesture…" />
                 </dialogs:DialogShell.LeadingButtons>
-                <Border Background="{DynamicResource Layer.Panel}"
-                        BorderBrush="{DynamicResource Layer.Edge}"
-                        BorderThickness="1"
-                        CornerRadius="{DynamicResource Radius.Panel}">
-                  <ListBox Name="PART_Tiles"
-                           ItemsSource="{TemplateBinding TileControls}"
-                           ItemContainerTheme="{StaticResource Lists.Tile}"
-                           Background="Transparent"
-                           BorderThickness="0"
-                           Padding="0"
-                           Margin="8"
-                           SelectionMode="Single">
-                    <ListBox.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <WrapPanel />
-                      </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                  </ListBox>
-                </Border>
+                <DockPanel>
+                  <!-- The search box above the tiles (plan 0009): the names starting with the text come first. -->
+                  <search:SearchBox Name="PART_Search"
+                                    DockPanel.Dock="Top"
+                                    Text="{TemplateBinding SearchText, Mode=TwoWay}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,0,0,8" />
+                  <Border Background="{DynamicResource Layer.Panel}"
+                          BorderBrush="{DynamicResource Layer.Edge}"
+                          BorderThickness="1"
+                          CornerRadius="{DynamicResource Radius.Panel}">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Top"
+                                 Classes="panel-empty"
+                                 Text="{TemplateBinding EmptyText}"
+                                 IsVisible="{TemplateBinding EmptyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      <ListBox Name="PART_Tiles"
+                               ItemsSource="{TemplateBinding TileControls}"
+                               ItemContainerTheme="{StaticResource Lists.Tile}"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               Padding="0"
+                               Margin="8"
+                               SelectionMode="Single">
+                        <ListBox.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <WrapPanel />
+                          </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                      </ListBox>
+                    </DockPanel>
+                  </Border>
+                </DockPanel>
               </dialogs:DialogShell>
             </Border>
           </ControlTemplate>

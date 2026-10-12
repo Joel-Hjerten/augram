@@ -1,5 +1,6 @@
 using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
+using Augram.App.Components.SearchBox;
 using Augram.App.Components.StepList;
 using Augram.App.ViewModels.Commands.Projection;
 using Augram.Core.Capture;
@@ -10,10 +11,15 @@ namespace Augram.App.ViewModels.Commands;
 /// <summary>
 /// The projection half of <see cref="CommandsViewModel"/>: every store or library change re-reads the
 /// sections of this tab (<see cref="CommandSections"/>), undo/redo availability and the selection, on the
-/// UI thread. Both tabs' view models listen to the one store, so an edit on one tab shows on the other.
+/// UI thread. Both tabs' view models listen to the one store, so an edit on one tab shows on the other. The search
+/// (plan 0009) narrows what the tree shows (<see cref="CommandsViewModel.Sections"/>), while the selection, the header and the
+/// side panel read from the sections before the search (<see cref="_allSections"/>), so a hidden selected row keeps its panel.
 /// </summary>
 public sealed partial class CommandsViewModel
 {
+    /// <summary>This tab's sections after the platform filter and before the search: what the selection is checked against.</summary>
+    private IReadOnlyList<SectionItem> _allSections = [];
+
     private MouseButton? _strokeButton;
     private bool _projectingEdit;
     private int _optionsDragDistancePx = CaptureThresholds.Default.ButtonDragDistancePx;
@@ -82,7 +88,8 @@ public sealed partial class CommandsViewModel
 
     private void Project()
     {
-        Sections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform, ShowOtherPlatforms, StrokeButton);
+        _allSections = CommandSections.For(Scope, _store.Current, _expanded, _gestures.Find, _platform, ShowOtherPlatforms, StrokeButton);
+        Sections = CommandSections.Narrow(_allSections, SearchQuery.Parse(SearchText));
         CanUndo = _store.CanUndo;
         CanRedo = _store.CanRedo;
         ProjectSelection();
@@ -139,9 +146,9 @@ public sealed partial class CommandsViewModel
         return command is { } id ? all.SelectMany(item => item.Commands).Any(item => item.Id == id) : section is { } sectionId && all.Any(item => item.Id == sectionId);
     }
 
-    /// <summary>The selected command's row in the current projection; null without one.</summary>
+    /// <summary>The selected command's row in the current projection (before the search); null without one.</summary>
     private CommandItem? SelectedRow()
-        => SelectedCommandId is { } id ? Sections.SelectMany(section => section.Commands).FirstOrDefault(command => command.Id == id) : null;
+        => SelectedCommandId is { } id ? _allSections.SelectMany(section => section.Commands).FirstOrDefault(command => command.Id == id) : null;
 
     /// <summary>
     /// Re-reads the selected command and its steps from the current projection: the section follows the
@@ -161,7 +168,7 @@ public sealed partial class CommandsViewModel
             SelectedSectionId = selected.Section;
         }
 
-        if (SelectedSectionId is { } sectionId && Sections.All(section => section.Id != sectionId))
+        if (SelectedSectionId is { } sectionId && _allSections.All(section => section.Id != sectionId))
         {
             SelectedSectionId = null;
         }
@@ -193,5 +200,5 @@ public sealed partial class CommandsViewModel
 
     /// <summary>Shows the selected app group's, hold remap's or category's form (<see cref="SectionPanel"/>), or none.</summary>
     private void ProjectSidePanel()
-        => _panel.Show(SelectedCommandId is null && SelectedSectionId is { } id ? Sections.FirstOrDefault(s => s.Id == id) : null);
+        => _panel.Show(SelectedCommandId is null && SelectedSectionId is { } id ? _allSections.FirstOrDefault(s => s.Id == id) : null);
 }

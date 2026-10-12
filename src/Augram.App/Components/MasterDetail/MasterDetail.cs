@@ -1,10 +1,12 @@
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.Parts;
+using Augram.App.Components.SearchBox;
 using Augram.App.Declarations;
 using Augram.App.Inspector;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Input;
 
 namespace Augram.App.Components.MasterDetail;
@@ -18,7 +20,9 @@ namespace Augram.App.Components.MasterDetail;
 /// renames in place, Delete deletes, the new and undo keys work, and the right-click menu offers new, rename, delete and, while
 /// the host gives it a label (<see cref="MoveLabel"/>), a move to the host's other list.
 /// Every intent leaves as one <see cref="ActionRequested"/>; the host owns the selection (<see cref="SelectedId"/>) and the
-/// list (<see cref="Items"/>), and the selection survives a rebuild.
+/// list (<see cref="Items"/>), and the selection survives a rebuild. The toolbar's search box (<c>PART_Search</c>, plan 0009)
+/// is two-way bound to <see cref="SearchText"/>, which the host narrows the items by; the find key focuses it, and
+/// <see cref="EmptyText"/> says "No apps match 'xyz'" while the search leaves nothing.
 /// </summary>
 public sealed class MasterDetail : TemplatedControl
 {
@@ -55,7 +59,14 @@ public sealed class MasterDetail : TemplatedControl
     public static readonly StyledProperty<string?> MessageProperty =
         AvaloniaProperty.Register<MasterDetail, string?>(nameof(Message));
 
+    public static readonly StyledProperty<string> SearchTextProperty =
+        AvaloniaProperty.Register<MasterDetail, string>(nameof(SearchText), string.Empty, defaultBindingMode: BindingMode.TwoWay);
+
+    public static readonly StyledProperty<string?> EmptyTextProperty =
+        AvaloniaProperty.Register<MasterDetail, string?>(nameof(EmptyText));
+
     private readonly RowListHost _rows;
+    private SearchBox.SearchBox? _search;
 
     public MasterDetail()
     {
@@ -136,6 +147,20 @@ public sealed class MasterDetail : TemplatedControl
         set => SetValue(MessageProperty, value);
     }
 
+    /// <summary>The search box's text (plan 0009), two-way: the host narrows <see cref="Items"/> by it.</summary>
+    public string SearchText
+    {
+        get => GetValue(SearchTextProperty);
+        set => SetValue(SearchTextProperty, value);
+    }
+
+    /// <summary>"No apps match 'xyz'" while the search leaves no row; null otherwise (the template hides it).</summary>
+    public string? EmptyText
+    {
+        get => GetValue(EmptyTextProperty);
+        private set => SetValue(EmptyTextProperty, value);
+    }
+
     public SectionForm.SectionForm? DetailPart { get; private set; }
 
     public MasterItem? SelectedItem => (_rows.SelectedItem as MasterRow)?.Item;
@@ -149,6 +174,7 @@ public sealed class MasterDetail : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+        _search = e.NameScope.Find<SearchBox.SearchBox>("PART_Search");
         DetailPart = e.NameScope.Find<SectionForm.SectionForm>("PART_Detail");
         if (DetailPart is not null)
         {
@@ -176,6 +202,10 @@ public sealed class MasterDetail : TemplatedControl
         {
             Rebuild();
         }
+        else if (change.Property == SearchTextProperty)
+        {
+            ProjectEmptyText();
+        }
         else if (change.Property == SelectedIdProperty)
         {
             ApplySelection();
@@ -200,6 +230,13 @@ public sealed class MasterDetail : TemplatedControl
         }
 
         _rows.Replace(() => Rows = rows, ApplySelection);
+        ProjectEmptyText();
+    }
+
+    private void ProjectEmptyText()
+    {
+        var search = SearchQuery.Parse(SearchText);
+        EmptyText = Items.Count == 0 && !search.IsEmpty ? search.NoneMatch("apps") : null;
     }
 
     private MasterRow? Find(Guid id) => Rows.OfType<MasterRow>().FirstOrDefault(row => row.Item?.Id == id);
@@ -223,13 +260,16 @@ public sealed class MasterDetail : TemplatedControl
         }
     }
 
-    /// <summary>The button, menu and keys: Rename starts the editor; Delete and Move need a selection; the rest go to the host.</summary>
+    /// <summary>The button, menu and keys: Rename starts the editor, Find focuses the search box; Delete and Move need a selection; the rest go to the host.</summary>
     private void Request(MasterDetailAction action)
     {
         switch (action)
         {
             case MasterDetailAction.Rename:
                 _rows.BeginRename(_rows.SelectedItem as MasterRow);
+                break;
+            case MasterDetailAction.Find:
+                _search?.Focus();
                 break;
             case MasterDetailAction.Delete or MasterDetailAction.Move when SelectedItem is { } item:
                 Raise(action, item);

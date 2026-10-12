@@ -10,8 +10,8 @@ namespace Augram.App.ViewModels;
 
 /// <summary>
 /// The Diagnostics › Log tail (N4) over <see cref="InMemorySink"/>: a list source that follows the
-/// sink, level/source filter selections, and the two actions. Filtering itself runs in <c>ItemList</c>
-/// through <see cref="MatchesLevel"/> and <see cref="MatchesSource"/>.
+/// sink, level/source filter selections, the search text (plan 0009, UI-only) and the two actions. Filtering itself runs
+/// in <c>ItemList</c> through <see cref="MatchesLevel"/>, <see cref="MatchesSource"/> and <c>SearchQuery</c> over <see cref="SearchableText"/>.
 /// </summary>
 public sealed class LogViewModel : ObservableObject
 {
@@ -44,6 +44,12 @@ public sealed class LogViewModel : ObservableObject
     public string LevelFilter { get; set => SetProperty(ref field, value); } = All;
 
     public string SourceFilter { get; set => SetProperty(ref field, value); } = All;
+
+    /// <summary>The search box's text (plan 0009): never persisted; cleared when the main window hides.</summary>
+    public string SearchText { get; set => SetProperty(ref field, value); } = string.Empty;
+
+    /// <summary>What a line is searched by: its source and its message with the properties.</summary>
+    public static string SearchableText(object row) => row is LogEvent e ? e.Source + " " + Detail(e) : string.Empty;
 
     public static bool MatchesLevel(object row, string selected) =>
         selected == All || (row is LogEvent e && Enum.TryParse<EventLevel>(selected, out var minimum) && e.Level >= minimum);

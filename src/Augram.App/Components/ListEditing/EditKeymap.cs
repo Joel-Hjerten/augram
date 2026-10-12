@@ -46,6 +46,9 @@ public sealed class EditKeymap
 
     public string Redo => IsMacOS ? "Cmd+Shift+Z" : "Ctrl+Y";
 
+    /// <summary>The focus into the list's search box (plan 0009 decision 6).</summary>
+    public string Find => _modifier + "+F";
+
     /// <summary>Every gesture, for the test that proves they all parse.</summary>
-    public IReadOnlyList<string> All => [New, Copy, Paste, Duplicate, Delete, Rename, .. RenameAlso is { } also ? new[] { also } : [], Undo, Redo];
+    public IReadOnlyList<string> All => [New, Copy, Paste, Duplicate, Delete, Rename, .. RenameAlso is { } also ? new[] { also } : [], Undo, Redo, Find];
 }

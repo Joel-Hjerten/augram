@@ -2,6 +2,10 @@
 
 The Commands tab's view models: `CommandsViewModel` (one per sub-tab, Global and Apps, over `MappingStore` and `GestureLibrary`; a singleton, so the expanded sections survive a window close), the edit view models its side panel and dialogs show, and the helpers they share. Rules are Core's (`MappingRules`, `CategoryRules`, `HoldRemapRules`, `StepOffer`); this folder finds the words and the store call.
 
+## The search (plan 0009)
+
+`CommandsViewModel.SearchText` is UI-only state like `ShowOtherPlatforms`, two-way bound from the tree's box through the workbench. `.Projection` keeps the sections before the search (`_allSections`, after the platform filter) and `Sections` after it (`CommandSections.Narrow`, decision 4: a section matching by name with all its commands, a matching command alone under its section, both expanded, the rest hidden; on the Apps tab a command's category tag counts as the second level; a shown hold remap keeps its group's header open). The selection, the header and the side panel read from the sections before the search, so a selected row the search hides keeps its panel (decision 5); clearing the box opens the selected row's section in the saved expanded set, so it is in sight again. While searching, a header toggle leaves the saved expanded set alone. `Hosting/HiddenWindowReset` empties the text when the main window hides (decision 8).
+
 ## Where an intent goes
 
 `Handle(CommandTreeActionEventArgs)` (the tree and the header) and `Handle(StepListActionEventArgs)` (the step list) clear the message and run the intent inside `Guard`. The view model keeps the dispatch, the selection and the projection, and the intents of the tree; three internal collaborators own the rest, each with what the view model lends it through `ICommandsHost` (the message line, `Guard`, the selection, `ShowSelected`, `Reveal`, `ShowForm`, implemented explicitly so the public surface is unchanged):
