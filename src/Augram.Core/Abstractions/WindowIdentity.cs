@@ -5,7 +5,7 @@ namespace Augram.Core.Abstractions;
 /// Immutable; a stale snapshot is fine because the engine resolves identity once per stroke.
 /// </summary>
 /// <param name="Handle">The window under the point as the OS reported it (may be a child control).</param>
-/// <param name="RootHandle">The root owner of <paramref name="Handle"/>: the window activation targets and A20 compares.</param>
+/// <param name="RootHandle">The root owner of <paramref name="Handle"/>: what window operations act on and app matching reads. Activation compares and brings forward the top-level window of <paramref name="Handle"/> instead (A20, plan 0008).</param>
 /// <param name="ProcessName">Executable file name, e.g. <c>chrome.exe</c>; the primary matching field. Never empty.</param>
 /// <param name="ProcessPath">Full image path when the OS lets us read it; null for protected processes.</param>
 /// <param name="Title">Root window caption, null when it has none.</param>

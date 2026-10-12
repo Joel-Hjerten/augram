@@ -32,7 +32,15 @@ internal sealed class ForegroundActivator
         _sleep = sleep ?? Thread.Sleep;
     }
 
-    public ActivationResult Activate(WindowIdentity target)
+    /// <summary>Brings the target's root owner forward: the Open app step's case, where the window found is an unowned top-level one.</summary>
+    public ActivationResult Activate(WindowIdentity target) => Activate(target, target.RootHandle);
+
+    /// <summary>
+    /// Brings <paramref name="window"/>, a top-level window of <paramref name="target"/>, forward. Settled means that window
+    /// itself is in front (<c>GA_ROOT</c> of the foreground), not merely one it owns: that is the blind spot plan 0008 closed.
+    /// The one exception is a disabled window whose modal dialog is in front, which is as far forward as it can come.
+    /// </summary>
+    public ActivationResult Activate(WindowIdentity target, nint window)
     {
         var clock = Stopwatch.StartNew();
         var foreground = _win.ForegroundWindow();
@@ -40,8 +48,8 @@ internal sealed class ForegroundActivator
         for (var i = 0; i < Techniques.Length; i++)
         {
             var technique = Techniques[i];
-            Attempt(i, target.RootHandle, foreground);
-            if (SettledOn(target.RootHandle))
+            Attempt(i, window, foreground);
+            if (SettledOn(window))
             {
                 return new ActivationResult(true, technique, (int)clock.ElapsedMilliseconds);
             }
@@ -87,11 +95,12 @@ internal sealed class ForegroundActivator
         }
     }
 
-    private bool SettledOn(nint target)
+    private bool SettledOn(nint window)
     {
         for (var waited = 0; ; waited += PollMs)
         {
-            if (_query.RootOwnerOrSelf(_win.ForegroundWindow()) == target)
+            var foreground = _win.ForegroundWindow();
+            if (_query.RootOrSelf(foreground) == window || (!_query.IsEnabled(window) && _query.RootOwnerOrSelf(foreground) == window))
             {
                 return true;
             }

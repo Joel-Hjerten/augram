@@ -59,6 +59,9 @@ internal interface IWin32Windows
     /// <summary><c>IsWindowVisible</c>: shown (a minimized window counts as visible).</summary>
     bool IsVisible(nint hwnd);
 
+    /// <summary><c>IsWindowEnabled</c>: false while one of the window's own modal dialogs holds the input.</summary>
+    bool IsEnabled(nint hwnd);
+
     /// <summary>The direct owner (<c>GetWindow(GW_OWNER)</c>): a dialog's or a tool palette's main window; zero for an app's own main windows.</summary>
     nint Owner(nint hwnd);
 

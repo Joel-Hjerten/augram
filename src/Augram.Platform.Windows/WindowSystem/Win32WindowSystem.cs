@@ -45,12 +45,17 @@ public sealed class Win32WindowSystem : IWindowSystem
     /// <summary><c>GetForegroundWindow</c> alone.</summary>
     public nint? ForegroundKey() => _foreground.ForegroundWindow();
 
+    /// <summary>
+    /// A20 over top-level windows: the one under the gesture start (<c>GA_ROOT</c> of the handle; the root owner when the
+    /// handle is gone) against the one in front. The activator then brings that top-level window forward, so a gesture over
+    /// an owned dialog activates the dialog, not its owner.
+    /// </summary>
     public ActivationResult Activate(WindowIdentity target)
     {
-        var foreground = _foreground.ForegroundWindow();
-        var foregroundRoot = _win.RootOwnerOrSelf(foreground);
-        return ActivationPolicy.NeedsActivation(target, foregroundRoot)
-            ? _activator.Activate(target)
+        var foregroundTopLevel = _win.RootOrSelf(_foreground.ForegroundWindow());
+        var targetTopLevel = WindowHandles.Or(_win.Root(target.Handle), target.RootHandle);
+        return ActivationPolicy.NeedsActivation(target, targetTopLevel, foregroundTopLevel, _win.IsEnabled(targetTopLevel))
+            ? _activator.Activate(target, targetTopLevel)
             : ActivationResult.NotNeeded;
     }
 }

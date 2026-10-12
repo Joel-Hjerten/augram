@@ -86,6 +86,34 @@ public sealed class ForegroundActivatorTests
     }
 
     [Fact]
+    public void OwnedHelperOfTheTargetInFront_DoesNotCountAsSettled()
+    {
+        // Plan 0008: the foreground is a window the target owns; its root owner is the target, but the keys would go to the helper.
+        var (win, log) = Setup();
+        win.AddWindow(0x12, "Afx:helper", owner: Target, pid: 1, thread: 9);
+        win.Foreground = 0x12;
+
+        var result = new ForegroundActivator(win, win, log, _ => { }).Activate(Identity(), Target);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public void ModalDialogOfADisabledTargetInFront_CountsAsSettled()
+    {
+        // The Open app step on an app whose Save dialog is up: the dialog is as far forward as the app can come.
+        var (win, log) = Setup();
+        win.AddWindow(0x12, "SaveDialog", owner: Target, pid: 1, thread: 9);
+        win.Foreground = 0x12;
+        win.Disabled.Add(Target);
+
+        var result = Activate(win, log);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("set-foreground", result.Technique);
+    }
+
+    [Fact]
     public void ForegroundIsOurOwnThread_NoAttachAttempted()
     {
         var (win, log) = Setup();

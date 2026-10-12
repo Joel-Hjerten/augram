@@ -50,6 +50,52 @@ public sealed class Win32WindowSystemTests
     }
 
     [Fact]
+    public void Activate_OwnedHelperWindowInFront_BringsTheMainWindowForward()
+    {
+        // Plan 0008: PotPlayer's title-less helper (0x12, owned by the main window 0x10) got the foreground after a minimize.
+        var win = new FakeWin32 { Foreground = 0x12, PlainSucceeds = true }
+            .AddWindow(0x10, "PotPlayer64", pid: 1)
+            .AddWindow(0x11, "Video", parent: 0x10, root: 0x10, pid: 1)
+            .AddWindow(0x12, "Afx:helper", owner: 0x10, pid: 1);
+        var system = new Win32WindowSystem(win, win, NullEventLog.Instance, _ => { });
+
+        var result = system.Activate(new WindowIdentity(0x11, 0x10, "PotPlayerMini64.exe", null, null, [], 1, false, false));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(0x10, win.Foreground);
+    }
+
+    [Fact]
+    public void Activate_GestureOverAnOwnedDialog_BringsTheDialogForward_NotItsOwner()
+    {
+        var win = new FakeWin32 { Foreground = 0x20, PlainSucceeds = true }
+            .AddWindow(0x10, "Editor", pid: 1)
+            .AddWindow(0x12, "FindDialog", owner: 0x10, pid: 1)
+            .AddWindow(0x20, "Other", pid: 2);
+        var system = new Win32WindowSystem(win, win, NullEventLog.Instance, _ => { });
+
+        var result = system.Activate(new WindowIdentity(0x12, 0x10, "editor.exe", null, null, [], 1, false, false));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(0x12, win.Foreground);
+    }
+
+    [Fact]
+    public void Activate_TargetDisabledBehindItsModalDialog_NotNeeded()
+    {
+        var win = new FakeWin32 { Foreground = 0x12 }
+            .AddWindow(0x10, "App", pid: 1)
+            .AddWindow(0x12, "SaveDialog", owner: 0x10, pid: 1);
+        win.Disabled.Add(0x10);
+        var system = new Win32WindowSystem(win, win, NullEventLog.Instance, _ => { });
+
+        var result = system.Activate(new WindowIdentity(0x10, 0x10, "app.exe", null, null, [], 1, false, false));
+
+        Assert.Same(ActivationResult.NotNeeded, result);
+        Assert.Empty(win.Calls);
+    }
+
+    [Fact]
     public void Keys_AreTheHandlesAlone_WithNoIdentityRead()
     {
         var win = new FakeWin32 { Foreground = 0x20, UnderPoint = 0x11 }

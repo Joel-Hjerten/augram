@@ -140,6 +140,11 @@ internal sealed class FakeWin32 : IWin32Windows, IWin32Foreground, IWin32WindowC
 
     public bool IsVisible(nint hwnd) => Get(hwnd)?.Visible ?? false;
 
+    /// <summary>Windows a modal dialog of their own has disabled.</summary>
+    public HashSet<nint> Disabled { get; } = [];
+
+    public bool IsEnabled(nint hwnd) => !Disabled.Contains(hwnd);
+
     /// <summary>An owner given to <see cref="AddWindow"/> that is not the window itself.</summary>
     public nint Owner(nint hwnd) => Get(hwnd) is { } window && window.Owner != hwnd && window.Owner != window.Root ? window.Owner : 0;
 

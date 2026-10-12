@@ -30,7 +30,7 @@ The three facade interfaces (`IWin32Windows` queries, `IWin32Foreground` and `IW
 
 `WindowIdentityReader.Read(handle)` builds a `WindowIdentity`:
 
-- `RootHandle` = `GetAncestor(GA_ROOTOWNER)`: the root **owner**, so a find dialog resolves to its editor and A20 compares the right thing (SP.net rule, reference strokesplus-net-config §9).
+- `RootHandle` = `GetAncestor(GA_ROOTOWNER)`: the root **owner**, so a find dialog resolves to its editor for window operations and app matching (SP.net rule, reference strokesplus-net-config §9). Activation does not use it: A20 compares top-level windows (`GA_ROOT`), below.
 - `ClassChain` = classes of own → parent (`GetParent`) → root (`GA_ROOT`) → root owner, distinct and non-empty. Matchers test "chain contains X"; the desktop is `SysListView32 › SHELLDLL_DefView › Progman|WorkerW`, Explorer's file view is `DirectUIHWND › … › CabinetWClass`.
 - `ProcessName` = file name of `QueryFullProcessImageName` (opened with `PROCESS_QUERY_LIMITED_INFORMATION`, which works for elevated targets); falls back to `Process.ProcessName + ".exe"`, then `"unknown"`. It is never empty. `ProcessPath` is null when even the limited query is denied.
 - `Title` is the root owner's caption (null when empty).
@@ -43,9 +43,11 @@ The three facade interfaces (`IWin32Windows` queries, `IWin32Foreground` and `IW
 
 ## Activation (`Activate`)
 
-`Win32WindowSystem.Activate` applies **A20** through `ActivationPolicy` before anything else: if `target.IsDesktop` or `target.RootHandle` equals the current foreground's root owner, it returns `ActivationResult.NotNeeded` and touches nothing. That is what keeps popup and find windows working (SP.net 0.3.3.x, [7083]).
+`Win32WindowSystem.Activate` applies **A20** through `ActivationPolicy` before anything else: it takes the **top-level window** under the gesture start (`GA_ROOT` of `target.Handle`; `RootHandle` when the handle is gone) and the top-level window in front (`GA_ROOT` of `GetForegroundWindow`), and returns `ActivationResult.NotNeeded`, touching nothing, when they are the same window, when `target.IsDesktop`, or when the target is disabled (`IsWindowEnabled` false: one of its own modal dialogs holds the input, and `SetForegroundWindow` on the owner would only bounce back). Otherwise `ForegroundActivator` brings that top-level window forward, so a gesture over an owned dialog activates the dialog, not its owner.
 
-Otherwise `ForegroundActivator` tries, in order, each verified by polling `GetForegroundWindow` → root owner every 5 ms for up to 50 ms:
+**Top-level windows, not root owners** ([plan 0008](../../docs/plans/completed/0008-keys-after-minimize.md), 2026-10-12). The comparison used to be root owner against root owner. After a minimize, Windows hands the foreground to the next top-level window in the stacking order, and for PotPlayer that was a title-less `Afx:…` helper window owned by the main window (measured with `GetGUIThreadInfo`: foreground, active and focus all on the helper). Its root owner is the main window, so the old comparison said "in front" and the hotkey went to the helper until Joel clicked. A gesture over a focused find dialog still compares equal (the dialog is its own top-level window), which is the case A20 protects (SP.net 0.3.3.x, [7083]).
+
+`ForegroundActivator.Activate(target, window)` tries, in order, each verified by polling `GetForegroundWindow` → `GA_ROOT` every 5 ms for up to 50 ms until it is `window` itself (a window it owns does not count: that was the blind spot; the one exception is a disabled `window` whose modal dialog is in front). `Activate(target)` alone brings `RootHandle` forward: the Open app step's case, whose window is an unowned top-level one.
 
 1. `set-foreground`: plain `SetForegroundWindow`. Works when Augram is allowed to (it received the last input, or the foreground process is ours).
 2. `attach-thread-input`: `AttachThreadInput(foregroundThread, ourThread, true)` → `SetForegroundWindow` → detach in `finally`. The StrokeIt / GestureSign technique; borrowing the foreground thread's input queue satisfies the foreground-lock check. Skipped when the foreground thread is ours or unknown.
@@ -53,7 +55,7 @@ Otherwise `ForegroundActivator` tries, in order, each verified by polling `GetFo
 
 Each technique that did not settle is logged at `Info` with source `window` (`Activation attempt failed`, properties `technique`, `elapsedMs`, `process`). The outcome is logged once, by the engine's command runner (`exec` / `Window activated` with `technique`, `elapsedMs` and `focusMoved`, or `Activation failed` as a `Warning` with `technique=none`), the same line on both platforms (plan 0007 Q7; this adapter used to log its own copy). The result's `Technique` lets the Diagnostics tab tally which one wins per app, which closes checklist B1 during M2 use (N4).
 
-The "zero handle means none" fallback (`GetAncestor` answering zero) is written once, in `WindowHandles` (`Or`, and `RootOwnerOrSelf` for the foreground's root owner that A20 and the settle poll compare).
+The "zero handle means none" fallback (`GetAncestor` answering zero) is written once, in `WindowHandles` (`Or`; `RootOrSelf` for the top-level windows A20 and the settle poll compare; `RootOwnerOrSelf` for the root owner the settle poll's modal exception reads).
 
 Differences from the Spike2 `ActivateMode` probe: the "attach foreground **and** target threads" variant was dropped (it never adds rights beyond attaching the foreground thread and risks deadlocking against a hung target); the 50 ms fixed sleep became a 5 ms poll so the common case returns in one check; and the own-console skip is gone because A20's foreground-root comparison already covers our own windows.
 

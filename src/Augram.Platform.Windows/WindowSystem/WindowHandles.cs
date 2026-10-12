@@ -11,4 +11,7 @@ internal static class WindowHandles
 
     /// <summary>The root owner of <paramref name="hwnd"/> (<c>GA_ROOTOWNER</c>), or the window itself when there is none; zero for zero, without asking.</summary>
     public static nint RootOwnerOrSelf(this IWin32Windows windows, nint hwnd) => hwnd == 0 ? 0 : Or(windows.RootOwner(hwnd), hwnd);
+
+    /// <summary>The top-level window of <paramref name="hwnd"/> (<c>GA_ROOT</c>: an owned dialog is its own), or the window itself; zero for zero, without asking.</summary>
+    public static nint RootOrSelf(this IWin32Windows windows, nint hwnd) => hwnd == 0 ? 0 : Or(windows.Root(hwnd), hwnd);
 }

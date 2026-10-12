@@ -137,6 +137,8 @@ internal sealed class Win32Windows : IWin32Windows, IWin32Foreground, IWin32Wind
 
     public bool IsVisible(nint hwnd) => NativeMethods.IsWindowVisible(hwnd);
 
+    public bool IsEnabled(nint hwnd) => NativeMethods.IsWindowEnabled(hwnd);
+
     public nint Owner(nint hwnd) => NativeMethods.GetWindow(hwnd, NativeMethods.GwOwner);
 
     public bool IsToolWindow(nint hwnd)
