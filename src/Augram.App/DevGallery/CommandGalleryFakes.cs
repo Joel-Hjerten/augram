@@ -169,7 +169,7 @@ public static class CommandGalleryFakes
     /// <summary>A Windows command with its own macOS steps (F8), so the gallery shows the own-version marker.</summary>
     private static Command ZoomReset()
     {
-        var original = new Command(CommandId.New(), "Zoom reset", Trigger.ForGesture(StarterGestures.IdFor("Circle")), IsActive: true,
+        var original = new Command(CommandId.New(), "Zoom reset to the default level", Trigger.ForGesture(StarterGestures.IdFor("Circle")), IsActive: true,
         [
             new CommandStep(new DelayStep(50), HostPlatform.Windows),
             new CommandStep(new WindowOpStep(WindowOperation.Center), HostPlatform.Windows),

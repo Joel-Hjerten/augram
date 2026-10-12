@@ -588,14 +588,16 @@
                   </Border>
                 </Panel>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
-                  <StackPanel Orientation="Horizontal"
-                              Spacing="6"
-                              IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}">
+                  <!-- A left-aligned grid, not a horizontal stack: the name gets the room left beside the marker and ends in "…"
+                       instead of running under it (Joel, Mac, 0.13.14); a short name lays out as before, its tag right after it. -->
+                  <Grid ColumnDefinitions="*,Auto"
+                        HorizontalAlignment="Left"
+                        IsVisible="{TemplateBinding IsEditing, Converter={x:Static BoolConverters.Not}}">
                     <TextBlock Name="PART_Name" Classes="row-name" Text="{TemplateBinding NameText}" VerticalAlignment="Center" />
-                    <Border Classes="category-tag" IsVisible="{TemplateBinding HasCategory}">
+                    <Border Grid.Column="1" Classes="category-tag" Margin="6,0,0,0" IsVisible="{TemplateBinding HasCategory}">
                       <TextBlock Classes="category-tag" Text="{TemplateBinding CategoryText}" />
                     </Border>
-                  </StackPanel>
+                  </Grid>
                   <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
                   <TextBlock Classes="row-summary" Text="{TemplateBinding SummaryText}" />
                 </StackPanel>
@@ -1308,6 +1310,10 @@
   <!-- Row text (.cmd-name, .cmd-sum, .sec-name, .count, .tag): names are Title, the second line and counts Secondary, tags
        and badges Badge (Text.axaml; Joel, 2026-10-11: names semibold, the line under them faint, in Commands and Exclusions alike).
        A row's second line stays on one line, trimmed. -->
+  <!-- A row's name ends in "…" where its line is narrower than the name (the command row's name beside its marker). -->
+  <Style Selector="TextBlock.row-name">
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
   <Style Selector="TextBlock.row-summary">
     <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
