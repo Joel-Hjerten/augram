@@ -875,10 +875,10 @@
                         <Button DockPanel.Dock="Left" Name="PART_AlsoInEdit" Classes="toolbar" Content="Change…" VerticalAlignment="Center" />
                         <TextBlock Name="PART_AlsoInText" Classes="bench-value" Text="{TemplateBinding AlsoInText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
                       </DockPanel>
-                      <!-- Plan 0010: which platform's steps the list below shows (a view switch, the "Fields for" look), the side's label,
-                           and on the other platform's side its note; Copy from and Mark as checked when they apply. -->
-                      <StackPanel Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasStepSide}">
-                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
+                      <!-- Plan 0010: which platform's steps the list below shows (a view switch, the "Fields for" look, this computer's
+                           platform outlined), then Copy from and Mark as checked when they apply, Copy first so it never moves, and on the
+                           other platform's side its note last (Joel, 0.14.2: one line, no label). -->
+                      <WrapPanel ItemSpacing="{StaticResource Space.M}" LineSpacing="4" IsVisible="{TemplateBinding HasStepSide}">
                           <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Classes="bench-label" Text="Steps for" />
                             <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.StepsForHelp}" />
@@ -887,17 +887,16 @@
                             <RadioButton Name="PART_StepsForWindows" Classes="button-radio" Content="Windows" />
                             <RadioButton Name="PART_StepsForMac" Classes="button-radio" Content="macOS" />
                           </StackPanel>
-                          <TextBlock Classes="bench-value" Text="{TemplateBinding StepSideText}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <WrapPanel ItemSpacing="6" LineSpacing="4"
-                                   IsVisible="{TemplateBinding HasStepSideActions}">
                           <Button Name="PART_CopySteps"
                                   Classes="toolbar"
                                   Content="{TemplateBinding CopyStepsText}"
                                   IsVisible="{TemplateBinding CopyStepsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                           <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
-                        </WrapPanel>
-                      </StackPanel>
+                          <TextBlock Classes="bench-note"
+                                     Text="{TemplateBinding StepSideText}"
+                                     VerticalAlignment="Center"
+                                     IsVisible="{TemplateBinding StepSideText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </WrapPanel>
                     </StackPanel>
                   </Panel>
                 </Border>

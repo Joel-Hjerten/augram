@@ -80,25 +80,19 @@ public sealed partial class CommandsViewModel
     }
 
     /// <summary>
-    /// The header's "Steps for" row: the side in view, labelled with where its steps come from ("macOS · runs here",
-    /// "Windows · converted from macOS · read-only here"; Joel, 0.14.1: the note in the label, so Copy stays put), Copy from while both sides have their own steps, and Mark as
-    /// checked for this platform's own steps made before the original last changed.
+    /// The header's Steps for line (plan 0010; Joel, 0.14.2: no label, the outline marks this computer's platform): the side in
+    /// view, on the other side its note "Edit on Windows", Copy from while both sides have their own steps, and Mark as checked for
+    /// this platform's own steps made before the original last changed. Where steps come from shows on the rows and the command row.
     /// </summary>
     private StepSide StepSideOf(Command command)
     {
         var shown = _stepsView.Shown;
-        var other = shown.Other().DisplayName();
         var ownVersionHere = command.OwnVersion?.Platform == shown;
-        var inferred = command.Origin is { } origin && origin != shown && !ownVersionHere;
-        var label = shown.DisplayName() + (_stepsView.IsHere ? " · runs here" : inferred ? string.Empty : " · own steps")
-            + (inferred ? $" · converted from {other}" : string.Empty)
-            + (ownVersionHere && command.IsOwnVersionStale ? $" · {other} original changed" : string.Empty)
-            + (_stepsView.IsHere ? string.Empty : " · read-only here");
         return new StepSide(
             shown,
             _stepsView.IsHere,
-            label,
-            command.OwnVersion is null ? null : $"Copy from {other}",
+            _stepsView.IsHere ? null : PlatformSideView.EditNote(shown),
+            command.OwnVersion is null ? null : $"Copy from {shown.Other().DisplayName()}",
             _stepsView.IsHere && ownVersionHere && command.IsOwnVersionStale);
     }
 }

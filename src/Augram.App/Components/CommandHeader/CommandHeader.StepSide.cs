@@ -29,8 +29,6 @@ public sealed partial class CommandHeader
     public static readonly StyledProperty<bool> CanMarkCheckedProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(CanMarkChecked));
 
-    public static readonly StyledProperty<bool> HasStepSideActionsProperty =
-        AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasStepSideActions));
 
     private RadioButton? _stepsForWindows;
     private RadioButton? _stepsForMac;
@@ -63,13 +61,6 @@ public sealed partial class CommandHeader
         private set => SetValue(CanMarkCheckedProperty, value);
     }
 
-    /// <summary>The line under the switch shows: a note, Copy from or Mark as checked.</summary>
-    public bool HasStepSideActions
-    {
-        get => GetValue(HasStepSideActionsProperty);
-        private set => SetValue(HasStepSideActionsProperty, value);
-    }
-
     /// <summary>What the switch does: asks the host to show <paramref name="platform"/>'s steps; the switch then shows the answer.</summary>
     public void ShowStepsFor(HostPlatform platform)
     {
@@ -84,10 +75,9 @@ public sealed partial class CommandHeader
     private void ShowStepSide(StepSide? side)
     {
         HasStepSide = side is not null;
-        StepSideText = side?.Label;
+        StepSideText = side?.EditNote;
         CopyStepsText = side?.CopyText;
         CanMarkChecked = side is { CanMarkChecked: true };
-        HasStepSideActions = side is not null && (side.CopyText is not null || side.CanMarkChecked);
     }
 
     private void FindStepSideParts(TemplateAppliedEventArgs e)

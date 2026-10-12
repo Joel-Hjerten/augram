@@ -22,7 +22,7 @@ public sealed class CommandsViewModelVersionTests
         var three = Item(vm, "Three steps");
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Uncategorized"), three));
 
-        Assert.Equal("macOS · runs here · converted from Windows", vm.SelectedCommand!.StepSide!.Label);
+        Assert.Null(vm.SelectedCommand!.StepSide!.EditNote);
         Assert.Equal(HostPlatform.MacOS, vm.Steps[0].Step.AuthoredOn);
 
         vm.Handle(new StepListActionEventArgs(StepListAction.Edit, vm.Steps[1], edited: new DelayStep(99)));
@@ -33,7 +33,7 @@ public sealed class CommandsViewModelVersionTests
         Assert.Equal([10, 99, 30], stored.OwnVersion.Steps.Select(step => ((DelayStep)step.Step).Milliseconds));
         Assert.All(stored.OwnVersion.Steps, step => Assert.Equal(HostPlatform.MacOS, step.AuthoredOn));
         Assert.Contains("now has its own steps here", vm.Message, StringComparison.Ordinal);
-        Assert.Equal("macOS · runs here", vm.SelectedCommand!.StepSide!.Label);
+        Assert.Null(vm.SelectedCommand!.StepSide!.EditNote);
         Assert.Equal("own macOS version", Item(vm, "Three steps").PlatformMarker);
     }
 
@@ -83,7 +83,7 @@ public sealed class CommandsViewModelVersionTests
 
         Assert.True(vm.SelectedCommand!.IsOwnVersionStale);
         Assert.Equal("own macOS version · Windows original changed", Item(vm, "Three steps").PlatformMarker);
-        Assert.Equal("macOS · runs here · Windows original changed", vm.SelectedCommand.StepSide!.Label);
+        Assert.True(vm.SelectedCommand.StepSide!.CanMarkChecked);
         Assert.True(vm.SelectedCommand.StepSide.CanMarkChecked);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.MarkOwnVersionChecked, command: vm.SelectedCommand));
@@ -104,7 +104,7 @@ public sealed class CommandsViewModelVersionTests
         var side = vm.SelectedCommand!.StepSide!;
         Assert.Equal(HostPlatform.Windows, side.Shown);
         Assert.False(side.IsHere);
-        Assert.Equal("Windows · own steps · read-only here", side.Label);
+        Assert.Equal("Edit on Windows", side.EditNote);
         Assert.Null(side.CopyText);
 
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, Section(vm, "Window"), Item(vm, "Minimize")));
@@ -123,7 +123,7 @@ public sealed class CommandsViewModelVersionTests
         var before = Find(store, "Three steps");
 
         Assert.EndsWith("→ Ctrl+Backspace", vm.Steps[0].Summary, StringComparison.Ordinal);
-        Assert.Equal("Windows · converted from macOS · read-only here", vm.SelectedCommand!.StepSide!.Label);
+        Assert.Equal("Edit on Windows", vm.SelectedCommand!.StepSide!.EditNote);
         vm.Handle(new StepListActionEventArgs(StepListAction.Edit, vm.Steps[0], edited: new DelayStep(99)));
         vm.Handle(new StepListActionEventArgs(StepListAction.Delete, vm.Steps[0]));
         vm.Handle(new StepListActionEventArgs(StepListAction.Add, type: DelayStepType.Instance));
@@ -155,7 +155,7 @@ public sealed class CommandsViewModelVersionTests
         var copied = Find(store, "Three steps");
         Assert.Null(copied.OwnVersion);
         Assert.Equal([macStep], copied.StepsFor(HostPlatform.Windows));
-        Assert.Equal("Windows · converted from macOS · read-only here", vm.SelectedCommand!.StepSide!.Label);
+        Assert.Equal("Edit on Windows", vm.SelectedCommand!.StepSide!.EditNote);
         vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
         Assert.Equal(withMac, Find(store, "Three steps"));
     }
@@ -170,7 +170,7 @@ public sealed class CommandsViewModelVersionTests
 
         Assert.Equal(11, ((DelayStep)Find(store, "Three steps").Steps[0].Step).Milliseconds);
         Assert.Null(Find(store, "Three steps").OwnVersion);
-        Assert.Equal("Windows · runs here", vm.SelectedCommand!.StepSide!.Label);
+        Assert.Null(vm.SelectedCommand!.StepSide!.EditNote);
     }
 
     private static void ShowStepsFor(CommandsViewModel vm, HostPlatform platform)
