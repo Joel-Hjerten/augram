@@ -2,6 +2,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Hotkey;
+using Augram.Core.Tests.Platforms;
 using Augram.Core.Tests.Steps.Support;
 using Xunit;
 
@@ -10,8 +11,10 @@ namespace Augram.Core.Tests.Steps;
 /// <summary>
 /// A hotkey per keyboard layout (plan 0011): the step's <c>Layouts</c> map and <c>ForLayout</c>, the " · per layout" summary,
 /// the <c>layouts</c> parameter's round trip and refusals, the conversion dropping the map, and the executor picking by the
-/// active layout. The main shortcut alone is <see cref="HotkeyStepTests"/>.
+/// active layout. The main shortcut alone is <see cref="HotkeyStepTests"/>. In the never-parallel collection because the
+/// summary tests set the process-wide <see cref="HotkeyText.Layouts"/> hook (reset in a <c>finally</c>).
 /// </summary>
+[Collection(RunningPlatformTests.Alone)]
 public sealed class HotkeyLayoutsTests
 {
     private const string SwedishId = "com.apple.keylayout.Swedish-Pro";
@@ -48,6 +51,70 @@ public sealed class HotkeyLayoutsTests
         Assert.Equal("Cmd+[ · per layout", step.SummaryOn(HostPlatform.MacOS));
         Assert.Equal("Win+[", new HotkeyStep(KeyModifiers.Meta, KeyCode.OpenBracket).Summary);
         Assert.Equal("Hotkey (no key set) · per layout", (HotkeyStep.Unset with { Layouts = step.Layouts }).Summary);
+    }
+
+    /// <summary>Joel, 2026-10-13 (third round): the summary is the active layout's row, named by that layout, under each layout in turn.</summary>
+    [Fact]
+    public void SummaryShowsTheActiveLayoutsRow_NamedByThatLayout()
+    {
+        var step = Back((SwedishId, new HotkeyBinding(KeyModifiers.Meta, KeyCode.Semicolon)), (AbcId, CmdOpenBracket));
+        var layouts = SwedishAndAbc();
+        try
+        {
+            HotkeyText.Layouts = layouts;
+            Assert.Equal("Win+Ö · per layout", step.Summary);
+            Assert.Equal("Cmd+Ö · per layout", step.SummaryOn(HostPlatform.MacOS));
+
+            layouts.Active = FakeKeyboardLayouts.Abc;
+            Assert.Equal("Win+[ · per layout", step.Summary);
+            Assert.Equal("Cmd+[ · per layout", step.SummaryOn(HostPlatform.MacOS));
+        }
+        finally
+        {
+            HotkeyText.Layouts = NullKeyboardLayouts.Instance;
+        }
+    }
+
+    /// <summary>A layout without a row shows the main shortcut, as the executor runs it, named by the active layout.</summary>
+    [Fact]
+    public void SummaryFallsBackToTheMainShortcut_ForALayoutWithoutARow()
+    {
+        var step = Back((AbcId, new HotkeyBinding(KeyModifiers.Meta, KeyCode.P)));
+        var layouts = SwedishAndAbc();
+        try
+        {
+            HotkeyText.Layouts = layouts;
+            Assert.Equal("Win+Å · per layout", step.Summary);
+
+            layouts.Active = FakeKeyboardLayouts.Abc;
+            Assert.Equal("Win+P · per layout", step.Summary);
+        }
+        finally
+        {
+            HotkeyText.Layouts = NullKeyboardLayouts.Instance;
+        }
+    }
+
+    /// <summary>The null port cannot say which layout is active: the main shortcut in US names, as before.</summary>
+    [Fact]
+    public void SummaryUnderTheNullPortIsTheMainShortcutInUsNames()
+    {
+        Assert.Same(NullKeyboardLayouts.Instance, HotkeyText.Layouts);
+        var step = Back((SwedishId, new HotkeyBinding(KeyModifiers.Meta, KeyCode.Semicolon)));
+
+        Assert.Equal("Win+[ · per layout", step.Summary);
+        Assert.Equal("Cmd+[ · per layout", step.SummaryOn(HostPlatform.MacOS));
+    }
+
+    /// <summary>Swedish active, ABC installed too; the bracket and semicolon keys print Å and Ö under Swedish, [ and ; under ABC.</summary>
+    private static FakeKeyboardLayouts SwedishAndAbc()
+    {
+        var layouts = new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc);
+        layouts.CharactersOf(SwedishId)[KeyCode.OpenBracket] = "å";
+        layouts.CharactersOf(SwedishId)[KeyCode.Semicolon] = "ö";
+        layouts.CharactersOf(AbcId)[KeyCode.OpenBracket] = "[";
+        layouts.CharactersOf(AbcId)[KeyCode.Semicolon] = ";";
+        return layouts;
     }
 
     [Fact]

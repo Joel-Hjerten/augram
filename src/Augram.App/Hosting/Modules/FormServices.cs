@@ -16,7 +16,8 @@ namespace Augram.App.Hosting.Modules;
 /// otherwise the fields fall back to their own window. The keyboard layouts port (plan 0011) is only read, so it is published
 /// always, and set as <see cref="HotkeyText.Layouts"/> so every key name follows the active layout (decision 6); while the engine
 /// runs, a <see cref="SystemEventKind.KeyboardLayoutChanged"/> re-publishes the same ports on the UI thread, which reaches every
-/// open hotkey field and Hotkey form as <c>ResourcesChanged</c> (they re-read their names; nothing else is notified).
+/// open hotkey field and Hotkey form as <c>ResourcesChanged</c> (they re-read their names); the Commands view models subscribe to
+/// the same event themselves and project their rows again (the step summaries follow the active layout; <c>CommandsModule</c>).
 /// </summary>
 public static class FormServices
 {

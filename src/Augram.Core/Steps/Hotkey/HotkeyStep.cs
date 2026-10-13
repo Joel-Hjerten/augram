@@ -44,11 +44,25 @@ public sealed record HotkeyStep(KeyModifiers Modifiers, KeyCode Key, KeyModifier
     /// <summary>The main shortcut, the fallback for every layout without its own, as a binding.</summary>
     public HotkeyBinding Main => new(Modifiers, Key, RightHand);
 
-    /// <summary>"Ctrl+Shift+T", "Alt+F4", "RCtrl+RShift+P", "Esc"; <see cref="UnsetSummary"/> while no key is set; " · per layout" added when <see cref="HasLayouts"/>.</summary>
-    public string Summary => WithSuffix(Main.Summary);
+    /// <summary>
+    /// "Ctrl+Shift+T", "Alt+F4", "RCtrl+RShift+P", "Esc"; <see cref="UnsetSummary"/> while no key is set. With layout shortcuts
+    /// (<see cref="HasLayouts"/>): the active layout's shortcut (<see cref="ForLayout"/> of <see cref="HotkeyText.Layouts"/>'
+    /// <c>Active</c>, as the executor picks; the main one for a layout without a row or when the port cannot say), named by
+    /// that layout, plus " · per layout" (Joel, 2026-10-13, third round: the stored main shortcut is the row of the layout active
+    /// at the last edit, and under the other layout that key reads as a shortcut never captured).
+    /// </summary>
+    public string Summary => HasLayouts ? WithSuffix(ActiveSummary(null)) : Main.Summary;
 
-    /// <summary>"Win+D" on Windows, "Cmd+D" on macOS: the same Meta modifier under that keyboard's name.</summary>
-    public string SummaryOn(HostPlatform platform) => WithSuffix(Main.SummaryOn(platform));
+    /// <summary>"Win+D" on Windows, "Cmd+D" on macOS: the same Meta modifier under that keyboard's name; with layout shortcuts the active layout's, as <see cref="Summary"/>.</summary>
+    public string SummaryOn(HostPlatform platform) => HasLayouts ? WithSuffix(ActiveSummary(platform)) : Main.SummaryOn(platform);
+
+    /// <summary>The shortcut the active layout runs, in its own key names (one read of the port's <c>Active</c>).</summary>
+    private string ActiveSummary(HostPlatform? platform)
+    {
+        var active = HotkeyText.Layouts.Active?.Id;
+        var shown = ForLayout(active);
+        return shown.IsSet ? HotkeyText.Format(shown.Modifiers, shown.Key, shown.RightHand, platform, layoutId: active) : HotkeyBinding.UnsetSummary;
+    }
 
     /// <summary>The shortcut to press under <paramref name="layoutId"/>: that layout's own when the step has one, else <see cref="Main"/>. Null (the platform cannot say) is the main one.</summary>
     public HotkeyBinding ForLayout(string? layoutId)

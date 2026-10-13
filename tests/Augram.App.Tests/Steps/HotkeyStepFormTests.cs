@@ -125,6 +125,33 @@ public sealed class HotkeyStepFormTests
         Assert.Equal(["Alt+Shift+Win+8", HotkeyCaptureBox.EmptyText], LayoutBoxes(form).Select(box => box.DisplayText));
     }
 
+    /// <summary>Joel, 2026-10-13 (third round): after a layout switch the hand editor shows the active layout's row (the one it edits), not the stored main shortcut.</summary>
+    [AvaloniaFact]
+    public void TheHandEditorFollowsTheActiveLayoutsRowAfterALayoutSwitch()
+    {
+        var changes = new List<IStep>();
+        var layouts = new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc);
+        var abcBinding = new HotkeyBinding(KeyModifiers.Meta, KeyCode.CloseBracket);
+        var step = new HotkeyStep(SwedishBack.Modifiers, SwedishBack.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = SwedishBack, [FakeKeyboardLayouts.Abc.Id] = abcBinding } };
+        var (form, window) = Show(step, changes.Add, layouts);
+        Assert.Equal("8", KeyDropdown(form).SelectedItem);
+        Assert.Equal([false, true, false, true], Toggles(form));
+
+        // ABC becomes active and the composition root re-publishes the ports: the editor shows ABC's row.
+        layouts.Active = FakeKeyboardLayouts.Abc;
+        window.Resources[ComponentPorts.ResourceKey] = new ComponentPorts();
+
+        Assert.Equal("]", KeyDropdown(form).SelectedItem);
+        Assert.Equal([false, false, false, true], Toggles(form));
+        Assert.Empty(changes);
+
+        // A hand edit now writes ABC's row, and the main follows it.
+        ModifierBoxes(form)[2].IsChecked = true;
+
+        var shifted = abcBinding with { Modifiers = abcBinding.Modifiers | KeyModifiers.Shift };
+        Assert.Equal(new HotkeyStep(shifted.Modifiers, shifted.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = SwedishBack, [FakeKeyboardLayouts.Abc.Id] = shifted } }, Assert.Single(changes));
+    }
+
     /// <summary>Joel, 2026-10-13 (first round): each row names its keys by its own layout, not the active one.</summary>
     [AvaloniaFact]
     public void ARowsBoxCarriesItsLayoutIdAndNamesByIt()
@@ -380,12 +407,12 @@ public sealed class HotkeyStepFormTests
 
     private static Button[] RemoveButtons(Control form) => [.. Laid(form).GetVisualDescendants().OfType<Button>().Where(button => Equals(button.Content, HotkeyStepForm.RemoveLabel))];
 
-    private static ComboBox KeyDropdown(Control form) => form.GetVisualDescendants().OfType<ComboBox>().Single();
+    private static ComboBox KeyDropdown(Control form) => Laid(form).GetVisualDescendants().OfType<ComboBox>().Single();
 
     private static bool[] Toggles(Control form) => [.. ModifierBoxes(form).Select(box => box.IsChecked == true)];
 
     /// <summary>The hand editor's four modifier check boxes (not the Per keyboard layout switch).</summary>
-    private static CheckBox[] ModifierBoxes(Control form) => [.. form.GetVisualDescendants().OfType<ModifierToggle>().SelectMany(toggle => toggle.GetVisualDescendants().OfType<CheckBox>())];
+    private static CheckBox[] ModifierBoxes(Control form) => [.. Laid(form).GetVisualDescendants().OfType<ModifierToggle>().SelectMany(toggle => toggle.GetVisualDescendants().OfType<CheckBox>())];
 
-    private static ToggleButton[] RightToggles(Control form) => [.. form.GetVisualDescendants().OfType<ToggleButton>().Where(toggle => toggle.Name == "PART_Right")];
+    private static ToggleButton[] RightToggles(Control form) => [.. Laid(form).GetVisualDescendants().OfType<ToggleButton>().Where(toggle => toggle.Name == "PART_Right")];
 }

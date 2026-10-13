@@ -70,5 +70,6 @@ public static class CommandsModule
             sp.GetRequiredService<CommandClipboard>(),
             RunningPlatform.Current,
             sp.GetService<IExportPresenter>(),
-            sp.GetService<SettingsStore>());
+            sp.GetService<SettingsStore>(),
+            sp.GetService<ISystemEvents>());
 }
