@@ -57,6 +57,9 @@ public sealed record EnginePorts
     /// <summary>What the Clear clipboard step empties; the null object declines, so the step skips.</summary>
     public IClipboard Clipboard { get; init; } = NullClipboard.Instance;
 
+    /// <summary>Which keyboard layout is active and what a key prints under it, for a Hotkey step with layout shortcuts (plan 0011); the null object knows none, so the main shortcut runs.</summary>
+    public IKeyboardLayouts Layouts { get; init; } = NullKeyboardLayouts.Instance;
+
     /// <summary>What the Open app step brings a running app forward with; the null object leaves it to the launcher.</summary>
     public IAppActivator Apps { get; init; } = NullAppActivator.Instance;
 

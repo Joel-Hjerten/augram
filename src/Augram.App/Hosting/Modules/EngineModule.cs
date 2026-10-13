@@ -145,6 +145,7 @@ public static class EngineModule
             ProcessLauncher = sp.GetRequiredService<IProcessLauncher>(),
             DisplayModes = sp.GetRequiredService<IDisplayModes>(),
             Clipboard = sp.GetRequiredService<IClipboard>(),
+            Layouts = sp.GetRequiredService<IKeyboardLayouts>(),
             Apps = sp.GetRequiredService<IAppActivator>(),
             AppWindow = sp.GetRequiredService<MainWindowOpener>(),
             Mapping = () => mapping.Current,
