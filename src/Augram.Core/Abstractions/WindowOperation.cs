@@ -20,6 +20,12 @@ public enum WindowOperation
     /// <summary>Flip the window's always-on-top state.</summary>
     ToggleAlwaysOnTop,
 
+    /// <summary>
+    /// Flip the window's native full-screen state (macOS: the green button's default, Control-Command-F; the window
+    /// takes its own Space). Windows has no window-level equivalent (F11 is each app's own) and declines it.
+    /// </summary>
+    ToggleFullScreen,
+
     /// <summary>Move the window to the centre of its monitor's work area, keeping its size.</summary>
     Center,
 

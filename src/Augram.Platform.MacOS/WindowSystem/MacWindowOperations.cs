@@ -14,7 +14,9 @@ namespace Augram.Platform.MacOS.WindowSystem;
 /// Size to restore, pressed through Accessibility after bringing the window forward, so macOS remembers the size and the
 /// app sees what it sees when the user picks Fill. Without those items (an app with no standard Window menu) it fills the
 /// visible frame itself and restores the frame it remembered (<see cref="MacMaximize"/>); a filled window with nothing to
-/// return to gets a default frame (<see cref="MacMaximize.DefaultRestore"/>). Native full screen is left. Pressing the
+/// return to gets a default frame (<see cref="MacMaximize.DefaultRestore"/>). Native full screen is left. ToggleFullScreen
+/// sets <c>AXFullScreen</c> to the opposite of what it reads (the green button's default on current macOS) and waits for
+/// the state to flip, so a window that refuses full screen fails with a reason instead of reporting Done. Pressing the
 /// zoom button, as before 2026-10-09, sent a window into native full screen on current macOS. The placement operations and
 /// always-on-top are not built yet and report not supported. Runs on the command executor thread only; nothing here
 /// throws, a failed call becomes <see cref="WindowOperationResult.Failed"/> with the reason.
@@ -45,7 +47,7 @@ public sealed class MacWindowOperations : IWindowOperations
     public HostPlatform Platform => HostPlatform.MacOS;
 
     public bool Supports(WindowOperation operation) =>
-        operation is WindowOperation.Close or WindowOperation.Minimize or WindowOperation.MaximizeOrRestore;
+        operation is WindowOperation.Close or WindowOperation.Minimize or WindowOperation.MaximizeOrRestore or WindowOperation.ToggleFullScreen;
 
     public WindowOperationResult Perform(WindowOperation operation, WindowIdentity window, WindowSize? size = null)
     {
@@ -81,6 +83,7 @@ public sealed class MacWindowOperations : IWindowOperations
                 {
                     WindowOperation.Close => Result(Ax.PressButton(element, Ax.CloseButtonAttribute)),
                     WindowOperation.Minimize => Result(Ax.SetBool(element, Ax.MinimizedAttribute, true)),
+                    WindowOperation.ToggleFullScreen => ToggleFullScreen(element),
                     _ => MaximizeOrRestore(app, element, id),
                 };
             }
@@ -102,6 +105,47 @@ public sealed class MacWindowOperations : IWindowOperations
         do
         {
             if (Ax.Frame(window) is { } now && !now.IsNear(before, 1))
+            {
+                return true;
+            }
+
+            Thread.Sleep(SettlePoll);
+        }
+        while (Environment.TickCount64 < deadline);
+
+        return false;
+    }
+
+    /// <summary>
+    /// Flips <c>AXFullScreen</c>: what the green button does on current macOS, so it works where Control-Command-F does
+    /// not (Eyeris, Joel 2026-10-13). Waits up to <see cref="SettleTimeout"/> for the state to flip (macOS animates
+    /// the Space change), and fails with the reason when the window has no such state or refuses it.
+    /// </summary>
+    private WindowOperationResult ToggleFullScreen(nint element)
+    {
+        if (Ax.GetBool(element, Ax.FullScreenAttribute) is not { } current)
+        {
+            return WindowOperationResult.Failed("the window has no full screen state");
+        }
+
+        var set = Ax.SetBool(element, Ax.FullScreenAttribute, !current);
+        var flipped = set == MacNative.AXErrorSuccess && FullScreenBecame(element, !current);
+        _log.Info(LogSources.Window, "Toggled full screen", ("wasFullScreen", current), ("result", Ax.Describe(set)), ("windowChanged", flipped));
+        if (set != MacNative.AXErrorSuccess)
+        {
+            return WindowOperationResult.Failed(Ax.Describe(set));
+        }
+
+        return flipped ? WindowOperationResult.Ok : WindowOperationResult.Failed("the window did not change; it may not allow full screen");
+    }
+
+    /// <summary>Polls <c>AXFullScreen</c> for up to <see cref="SettleTimeout"/>: true once it reads <paramref name="wanted"/>.</summary>
+    private static bool FullScreenBecame(nint window, bool wanted)
+    {
+        var deadline = Environment.TickCount64 + (long)SettleTimeout.TotalMilliseconds;
+        do
+        {
+            if (Ax.GetBool(window, Ax.FullScreenAttribute) == wanted)
             {
                 return true;
             }

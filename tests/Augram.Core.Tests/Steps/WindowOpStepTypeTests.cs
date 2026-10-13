@@ -30,6 +30,7 @@ public sealed class WindowOpStepTypeTests
     [InlineData(WindowOperation.Minimize, "Minimize window")]
     [InlineData(WindowOperation.MaximizeOrRestore, "Maximize or restore")]
     [InlineData(WindowOperation.ToggleAlwaysOnTop, "Toggle always on top")]
+    [InlineData(WindowOperation.ToggleFullScreen, "Toggle full screen")]
     [InlineData(WindowOperation.Center, "Center window")]
     [InlineData(WindowOperation.SnapLeftHalf, "Snap to left half")]
     [InlineData(WindowOperation.SnapRightHalf, "Snap to right half")]

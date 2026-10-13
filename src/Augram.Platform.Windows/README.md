@@ -63,7 +63,7 @@ Differences from the Spike2 `ActivateMode` probe: the "attach foreground **and**
 
 ## Window operations (`Win32WindowOperations`)
 
-The `IWindowOperations` adapter for the F5 window actions (SP.net reference §5 item 6). `Platform` is `Windows` and `Supports` is true for every `WindowOperation`. Every operation targets `WindowIdentity.RootHandle` (the root owner, so a gesture over a find dialog acts on its editor, as SP.net does) and begins with `IsWindow`: a handle that no longer names a window returns `Failed("window gone")` before anything is touched. Coordinates are physical pixels (the app is PerMonitorV2); the work area is `GetMonitorInfo(MonitorFromWindow(root, MONITOR_DEFAULTTONEAREST)).rcWork`, the monitor minus the taskbar.
+The `IWindowOperations` adapter for the F5 window actions (SP.net reference §5 item 6). `Platform` is `Windows` and `Supports` is true for every `WindowOperation` but `ToggleFullScreen` (a macOS notion: Windows has no window-level full screen, and F11 is each app's own shortcut; the executor skips the step with the reason). Every operation targets `WindowIdentity.RootHandle` (the root owner, so a gesture over a find dialog acts on its editor, as SP.net does) and begins with `IsWindow`: a handle that no longer names a window returns `Failed("window gone")` before anything is touched. Coordinates are physical pixels (the app is PerMonitorV2); the work area is `GetMonitorInfo(MonitorFromWindow(root, MONITOR_DEFAULTTONEAREST)).rcWork`, the monitor minus the taskbar.
 
 | Operation | Win32 calls |
 |---|---|

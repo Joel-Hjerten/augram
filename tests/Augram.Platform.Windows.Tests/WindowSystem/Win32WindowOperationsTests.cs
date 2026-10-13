@@ -26,9 +26,19 @@ public sealed class Win32WindowOperationsTests
 
     [Theory]
     [MemberData(nameof(AllOperations))]
-    public void Supports_EveryOperation(WindowOperation operation)
+    public void Supports_EveryOperationButFullScreen(WindowOperation operation)
     {
-        Assert.True(Operations(new FakeWin32()).Supports(operation));
+        Assert.Equal(operation != WindowOperation.ToggleFullScreen, Operations(new FakeWin32()).Supports(operation));
+    }
+
+    [Fact]
+    public void ToggleFullScreen_IsNotSupported_PerformSaysSo()
+    {
+        var win = new FakeWin32();
+        var result = Operations(win).Perform(WindowOperation.ToggleFullScreen, Identity());
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("ToggleFullScreen is not supported on Windows", result.Reason);
     }
 
     [Theory]

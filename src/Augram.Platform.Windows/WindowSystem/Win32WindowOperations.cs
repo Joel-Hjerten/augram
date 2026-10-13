@@ -37,7 +37,8 @@ public sealed class Win32WindowOperations : IWindowOperations
 
     public HostPlatform Platform => HostPlatform.Windows;
 
-    public bool Supports(WindowOperation operation) => Enum.IsDefined(operation);
+    /// <summary>Every operation but <see cref="WindowOperation.ToggleFullScreen"/>: Windows has no window-level full screen (F11 is each app's own).</summary>
+    public bool Supports(WindowOperation operation) => Enum.IsDefined(operation) && operation != WindowOperation.ToggleFullScreen;
 
     public WindowOperationResult Perform(WindowOperation operation, WindowIdentity window, WindowSize? size = null)
     {

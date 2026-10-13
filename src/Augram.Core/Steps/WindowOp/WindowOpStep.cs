@@ -18,6 +18,7 @@ public sealed record WindowOpStep(WindowOperation Operation, WindowSize? Size = 
         WindowOperation.Minimize => "Minimize window",
         WindowOperation.MaximizeOrRestore => "Maximize or restore",
         WindowOperation.ToggleAlwaysOnTop => "Toggle always on top",
+        WindowOperation.ToggleFullScreen => "Toggle full screen",
         WindowOperation.Center => "Center window",
         WindowOperation.SetSize => Size is { } size ? $"Set size {size.Width}×{size.Height}" : "Set size",
         WindowOperation.SnapLeftHalf => "Snap to left half",
