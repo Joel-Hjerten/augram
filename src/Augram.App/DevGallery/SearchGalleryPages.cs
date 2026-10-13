@@ -2,6 +2,7 @@
 using Augram.App.Components.GesturePicker;
 using Augram.App.Components.SearchBox;
 using Augram.App.Declarations;
+using Augram.App.Dialogs;
 using Augram.Core.Gestures;
 
 namespace Augram.App.DevGallery;
@@ -66,11 +67,11 @@ public static class SearchGalleryPages
             [
                 new CustomField("GesturePicker", () =>
                 {
-                    var picker = new GesturePicker { Tiles = GesturePickerPresenter.Tiles(StarterGestures.All(), SearchQuery.Parse("do")), SearchText = "do", Width = 560, Height = 420 };
+                    var picker = new GesturePicker { Tiles = GesturePickerPresenter.Tiles(StarterGestures.All(), SearchQuery.Parse("do")), SearchText = "do", Width = DialogSize.Width(DialogSize.Picker), Height = 420 };
                     picker.Select(StarterGestures.IdFor("Down"));
                     return picker;
                 }),
-                new CustomField("Nothing matches", () => new GesturePicker { Tiles = [], SearchText = "xyz", Width = 560, Height = 240 }),
+                new CustomField("Nothing matches", () => new GesturePicker { Tiles = [], SearchText = "xyz", Width = DialogSize.Width(DialogSize.Picker), Height = 240 }),
             ]),
         ]);
 }

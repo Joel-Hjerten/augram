@@ -251,7 +251,7 @@ public static class CommandGalleryPages
             [
                 new CustomField("GesturePicker", () =>
                 {
-                    var picker = new GesturePicker { Tiles = [.. Starter.Select(GestureTileItem.From)], Width = 560, Height = 420 };
+                    var picker = new GesturePicker { Tiles = [.. Starter.Select(GestureTileItem.From)], Width = DialogSize.Width(DialogSize.Picker), Height = 420 };
                     picker.Select(StarterGestures.IdFor("Circle"));
                     return picker;
                 }),
