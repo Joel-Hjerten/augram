@@ -41,6 +41,7 @@ public sealed class GesturePicker : TemplatedControl
 
     private readonly RowListHost _rows = new(static () => false);
     private GestureId? _selectedId;
+    private SearchBox.SearchBox? _search;
 
     public event EventHandler<GesturePickerResult>? Closed;
 
@@ -103,6 +104,18 @@ public sealed class GesturePicker : TemplatedControl
 
     public void Cancel() => Closed?.Invoke(this, GesturePickerResult.Cancelled);
 
+    /// <summary>Focuses the search box (the find key, and the window when it opens; Joel, 2026-10-13). True when the template has one.</summary>
+    public bool FocusSearch()
+    {
+        if (_search is null)
+        {
+            return false;
+        }
+
+        _search.Focus();
+        return true;
+    }
+
     public void ChooseNoGesture() => Closed?.Invoke(this, GesturePickerResult.NoGesture);
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -120,7 +133,8 @@ public sealed class GesturePicker : TemplatedControl
             shell.Cancelled += (_, _) => Cancel();
         }
 
-        e.NameScope.Find<SearchBox.SearchBox>("PART_Search")?.Bind(SearchBox.SearchBox.TextProperty, new Binding(nameof(SearchText)) { Source = this, Mode = BindingMode.TwoWay });
+        _search = e.NameScope.Find<SearchBox.SearchBox>("PART_Search");
+        _search?.Bind(SearchBox.SearchBox.TextProperty, new Binding(nameof(SearchText)) { Source = this, Mode = BindingMode.TwoWay });
         e.OnClick("PART_NoGesture", ChooseNoGesture);
         e.OnClick("PART_NewGesture", () => NewGestureRequested?.Invoke(this, EventArgs.Empty));
     }

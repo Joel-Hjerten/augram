@@ -1,10 +1,13 @@
 using Augram.App.Components.GestureGrid;
 using Augram.App.Components.GesturePicker;
+using Augram.App.Components.ListEditing;
 using Augram.App.Components.SearchBox;
 using Augram.App.Dialogs;
 using Augram.Core.Gestures;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.VisualTree;
 using Xunit;
 
@@ -87,6 +90,26 @@ public sealed class GesturePickerTests
         Assert.Same(search, shell.HeadingTrailing);
         picker.SearchText = "ri";
         Assert.Equal("ri", search.Text);
+    }
+
+    /// <summary>Joel, 2026-10-13: the window opens with the search box focused, and the find key brings the focus back to it.</summary>
+    [AvaloniaFact]
+    public void TheWindowOpensWithTheSearchFocusedAndTheFindKeyFocusesIt()
+    {
+        var picker = new GesturePicker { Tiles = [.. StarterGestures.All().Select(GestureTileItem.From)] };
+        var window = new GesturePickerWindow(picker);
+        window.Show();
+        window.UpdateLayout();
+        var search = picker.GetVisualDescendants().OfType<SearchBox>().Single();
+
+        Assert.True(search.IsTyping);
+
+        window.FocusManager!.ClearFocus();
+        Assert.False(search.IsTyping);
+        window.KeyPressQwerty(PhysicalKey.F, EditKeymap.Current.IsMacOS ? RawInputModifiers.Meta : RawInputModifiers.Control);
+
+        Assert.True(search.IsTyping);
+        window.Close();
     }
 
     private static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
