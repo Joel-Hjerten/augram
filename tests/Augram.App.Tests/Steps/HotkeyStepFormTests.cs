@@ -178,6 +178,32 @@ public sealed class HotkeyStepFormTests
         Assert.Equal("Win+[", Box(form).DisplayText);
     }
 
+    /// <summary>Joel, 2026-10-13 (second round): off then on must bring the captured rows back, not re-seed them from the main shortcut; a step that never had rows still seeds.</summary>
+    [AvaloniaFact]
+    public void TheSwitchOffThenOnBringsTheSameRowsBack_AFreshStepStillSeeds()
+    {
+        var changes = new List<IStep>();
+        var abcBinding = new HotkeyBinding(KeyModifiers.Meta, KeyCode.CloseBracket);
+        var both = new HotkeyStep(SwedishBack.Modifiers, SwedishBack.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = SwedishBack, [FakeKeyboardLayouts.Abc.Id] = abcBinding } };
+        var (form, _) = Show(both, changes.Add, new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc));
+
+        PerLayoutSwitch(form).IsChecked = false;
+        Assert.Equal(new HotkeyStep(SwedishBack.Modifiers, SwedishBack.Key), Assert.Single(changes));
+
+        PerLayoutSwitch(form).IsChecked = true;
+
+        Assert.Equal(both, changes[^1]);
+        Assert.Equal(2, changes.Count);
+        Assert.Equal(["Alt+Win+8", "Win+]"], LayoutBoxes(form).Select(box => box.DisplayText));
+
+        // A fresh form over a step without rows has nothing to bring back: every layout starts from the main shortcut.
+        var fresh = new List<IStep>();
+        var (plain, _) = Show(new HotkeyStep(KeyModifiers.Meta, KeyCode.OpenBracket), fresh.Add, new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc));
+        PerLayoutSwitch(plain).IsChecked = true;
+        Assert.Equal(["Win+[", "Win+["], LayoutBoxes(plain).Select(box => box.DisplayText));
+        Assert.Single(fresh);
+    }
+
     [AvaloniaFact]
     public void TheRowsFollowTheLayoutsWhenThePortsAreRepublished()
     {
