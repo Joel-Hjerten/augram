@@ -897,6 +897,10 @@
     <Setter Property="SelectionBrush" Value="{DynamicResource Accent.Line}" />
     <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Text.Primary}" />
     <Setter Property="MinHeight" Value="{StaticResource Editor.Height}" />
+    <!-- LineHeight: the editor clips its lines to their boxes (several layers deep), and the marks on capitals (Å, Ö, Ä) sit above
+         the line's ascent in the system font, so they were cut (Joel, 2026-10-13); a taller line box, the extra shared above and
+         below, keeps them. Font.M is 13; the natural line is about 16. -->
+    <Setter Property="LineHeight" Value="20" />
     <Setter Property="Padding" Value="{StaticResource Input.Padding}" />
   </Style>
   <Style Selector="ComboBox">
