@@ -2,9 +2,12 @@ using Augram.App.Components.CommandTree;
 using Augram.App.Components.ListEditing;
 using Augram.App.Components.StepList;
 using Augram.App.Tests.Support;
+using Augram.App.ViewModels.Commands;
 using Augram.Core.Abstractions;
+using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps.Delay;
+using Augram.Core.Steps.Hotkey;
 using Augram.Core.Steps.MediaKey;
 using Augram.Core.Steps.Remap;
 using Augram.Core.Steps.WindowOp;
@@ -15,6 +18,42 @@ namespace Augram.App.Tests.Commands;
 
 public sealed class CommandsViewModelStepTests
 {
+    /// <summary>
+    /// Plan 0011, Joel 2026-10-13 (third round): a Hotkey step's summary is the active layout's shortcut, so the step row and the
+    /// command row re-read it when the layout changes (the system event, projected again on the UI thread). Through the process-wide
+    /// <see cref="HotkeyText.Layouts"/> hook, reset in a <c>finally</c>; no other App test names the bracket key.
+    /// </summary>
+    [AvaloniaFact]
+    public void TheStepAndCommandRowsRenameAHotkeyStepWhenTheKeyboardLayoutChanges()
+    {
+        var layouts = new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc);
+        layouts.CharactersOf(FakeKeyboardLayouts.Swedish.Id)[KeyCode.OpenBracket] = "å";
+        layouts.CharactersOf(FakeKeyboardLayouts.Abc.Id)[KeyCode.OpenBracket] = "[";
+        var events = new FakeSystemEvents();
+        var store = CommandsTestData.Store();
+        using var vm = new CommandsViewModel(CommandsScope.Global, store, new GestureLibrary(StarterGestures.All()), new FakeGesturePickerPresenter(), new FakeFormDialogPresenter(), new FakeConfirmPresenter(), new CommandClipboard(), HostPlatform.Windows, systemEvents: events);
+        var item = CommandsTestData.Item(vm, "Volume up");
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, vm.Sections.Single(section => section.Id == item.Section), item));
+        var bracket = new HotkeyBinding(KeyModifiers.Meta, KeyCode.OpenBracket);
+        try
+        {
+            HotkeyText.Layouts = layouts;
+            vm.Handle(new StepListActionEventArgs(StepListAction.Edit, vm.Steps[0], edited: new HotkeyStep(bracket.Modifiers, bracket.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = bracket, [FakeKeyboardLayouts.Abc.Id] = bracket } }));
+            Assert.Equal("Win+Å · per layout", vm.Steps[0].Summary);
+            Assert.Equal("Win+Å · per layout", CommandsTestData.Item(vm, "Volume up").StepSummary);
+
+            layouts.Active = FakeKeyboardLayouts.Abc;
+            events.Raise(SystemEventKind.KeyboardLayoutChanged);
+
+            Assert.Equal("Win+[ · per layout", vm.Steps[0].Summary);
+            Assert.Equal("Win+[ · per layout", CommandsTestData.Item(vm, "Volume up").StepSummary);
+        }
+        finally
+        {
+            HotkeyText.Layouts = NullKeyboardLayouts.Instance;
+        }
+    }
+
     [AvaloniaFact]
     public void AddAppendsADefaultStepAuthoredHereAndOpensIt_TheOpenStepsStayOpen()
     {

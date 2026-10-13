@@ -119,17 +119,25 @@ public sealed class HotkeyStepForm : IStepForm
             // A row's new shortcut, and the main shortcut following it.
             void EmitRow(string id, HotkeyBinding binding) => form.Emit(Derived(form.Current with { Layouts = With(form.Current.Layouts, id, binding) }));
 
+            // The row the hand editor shows and edits while the switch is on: the active layout's when listed, else the first
+            // listed; null is the main shortcut (the switch off, or nothing listed).
+            string? Target() => perLayout ? (activeId is not null && Order().Contains(activeId, StringComparer.Ordinal) ? activeId : Order().FirstOrDefault()) : null;
+
+            // What the hand editor shows: that row's shortcut when the step has one, else the main shortcut (Joel, 2026-10-13,
+            // third round: after a layout switch the hand editor follows the active layout's row, as the summary does).
+            HotkeyBinding Shown() => Target() is { } target && form.Current.Layouts.TryGetValue(target, out var own) ? own : form.Current.Main;
+
             // A hand edit of the shortcut shown: the main one with the switch off; with it on, the row the main follows. The
             // shown value echoed back (the dropdown's renderer does so on every refresh) is no edit, so it writes no row.
             void EmitMain(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand)
             {
                 var edited = new HotkeyBinding(modifiers, key, rightHand).Normalized();
-                if (edited == form.Current.Main)
+                if (edited == Shown())
                 {
                     return;
                 }
 
-                var target = perLayout ? (activeId is not null && Order().Contains(activeId, StringComparer.Ordinal) ? activeId : Order().FirstOrDefault()) : null;
+                var target = Target();
                 if (target is null)
                 {
                     form.Emit(form.Current with { Modifiers = modifiers, Key = key, RightHand = rightHand });
@@ -188,11 +196,11 @@ public sealed class HotkeyStepForm : IStepForm
 
             Func<Control> Modifier(KeyModifiers flag) => HotkeyChoices.ModifierToggle(
                 flag,
-                () => (form.Current.Modifiers, form.Current.RightHand),
-                (modifiers, rightHand) => EmitMain(modifiers, form.Current.Key, rightHand),
+                () => (Shown().Modifiers, Shown().RightHand),
+                (modifiers, rightHand) => EmitMain(modifiers, Shown().Key, rightHand),
                 form.OnEdit);
 
-            var key = form.Refreshed(() => form.Current.Key, value => EmitMain(form.Current.Modifiers, value, form.Current.RightHand), propertyName: nameof(HotkeyStep.Key));
+            var key = form.Refreshed(() => Shown().Key, value => EmitMain(Shown().Modifiers, value, Shown().RightHand), propertyName: nameof(HotkeyStep.Key));
             host.Screen = new FormScreen("Hotkey",
             [
                 new Section("Hotkey", hotkey),

@@ -50,13 +50,17 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
     private readonly StepEditor _steps;
     private readonly SectionPanel _panel;
     private readonly PlatformSideView _stepsView;
+    private readonly ISystemEvents? _systemEvents;
     private CommandId? _stepsOf;
     private (SectionId? Section, CommandId? Command)? _selectionBeforeSearch;
 
     /// <summary>
     /// <paramref name="clipboard"/> is shared by both tabs; <paramref name="platform"/> is what a new step is authored on (F8);
     /// <paramref name="export"/> runs a section menu's Export… (plan 0003), null where there is none (tests, the gallery);
-    /// <paramref name="settings"/> is followed for <see cref="StrokeButton"/> and <see cref="OptionsDragDistancePx"/>, null in tests and the gallery.
+    /// <paramref name="settings"/> is followed for <see cref="StrokeButton"/> and <see cref="OptionsDragDistancePx"/>, null in tests and the gallery;
+    /// <paramref name="systemEvents"/> re-projects the rows on a <see cref="SystemEventKind.KeyboardLayoutChanged"/> (plan 0011, Joel
+    /// 2026-10-13, third round: a Hotkey step's summary is the active layout's shortcut, so the step list and the command row repaint
+    /// on a layout switch; raised on the OS's thread while the engine runs, projected on the UI thread), null where none is raised.
     /// </summary>
     public CommandsViewModel(
         CommandsScope scope,
@@ -68,7 +72,8 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
         CommandClipboard clipboard,
         HostPlatform platform,
         IExportPresenter? export = null,
-        SettingsStore? settings = null)
+        SettingsStore? settings = null,
+        ISystemEvents? systemEvents = null)
         : base(confirm, MappingRefusals, export)
     {
         ArgumentNullException.ThrowIfNull(store);
@@ -88,6 +93,12 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
         _stepsView = new PlatformSideView(platform);
         _store.Changed += OnStoreChanged;
         _gestures.Changed += OnStoreChanged;
+        _systemEvents = systemEvents;
+        if (_systemEvents is not null)
+        {
+            _systemEvents.Occurred += OnSystemEvent;
+        }
+
         Project();
         if (settings is not null)
         {
@@ -216,7 +227,21 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
     {
         _store.Changed -= OnStoreChanged;
         _gestures.Changed -= OnStoreChanged;
+        if (_systemEvents is not null)
+        {
+            _systemEvents.Occurred -= OnSystemEvent;
+        }
+
         _settings?.Dispose();
+    }
+
+    /// <summary>A keyboard layout change renames the Hotkey rows' shortcuts (the summary follows the active layout): the same projection again, on the UI thread.</summary>
+    private void OnSystemEvent(object? sender, SystemEventKind kind)
+    {
+        if (kind == SystemEventKind.KeyboardLayoutChanged)
+        {
+            UiThread.RunOrPost(Project);
+        }
     }
 
     partial void OnSearchTextChanged(string value)
