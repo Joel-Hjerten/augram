@@ -13,5 +13,5 @@ public sealed class NullKeyboardLayouts : IKeyboardLayouts
 
     public IReadOnlyList<KeyboardLayout> Installed => [];
 
-    public string? CharacterOf(KeyCode key) => null;
+    public string? CharacterOf(KeyCode key, string? layoutId = null) => null;
 }

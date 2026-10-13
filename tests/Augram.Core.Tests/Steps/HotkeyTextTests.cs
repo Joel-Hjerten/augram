@@ -101,6 +101,34 @@ public sealed class HotkeyTextTests
         Assert.Equal("Ctrl+" + expected, HotkeyText.Format(KeyModifiers.Control, key, layouts: swedish));
     }
 
+    /// <summary>Joel, 2026-10-13 (first round): a layout id reaches the port, so a name follows that layout whatever is active; an id the port does not know names the US way.</summary>
+    [Fact]
+    public void KeyNameWithALayoutIdNamesByThatLayout_WhateverIsActive()
+    {
+        var layouts = new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc);
+        layouts.CharactersOf(FakeKeyboardLayouts.Swedish.Id)[KeyCode.OpenBracket] = "å";
+        layouts.CharactersOf(FakeKeyboardLayouts.Abc.Id)[KeyCode.OpenBracket] = "[";
+
+        Assert.Equal("[", HotkeyText.KeyName(KeyCode.OpenBracket, layouts: layouts, layoutId: FakeKeyboardLayouts.Abc.Id));
+        Assert.Equal("Win+Å", HotkeyText.Format(KeyModifiers.Meta, KeyCode.OpenBracket, layouts: layouts, layoutId: FakeKeyboardLayouts.Swedish.Id));
+        Assert.Equal("[", HotkeyText.KeyName(KeyCode.OpenBracket, layouts: layouts, layoutId: "com.apple.keylayout.Unknown"));
+    }
+
+    /// <summary>The null id is the active layout: what the summaries and the main capture field read.</summary>
+    [Fact]
+    public void KeyNameWithoutALayoutIdNamesByTheActiveLayout()
+    {
+        var layouts = new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc);
+        layouts.CharactersOf(FakeKeyboardLayouts.Swedish.Id)[KeyCode.OpenBracket] = "å";
+        layouts.CharactersOf(FakeKeyboardLayouts.Abc.Id)[KeyCode.OpenBracket] = "[";
+
+        Assert.Equal("Å", HotkeyText.KeyName(KeyCode.OpenBracket, layouts: layouts));
+
+        layouts.Active = FakeKeyboardLayouts.Abc;
+        Assert.Equal("[", HotkeyText.KeyName(KeyCode.OpenBracket, layouts: layouts));
+        Assert.Equal("Å", HotkeyText.KeyName(KeyCode.OpenBracket, layouts: layouts, layoutId: FakeKeyboardLayouts.Swedish.Id));
+    }
+
     [Theory]
     [InlineData(HostPlatform.Windows)]
     [InlineData(HostPlatform.MacOS)]

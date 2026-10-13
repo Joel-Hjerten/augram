@@ -22,8 +22,9 @@ namespace Augram.App.Components.Capture;
 /// outside the field, or the window losing activation keep the latest combination and raise
 /// <see cref="Committed"/>; Clear commits "no key". Every way out gives the keyboard back first: those
 /// three, Clear, being unloaded (keeps nothing), and the engine's own release (idle watchdog, hook reset). The text is
-/// <see cref="HotkeyText"/>'s, so a key reads by what it prints under the active layout, and is re-read on a resource change
-/// (the composition root re-publishes <see cref="ComponentPorts"/> when the layout changes; plan 0011 decision 6).
+/// <see cref="HotkeyText"/>'s, so a key reads by what it prints under the active layout, or under the layout <see cref="LayoutId"/>
+/// names (a per-layout row), and is re-read on a resource change (the composition root re-publishes <see cref="ComponentPorts"/>
+/// when the layout changes; plan 0011 decision 6).
 /// <see cref="SingleKey"/> is the one-key mode (a hold key, a hold remap command's input; <c>HotkeyCaptureBox.SingleKey.cs</c>).
 /// </summary>
 public sealed partial class HotkeyCaptureBox : TemplatedControl
@@ -43,6 +44,10 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
 
     public static readonly StyledProperty<TimeSpan> IdleTimeoutProperty =
         AvaloniaProperty.Register<HotkeyCaptureBox, TimeSpan>(nameof(IdleTimeout), EngineHost.DefaultKeyCaptureIdleTimeout);
+
+    public static readonly StyledProperty<string?> LayoutIdProperty = AvaloniaProperty.Register<HotkeyCaptureBox, string?>(nameof(LayoutId));
+
+    public static readonly StyledProperty<IKeyboardLayouts?> KeyboardLayoutsProperty = AvaloniaProperty.Register<HotkeyCaptureBox, IKeyboardLayouts?>(nameof(KeyboardLayouts));
 
     public static readonly StyledProperty<bool> IsCapturingProperty = AvaloniaProperty.Register<HotkeyCaptureBox, bool>(nameof(IsCapturing));
 
@@ -78,6 +83,18 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
 
     /// <summary>F5's watchdog: with no key event for this long the engine releases the keyboard. Default 10 s.</summary>
     public TimeSpan IdleTimeout { get => GetValue(IdleTimeoutProperty); set => SetValue(IdleTimeoutProperty, value); }
+
+    /// <summary>
+    /// The keyboard layout the key is named by (a <see cref="KeyboardLayout.Id"/>; a per-layout row's field in the Hotkey form,
+    /// so the Swedish row reads "Cmd+Å" and the ABC row "Cmd+[" whatever is active); null, the default, names by the active one.
+    /// </summary>
+    public string? LayoutId { get => GetValue(LayoutIdProperty); set => SetValue(LayoutIdProperty, value); }
+
+    /// <summary>
+    /// Explicit layouts port the key names ask (the Hotkey form hands its own to each row; tests, gallery); null looks up
+    /// <see cref="ComponentPorts.KeyboardLayouts"/>, and without one <see cref="HotkeyText"/>'s own (the adapter the App set at startup).
+    /// </summary>
+    public IKeyboardLayouts? KeyboardLayouts { get => GetValue(KeyboardLayoutsProperty); set => SetValue(KeyboardLayoutsProperty, value); }
 
     public bool IsCapturing { get => GetValue(IsCapturingProperty); private set => SetValue(IsCapturingProperty, value); }
 
@@ -139,7 +156,7 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ModifiersProperty || change.Property == RightHandProperty || change.Property == KeyProperty || change.Property == SingleKeyProperty)
+        if (change.Property == ModifiersProperty || change.Property == RightHandProperty || change.Property == KeyProperty || change.Property == SingleKeyProperty || change.Property == LayoutIdProperty || change.Property == KeyboardLayoutsProperty)
         {
             Refresh(StatusText);
         }
@@ -219,12 +236,15 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
         Refresh(status);
     }
 
+    /// <summary>Whose layouts name the key: <see cref="KeyboardLayouts"/>, else the published port, else null (<see cref="HotkeyText"/>'s own).</summary>
+    private IKeyboardLayouts? Layouts => KeyboardLayouts ?? ComponentPorts.Near(this)?.KeyboardLayouts;
+
     private void Refresh(string status)
     {
         DisplayText = IsCapturing ? LiveText()
             : Key == KeyCode.None ? EmptyText
-            : SingleKey ? HotkeyText.KeyName(Key)
-            : HotkeyText.Format(Modifiers, Key, RightHand);
+            : SingleKey ? HotkeyText.KeyName(Key, layouts: Layouts, layoutId: LayoutId)
+            : HotkeyText.Format(Modifiers, Key, RightHand, layouts: Layouts, layoutId: LayoutId);
         StatusText = status;
         HasStatus = status.Length > 0;
     }

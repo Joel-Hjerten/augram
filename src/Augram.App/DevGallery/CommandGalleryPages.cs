@@ -192,7 +192,7 @@ public static class CommandGalleryPages
 
         fields.Add(new CustomField("Display mode, over a 4K TV", () => new DisplayModeStepForm(GalleryDisplayModes.Instance).Build(new DisplayModeStep(new DisplayResolution(3840, 2160), RefreshRate.FromHertz(119.88)), _ => { })));
         fields.Add(FormField("Window, Set size", new WindowOpStep(WindowOperation.SetSize, new WindowSize(1280, 720))));
-        fields.Add(new CustomField("Hotkey, per keyboard layout: Swedish set, ABC empty (Chrome's Back)", () => new HotkeyStepForm(GalleryKeyboardLayouts.Instance).Build(GalleryKeyboardLayouts.ChromeBack, _ => { })));
+        fields.Add(new CustomField("Hotkey, per keyboard layout: Cmd+Opt+8 under Swedish, Cmd+[ under ABC (Chrome's Back; each row named by its own layout)", () => new HotkeyStepForm(GalleryKeyboardLayouts.Instance).Build(GalleryKeyboardLayouts.ChromeBack, _ => { })));
         fields.Add(FormField("Type text, three lines by keys", new TypeTextStep("first line\nsecond line, long enough to wrap inside the field when the window is narrow\nthird", TypeTextMethod.Keys)));
         fields.Add(FormField("Run, as admin and hidden", new RunStep("taskkill.exe", "/f /im yuzu.exe", Elevated: true, Hidden: true)));
         fields.Add(FormField("Scroll, Ctrl held, three notches", new ScrollStep(ScrollDirection.Down, 3, KeyModifiers.Control)));

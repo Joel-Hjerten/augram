@@ -40,8 +40,8 @@ public sealed partial class HotkeyCaptureBox
     /// <summary>"Ctrl, Alt, Shift or Win", in this platform's names (Opt and Cmd on a Mac).</summary>
     public static string ModifierWords() => HotkeyText.ModifierList("or");
 
-    /// <summary>The field's text while capturing: the key alone in one-key mode, else what is held ("Ctrl+Shift+…").</summary>
+    /// <summary>The field's text while capturing: the key alone in one-key mode, else what is held ("Ctrl+Shift+…"); the key named by <see cref="LayoutId"/>'s layout.</summary>
     private string LiveText() => SingleKey
-        ? _recorder.HasCombination ? HotkeyText.KeyName(_recorder.Key) : PromptKeyText
-        : _recorder.LiveText ?? PromptText;
+        ? _recorder.HasCombination ? HotkeyText.KeyName(_recorder.Key, layouts: Layouts, layoutId: LayoutId) : PromptKeyText
+        : _recorder.LiveTextFor(LayoutId, Layouts) ?? PromptText;
 }

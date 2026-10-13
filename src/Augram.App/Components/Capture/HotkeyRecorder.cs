@@ -34,9 +34,15 @@ public sealed class HotkeyRecorder
 
     public bool HasCombination => Key != KeyCode.None;
 
-    /// <summary>"Ctrl+Shift+T" once a key is pressed, "Ctrl+Shift+…" while only modifiers are held, null before anything.</summary>
-    public string? LiveText => HasCombination
-        ? HotkeyText.Format(Modifiers, Key, RightHand)
+    /// <summary>"Ctrl+Shift+T" once a key is pressed, "Ctrl+Shift+…" while only modifiers are held, null before anything; the key named by the active layout.</summary>
+    public string? LiveText => LiveTextFor(layoutId: null);
+
+    /// <summary>
+    /// <see cref="LiveText"/> with the key named by the layout <paramref name="layoutId"/> names (a per-layout row's field), the
+    /// active one when null, asked of <paramref name="layouts"/> (<see cref="HotkeyText.Layouts"/> when null).
+    /// </summary>
+    public string? LiveTextFor(string? layoutId, IKeyboardLayouts? layouts = null) => HasCombination
+        ? HotkeyText.Format(Modifiers, Key, RightHand, layouts: layouts, layoutId: layoutId)
         : Held != KeyModifiers.None ? HotkeyText.Format(Held, KeyCode.None, HeldRightHand) + PendingSuffix : null;
 
     public void Reset()

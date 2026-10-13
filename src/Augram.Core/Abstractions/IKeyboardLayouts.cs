@@ -17,9 +17,11 @@ public interface IKeyboardLayouts
     IReadOnlyList<KeyboardLayout> Installed { get; }
 
     /// <summary>
-    /// What <paramref name="key"/> prints under the active layout with no modifier held ("ö" for the key the US layout calls
-    /// Semicolon), or null when the key prints nothing (F-keys, arrows, a dead key) or the platform cannot say. Display only:
-    /// the stored key stays the <see cref="KeyCode"/>.
+    /// What <paramref name="key"/> prints under the layout <paramref name="layoutId"/> names (a <see cref="KeyboardLayout.Id"/>;
+    /// null is the active layout) with no modifier held ("ö" for the key the US layout calls Semicolon), or null when the key
+    /// prints nothing (F-keys, arrows, a dead key), the id names no installed layout, or the platform cannot say. Display only:
+    /// the stored key stays the <see cref="KeyCode"/>. The App's per-layout rows ask by id, so each row reads by its own layout
+    /// whatever is active (Joel, 2026-10-13).
     /// </summary>
-    string? CharacterOf(KeyCode key);
+    string? CharacterOf(KeyCode key, string? layoutId = null);
 }

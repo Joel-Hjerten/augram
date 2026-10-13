@@ -12,7 +12,8 @@ namespace Augram.Core.Steps.Hotkey;
 /// the Win key on Windows and the Command key on macOS, the same stored value under the name on that keyboard
 /// (Joel, 2026-10-07: words, not ⌘⌥ symbols). A letter, digit or punctuation key is named by what it prints under the
 /// active keyboard layout when <see cref="Layouts"/> can say (plan 0011 decision 6: the key the US layout calls Semicolon
-/// reads "Ö" under a Swedish one), the US name otherwise; keys with names of their own keep them. Converting a Windows
+/// reads "Ö" under a Swedish one), or under the layout a <c>layoutId</c> names (the App's per-layout rows, each by its own
+/// layout whatever is active), the US name otherwise; keys with names of their own keep them. Converting a Windows
 /// shortcut to its Mac counterpart (Ctrl+W → Cmd+W) is a different matter, the F8 conversion.
 /// </summary>
 public static class HotkeyText
@@ -51,9 +52,10 @@ public static class HotkeyText
     /// <summary>
     /// "Ctrl+Shift+T", "RCtrl+RShift+P"; the modifiers alone ("Ctrl+Shift") when <paramref name="key"/> is
     /// <see cref="KeyCode.None"/>; empty when both are empty. A <paramref name="rightHand"/> bit outside
-    /// <paramref name="modifiers"/> prints nothing. The key's name follows <paramref name="layouts"/> (<see cref="Layouts"/> when null).
+    /// <paramref name="modifiers"/> prints nothing. The key's name follows <paramref name="layouts"/> (<see cref="Layouts"/> when null)
+    /// under the layout <paramref name="layoutId"/> names (the active one when null), as <see cref="KeyName"/>.
     /// </summary>
-    public static string Format(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None, HostPlatform? names = null, IKeyboardLayouts? layouts = null)
+    public static string Format(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None, HostPlatform? names = null, IKeyboardLayouts? layouts = null, string? layoutId = null)
     {
         var platform = names ?? Names;
         var parts = new List<string>(5);
@@ -67,7 +69,7 @@ public static class HotkeyText
 
         if (key != KeyCode.None)
         {
-            parts.Add(KeyName(key, platform, layouts));
+            parts.Add(KeyName(key, platform, layouts, layoutId));
         }
 
         return string.Join(Separator, parts);
@@ -84,13 +86,14 @@ public static class HotkeyText
     }
 
     /// <summary>
-    /// The short display name of one key: for a letter, digit or punctuation key, what it prints under the active layout as
-    /// the keycap shows it (upper case; "Ö", "5", "[") when <paramref name="layouts"/> (<see cref="Layouts"/> when null) can
-    /// say, else the US name; the enum name for anything without a nicer one.
+    /// The short display name of one key: for a letter, digit or punctuation key, what it prints under the layout
+    /// <paramref name="layoutId"/> names (a <see cref="KeyboardLayout.Id"/>; the active layout when null) as the keycap shows
+    /// it (upper case; "Ö", "5", "[") when <paramref name="layouts"/> (<see cref="Layouts"/> when null) can say, else the US
+    /// name; the enum name for anything without a nicer one.
     /// </summary>
-    public static string KeyName(KeyCode key, HostPlatform? names = null, IKeyboardLayouts? layouts = null)
+    public static string KeyName(KeyCode key, HostPlatform? names = null, IKeyboardLayouts? layouts = null, string? layoutId = null)
     {
-        if (PrintsACharacter(key) && (layouts ?? Layouts).CharacterOf(key) is { } character && !string.IsNullOrWhiteSpace(character))
+        if (PrintsACharacter(key) && (layouts ?? Layouts).CharacterOf(key, layoutId) is { } character && !string.IsNullOrWhiteSpace(character))
         {
             return character.ToUpperInvariant();
         }

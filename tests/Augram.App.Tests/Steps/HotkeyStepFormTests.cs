@@ -32,28 +32,53 @@ public sealed class HotkeyStepFormTests
         Assert.False(PerLayoutSwitch(form).IsChecked);
     }
 
+    /// <summary>Joel, 2026-10-13 (first round): the rows replace the Keys field, and start with the main shortcut so only the layout that differs needs capturing again.</summary>
     [AvaloniaFact]
-    public void PerLayoutShowsOneRowPerInstalledLayoutNamedByTheLayout()
+    public void PerLayoutReplacesTheKeysFieldWithOneRowPerInstalledLayout_SeededWithTheMainShortcut()
     {
         var changes = new List<IStep>();
         var (form, _) = Show(new HotkeyStep(KeyModifiers.Meta, KeyCode.OpenBracket), changes.Add, new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc));
         Assert.DoesNotContain("Swedish", Labels(form));
 
-        // On: a row per installed layout, empty, and nothing emitted; the switch alone is not an edit.
         PerLayoutSwitch(form).IsChecked = true;
 
-        Assert.Equal(["Keys", HotkeyStepForm.PerLayoutLabel, "Swedish", "ABC", "Ctrl", "Alt", "Shift", "Win", "Key"], Labels(form));
-        Assert.Equal([HotkeyCaptureBox.EmptyText, HotkeyCaptureBox.EmptyText], LayoutBoxes(form).Select(box => box.DisplayText));
-        Assert.Empty(changes);
+        Assert.Equal([HotkeyStepForm.PerLayoutLabel, "Swedish", "ABC", HotkeyStepForm.RowsNoteLabel, "Ctrl", "Alt", "Shift", "Win", "Key"], Labels(form));
+        Assert.Equal(["Win+[", "Win+["], LayoutBoxes(form).Select(box => box.DisplayText));
+        var seeded = new HotkeyStep(KeyModifiers.Meta, KeyCode.OpenBracket) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = new(KeyModifiers.Meta, KeyCode.OpenBracket), [FakeKeyboardLayouts.Abc.Id] = new(KeyModifiers.Meta, KeyCode.OpenBracket) } };
+        Assert.Equal(seeded, Assert.Single(changes));
 
-        // A step opened with a layout shortcut opens with the switch on and the row filled.
+        // A step opened with a layout shortcut opens with the switch on, the row filled, and no Keys field.
         var (filled, _) = Show(ChromeBack, changes.Add, new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc));
         Assert.True(PerLayoutSwitch(filled).IsChecked);
+        Assert.DoesNotContain("Keys", Labels(filled));
         Assert.Equal(["Alt+Win+8", HotkeyCaptureBox.EmptyText], LayoutBoxes(filled).Select(box => box.DisplayText));
+        Assert.Single(changes);
     }
 
     [AvaloniaFact]
-    public void ACapturedLayoutRowEmitsAStepWithThatLayoutsShortcutAndTheMainOneUnchanged()
+    public void ARowEditUnderTheActiveLayoutSetsTheMainShortcutToIt()
+    {
+        var changes = new List<IStep>();
+        var capture = new FakeKeyCapture();
+        var (form, _) = Show(ChromeBack, changes.Add, new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc));
+        var swedish = LayoutBoxes(form)[0];
+        swedish.KeyCapture = capture;
+
+        swedish.BeginCapture();
+        capture.Press(KeyCode.LeftAlt);
+        capture.Press(KeyCode.LeftMeta, KeyModifiers.Alt);
+        capture.Press(KeyCode.Digit9, KeyModifiers.Alt | KeyModifiers.Meta);
+        swedish.Accept();
+
+        var nine = new HotkeyBinding(KeyModifiers.Alt | KeyModifiers.Meta, KeyCode.Digit9);
+        var expected = new HotkeyStep(nine.Modifiers, nine.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = nine } };
+        Assert.Equal(expected, Assert.Single(changes));
+        Assert.Equal("Alt+Win+9", swedish.DisplayText);
+        Assert.Equal("9", KeyDropdown(form).SelectedItem);
+    }
+
+    [AvaloniaFact]
+    public void ARowEditUnderAnotherLayoutLeavesTheMainAsTheActiveLayoutsRow_ElseTheFirstSetRow()
     {
         var changes = new List<IStep>();
         var capture = new FakeKeyCapture();
@@ -61,25 +86,59 @@ public sealed class HotkeyStepFormTests
         var abc = LayoutBoxes(form)[1];
         abc.KeyCapture = capture;
 
+        // Swedish is active and its row is set: the main follows it, not the row just captured.
         abc.BeginCapture();
         capture.Press(KeyCode.LeftMeta);
         capture.Press(KeyCode.OpenBracket, KeyModifiers.Meta);
         abc.Accept();
 
-        var expected = ChromeBack with { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = SwedishBack, [FakeKeyboardLayouts.Abc.Id] = new(KeyModifiers.Meta, KeyCode.OpenBracket) } };
-        Assert.Equal(expected, Assert.Single(changes));
-        Assert.Equal("Win+[", Box(form).DisplayText);
+        var both = new HotkeyStep(SwedishBack.Modifiers, SwedishBack.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = SwedishBack, [FakeKeyboardLayouts.Abc.Id] = new(KeyModifiers.Meta, KeyCode.OpenBracket) } };
+        Assert.Equal(both, Assert.Single(changes));
 
-        // The main field captured anew keeps the layout shortcuts.
-        var main = Box(form);
-        main.KeyCapture = capture;
-        main.BeginCapture();
-        capture.Press(KeyCode.LeftAlt);
-        capture.Press(KeyCode.Left, KeyModifiers.Alt);
-        main.Accept();
+        // The active layout's row is not set: the first set row in display order is the main.
+        var abcOnly = new HotkeyStep(KeyModifiers.Meta, KeyCode.OpenBracket) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Abc.Id] = new(KeyModifiers.Meta, KeyCode.CloseBracket) } };
+        var (other, _) = Show(abcOnly, changes.Add, new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc));
+        var otherAbc = LayoutBoxes(other)[1];
+        otherAbc.KeyCapture = capture;
 
-        Assert.Equal(expected with { Modifiers = KeyModifiers.Alt, Key = KeyCode.Left }, changes[^1]);
+        otherAbc.BeginCapture();
+        capture.Press(KeyCode.LeftMeta);
+        capture.Press(KeyCode.P, KeyModifiers.Meta);
+        otherAbc.Accept();
+
+        Assert.Equal(new HotkeyStep(KeyModifiers.Meta, KeyCode.P) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Abc.Id] = new(KeyModifiers.Meta, KeyCode.P) } }, changes[^1]);
         Assert.Equal(2, changes.Count);
+    }
+
+    /// <summary>With the switch on, the hand editor edits the row the main shortcut follows (the active layout's), so the main keeps following.</summary>
+    [AvaloniaFact]
+    public void AHandEditWithTheSwitchOnWritesTheActiveLayoutsRow()
+    {
+        var changes = new List<IStep>();
+        var seeded = new HotkeyStep(SwedishBack.Modifiers, SwedishBack.Key) { Layouts = ChromeBack.Layouts };
+        var (form, _) = Show(seeded, changes.Add, new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc));
+
+        ModifierBoxes(form)[2].IsChecked = true;
+
+        var shifted = new HotkeyBinding(SwedishBack.Modifiers | KeyModifiers.Shift, SwedishBack.Key);
+        Assert.Equal(new HotkeyStep(shifted.Modifiers, shifted.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = shifted } }, Assert.Single(changes));
+        Assert.Equal(["Alt+Shift+Win+8", HotkeyCaptureBox.EmptyText], LayoutBoxes(form).Select(box => box.DisplayText));
+    }
+
+    /// <summary>Joel, 2026-10-13 (first round): each row names its keys by its own layout, not the active one.</summary>
+    [AvaloniaFact]
+    public void ARowsBoxCarriesItsLayoutIdAndNamesByIt()
+    {
+        var layouts = new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish, FakeKeyboardLayouts.Abc);
+        layouts.CharactersOf(FakeKeyboardLayouts.Swedish.Id)[KeyCode.OpenBracket] = "å";
+        layouts.CharactersOf(FakeKeyboardLayouts.Abc.Id)[KeyCode.OpenBracket] = "[";
+        var bracket = new HotkeyBinding(KeyModifiers.Meta, KeyCode.OpenBracket);
+        var step = new HotkeyStep(bracket.Modifiers, bracket.Key) { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = bracket, [FakeKeyboardLayouts.Abc.Id] = bracket } };
+
+        var (form, _) = Show(step, _ => { }, layouts);
+
+        Assert.Equal([FakeKeyboardLayouts.Swedish.Id, FakeKeyboardLayouts.Abc.Id], LayoutBoxes(form).Select(box => box.LayoutId));
+        Assert.Equal(["Win+Å", "Win+["], LayoutBoxes(form).Select(box => box.DisplayText));
     }
 
     [AvaloniaFact]
@@ -87,7 +146,7 @@ public sealed class HotkeyStepFormTests
     {
         var (form, _) = Show(ChromeBack, _ => { }, new FakeKeyboardLayouts(FakeKeyboardLayouts.Abc));
 
-        Assert.Equal(["Keys", HotkeyStepForm.PerLayoutLabel, "ABC", FakeKeyboardLayouts.Swedish.Id, "", "Ctrl", "Alt", "Shift", "Win", "Key"], Labels(form));
+        Assert.Equal([HotkeyStepForm.PerLayoutLabel, "ABC", FakeKeyboardLayouts.Swedish.Id, "", HotkeyStepForm.RowsNoteLabel, "Ctrl", "Alt", "Shift", "Win", "Key"], Labels(form));
         Assert.Equal([HotkeyCaptureBox.EmptyText, "Alt+Win+8"], LayoutBoxes(form).Select(box => box.DisplayText));
         Assert.Equal<object?>(HotkeyStepForm.RemoveLabel, Assert.Single(RemoveButtons(form)).Content);
     }
@@ -101,12 +160,12 @@ public sealed class HotkeyStepFormTests
         Assert.Single(RemoveButtons(form)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
         Assert.Equal(new HotkeyStep(KeyModifiers.Meta, KeyCode.OpenBracket), Assert.Single(changes));
-        Assert.Equal(["Keys", HotkeyStepForm.PerLayoutLabel, "ABC", "Ctrl", "Alt", "Shift", "Win", "Key"], Labels(form));
+        Assert.Equal([HotkeyStepForm.PerLayoutLabel, "ABC", HotkeyStepForm.RowsNoteLabel, "Ctrl", "Alt", "Shift", "Win", "Key"], Labels(form));
         Assert.True(PerLayoutSwitch(form).IsChecked);
     }
 
     [AvaloniaFact]
-    public void TheSwitchOffDropsEveryLayoutShortcutInOneEdit()
+    public void TheSwitchOffKeepsTheMainShortcutAndDropsEveryLayoutShortcutInOneEdit()
     {
         var changes = new List<IStep>();
         var both = ChromeBack with { Layouts = new Dictionary<string, HotkeyBinding> { [FakeKeyboardLayouts.Swedish.Id] = SwedishBack, [FakeKeyboardLayouts.Abc.Id] = new(KeyModifiers.Meta, KeyCode.OpenBracket) } };
@@ -134,9 +193,9 @@ public sealed class HotkeyStepFormTests
         Assert.Equal(["Alt+Win+8", HotkeyCaptureBox.EmptyText], LayoutBoxes(form).Select(box => box.DisplayText));
 
         // The same reading again re-declares nothing.
-        var before = Box(form);
+        var before = LayoutBoxes(form)[0];
         window.Resources[ComponentPorts.ResourceKey] = ports;
-        Assert.Same(before, Box(form));
+        Assert.Same(before, LayoutBoxes(form)[0]);
     }
 
     [AvaloniaFact]
@@ -273,10 +332,11 @@ public sealed class HotkeyStepFormTests
         return (form, window);
     }
 
-    private static HotkeyCaptureBox Box(Control form) => Laid(form).GetVisualDescendants().OfType<HotkeyCaptureBox>().First();
+    /// <summary>The main shortcut's field (shown with the switch off): the one capture field without a layout id.</summary>
+    private static HotkeyCaptureBox Box(Control form) => Laid(form).GetVisualDescendants().OfType<HotkeyCaptureBox>().Single(box => box.LayoutId is null);
 
-    /// <summary>The per-layout rows' fields, in row order (every capture field after the main one).</summary>
-    private static HotkeyCaptureBox[] LayoutBoxes(Control form) => [.. Laid(form).GetVisualDescendants().OfType<HotkeyCaptureBox>().Skip(1)];
+    /// <summary>The per-layout rows' fields, in row order: each carries its layout's id.</summary>
+    private static HotkeyCaptureBox[] LayoutBoxes(Control form) => [.. Laid(form).GetVisualDescendants().OfType<HotkeyCaptureBox>().Where(box => box.LayoutId is not null)];
 
     private static string[] Labels(Control form) => [.. Laid(form).GetVisualDescendants().OfType<FieldRow>().Select(row => row.Label)];
 
@@ -287,7 +347,8 @@ public sealed class HotkeyStepFormTests
         return form;
     }
 
-    private static string[] LayoutLabels(Control form) => [.. Labels(form).Skip(2).SkipLast(5).Where(label => label.Length > 0)];
+    /// <summary>The rows' labels: between the switch and the note, the Remove lines' empty labels left out.</summary>
+    private static string[] LayoutLabels(Control form) => [.. Labels(form).SkipWhile(label => label != HotkeyStepForm.PerLayoutLabel).Skip(1).TakeWhile(label => label != HotkeyStepForm.RowsNoteLabel).Where(label => label.Length > 0)];
 
     private static CheckBox PerLayoutSwitch(Control form) => (CheckBox)Laid(form).GetVisualDescendants().OfType<FieldRow>().Single(row => row.Label == HotkeyStepForm.PerLayoutLabel).Editor!;
 

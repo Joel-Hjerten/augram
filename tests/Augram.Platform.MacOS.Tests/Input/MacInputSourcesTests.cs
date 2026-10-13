@@ -23,6 +23,15 @@ public sealed class MacInputSourcesTests
     [InlineData("")]
     public void WithoutAnIdThereIsNoLayout(string? id) => Assert.Null(MacInputSources.Layout(id, "Swedish"));
 
+    /// <summary>Joel, 2026-10-13 (first round): a stored id names the enabled source with the same id text, ordinal; a source without an id is never it.</summary>
+    [Theory]
+    [InlineData("com.apple.keylayout.ABC", true)]
+    [InlineData("com.apple.keylayout.abc", false)]
+    [InlineData("com.apple.keylayout.Swedish-Pro", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void ASourceIsTheStoredLayoutByItsIdText(string? id, bool expected) => Assert.Equal(expected, MacInputSources.HasId(id, "com.apple.keylayout.ABC"));
+
     [Theory]
     [InlineData("TISTypeKeyboardLayout", true)]
     [InlineData("TISTypeKeyboardInputMode", false)]
