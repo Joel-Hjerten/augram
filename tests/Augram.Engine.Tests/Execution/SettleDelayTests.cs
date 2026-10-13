@@ -11,10 +11,9 @@ using Xunit;
 namespace Augram.Engine.Tests.Execution;
 
 /// <summary>
-/// A8 and lazy activation: the target is activated right before the first Keyboard, Mouse or Text step, or the
-/// first Window step that keeps the window on screen (never for a command of other System steps only, nor
-/// a minimize or close), and the settle delay is waited once before the first injected step when the
-/// activation moved focus, never before a window operation. Measured as the gap
+/// A8 and activation: the target is activated once, right before the first step that runs, whatever its kind
+/// (A20: the adapter says when that is a no-op), and the settle delay is waited once before the first Keyboard,
+/// Mouse or Text step when the activation moved focus, never before a window operation or another System step. Measured as the gap
 /// between the fake window system's activation timestamp and the fake step's run timestamp, with a
 /// generous tolerance for the CI runner.
 /// </summary>
@@ -40,7 +39,7 @@ public sealed class SettleDelayTests
     }
 
     [Fact]
-    public void SystemStepsOnly_NeverActivateOrWait()
+    public void SystemStepsOnly_ActivateWithoutWaiting()
     {
         var system = new FakeStepType(StepCategory.System);
         using var harness = Harness([system], settleDelayMs: 1500, activation: Moved);
@@ -48,8 +47,9 @@ public sealed class SettleDelayTests
         harness.Stroke(200, 0);
 
         EngineHarness.WaitFor(() => system.Runs.Count == 1, "the system step");
+        var waited = GapMs(Assert.Single(harness.Windows.Activations).Timestamp, system.Runs[0]);
+        Assert.True(waited < 1000, $"waited {waited:F1} ms, expected no settle delay before a System step");
         harness.WaitForLog(LogSources.Execution, "Command fired");
-        Assert.Empty(harness.Windows.Activations);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class SettleDelayTests
     }
 
     [Fact]
-    public void ActivationAndTheDelayHappenOnce_BeforeTheFirstKeyboardStepOnly()
+    public void ActivationHappensBeforeTheFirstStep_TheDelayOnceBeforeTheFirstKeyboardStep()
     {
         var system = new FakeStepType(StepCategory.System);
         var first = new FakeStepType(StepCategory.Keyboard);
@@ -93,14 +93,15 @@ public sealed class SettleDelayTests
 
         EngineHarness.WaitFor(() => second.Runs.Count == 1, "the last step");
         var activated = Assert.Single(harness.Windows.Activations).Timestamp;
-        Assert.True(system.Runs[0] <= activated, "the system step runs before the activation, without waiting for it");
-        Assert.True(GapMs(activated, first.Runs[0]) >= 250, "the first keyboard step waits");
+        Assert.True(activated <= system.Runs[0], "the activation comes first, before the system step");
+        Assert.True(GapMs(activated, system.Runs[0]) < 250, "the system step does not wait for the settle delay");
+        Assert.True(GapMs(system.Runs[0], first.Runs[0]) >= 250, "the first keyboard step waits");
         Assert.True(GapMs(first.Runs[0], second.Runs[0]) < 250, "the second keyboard-class step does not wait again");
         harness.WaitForLog(LogSources.Execution, "Command fired");
     }
 
     [Fact]
-    public void MaximizeFirst_ActivatesTheTarget_WithoutWaiting()
+    public void WindowStepFirst_ActivatesTheTarget_WithoutWaiting()
     {
         // SP.net activates before every action; a window maximized from behind the focused one stays behind it otherwise (Joel, 2026-10-13).
         using var harness = Harness([new WindowOpStep(WindowOperation.MaximizeOrRestore)], settleDelayMs: 1500, activation: Moved);
@@ -112,18 +113,6 @@ public sealed class SettleDelayTests
         Assert.True(GapMs(activated, harness.WindowOperations.Calls[0].Timestamp) < 1000, "no settle delay before a window operation");
         harness.WaitForLog(LogSources.Execution, "Command fired");
         Assert.True(harness.Log.Has(LogSources.Execution, "Window activated"));
-    }
-
-    [Fact]
-    public void MinimizeFirst_NeverActivates()
-    {
-        using var harness = Harness([new WindowOpStep(WindowOperation.Minimize)], settleDelayMs: 1500, activation: Moved);
-
-        harness.Stroke(200, 0);
-
-        EngineHarness.WaitFor(() => harness.WindowOperations.Calls.Count == 1, "the window operation");
-        harness.WaitForLog(LogSources.Execution, "Command fired");
-        Assert.Empty(harness.Windows.Activations);
     }
 
     [Fact]

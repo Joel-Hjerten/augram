@@ -24,6 +24,20 @@ public sealed class WindowOpExecutionTests
     }
 
     [Fact]
+    public void TheDesktopIsSkippedWithoutTouchingTheAdapter()
+    {
+        // Joel, 2026-10-13: SP.net had no guard and he minimized the Windows desktop by accident.
+        var windows = new FakeWindowOperations();
+        var desktop = StepContexts.Window("explorer.exe") with { IsDesktop = true };
+
+        var result = Type.Execute(new WindowOpStep(WindowOperation.Minimize), StepContexts.Create(desktop, windows));
+
+        Assert.Equal(StepOutcome.Skipped, result.Outcome);
+        Assert.Equal("the window under the gesture start is the desktop", result.Reason);
+        Assert.Empty(windows.Calls);
+    }
+
+    [Fact]
     public void UnsupportedOperationIsSkippedWithThePlatformReason()
     {
         var windows = new FakeWindowOperations { Platform = HostPlatform.MacOS };

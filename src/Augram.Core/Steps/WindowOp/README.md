@@ -10,9 +10,9 @@ The **Window** step (key `windowOp`, category System): one `WindowOperation` on 
 |---|---|
 | `WindowOpStep` | record: `Operation`, `Size` (for `SetSize` only) · `Summary` "Close window", "Set size 1280×720", "Snap to left half"… |
 | `WindowOpStepType` | metadata and JSON: `{ "operation": "Minimize" }`; `SetSize` adds `"width"` and `"height"` (both required, 1..32767); an unknown operation name or a bad size is a `StepFormatException` naming the member |
-| `WindowOpExecutor` | target null → Skipped "no window under the gesture start" · `!Supports` → Skipped with `WindowOperationResult.NotSupported(...).Reason` · `Perform` → Done, or Failed with the adapter's reason · `SetSize` without a size → Failed. One Debug line (`steps` / "Window operation": operation, outcome, reason, process) per run |
+| `WindowOpExecutor` | target null → Skipped "no window under the gesture start" · target `IsDesktop` → Skipped "the window under the gesture start is the desktop" (Joel, 2026-10-13: SP.net had no guard and he minimized the Windows desktop by accident; both adapters are covered here) · `!Supports` → Skipped with `WindowOperationResult.NotSupported(...).Reason` · `Perform` → Done, or Failed with the adapter's reason · `SetSize` without a size → Failed. One Debug line (`steps` / "Window operation": operation, outcome, reason, process) per run |
 
-Window operations never wait (A8): the settle delay is for keystrokes after a focus change, and the executor applies it, not this step. The executor does bring the window forward first (A20) for every operation but Close and Minimize (`WindowOpStep.KeepsWindowOnScreen`): SP.net activates before every action, and a window maximized from behind the focused one stays behind it otherwise (Joel, 2026-10-13).
+Window operations never wait (A8): the settle delay is for keystrokes after a focus change, and the executor applies it, not this step. The command runner brings the window forward first (A20), as before every command: SP.net activates before every action, and a window maximized from behind the focused one stayed behind it until 0.19.5 (Joel, 2026-10-13).
 
 ## Windows ↔ macOS mapping
 

@@ -14,7 +14,7 @@ namespace Augram.Engine.Tests.Execution;
 
 /// <summary>
 /// The executor hands a Run step the launcher from <see cref="EnginePorts.ProcessLauncher"/> (a fake: nothing starts),
-/// never activates the target for it, and without a launcher the step skips with the null object's reason. Waits for the
+/// activates the target first as for every command (A20, no settle delay), and without a launcher the step skips with the null object's reason. Waits for the
 /// log line after the act (handoff §6: the executor acts first and logs second).
 /// </summary>
 public sealed class RunStepExecutionTests
@@ -22,7 +22,7 @@ public sealed class RunStepExecutionTests
     private static readonly GestureId Gesture = GestureId.New();
 
     [Fact]
-    public void ARunStepStartsThroughThePortsLauncherWithoutActivating()
+    public void ARunStepStartsThroughThePortsLauncher()
     {
         var log = new ListEventLog();
         var launcher = new FakeProcessLauncher();
@@ -34,7 +34,7 @@ public sealed class RunStepExecutionTests
         EngineHarness.WaitFor(() => launcher.Launches.Count == 1, "the launch");
         EngineHarness.WaitFor(() => log.Has(LogSources.Execution, "Command fired"), "the command line");
         Assert.Equal(new ProcessLaunch("taskkill.exe", "/f /im synthetic-emulator.exe", string.Empty, Elevated: true, Hidden: true), launcher.Launches[0]);
-        Assert.Empty(windows.Activations);
+        Assert.Single(windows.Activations);
         var ran = log.Single(LogSources.Execution, "Step ran");
         Assert.Contains(ran.Properties!, p => p.Key == "outcome" && (StepOutcome)p.Value! == StepOutcome.Done);
     }

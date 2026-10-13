@@ -5,6 +5,8 @@ namespace Augram.Core.Steps.WindowOp;
 
 /// <summary>
 /// Runs a <see cref="WindowOpStep"/> through <see cref="IWindowOperations"/>. No target → skipped;
+/// the desktop → skipped (Joel, 2026-10-13: SP.net had no guard and he minimized the Windows desktop by
+/// accident; A20 keeps activation off it for the same reason);
 /// the platform has no equivalent → skipped with the adapter's reason (the command goes on, the UI
 /// shows the decline); the adapter failed → failed (the command stops). Window operations never wait
 /// (A8); one Debug line per execution for the Diagnostics tab.
@@ -29,6 +31,11 @@ internal static class WindowOpExecutor
         if (context.Target is null)
         {
             return StepResult.Skipped("no window under the gesture start");
+        }
+
+        if (context.Target.IsDesktop)
+        {
+            return StepResult.Skipped("the window under the gesture start is the desktop");
         }
 
         var windows = context.Windows;
