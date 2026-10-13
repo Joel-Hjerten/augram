@@ -1098,7 +1098,8 @@
                   <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
                   <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
                 </StackPanel>
-                <ContentPresenter Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{TemplateBinding HeadingTrailing}" />
+                <!-- Taller than the title, so it keeps the content off its bottom edge (Joel, 2026-10-13). -->
+                <ContentPresenter Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,8" Content="{TemplateBinding HeadingTrailing}" />
               </Grid>
               <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
             </DockPanel>
