@@ -23,7 +23,7 @@ namespace Augram.App.Hosting.Modules;
 /// <summary>
 /// The Platform adapters' slice of the composition root: the Windows or macOS adapter for each Core port (cursor probe, system
 /// events, overlay style or the macOS trail panel, start at login, window system and operations, process launcher, display
-/// modes, clipboard, app activator), or the null objects when <c>adapters</c> is false (tests) or the OS is neither.
+/// modes, clipboard, app activator, keyboard layouts), or the null objects when <c>adapters</c> is false (tests) or the OS is neither.
 /// Constructing an adapter installs nothing and touches no window; the engine's calls do (<see cref="EngineModule"/>). The
 /// input source and simulator are SharpHook's and live with the engine.
 /// </summary>
@@ -53,6 +53,7 @@ public static class PlatformModule
         services.AddSingleton<IProcessLauncher>(NullProcessLauncher.Instance);
         services.AddSingleton<IDisplayModes>(NullDisplayModes.Instance);
         services.AddSingleton<IClipboard>(NullClipboard.Instance);
+        services.AddSingleton<IKeyboardLayouts>(NullKeyboardLayouts.Instance);
         services.AddSingleton<IAppActivator>(NullAppActivator.Instance);
         return services;
     }
@@ -71,6 +72,8 @@ public static class PlatformModule
         services.AddSingleton<IProcessLauncher>(sp => new Win32ProcessLauncher(sp.GetRequiredService<IEventLog>()));
         services.AddSingleton<IDisplayModes>(_ => new Win32DisplayModes());
         services.AddSingleton<IClipboard>(_ => new Win32Clipboard());
+        // Win32KeyboardLayouts is plan 0011 step 5 (when Joel is on the PC); until then the PC knows no layouts and reads US key names.
+        services.AddSingleton<IKeyboardLayouts>(NullKeyboardLayouts.Instance);
         services.AddSingleton<IAppActivator>(sp => new Win32AppActivator(sp.GetRequiredService<IEventLog>()));
     }
 
@@ -78,8 +81,9 @@ public static class PlatformModule
     /// The macOS adapters: Accessibility-API window system and operations (close, minimize, maximize/restore so far), a
     /// verified click-through overlay (the trail's own panel, <see cref="MacTrailPanel"/>), the cursor probe, and the system
     /// events (<see cref="MacSystemEvents"/>: a new frontmost app for hold remaps, sleep and wake, lock and unlock; resolved
-    /// with the host in <see cref="EngineModule.Start"/>, on the main thread, where its observers must be registered), and start
-    /// at login as a login item (<see cref="MacLoginItemRegistration"/>, SMAppService).
+    /// with the host in <see cref="EngineModule.Start"/>, on the main thread, where its observers must be registered), start
+    /// at login as a login item (<see cref="MacLoginItemRegistration"/>, SMAppService), and the keyboard layouts
+    /// (<see cref="MacKeyboardLayouts"/>, Text Input Source Services on the main thread, plan 0011).
     /// </summary>
     [SupportedOSPlatform("macos")]
     private static void RegisterMacOS(IServiceCollection services)
@@ -94,6 +98,7 @@ public static class PlatformModule
         services.AddSingleton<IProcessLauncher>(_ => new MacProcessLauncher());
         services.AddSingleton<IDisplayModes, MacDisplayModes>();
         services.AddSingleton<IClipboard, MacClipboard>();
+        services.AddSingleton<IKeyboardLayouts, MacKeyboardLayouts>();
         // open -a brings a running app forward by itself (Steps/OpenApp README), so the step always launches on a Mac.
         services.AddSingleton<IAppActivator>(NullAppActivator.Instance);
     }

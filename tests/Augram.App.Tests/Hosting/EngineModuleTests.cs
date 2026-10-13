@@ -112,6 +112,8 @@ public sealed class EngineModuleTests
             Assert.Same(NullDisplayModes.Instance, ports.DisplayModes);
             Assert.Same(provider.GetRequiredService<IClipboard>(), ports.Clipboard);
             Assert.Same(NullClipboard.Instance, ports.Clipboard);
+            Assert.Same(provider.GetRequiredService<IKeyboardLayouts>(), ports.Layouts);
+            Assert.Same(NullKeyboardLayouts.Instance, ports.Layouts);
             Assert.Same(mapping.Current, ports.Mapping!());
             mapping.AddCommand(GroupId.Global, MappingFixture.Unbound("Minimize"));
             Assert.Same(mapping.Current, ports.Mapping());

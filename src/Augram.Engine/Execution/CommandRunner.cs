@@ -29,6 +29,7 @@ internal sealed class CommandRunner
     private readonly IInputSimulator _simulator;
     private readonly IProcessLauncher _processes;
     private readonly IClipboard _clipboard;
+    private readonly IKeyboardLayouts _layouts;
     private readonly IAppActivator _apps;
     private readonly IAppWindow _appWindow;
     private readonly IEventLog _log;
@@ -45,6 +46,7 @@ internal sealed class CommandRunner
         _simulator = ports.Simulator;
         _processes = ports.ProcessLauncher;
         _clipboard = ports.Clipboard;
+        _layouts = ports.Layouts;
         _apps = ports.Apps;
         _appWindow = ports.AppWindow;
         _log = ports.Log;
@@ -64,7 +66,7 @@ internal sealed class CommandRunner
             return;
         }
 
-        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation) { Processes = _processes, Displays = _displays, Clipboard = _clipboard, Apps = _apps, AppWindow = _appWindow };
+        var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation) { Processes = _processes, Displays = _displays, Clipboard = _clipboard, Layouts = _layouts, Apps = _apps, AppWindow = _appWindow };
         var activated = false;
         var run = 0;
         var skipped = 0;

@@ -17,6 +17,7 @@ public sealed class MacWorkspaceEventsTests
     [InlineData("com.apple.screenIsUnlocked", SystemEventKind.SessionUnlocked)]
     [InlineData("NSWorkspaceWillPowerOffNotification", SystemEventKind.SessionEnding)]
     [InlineData("NSApplicationDidChangeScreenParametersNotification", SystemEventKind.DisplayChanged)]
+    [InlineData("com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged", SystemEventKind.KeyboardLayoutChanged)]
     public void EachObservedNotificationMaps(string name, SystemEventKind expected) => Assert.Equal(expected, MacWorkspaceEvents.Map(name));
 
     [Theory]
@@ -34,6 +35,6 @@ public sealed class MacWorkspaceEventsTests
         Assert.All(all, name => Assert.NotNull(MacWorkspaceEvents.Map(name)));
         Assert.Equal(all.Count, all.Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(MacWorkspaceEvents.DidActivateApplication, MacWorkspaceEvents.Workspace);
-        Assert.Equal([MacWorkspaceEvents.ScreenIsLocked, MacWorkspaceEvents.ScreenIsUnlocked], MacWorkspaceEvents.Distributed);
+        Assert.Equal([MacWorkspaceEvents.ScreenIsLocked, MacWorkspaceEvents.ScreenIsUnlocked, MacWorkspaceEvents.SelectedKeyboardInputSourceChanged], MacWorkspaceEvents.Distributed);
     }
 }
