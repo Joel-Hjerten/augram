@@ -4,15 +4,17 @@ using Augram.Core.Diagnostics;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Steps.WindowOp;
 using Augram.Engine.Tests.Hosting;
 using Xunit;
 
 namespace Augram.Engine.Tests.Execution;
 
 /// <summary>
-/// A8 and lazy activation: the target is activated right before the first Keyboard, Mouse or Text step (never
-/// for a command of System steps only), and the settle delay is waited once after that activation when
-/// it moved focus. Measured as the gap
+/// A8 and lazy activation: the target is activated right before the first Keyboard, Mouse or Text step, or the
+/// first Window step that keeps the window on screen (never for a command of other System steps only, nor
+/// a minimize or close), and the settle delay is waited once before the first injected step when the
+/// activation moved focus, never before a window operation. Measured as the gap
 /// between the fake window system's activation timestamp and the fake step's run timestamp, with a
 /// generous tolerance for the CI runner.
 /// </summary>
@@ -97,11 +99,56 @@ public sealed class SettleDelayTests
         harness.WaitForLog(LogSources.Execution, "Command fired");
     }
 
+    [Fact]
+    public void MaximizeFirst_ActivatesTheTarget_WithoutWaiting()
+    {
+        // SP.net activates before every action; a window maximized from behind the focused one stays behind it otherwise (Joel, 2026-10-13).
+        using var harness = Harness([new WindowOpStep(WindowOperation.MaximizeOrRestore)], settleDelayMs: 1500, activation: Moved);
+
+        harness.Stroke(200, 0);
+
+        EngineHarness.WaitFor(() => harness.WindowOperations.Calls.Count == 1, "the window operation");
+        var activated = Assert.Single(harness.Windows.Activations).Timestamp;
+        Assert.True(GapMs(activated, harness.WindowOperations.Calls[0].Timestamp) < 1000, "no settle delay before a window operation");
+        harness.WaitForLog(LogSources.Execution, "Command fired");
+        Assert.True(harness.Log.Has(LogSources.Execution, "Window activated"));
+    }
+
+    [Fact]
+    public void MinimizeFirst_NeverActivates()
+    {
+        using var harness = Harness([new WindowOpStep(WindowOperation.Minimize)], settleDelayMs: 1500, activation: Moved);
+
+        harness.Stroke(200, 0);
+
+        EngineHarness.WaitFor(() => harness.WindowOperations.Calls.Count == 1, "the window operation");
+        harness.WaitForLog(LogSources.Execution, "Command fired");
+        Assert.Empty(harness.Windows.Activations);
+    }
+
+    [Fact]
+    public void KeyboardStepAfterMaximize_WaitsTheSettleDelayOnce()
+    {
+        var keyboard = new FakeStepType(StepCategory.Keyboard);
+        using var harness = Harness([new WindowOpStep(WindowOperation.MaximizeOrRestore), keyboard.Step], settleDelayMs: 300, activation: Moved);
+
+        harness.Stroke(200, 0);
+
+        EngineHarness.WaitFor(() => keyboard.Runs.Count == 1, "the keyboard step");
+        var activated = Assert.Single(harness.Windows.Activations).Timestamp;
+        Assert.True(GapMs(activated, harness.WindowOperations.Calls[0].Timestamp) < 250, "the window operation does not wait");
+        Assert.True(GapMs(activated, keyboard.Runs[0]) >= 250, "the first keyboard step waits");
+        harness.WaitForLog(LogSources.Execution, "Command fired");
+    }
+
     private static double GapMs(long from, long to) => Stopwatch.GetElapsedTime(from, to).TotalMilliseconds;
 
-    private static EngineHarness Harness(FakeStepType[] steps, int settleDelayMs, ActivationResult activation)
+    private static EngineHarness Harness(FakeStepType[] steps, int settleDelayMs, ActivationResult activation) =>
+        Harness(steps.Select(step => (IStep)step.Step).ToArray(), settleDelayMs, activation);
+
+    private static EngineHarness Harness(IStep[] steps, int settleDelayMs, ActivationResult activation)
     {
-        var command = Mappings.Command("Keys", Trigger.ForGesture(Right.Id), steps.Select(step => (IStep)step.Step).ToArray());
+        var command = Mappings.Command("Keys", Trigger.ForGesture(Right.Id), steps);
         var harness = new EngineHarness(gestures: [Right], mapping: Mappings.Global(command), settleDelayMs: settleDelayMs);
         harness.Windows.Window = FakeWindowSystem.Identity();
         harness.Windows.ActivationResult = activation;

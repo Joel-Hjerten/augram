@@ -34,7 +34,7 @@ public sealed class Win32WindowOperationsTests
     [Fact]
     public void ToggleFullScreen_IsNotSupported_PerformSaysSo()
     {
-        var win = new FakeWin32();
+        var win = Setup(); // the window exists: the decline comes from the operation, not from "window gone"
         var result = Operations(win).Perform(WindowOperation.ToggleFullScreen, Identity());
 
         Assert.False(result.Succeeded);

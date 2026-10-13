@@ -12,7 +12,7 @@ The **Window** step (key `windowOp`, category System): one `WindowOperation` on 
 | `WindowOpStepType` | metadata and JSON: `{ "operation": "Minimize" }`; `SetSize` adds `"width"` and `"height"` (both required, 1..32767); an unknown operation name or a bad size is a `StepFormatException` naming the member |
 | `WindowOpExecutor` | target null → Skipped "no window under the gesture start" · `!Supports` → Skipped with `WindowOperationResult.NotSupported(...).Reason` · `Perform` → Done, or Failed with the adapter's reason · `SetSize` without a size → Failed. One Debug line (`steps` / "Window operation": operation, outcome, reason, process) per run |
 
-Window operations never wait (A8): the settle delay is for keystrokes after a focus change, and the executor applies it, not this step.
+Window operations never wait (A8): the settle delay is for keystrokes after a focus change, and the executor applies it, not this step. The executor does bring the window forward first (A20) for every operation but Close and Minimize (`WindowOpStep.KeepsWindowOnScreen`): SP.net activates before every action, and a window maximized from behind the focused one stays behind it otherwise (Joel, 2026-10-13).
 
 ## Windows ↔ macOS mapping
 

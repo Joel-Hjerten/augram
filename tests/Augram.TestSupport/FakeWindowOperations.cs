@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Augram.Core.Abstractions;
 
 namespace Augram.TestSupport;
@@ -10,7 +11,7 @@ namespace Augram.TestSupport;
 public sealed class FakeWindowOperations : IWindowOperations
 {
     private readonly object _gate = new();
-    private readonly List<(WindowOperation Operation, WindowIdentity Window, WindowSize? Size)> _calls = [];
+    private readonly List<(WindowOperation Operation, WindowIdentity Window, WindowSize? Size, long Timestamp)> _calls = [];
 
     public HostPlatform Platform { get; set; } = HostPlatform.Windows;
 
@@ -19,7 +20,7 @@ public sealed class FakeWindowOperations : IWindowOperations
 
     public WindowOperationResult Result { get; set; } = WindowOperationResult.Ok;
 
-    public IReadOnlyList<(WindowOperation Operation, WindowIdentity Window, WindowSize? Size)> Calls
+    public IReadOnlyList<(WindowOperation Operation, WindowIdentity Window, WindowSize? Size, long Timestamp)> Calls
     {
         get
         {
@@ -36,7 +37,7 @@ public sealed class FakeWindowOperations : IWindowOperations
     {
         lock (_gate)
         {
-            _calls.Add((operation, window, size));
+            _calls.Add((operation, window, size, Stopwatch.GetTimestamp()));
         }
 
         return Result;

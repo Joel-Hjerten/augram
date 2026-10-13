@@ -3,6 +3,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Diagnostics;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
+using Augram.Core.Steps.WindowOp;
 using Augram.Engine.Hosting;
 
 namespace Augram.Engine.Execution;
@@ -12,11 +13,15 @@ namespace Augram.Engine.Execution;
 /// (F8: the command's own version for it when it has one, else the original with each step itself where it was
 /// authored or its best-guess conversion; a step with no guess is skipped with its reason), sharing one
 /// <see cref="StepExecutionContext"/>. The target is
-/// activated lazily, right before the first Keyboard, Mouse or Text step, because only injected keys and wheel
-/// need focus (the adapter applies A20 and says whether focus moved): a window operation acts on the handle
-/// and a media key is global, so a minimize never pays for an activation (2026-10-07: an Alt-tap
-/// activation cost 310 ms before a minimize over Chrome). The settle delay (A8) follows that activation
-/// only when it moved focus. <c>Failed</c> stops the command, <c>Skipped</c> continues it, and the
+/// activated lazily, right before the first step that needs it (the adapter applies A20 and says whether focus
+/// moved): a Keyboard, Mouse or Text step, because injected keys and wheel go to the focused window, and a
+/// Window step that keeps the window on screen (maximize, snap, center, size, on top: SP.net activates before
+/// every action, and a window maximized from behind stays behind the focused one, Joel 2026-10-13). A minimize
+/// or close takes the window away, a media key is global and the clipboard is the system's, so none of them
+/// pays for an activation (2026-10-07: an Alt-tap activation cost 310 ms before a minimize over Chrome; since
+/// plan 0008 the plain call wins nearly always in single-digit milliseconds). The settle delay (A8) is waited
+/// once, before the first injected step, when the activation moved focus; never before a window operation.
+/// <c>Failed</c> stops the command, <c>Skipped</c> continues it, and the
 /// executor's cancellation stops it after the step that observed it. One Debug line per step, one Info
 /// line per command; the last activation outcome is kept for the health summary (B1).
 /// </summary>
@@ -68,6 +73,8 @@ internal sealed class CommandRunner
 
         var context = new StepExecutionContext(target, request.Start, _operations, _simulator, _log, _cancellation) { Processes = _processes, Displays = _displays, Clipboard = _clipboard, Layouts = _layouts, Apps = _apps, AppWindow = _appWindow };
         var activated = false;
+        var focusMoved = false;
+        var settled = false;
         var run = 0;
         var skipped = 0;
         for (var index = 0; index < plan.Count; index++)
@@ -86,12 +93,17 @@ internal sealed class CommandRunner
                 continue;
             }
 
-            if (!activated && NeedsFocus(step))
+            if (!activated && (NeedsFocus(step) || BringsForward(step)))
             {
                 activated = true;
-                var focusMoved = Activate(target);
+                focusMoved = Activate(target);
                 context = context with { FocusMoved = focusMoved };
-                if (focusMoved && !Settle())
+            }
+
+            if (focusMoved && !settled && NeedsFocus(step))
+            {
+                settled = true;
+                if (!Settle())
                 {
                     LogCancelled(group, command, index);
                     return;
@@ -175,7 +187,11 @@ internal sealed class CommandRunner
     /// Injected keys land in whatever has focus, so Keyboard and Text steps need the target in front; so do Mouse steps
     /// (Scroll), whose held keys go to the foreground window and whose wheel must reach the same one.
     /// </summary>
+    /// <summary>Injected keys and wheel go to the focused window: activate first, then settle (A8) when focus moved.</summary>
     private static bool NeedsFocus(IStep step) => step.Type.Category is StepCategory.Keyboard or StepCategory.Mouse or StepCategory.Text;
+
+    /// <summary>A window operation that keeps the window on screen brings it forward first, as a click would; no settle, it acts on the handle.</summary>
+    private static bool BringsForward(IStep step) => step is WindowOpStep { KeepsWindowOnScreen: true };
 
     /// <summary>A8: the one wait, cancellation-aware; false when the executor is stopping.</summary>
     private bool Settle()

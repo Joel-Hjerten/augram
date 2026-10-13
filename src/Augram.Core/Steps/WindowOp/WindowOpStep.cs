@@ -12,6 +12,13 @@ public sealed record WindowOpStep(WindowOperation Operation, WindowSize? Size = 
 {
     public IStepType Type => WindowOpStepType.Instance;
 
+    /// <summary>
+    /// False for <see cref="WindowOperation.Close"/> and <see cref="WindowOperation.Minimize"/>, which take the window away;
+    /// true for the rest, which the executor brings forward before acting (A20), as SP.net does, so a maximize from behind
+    /// the focused window does not stay behind it.
+    /// </summary>
+    public bool KeepsWindowOnScreen => Operation is not (WindowOperation.Close or WindowOperation.Minimize);
+
     public string Summary => Operation switch
     {
         WindowOperation.Close => "Close window",
