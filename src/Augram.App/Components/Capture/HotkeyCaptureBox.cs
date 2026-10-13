@@ -21,7 +21,9 @@ namespace Augram.App.Components.Capture;
 /// cannot record. Commit is mouse-only, since Escape is a key like any other: Accept, a press anywhere
 /// outside the field, or the window losing activation keep the latest combination and raise
 /// <see cref="Committed"/>; Clear commits "no key". Every way out gives the keyboard back first: those
-/// three, Clear, being unloaded (keeps nothing), and the engine's own release (idle watchdog, hook reset).
+/// three, Clear, being unloaded (keeps nothing), and the engine's own release (idle watchdog, hook reset). The text is
+/// <see cref="HotkeyText"/>'s, so a key reads by what it prints under the active layout, and is re-read on a resource change
+/// (the composition root re-publishes <see cref="ComponentPorts"/> when the layout changes; plan 0011 decision 6).
 /// <see cref="SingleKey"/> is the one-key mode (a hold key, a hold remap command's input; <c>HotkeyCaptureBox.SingleKey.cs</c>).
 /// </summary>
 public sealed partial class HotkeyCaptureBox : TemplatedControl
@@ -56,6 +58,13 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
     private int _session;
 
     public event EventHandler<HotkeyCommittedEventArgs>? Committed;
+
+    public HotkeyCaptureBox()
+    {
+        // The key names follow the active keyboard layout (plan 0011 decision 6): the composition root re-publishes the ports
+        // resource when it changes, and that reaches this field as a resource change, so the text is re-read.
+        ResourcesChanged += (_, _) => Refresh(StatusText);
+    }
 
     public KeyModifiers Modifiers { get => GetValue(ModifiersProperty); set => SetValue(ModifiersProperty, value); }
 

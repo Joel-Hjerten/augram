@@ -1,6 +1,7 @@
 using Augram.App.Components;
 using Augram.App.Components.Capture;
 using Augram.Core.Abstractions;
+using Augram.Core.Steps.Hotkey;
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,7 +12,10 @@ namespace Augram.App.Hosting.Modules;
 /// application resource: one <see cref="ComponentPorts"/> under <see cref="ComponentPorts.ResourceKey"/>. The display modes
 /// and the window system are only read, so the forms get them under <c>--no-engine</c> too; the engine's key capture (every
 /// hotkey field, F5) and button detection (a hold remap command's Add button…, plan 0002 step 4) only while the engine runs,
-/// otherwise the fields fall back to their own window.
+/// otherwise the fields fall back to their own window. The keyboard layouts port (plan 0011) is only read, so it is published
+/// always, and set as <see cref="HotkeyText.Layouts"/> so every key name follows the active layout (decision 6); while the engine
+/// runs, a <see cref="SystemEventKind.KeyboardLayoutChanged"/> re-publishes the same ports on the UI thread, which reaches every
+/// open hotkey field and Hotkey form as <c>ResourcesChanged</c> (they re-read their names; nothing else is notified).
 /// </summary>
 public static class FormServices
 {
@@ -23,12 +27,27 @@ public static class FormServices
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(app);
-        app.Resources[ComponentPorts.ResourceKey] = new ComponentPorts
+        var layouts = services.GetService<IKeyboardLayouts>() ?? NullKeyboardLayouts.Instance;
+        HotkeyText.Layouts = layouts;
+        var ports = new ComponentPorts
         {
             DisplayModes = services.GetRequiredService<IDisplayModes>(),
             WindowSystem = services.GetRequiredService<IWindowSystem>(),
             KeyCapture = engineRuns ? services.GetRequiredService<IKeyCapture>() : null,
             ButtonCapture = engineRuns ? services.GetRequiredService<IButtonCapture>() : null,
+            KeyboardLayouts = layouts,
         };
+        app.Resources[ComponentPorts.ResourceKey] = ports;
+        if (engineRuns && services.GetService<ISystemEvents>() is { } system)
+        {
+            // Raised on the OS's thread; the same instance again is a resource change all the same, and that is the notification.
+            system.Occurred += (_, kind) =>
+            {
+                if (kind == SystemEventKind.KeyboardLayoutChanged)
+                {
+                    UiThread.RunOrPost(() => app.Resources[ComponentPorts.ResourceKey] = ports);
+                }
+            };
+        }
     }
 }
