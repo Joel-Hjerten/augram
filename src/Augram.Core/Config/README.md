@@ -27,7 +27,7 @@ The on-disk configuration (requirements F8, checklist A3/A17) and the session th
 
 ```json
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "settings": {
     "general": { "strokeButton": "Right", "ignoreKey": "None", "startAtLogin": false, "enabled": true },
     "capture": { "startDistancePx": 30, "minSegmentPx": 6, "cancelDelayMs": 1000, "resetCancelDelayOnMovement": true, "buttonDragDistancePx": 10 },
@@ -149,6 +149,7 @@ An older build sharing the config folder (Joel's installed 0.4.0 beside a dev bu
 | 5 | 2026-10-10 (plan 0004) | a command's own drag distance (a hold's `dragDistancePx`) and a Global command's "Not in" (`notIn`) | a schema 4 build would ignore both and save the file back without them | 12 |
 | 6 | 2026-10-10 evening (plan 0004 revised) | Ignored › Per command entries (an ignored app's `"scope": "PerCommand"`); a command's `notIn` names them instead of app groups. No node changes: a schema 5 `notIn` names no Per command entry, so the rules drop it on load (plan 0004 decision 6: the 0.8.0 ticks are dropped; Joel had made none) | a schema 5 build (0.8.0) would read a Per command entry as an ignore of the whole app and switch Augram off over it, and its "Not in" ids would name no app group | 13 |
 | 7 | 2026-10-10 night (plan 0005) | button triggers (`{ "button": … }`, a command's and an own version's) and a command's "Also in" (`alsoIn`) | a schema 6 build would refuse the whole file at its first button trigger, and would ignore `alsoIn` and save the file back without it | 14 |
+| 8 | 2026-10-13 (plan 0011) | a Hotkey step's `layouts` (one shortcut per keyboard layout, keyed by the platform's layout id, inside the step's `params`). No node changes | a schema 7 build reads a step's `params` and passes an unknown member over, so it would read the step without its layout shortcuts and save the file back without them | 16 |
 
 A **new step type** has so far gone without a schema change (Type text, Run and Display; Scroll and Clear clipboard). Since 2026-10-09 (Joel) an older build keeps such a step as is (`../Steps/Unknown/`: the type key and `params` it read, written back unchanged; `Step 1 of command 'Zoom In' in 'Windows Explorer' kept as is: unknown step type 'scroll'.`, an Info line from `config`), shows it read-only and skips it when the command runs; the same goes for parameters its type refuses (a value a newer build added). Builds before that one dropped the step instead, and lost it from the main file at their next save (the backups, newest 20, still held it). The sync format version is still raised with a new type (4, then 7), so an older build pauses its sync.
 

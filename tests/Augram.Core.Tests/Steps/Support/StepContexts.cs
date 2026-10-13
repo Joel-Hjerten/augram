@@ -19,7 +19,8 @@ internal static class StepContexts
         IInputSimulator? input = null,
         IEventLog? log = null,
         CancellationToken cancellation = default,
-        bool focusMoved = false)
+        bool focusMoved = false,
+        IKeyboardLayouts? layouts = null)
         => new(
             target,
             Start,
@@ -29,5 +30,6 @@ internal static class StepContexts
             cancellation)
         {
             FocusMoved = focusMoved,
+            Layouts = layouts ?? NullKeyboardLayouts.Instance,
         };
 }

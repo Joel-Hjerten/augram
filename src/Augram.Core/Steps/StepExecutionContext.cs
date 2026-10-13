@@ -33,4 +33,7 @@ public sealed record StepExecutionContext(
 
     /// <summary>Augram's own window, for the Open app step's "This app"; the null object has none.</summary>
     public IAppWindow AppWindow { get; init; } = NullAppWindow.Instance;
+
+    /// <summary>Which keyboard layout is active, for a Hotkey step with layout shortcuts (plan 0011); the null object cannot say, so the main shortcut runs.</summary>
+    public IKeyboardLayouts Layouts { get; init; } = NullKeyboardLayouts.Instance;
 }

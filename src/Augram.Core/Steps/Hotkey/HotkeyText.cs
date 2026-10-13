@@ -10,12 +10,21 @@ namespace Augram.Core.Steps.Hotkey;
 /// "PgUp", "Left", "Num 4", "Volume Up"). The step summary, the App's capture field and dropdown, the log and the
 /// importer's messages all use this, so a hotkey reads the same everywhere. The names are display only: Meta is
 /// the Win key on Windows and the Command key on macOS, the same stored value under the name on that keyboard
-/// (Joel, 2026-10-07: words, not ⌘⌥ symbols). Converting a Windows shortcut to its Mac counterpart (Ctrl+W → Cmd+W)
-/// is a different matter, the F8 conversion.
+/// (Joel, 2026-10-07: words, not ⌘⌥ symbols). A letter, digit or punctuation key is named by what it prints under the
+/// active keyboard layout when <see cref="Layouts"/> can say (plan 0011 decision 6: the key the US layout calls Semicolon
+/// reads "Ö" under a Swedish one), the US name otherwise; keys with names of their own keep them. Converting a Windows
+/// shortcut to its Mac counterpart (Ctrl+W → Cmd+W) is a different matter, the F8 conversion.
 /// </summary>
 public static class HotkeyText
 {
     public const string Separator = "+";
+
+    /// <summary>
+    /// Whose layout a call without an explicit port asks for a key's character: the null object until the App sets the
+    /// platform's adapter at startup (as it sets <see cref="RunningPlatform.Current"/>), so Core and its tests read US names.
+    /// Process-wide; a test that sets it resets it in a <c>finally</c>, in a collection that never runs in parallel.
+    /// </summary>
+    public static IKeyboardLayouts Layouts { get; set; } = NullKeyboardLayouts.Instance;
 
     private static readonly (KeyModifiers Flag, string Name, string RightName)[] WindowsModifiers =
     [
@@ -42,9 +51,9 @@ public static class HotkeyText
     /// <summary>
     /// "Ctrl+Shift+T", "RCtrl+RShift+P"; the modifiers alone ("Ctrl+Shift") when <paramref name="key"/> is
     /// <see cref="KeyCode.None"/>; empty when both are empty. A <paramref name="rightHand"/> bit outside
-    /// <paramref name="modifiers"/> prints nothing.
+    /// <paramref name="modifiers"/> prints nothing. The key's name follows <paramref name="layouts"/> (<see cref="Layouts"/> when null).
     /// </summary>
-    public static string Format(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None, HostPlatform? names = null)
+    public static string Format(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None, HostPlatform? names = null, IKeyboardLayouts? layouts = null)
     {
         var platform = names ?? Names;
         var parts = new List<string>(5);
@@ -58,7 +67,7 @@ public static class HotkeyText
 
         if (key != KeyCode.None)
         {
-            parts.Add(KeyName(key, platform));
+            parts.Add(KeyName(key, platform, layouts));
         }
 
         return string.Join(Separator, parts);
@@ -74,17 +83,33 @@ public static class HotkeyText
         return $"{string.Join(", ", all[..^1].Select(modifier => modifier.Name))} {conjunction} {all[^1].Name}";
     }
 
-    /// <summary>The short display name of one key; the enum name for anything without a nicer one.</summary>
-    public static string KeyName(KeyCode key, HostPlatform? names = null) => (names ?? Names) == HostPlatform.MacOS
-        ? key switch
+    /// <summary>
+    /// The short display name of one key: for a letter, digit or punctuation key, what it prints under the active layout as
+    /// the keycap shows it (upper case; "Ö", "5", "[") when <paramref name="layouts"/> (<see cref="Layouts"/> when null) can
+    /// say, else the US name; the enum name for anything without a nicer one.
+    /// </summary>
+    public static string KeyName(KeyCode key, HostPlatform? names = null, IKeyboardLayouts? layouts = null)
+    {
+        if (PrintsACharacter(key) && (layouts ?? Layouts).CharacterOf(key) is { } character && !string.IsNullOrWhiteSpace(character))
         {
-            KeyCode.LeftAlt => "Left Opt",
-            KeyCode.RightAlt => "Right Opt",
-            KeyCode.LeftMeta => "Left Cmd",
-            KeyCode.RightMeta => "Right Cmd",
-            _ => CommonKeyName(key),
+            return character.ToUpperInvariant();
         }
-        : CommonKeyName(key);
+
+        return (names ?? Names) == HostPlatform.MacOS
+            ? key switch
+            {
+                KeyCode.LeftAlt => "Left Opt",
+                KeyCode.RightAlt => "Right Opt",
+                KeyCode.LeftMeta => "Left Cmd",
+                KeyCode.RightMeta => "Right Cmd",
+                _ => CommonKeyName(key),
+            }
+            : CommonKeyName(key);
+    }
+
+    /// <summary>The keys whose US name is the character they print there, so another layout's character replaces it; every other key has a name of its own.</summary>
+    private static bool PrintsACharacter(KeyCode key)
+        => key is (>= KeyCode.A and <= KeyCode.Z) or (>= KeyCode.Digit0 and <= KeyCode.Digit9) or (>= KeyCode.BackQuote and <= KeyCode.Slash);
 
     private static string CommonKeyName(KeyCode key) => key switch
     {

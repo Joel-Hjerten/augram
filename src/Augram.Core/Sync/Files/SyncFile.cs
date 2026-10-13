@@ -23,7 +23,7 @@ public sealed record SyncFile(
     /// change to what a sync item holds or to which item kinds exist, and add a row to the history table in
     /// <c>Sync/README.md</c> (Format version): a build that reads a newer file pauses sync instead of merging what it cannot see.
     /// </summary>
-    public const int CurrentFormatVersion = 15;
+    public const int CurrentFormatVersion = 16;
 
     /// <summary>The sync format the file was written in; 1 for a file without the member.</summary>
     public int FormatVersion { get; init; } = CurrentFormatVersion;

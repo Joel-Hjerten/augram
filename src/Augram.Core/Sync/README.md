@@ -132,6 +132,7 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 | 13 | the same evening, plan 0004 revised | Ignored › Per command entries (an ignored app item's `"scope": "PerCommand"`), which a command item's `notIn` names instead of app groups; config schema 6 | reads such an entry as an ignore of the whole app, switches Augram off over it, and drops every "Not in" naming one |
 | 14 | the same night, plan 0005 | button triggers (a command item's and an own-steps item's `{ "button": "Left", "hold": … }` trigger) and a command item's `alsoIn` (Exclusions › Global entries); config schema 7 | cannot read a file holding a button trigger, so skips that file; drops every "Also in" and publishes the commands without it |
 | 15 | 2026-10-12 | nothing new in an item: ignored app names are unique per list (Global, Per command), no longer across both, so a file may hold a Global and a Per command "Blender" | renames the second one "Blender (2)" on merge and publishes the rename back; the version raise pauses it until it runs this build |
+| 16 | 2026-10-13, plan 0011 | a Hotkey step's `layouts` (one shortcut per keyboard layout), inside the step wherever steps travel: a command item's `steps` and an own-steps item's; config schema 8 | reads the Hotkey step without its layout shortcuts (a step's parameter reader passes an unknown member over) and publishes the command without them on every machine |
 
 - `SyncFileSerializer.ReadHeader` reads both versions and the machine name before anything else. A file newer in either goes to `SyncRepositoryFiles.Newer` unread, and the run answers `NeedsUpdate`. `Read` refuses such a file too.
 - **Never downgrade.** The publisher records the format it publishes in `SyncBaseStore.PublishedFormatVersion` (before the push; only ever raised). A build that writes an older format answers `NeedsUpdate` naming this machine, as it does when this machine's own file in the repo is newer.
@@ -143,8 +144,8 @@ Why both: a base that is "the result of my last merge" reverts my change when th
 
 ```json
 {
-  "schemaVersion": 7,
-  "formatVersion": 14,
+  "schemaVersion": 8,
+  "formatVersion": 16,
   "machine": { "id": "<machine id>", "name": "PC-HOME", "writtenAt": "2026-10-07T18:30:00+00:00", "revision": "<new Guid per publish>" },
   "merged": [
     { "machineId": "<other machine>", "revision": "<its revision merged here>", "except": ["command:<id>"], "pending": ["command:<id>"] }

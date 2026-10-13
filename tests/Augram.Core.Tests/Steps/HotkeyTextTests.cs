@@ -67,6 +67,40 @@ public sealed class HotkeyTextTests
         Assert.Equal(expected, HotkeyText.KeyName(key));
     }
 
+    /// <summary>Plan 0011 decision 6: a letter, digit or punctuation key is named by what it prints under the active layout; the rest keep their names.</summary>
+    [Theory]
+    [InlineData(KeyCode.Semicolon, "Ö")]
+    [InlineData(KeyCode.Quote, "Ä")]
+    [InlineData(KeyCode.Minus, "+")]
+    [InlineData(KeyCode.Z, "Z")]
+    [InlineData(KeyCode.Digit7, "7")]
+    [InlineData(KeyCode.OpenBracket, "[")]
+    [InlineData(KeyCode.Escape, "Esc")]
+    [InlineData(KeyCode.NumPad4, "Num 4")]
+    [InlineData(KeyCode.Space, "Space")]
+    [InlineData(KeyCode.F5, "F5")]
+    public void KeyNamePrefersThePortsCharacter_AndKeepsTheUsNameWhenItAnswersNullOrTheKeyHasItsOwn(KeyCode key, string expected)
+    {
+        var swedish = new FakeKeyboardLayouts(FakeKeyboardLayouts.Swedish)
+        {
+            Characters =
+            {
+                [KeyCode.Semicolon] = "ö",
+                [KeyCode.Quote] = "ä",
+                [KeyCode.Minus] = "+",
+                [KeyCode.Z] = "z",
+                [KeyCode.Digit7] = "7",
+                [KeyCode.Escape] = "\u001b",
+                [KeyCode.NumPad4] = "4",
+                [KeyCode.Space] = " ",
+                [KeyCode.F5] = "",
+            },
+        };
+
+        Assert.Equal(expected, HotkeyText.KeyName(key, layouts: swedish));
+        Assert.Equal("Ctrl+" + expected, HotkeyText.Format(KeyModifiers.Control, key, layouts: swedish));
+    }
+
     [Theory]
     [InlineData(HostPlatform.Windows)]
     [InlineData(HostPlatform.MacOS)]

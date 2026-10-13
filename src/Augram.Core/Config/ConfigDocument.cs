@@ -16,7 +16,7 @@ public sealed record ConfigDocument
     /// The version this build writes and the highest it can read. Each bump, its date, what it added and why an older build
     /// must refuse the file: <c>Config/README.md</c>, "Schema history" (7: button triggers and a command's "Also in", plan 0005).
     /// </summary>
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
 
     public ConfigDocument(int schemaVersion = CurrentSchemaVersion, Settings? settings = null, IReadOnlyList<Gesture>? gestures = null)
     {

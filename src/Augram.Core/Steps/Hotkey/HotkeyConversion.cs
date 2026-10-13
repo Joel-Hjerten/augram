@@ -7,7 +7,9 @@ namespace Augram.Core.Steps.Hotkey;
 /// whose counterpart is not the plain modifier swap; then the swap itself: Windows Ctrl becomes Cmd and Mac Cmd becomes
 /// Ctrl, Alt is Option on both, Shift and the key stay, and a right-hand modifier keeps its side. The Windows key has
 /// no Mac counterpart, and a Mac combination holding both Cmd and Ctrl has no Windows one: those report "needs a …
-/// version". A combination the rules leave as it was (a bare key, Shift+F5, Ctrl+Tab) is unchanged.
+/// version". A combination the rules leave as it was (a bare key, Shift+F5, Ctrl+Tab) is unchanged. Only the main shortcut
+/// converts: the layout shortcuts are dropped (plan 0011 decision 5), since the other platform's layouts have other ids and
+/// are authored there; a step whose main shortcut the rules leave alone still converts when it had layout shortcuts to drop.
 /// </summary>
 internal static class HotkeyConversion
 {
@@ -39,10 +41,15 @@ internal static class HotkeyConversion
 
     public static StepConversion Convert(HotkeyStep step, HostPlatform from, HostPlatform to)
     {
-        var source = step.Normalized();
-        if (from == to || !source.IsSet)
+        if (from == to)
         {
             return StepConversion.Same(step);
+        }
+
+        var source = step.Normalized() with { Layouts = HotkeyStep.NoLayouts };
+        if (!source.IsSet)
+        {
+            return Result(step, source);
         }
 
         var exceptions = from == HostPlatform.Windows ? WindowsToMac : MacToWindows;

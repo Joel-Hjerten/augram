@@ -20,6 +20,7 @@ Thread-safe unless the table says otherwise: the engine worker, the executor and
 | `IClock` | `FakeClock` | | `UtcNow`, `MonotonicMs`, `Advance(ms)`; `StepPerRead` (moves `UtcNow` on before each read); `FakeClock.Stepping()` (one second per read from 2026-10-07 09:00, the sync tests' machines) |
 | `ICursorProbe` | `FakeCursorProbe` | | `X`, `Y`, `Available` |
 | `ISystemEvents` | `FakeSystemEvents` | | `Raise(kind)`, `ReportsForeground` |
+| `IKeyboardLayouts` | `FakeKeyboardLayouts` | `ActiveReads` (how many times `Active` was read); not thread-safe | ctor `installed` (the list; the first is `Active` until set, null for "cannot say"), `Characters` (key → what it prints; a key not listed prints nothing); `Swedish` and `Abc`, Joel's two Mac layouts |
 | `IStrokeTrail` | `RecordingTrail` | `Calls` ("begin", "extend", "end"), `BeginCount`, `EndCount` | |
 | `ITrailSurface` | `FakeTrailSurface` | `Calls` in order, `IsOrderedIn`, `IsParked`, `Points`, `Style`, `IsDisposed`; not thread-safe | ctor and `Report`, `Area` |
 | `IOverlayWindowStyle` | `FakeOverlayStyle` | `ApplyCount`, `LastHandle`, `Placed`; not thread-safe | ctor and `Report` |
