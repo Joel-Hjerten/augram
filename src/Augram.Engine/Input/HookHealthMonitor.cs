@@ -265,9 +265,10 @@ public sealed class HookHealthMonitor : IDisposable
 
     private void OnSystemEvent(object? sender, SystemEventKind kind)
     {
-        if (kind == SystemEventKind.ForegroundChanged)
+        if (kind is SystemEventKind.ForegroundChanged or SystemEventKind.KeyboardLayoutChanged)
         {
-            // Focus moving is the ignore-list watch's business (hold remaps); it says nothing about the hook and comes often.
+            // Focus moving is the ignore-list watch's business (hold remaps) and a layout change the App's (plan 0011); neither
+            // says anything about the hook, and focus changes come often.
             return;
         }
 

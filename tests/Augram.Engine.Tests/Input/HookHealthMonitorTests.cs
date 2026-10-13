@@ -171,8 +171,10 @@ public sealed class HookHealthMonitorTests
         Assert.Single(resets);
     }
 
-    [Fact]
-    public void ForegroundChanges_AreNotHookEvents_NothingLoggedNoReset()
+    [Theory]
+    [InlineData(SystemEventKind.ForegroundChanged)]
+    [InlineData(SystemEventKind.KeyboardLayoutChanged)]
+    public void ForegroundAndLayoutChanges_AreNotHookEvents_NothingLoggedNoReset(SystemEventKind kind)
     {
         var source = new FakeInputSource();
         var log = new ListEventLog();
@@ -182,7 +184,7 @@ public sealed class HookHealthMonitorTests
         monitor.ResetRequested += (_, reason) => resets.Add(reason);
         monitor.Start((in RawInput _) => false);
 
-        system.Raise(SystemEventKind.ForegroundChanged);
+        system.Raise(kind);
 
         Assert.Empty(resets);
         Assert.False(log.Has(LogSources.Hook, "System event"));

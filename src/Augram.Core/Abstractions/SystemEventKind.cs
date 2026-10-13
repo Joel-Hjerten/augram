@@ -16,4 +16,10 @@ public enum SystemEventKind
     /// session event: the hook health monitor neither logs it nor restarts its silence clock for it.
     /// </summary>
     ForegroundChanged,
+
+    /// <summary>
+    /// The active keyboard layout changed (plan 0011): the App renames the keys it shows (Ö, not ";"). Not a session event
+    /// either: the hook health monitor ignores it, and the executor never needs it (it reads the active layout at run time).
+    /// </summary>
+    KeyboardLayoutChanged,
 }
