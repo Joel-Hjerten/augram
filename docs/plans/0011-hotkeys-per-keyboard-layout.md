@@ -1,0 +1,62 @@
+# Plan 0011: a hotkey per keyboard layout
+
+Status: **PROPOSED (2026-10-13, Mac session), Joel: "let's go with this".** Origin: Joel added Back and Forward for Chrome on the Mac and found them working under one keyboard layout and dead under the other (he switches between Swedish and English from the menu bar). Chrome's History menu shows a different key for Back under each layout: macOS resolves a menu shortcut by the character the active layout gives a key, and a Hotkey step is one physical key. Cmd+Opt+8, the Swedish way to type "[", does nothing in Chrome (tried by Joel), so no transposition rule Augram could compute is safe. Cmd+Left and Cmd+Right, which Chrome also binds, are taken by Google Drive's page. A Click step for the Back and Forward mouse buttons and a "press the app's menu item" step were weighed and set aside as workarounds (Joel: "way too hacky"). What is left is the explicit, deterministic version of Joel's own idea: Augram knows which layout is active, and the step says what to press under each.
+
+## Decisions (Joel, 2026-10-13)
+
+1. **A Hotkey step may hold one shortcut per keyboard layout.** The main shortcut stays what it is today and is the fallback for every layout without its own. A layout's shortcut is a full hotkey of its own (modifiers, right-hand set, key).
+2. **The executor picks by the active layout at run time.** It asks the platform which layout is active, presses that layout's shortcut when the step has one, else the main shortcut. The platform read is one call per run of such a step; a step without layout shortcuts never asks.
+3. **Authored in the step form, next to the shortcut.** Under the capture field a "Per keyboard layout" switch; on, one row per layout the OS has installed, each with the layout's display name and its own capture field, empty until set. A layout that was authored but is no longer installed still shows, named by its id, with Remove. Off hides the rows and keeps nothing: turning it off drops the layout shortcuts (one undo step).
+4. **Layouts are identified by the platform's own id, stored as text.** macOS: the input source id (`com.apple.keylayout.Swedish-Pro`, `com.apple.keylayout.ABC`). Windows: the keyboard layout id (`0000041D`, `00000409`). Platform ids never meet: a command's steps per platform are separate sides (plan 0010), and a layout shortcut belongs to the side it was authored on.
+5. **Conversion (F8) converts the main shortcut only.** The other platform's inferred side gets the main shortcut converted as today and no layout shortcuts; its layouts have other ids and the user authors them there, on that side, when they are needed. `SummaryOn` and the step row show the main shortcut; a step with layout shortcuts adds " · per layout" to its summary.
+6. **Key names follow the active layout.** The same platform read gives the character a key prints under the active layout, so the capture field, the key dropdown and the step summary name the Ö key "Ö" rather than ";" (Joel, 2026-10-13: "augram does not capture or at least show swedish characters"). Letters, digits and punctuation take the layout's character; keys with their own names (F-keys, Esc, arrows, Num 4…) keep them. Names are display only; the stored key stays the `KeyCode`. When the platform cannot say, today's US names stay.
+7. **Format.** The Hotkey step's `params` gain `layouts`, an object keyed by layout id, each value a hotkey in the step's own shape (`modifiers`, `rightHand` when any, `key`); written only when there is at least one. A schema 7 build would read the step without them and save the file back without them: **config schema 8, sync format 16.**
+8. **Both platforms**, since both have layouts the user switches between (Windows: the taskbar's language switch). macOS first, the PC when Joel is there.
+
+## What changes
+
+**Core**
+- `Abstractions/IKeyboardLayouts` (new port) with `NullKeyboardLayouts`: `Active` (id and display name, or null when unknown), `Installed` (the list, in the OS's order), `CharacterOf(KeyCode)` under the active layout (null when the key has no character or the platform cannot say). One home for "which layout" and "what does this key print".
+- `Steps/Hotkey/HotkeyStep`: `Layouts`, an immutable map of layout id → `HotkeyBinding` (modifiers, right-hand set, key; the three fields the step already has, as one record so a layout's shortcut and the main one are the same shape). `ForLayout(id)` picks the layout's shortcut or the main one. `Summary` adds " · per layout" when the map is not empty. `Normalized()` normalises each binding too.
+- `Steps/Hotkey/HotkeyStepType`: reads and writes `layouts` (decision 7); a value that is not an object, a key that is not a `KeyCode` name, or an empty layout id is a `StepFormatException` naming `layouts`. `Convert` drops the map (decision 5).
+- `Steps/Hotkey/HotkeyExecutor`: `context.Layouts.Active` once when the map is not empty, then `ForLayout`; the Debug line adds which layout and whether its own shortcut or the fallback ran.
+- `Steps/Hotkey/HotkeyText`: `KeyName(key)` asks the layouts port for the character first (decision 6); the port comes in through a static `Names`-style hook set at startup like `RunningPlatform.Current`, so the importer, the log and the summaries share it.
+- `Steps/StepExecutionContext`: `Layouts` (the null object by default), beside `Clipboard` and `Apps`.
+- `Config`: schema 8 (one comment case in `ConfigMigrations`, a row in "Schema history"). `Sync/Files/SyncFile.CurrentFormatVersion` 16 with its row.
+
+**Platform, macOS** (`Augram.Platform.MacOS/Input/MacKeyboardLayouts`): `TISCopyCurrentKeyboardLayoutInputSource` for the active one, `TISCreateInputSourceList` filtered to keyboard layouts for the installed list (id `kTISPropertyInputSourceID`, name `kTISPropertyLocalizedName`), `UCKeyTranslate` over the active layout's `kTISPropertyUnicodeKeyLayoutData` for `CharacterOf` (no modifiers; the key's macOS virtual code from the same `KeyCode` map the simulator uses). Carbon's HIToolbox goes into `Interop/MacNative` beside the rest. Main thread for the TIS calls (`Interop/MainThread`), as `MacSystemEvents` registers. The pure parts (id and name mapping, the `KeyCode` → virtual key table if it is not already shared) tested on every OS.
+
+**Platform, Windows** (`Augram.Platform.Windows/Input/Win32KeyboardLayouts`): `GetKeyboardLayout` of the foreground window's thread for the active one (the layout is per thread on Windows; the foreground's is what the hotkey will land in), `GetKeyboardLayoutList` for the installed ones, the display name from `HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\<id>\Layout Text`, `ToUnicodeEx` with an empty key state for `CharacterOf` (dead keys: a dead key answers nothing, the US name stays). Built when Joel is on the PC; until then the null object, so the Mac can ship first.
+
+**Engine**: `Execution/CommandRunner` hands `IKeyboardLayouts` to the context, beside the clipboard and the app activator. `Hosting/Modules/PlatformModule` registers the adapter per platform, the null object elsewhere.
+
+**App**
+- `Components/Steps/Hotkey/HotkeyStepForm`: the "Per keyboard layout" switch and rows (decision 3). Each row is a `HotkeyCaptureBox` as the main field is, through `StepFormState`'s one edit path; the rows come from `ComponentPorts.KeyboardLayouts` (the port, like `KeyCapture`), the gallery and tests give a fake with two layouts. A row's capture box is the existing control; nothing new is built for it.
+- `Components/Capture/HotkeyChoices.Keys` and `HotkeyCaptureBox`: names through `HotkeyText` as today; they pick up decision 6 with no change of their own beyond refreshing when the layout changes (below).
+- `Hosting`: `ComponentPorts.KeyboardLayouts`; `FormServices.Publish` sets it, and `HotkeyText`'s hook, at startup.
+- Layout change at run time: `ISystemEvents` gains `KeyboardLayoutChanged` (macOS: `kTISNotifySelectedKeyboardInputSourceChanged` on the distributed center, beside the lock and sleep names in `MacWorkspaceEvents`; Windows: `WM_INPUTLANGCHANGE` reaches only windows, so the PC polls the foreground thread's layout on `ForegroundChanged` and leaves it at that for the first version). The App refreshes open key names on it. The executor needs no event: it reads at run time.
+
+**Docs**: requirements F5 (the per-layout shortcut, the key names), `Steps/Hotkey/README.md` (the parameter, the executor rule, the names), `Abstractions/README.md` (the port), both Platform READMEs (the adapter rows), `Config/README.md` and `Sync/README.md` (the rows), `Components/Steps/README.md` and `Components/Capture/README.md` (the form and the names), the import mapping doc only if the importer's output changes (it does not: SP.net has no layouts).
+
+## Tests (one per behaviour, beside the neighbours)
+
+- Core, Hotkey: `ForLayout` picks the layout's shortcut and falls back to the main one; `Summary` adds " · per layout"; `Read`/`Write` round-trip `layouts` byte-stable and omit it when empty; a bad `layouts` is a `StepFormatException` naming it; `Convert` drops the map and converts the main shortcut as before; the executor sends the active layout's shortcut with a fake port that answers Swedish, the main one when the port answers nothing or the map lacks the layout, and never asks the port for a step without a map; `HotkeyText.KeyName` prefers the port's character and keeps the US name when the port answers null and for keys with their own names.
+- Core, Config and Sync: schema 8 reads a schema 7 file unchanged (the migration test table gets its row); sync format 16's row test.
+- Platform, macOS: the pure id and name mapping; `UCKeyTranslate`'s wrapper against a scripted layout if it can be isolated, else the one live test under the existing live-AX gate (Joel runs it).
+- App: the form shows one row per installed layout with the layout's name, a captured row emits a step with that layout's shortcut, Remove drops it, the switch off drops them all in one edit; a UiShots render of the form with two layouts, one set.
+
+## Steps
+
+1. **Core** (agent, **high**: `Steps/Hotkey` is the Hotkey step and its executor, with the port, the schema and the sync format). Decisions 1, 2, 4, 5, 6 (the Core side), 7. Version **0.18.0**.
+2. **macOS platform and the Engine wiring** (agent, **high**; after step 1). `MacKeyboardLayouts`, the system event, the runner and the module. One live check by Joel: the log line names the active layout under SE and under EN.
+3. **App form** (agent, medium; after step 1, in parallel with step 2 against the null port). Decision 3; the port in `ComponentPorts`; the names refresh.
+4. **Joel's check on the Mac.** Below. Then the Mac build.
+5. **Windows platform** (agent, high; when Joel is on the PC). `Win32KeyboardLayouts`, the foreground-change poll, its tests; Joel's check on the PC.
+
+## Joel's check (Mac)
+
+- In Chrome's Back command, open the Hotkey step: the capture field shows the shortcut as today; under it "Per keyboard layout" lists Swedish and ABC (or whatever the menu bar offers). Capture Chrome's History › Back shortcut under each layout into its row.
+- With SE active, draw Back in Chrome on a page with history, in Google Drive too; switch to EN from the menu bar and draw it again. Both go back. The log's Hotkey line names the layout and "layout shortcut" each time.
+- A command without layout shortcuts runs as before, and its log line says nothing about layouts.
+- With SE active, capture Cmd+Ö somewhere: the field reads "Cmd+Ö"; switch to EN and the same field reads "Cmd+;".
+- Sync: the PC, still on the older build, pauses with "uses a newer Augram" rather than dropping the layout shortcuts.
