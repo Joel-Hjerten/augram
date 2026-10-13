@@ -1070,7 +1070,8 @@
                                SelectionMode="Single">
                         <ListBox.ItemsPanel>
                           <ItemsPanelTemplate>
-                            <WrapPanel />
+                            <!-- Centred: the width left over beside five columns splits evenly, left and right (Joel, 2026-10-13). -->
+                            <WrapPanel HorizontalAlignment="Center" />
                           </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                       </ListBox>
