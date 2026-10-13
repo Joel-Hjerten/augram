@@ -46,7 +46,11 @@
   </Styles.Resources>
 
   <!-- ===== Body as every TextBlock's default (a plain type rule: any role class outranks it). ===== -->
+  <!-- ClipToBounds off: a TextBlock clips to its own bounds by default, and in the system font the marks on capitals (Å, Ö, Ä)
+       sit above the ascent of the line, so they were cut off everywhere (Joel, 2026-10-13: "Å turns into an A"); lowercase marks
+       sit lower and survived. Off, the glyphs draw whole; width, wrapping and trimming are unchanged. -->
   <Style Selector="TextBlock">
+    <Setter Property="ClipToBounds" Value="False" />
     <Setter Property="FontFamily" Value="{StaticResource Font.Family}" />
     <Setter Property="FontSize" Value="{StaticResource Font.M}" />
     <Setter Property="FontWeight" Value="Normal" />
