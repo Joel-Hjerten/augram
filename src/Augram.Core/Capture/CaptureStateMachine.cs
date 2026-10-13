@@ -14,8 +14,10 @@ namespace Augram.Core.Capture;
 /// <item>An anchor down while Idle is suppressed unless capture is not allowed or the ignore key is held; Before keys and
 /// buttons are what was held then. Another button down while Held or Drawing is suppressed and joins the press (After) when
 /// the plan claims it for this anchor, else it passes and cancels a stroke press (A12) or hands a held-back anchor back.</item>
-/// <item>Release, Held: nothing held → ReplayClick; stroke button with something held → ClickTrigger (resolved, relayed when
-/// nothing fires); another anchor → ReplayClick with the After keys, or nothing when an After button took part.</item>
+/// <item>Release, Held: nothing held → ReplayClick, unless the stroke button's press carried a plan that binds its bare click
+/// (<see cref="AnchorPlan.ClickBound"/>, Joel 2026-10-13) → ClickTrigger with nothing held; stroke button with something held →
+/// ClickTrigger (resolved, relayed when nothing fires); another anchor → ReplayClick with the After keys, or nothing when an
+/// After button took part.</item>
 /// <item>A stroke button past the start distance draws; any other anchor is handed back (HandBack) and its release is
 /// consumed and re-injected (ReleaseHandedBack), as it is after the hold-still time or another button.</item>
 /// <item>Wheel while Held or Drawing: WheelFiring, the sets freeze; each tick is a WheelTrigger (marked AfterDrawing when the
@@ -317,10 +319,10 @@ public sealed partial class CaptureStateMachine
             : EndedElsewhere;
     }
 
-    /// <summary>The owner released inside the start distance with no tick: a click, a click trigger, or nothing (an After button took part).</summary>
+    /// <summary>The owner released inside the start distance with no tick: a click, a click trigger (a bare one where the press's plan binds it), or nothing (an After button took part).</summary>
     private CaptureOutcome[] Released(CaptureEvent.ButtonUp up, PressHold hold, bool ownerIsStroke)
     {
-        if (hold.IsEmpty)
+        if (hold.IsEmpty && !(ownerIsStroke && _plan.ClickBound))
         {
             return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReplayClick(up.Button, up.X, up.Y)];
         }

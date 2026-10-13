@@ -11,13 +11,15 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The header's trigger and input edits of <see cref="CommandsViewModel"/> (F1 "Triggers as combinations", Joel 2026-10-09):
-/// the kind (Gesture through the Select Gesture picker, Wheel, Button (plan 0005), No trigger), the wheel direction, a button
+/// the kind (Gesture through the Select Gesture picker, Wheel, Button (plan 0005), Click (Joel 2026-10-13: the stroke button
+/// clicked without drawing, bare or with the set held), No trigger), the wheel direction, a button
 /// trigger's pressed button and the "While holding" set; under a hold remap (F9, plan 0002 step 4) the input that takes a
 /// trigger's place (<see cref="Trigger.InputTrigger"/>). What is edited is this platform's trigger
 /// (<see cref="Command.TriggerFor"/>): the original where the command was authored, else its own; the first edit on the other
 /// platform makes it that platform's own, the way steps work (<see cref="Command.WithTriggerFor"/>). Changing between gesture
-/// and wheel keeps the keys and buttons held; choosing "No trigger" unbinds, and ticking keys or buttons then makes it a click
-/// trigger (<see cref="Trigger.WithHold"/>). Every edit goes through <see cref="EditTrigger"/>: it starts from the draft when
+/// wheel and click keeps the keys and buttons held (Click with nothing else held is a bare click); choosing "No trigger" always
+/// unbinds, and ticking keys or buttons then makes it a click trigger (<see cref="Trigger.WithHold"/>). Every edit goes through
+/// <see cref="EditTrigger"/>: it starts from the draft when
 /// one waits, is saved as one <c>UpdateCommand</c> when the rules accept it, and otherwise waits as the draft with its note
 /// (<c>.Draft</c>) instead of being refused; a draft another command uses here offers Swap and Take it (<c>.Conflict</c>).
 /// The draft is the one piece of state it owns; the view model asks it for the header (<see cref="WithDraft"/>) and for the
@@ -108,6 +110,9 @@ internal sealed partial class TriggerEditor
                 break;
             case TriggerKind.Button:
                 ChooseButton(command.Id);
+                break;
+            case TriggerKind.Click:
+                EditTrigger(command.Id, current => Trigger.ForClick(Held(current)));
                 break;
             case TriggerKind.Gesture:
                 _ = PickGestureAsync(command);

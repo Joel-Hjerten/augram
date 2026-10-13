@@ -10,8 +10,10 @@ namespace Augram.Core.Capture;
 /// the hook thread by <c>Mapping.AnchorPlanner</c> for the window under the pointer.
 /// <para>Bits: 0–4 the anchors (bit = <see cref="MouseButton"/> value); then six 5-bit extras masks, one per anchor slot
 /// (slots 0–4 a physical anchor, slot 5 the stroke button); then five 5-bit <em>fires</em> masks, one per physical anchor (plan
-/// 0005): an extra whose press fires a button trigger at once ("Right + Left"), bit = <see cref="MouseButton"/> value. Bit 59 is
-/// the highest, so the hook can still pack two ignore bits beside the plan in one <see cref="long"/>.</para>
+/// 0005): an extra whose press fires a button trigger at once ("Right + Left"), bit = <see cref="MouseButton"/> value. Then bit 60,
+/// <see cref="ClickBound"/> (Joel, 2026-10-13): a command here binds the bare click of the stroke button, so its plain click is a
+/// click trigger, not a replay. Bit 60 is the highest, so the hook can still pack two ignore bits beside the plan in one
+/// <see cref="long"/>; keep the top free for those.</para>
 /// </summary>
 public readonly record struct AnchorPlan(long Bits)
 {
@@ -19,6 +21,7 @@ public readonly record struct AnchorPlan(long Bits)
     private const int StrokeSlot = 5;
     private const int FiresShift = ButtonCount + ((StrokeSlot + 1) * ButtonCount);
     private const long Mask = (1L << ButtonCount) - 1;
+    private const long ClickBoundBit = 1L << (FiresShift + (ButtonCount * ButtonCount));
 
     /// <summary>No anchors besides the stroke button, no extras: every other button is untouched.</summary>
     public static AnchorPlan None => default;
@@ -43,6 +46,12 @@ public readonly record struct AnchorPlan(long Bits)
 
     /// <summary>True when some press of <paramref name="owner"/> here can fire a button trigger.</summary>
     public bool FiresAny(MouseButton owner) => ((Bits >> (FiresShift + ((int)owner * ButtonCount))) & Mask) != 0;
+
+    /// <summary>True when an active command here binds the stroke button's bare click (Joel, 2026-10-13): released without moving and holding nothing else, it is a click trigger instead of a replayed click.</summary>
+    public bool ClickBound => (Bits & ClickBoundBit) != 0;
+
+    /// <summary>This plan with the stroke button's bare click bound (<see cref="ClickBound"/>).</summary>
+    public AnchorPlan WithClickBound() => new(Bits | ClickBoundBit);
 
     /// <summary>This plan with <paramref name="other"/> firing a button trigger when pressed during a press of <paramref name="owner"/> (also add it as an extra).</summary>
     public AnchorPlan WithFires(MouseButton owner, MouseButton other) => new(Bits | FiresBit(owner, other));

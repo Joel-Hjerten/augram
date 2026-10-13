@@ -65,6 +65,23 @@ public sealed class ChordEngineTests
         harness.WaitForLog(LogSources.Execution, "Command fired");
     }
 
+    /// <summary>Joel, 2026-10-13: a bare click bound in Global fires for a plain click of the stroke button, and no click is replayed.</summary>
+    [Fact]
+    public void ABareClick_FiresItsCommand_WhereItIsBound_AndTheClickGoesNowhere()
+    {
+        var mapping = Mappings.Global(Mappings.Command("Mission Control", Trigger.ForClick(TriggerHold.Default), new WindowOpStep(WindowOperation.Minimize)));
+        using var harness = new EngineHarness(mapping: mapping);
+        harness.Windows.Window = FakeWindowSystem.Identity();
+        EngineHarness.WaitFor(() => harness.Host.AnchorPlanUnderPointer.ClickBound, "the bare click to be bound");
+
+        Assert.True(harness.Down(MouseButton.Right, 100, 100, 0));
+        Assert.True(harness.Up(MouseButton.Right, 100, 100, 20));
+        EngineHarness.WaitFor(() => harness.WindowOperations.Calls.Count == 1, "the bare click's command");
+
+        Assert.Empty(harness.Simulator.Clicks);
+        harness.WaitForLog(LogSources.Execution, "Command fired");
+    }
+
     [Fact]
     public void AnAnchorIsHeldBackOverItsAppOnly_AndItsWheelFiresTheCommand()
     {

@@ -61,6 +61,24 @@ public sealed class ChordTests
         Assert.Equal([CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReplayClick(Stroke, 100, 100)], outcomes);
     }
 
+    /// <summary>Joel, 2026-10-13: where the press's plan binds the bare click, the stroke button's plain click is a click trigger holding nothing; another anchor's plain click is still replayed.</summary>
+    [Fact]
+    public void APlainClick_IsAClickTrigger_WhereThePlanBindsIt()
+    {
+        var machine = new CaptureStateMachine(Stroke);
+        var bound = Plan.WithClickBound();
+        var outcomes = new EventScript().WithPlan(bound).Down(Stroke, 100, 100).Up(Stroke).RunOnForLast(machine);
+
+        var click = Assert.IsType<CaptureOutcome.ClickTrigger>(outcomes[^1]);
+        Assert.Equal([CaptureOutcome.Suppress.Instance, click], outcomes);
+        Assert.Equal(new PressHold(HeldButtons.Stroke, Stroke), click.Hold);
+        Assert.True(click.Hold.IsEmpty);
+        Assert.Equal(CaptureState.Idle, machine.State);
+
+        var right = new EventScript().WithPlan(bound).Down(MouseButton.Right, 100, 100).Up(MouseButton.Right).RunOnForLast(machine);
+        Assert.Equal([CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReplayClick(MouseButton.Right, 100, 100)], right);
+    }
+
     [Fact]
     public void AnAnchorClick_IsReplayedAtRelease_WithItsAfterKeysAroundIt()
     {

@@ -10,6 +10,7 @@ namespace Augram.Core.Mapping;
 /// What fires a <see cref="Command"/>: a recognised gesture, a wheel tick, a click, a button pressed while others are held, or
 /// nothing yet, each with a "while holding" set (<see cref="Hold"/>, F1 "Triggers as combinations", Joel 2026-10-09):
 /// "Shift + gesture", "Right + wheel up", "Shift + click" (SP.net's no-gesture action, fired at the stroke button's release),
+/// a bare "click" (Joel, 2026-10-13: the stroke button clicked holding nothing else, so a middle click can open Mission Control),
 /// "Right + Left" (<see cref="ButtonTrigger"/>, plan 0005: fired at Left's press while Right is held); or, for a command under a
 /// hold remap (F9, plan 0002), the <see cref="InputTrigger"/> that fires it while the hold key is held. A closed set of records
 /// with value equality; <see cref="Overlaps"/> is the A7 rule ("bound twice in this group", per hold remap for an input) and a
@@ -56,12 +57,15 @@ public abstract record Trigger
         return new(button) { Hold = (hold with { Buttons = hold.Buttons & ~button.Flag() }).Normalised(strokeRequired: false) };
     }
 
-    /// <summary>A click trigger: the stroke button released with <paramref name="hold"/>'s members held; nothing beyond the stroke button is <see cref="None"/>.</summary>
-    public static Trigger ForClick(TriggerHold hold)
+    /// <summary>
+    /// A click trigger: the stroke button released without moving, with <paramref name="hold"/>'s members held. The stroke
+    /// button alone is a <em>bare click</em> (Joel, 2026-10-13; it reopened learnings 0003 §3.1's "stays unbound"): where a command
+    /// binds it the plain click no longer reaches the app, so the hook holds it back only there (<c>AnchorPlan.ClickBound</c>).
+    /// </summary>
+    public static ClickTrigger ForClick(TriggerHold hold)
     {
         ArgumentNullException.ThrowIfNull(hold);
-        var normalised = hold.Normalised(strokeRequired: true);
-        return normalised.IsDefault ? None : new ClickTrigger { Hold = normalised };
+        return new ClickTrigger { Hold = hold.Normalised(strokeRequired: true) };
     }
 
     /// <summary>The trigger of a command under a hold remap: <paramref name="input"/> in its stored form, holding nothing else.</summary>
@@ -79,22 +83,24 @@ public abstract record Trigger
     }
 
     /// <summary>
-    /// The same kind with another set: a click or no trigger becomes whichever of the two <paramref name="hold"/> makes; an
-    /// input holds nothing (its hold key is what is held), so it stays as it is.
+    /// The same kind with another set: a click stays a click (a bare one when nothing else is held); no trigger stays unbound
+    /// with the stroke button alone and becomes a click trigger once <paramref name="hold"/> holds something besides it (the
+    /// editor's "No trigger" with a key ticked); an input holds nothing (its hold key is what is held), so it stays as it is.
     /// </summary>
     public Trigger WithHold(TriggerHold hold)
     {
         ArgumentNullException.ThrowIfNull(hold);
         return this switch
         {
-            NoTrigger or ClickTrigger => ForClick(hold),
+            NoTrigger => hold.Normalised(strokeRequired: true).IsDefault ? None : ForClick(hold),
+            ClickTrigger => ForClick(hold),
             InputTrigger input => ForInput(input.Input),
             ButtonTrigger button => ForButton(button.Button, hold),
             _ => this with { Hold = hold.Normalised(NeedsStroke) },
         };
     }
 
-    /// <summary>The stored form: the hold normalised for the kind; a click holding nothing extra is no trigger; an input in its stored form.</summary>
+    /// <summary>The stored form: the hold normalised for the kind (a bare click keeps the stroke button alone); an input in its stored form.</summary>
     public Trigger Normalised() => WithHold(Hold);
 
     /// <summary>The same kind, whatever is held: the same gesture, the same wheel direction, a click, the same input, or both unbound.</summary>
@@ -147,7 +153,11 @@ public abstract record Trigger
         public override string KindPhrase => Button.ToString();
     }
 
-    /// <summary>The stroke button released without moving, with keys or buttons held (SP.net's no-gesture action, learnings 0003 §2.6).</summary>
+    /// <summary>
+    /// The stroke button released without moving: with keys or buttons held (SP.net's no-gesture action, learnings 0003 §2.6), or
+    /// holding nothing else, a bare click (Joel, 2026-10-13), which fires only where the window's plan binds it; <see cref="Describe"/>
+    /// reads "click" for a bare one, the stroke button implied as for a gesture.
+    /// </summary>
     public sealed record ClickTrigger : Trigger
     {
         internal static ClickTrigger Observed { get; } = new();

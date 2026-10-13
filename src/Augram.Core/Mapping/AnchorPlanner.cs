@@ -21,12 +21,18 @@ public sealed record AnchorAnswer(AnchorPlan Plan, AnchorDragDistances Drags, Bu
 /// entry claiming the window (plan 0004; such a command shadows nothing either). It also says how far each anchor's press may move before it is handed back as a drag (<see cref="Answer"/>).
 /// A button trigger (plan 0005, "Right + Left") holds its anchors back, takes its pressed button into their presses and marks it
 /// firing for them; <see cref="Answer"/> also lists the button trigger commands whose Remap key output the engine worker holds.
+/// A bare click trigger (Joel, 2026-10-13: the stroke button clicked holding nothing else) marks the plan <see cref="AnchorPlan.ClickBound"/>
+/// over the windows where such a command applies, by the same rules: an app command's override to nothing shadows a Global bare
+/// click, so there the plain click is replayed without a round trip, and over an excluded app the stroke button is the app's.
 /// Pure; the engine's ignore-list watch asks it off the hook thread when the window under the pointer or the mapping changes.
 /// </summary>
 public static class AnchorPlanner
 {
-    /// <summary>True when some active command here holds a button beyond the stroke button: the hook then needs a plan per window.</summary>
-    public static bool UsesButtons(MappingDocument mapping, HostPlatform platform)
+    /// <summary>
+    /// True when the hook needs a plan per window at all: some active command here holds a button beyond the stroke button, or is a
+    /// click trigger (a bare one binds the plain click only where it applies; one holding a button is covered by the first test).
+    /// </summary>
+    public static bool NeedsPlan(MappingDocument mapping, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         foreach (var group in mapping.Groups)
@@ -36,7 +42,7 @@ public static class AnchorPlanner
                 continue;
             }
 
-            if (group.ActiveCommandsOn(platform).Any(pair => pair.Trigger is { IsBound: true } trigger && trigger.Hold.Physical != HeldButtons.None))
+            if (group.ActiveCommandsOn(platform).Any(pair => pair.Trigger is { IsBound: true } trigger && (trigger.Hold.Physical != HeldButtons.None || trigger is Trigger.ClickTrigger)))
             {
                 return true;
             }
@@ -132,6 +138,12 @@ public static class AnchorPlanner
         var fires = trigger as Trigger.ButtonTrigger;
         if (hold.HoldsStroke)
         {
+            if (trigger is Trigger.ClickTrigger && hold.IsDefault)
+            {
+                // A bare click (Joel, 2026-10-13): the stroke button's plain click is a trigger over this window, not a replay.
+                return (plan.WithClickBound(), drags);
+            }
+
             // A button trigger never anchors on the stroke button (plan 0005 decision 2): one that names this machine's holds nothing back here.
             return fires is null ? (plan.WithExtras(strokeButton, ownerIsStroke: true, hold.Physical), drags) : (plan, drags);
         }

@@ -15,7 +15,8 @@ namespace Augram.Engine.Hosting;
 /// only when a key changed (on a platform without cheap keys, at most every <c>slowLookupInterval</c>, the latest position
 /// retried at <see cref="RetryAtMs"/>). A change of focus re-checks the pointer even when it did not move, since a window
 /// brought to the front under a motionless pointer usually takes focus. The pointer is looked up only while an active ignored
-/// app can match on this platform or an active command holds a button besides the stroke button; the focus also while an
+/// app can match on this platform or an active command needs a plan per window (it holds a button besides the stroke button,
+/// or binds the stroke button's bare click, <see cref="AnchorPlanner.NeedsPlan"/>); the focus also while an
 /// active hold remap can match here; the foreground identity is read only while a "disable while focused" app or a hold
 /// remap can match.
 /// </summary>
@@ -57,7 +58,7 @@ internal sealed class IgnoreLookup
         _slowLookupMs = (long)slowLookupInterval.TotalMilliseconds;
     }
 
-    /// <summary>An active ignored app can match here, or a command holds a button besides the stroke button (per-app anchors): the pointer and the focus are watched.</summary>
+    /// <summary>An active ignored app can match here, or a command needs a plan per window (per-app anchors, a bare click): the pointer and the focus are watched.</summary>
     public bool WatchesPointer { get; private set; }
 
     /// <summary>An active hold remap can match here (<see cref="HoldRemapPlan.WatchesFocus"/>): the focus is watched and <see cref="HoldPlan"/> follows the app in front.</summary>
@@ -66,10 +67,10 @@ internal sealed class IgnoreLookup
     /// <summary>Anything is watched at all: the pointer, or the focus for hold remaps. Otherwise a pass looks nothing up.</summary>
     public bool Watches => WatchesPointer || _holdRemaps;
 
-    /// <summary>Some active command holds a button besides the stroke button: <see cref="Plan"/> follows the window under the pointer.</summary>
+    /// <summary>Some active command holds a button besides the stroke button or binds the bare click: <see cref="Plan"/> follows the window under the pointer.</summary>
     public bool WatchesAnchors => _anchoring;
 
-    /// <summary>The anchor plan over the window under the pointer as of the last pass (<see cref="AnchorPlanner"/>); <see cref="AnchorPlan.None"/> while no command holds another button.</summary>
+    /// <summary>The anchor plan over the window under the pointer as of the last pass (<see cref="AnchorPlanner"/>); <see cref="AnchorPlan.None"/> while no command needs one.</summary>
     public AnchorPlan Plan => _answer.Plan;
 
     /// <summary>The drag distance per anchor over the same window, worked out with <see cref="Plan"/> (plan 0004).</summary>
@@ -114,7 +115,7 @@ internal sealed class IgnoreLookup
         {
             _seen = mapping;
             _ignoring = IgnoreList.WatchesPointer(mapping, _platform);
-            _anchoring = AnchorPlanner.UsesButtons(mapping, _platform);
+            _anchoring = AnchorPlanner.NeedsPlan(mapping, _platform);
             _excluding = IgnoreList.UsesPerCommand(mapping, _platform);
             WatchesPointer = _ignoring || _anchoring;
             _pausing = IgnoreList.WatchesFocus(mapping, _platform);

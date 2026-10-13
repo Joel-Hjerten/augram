@@ -55,6 +55,21 @@ public sealed class TriggerSerializationTests : IDisposable
         Assert.Matches("\"trigger\": \\{\\n\\s*\"wheel\": \"Up\"\\n\\s*\\}", flat);
     }
 
+    /// <summary>Joel, 2026-10-13: a bare click is <c>{ "click": true }</c> with no hold, and reads back as the same trigger (before, that read as no trigger).</summary>
+    [Fact]
+    public void ABareClick_RoundTrips_AsClickTrueWithoutAHold()
+    {
+        var bare = Trigger.ForClick(TriggerHold.Default);
+        var mapping = MappingRules.ValidDocument(Document(NewGlobal(NewCommand("Mission Control", bare, NewStep("x")))));
+
+        var json = ConfigSerializer.Write(new ConfigDocument { Mapping = mapping });
+        var back = ConfigSerializer.Read(json, FakeStepType.Registry, _notices.Add).Mapping;
+
+        Assert.Empty(_notices);
+        Assert.Equal(bare, Assert.Single(back.Global.Commands).Trigger);
+        Assert.Matches("\"trigger\": \\{\\n\\s*\"click\": true\\n\\s*\\}", json.Replace("\r\n", "\n", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void AnOwnVersionWithoutATrigger_UsesTheOriginal_AsBefore()
     {

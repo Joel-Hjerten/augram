@@ -23,7 +23,8 @@ namespace Augram.App.Tests.Commands;
 /// The Button trigger in the editor (plan 0005 step 5, Joel 2026-10-10: Eyeris's loupe chord "hold Right, press Left" in
 /// Augram): the kind beside Gesture and Wheel with the pressed button chosen beside it, the "While holding" set without the
 /// stroke button and never with the pressed button, a draft that waits for a button to hold, Swap and Take it on a chord
-/// another command uses, and the Remap step offered on it with a key output only.
+/// another command uses, and the Remap step offered on it with a key output only. Also the Click kind beside it (Joel,
+/// 2026-10-13: a bare click of the stroke button).
 /// </summary>
 public sealed class CommandsViewModelButtonTriggerTests
 {
@@ -116,6 +117,29 @@ public sealed class CommandsViewModelButtonTriggerTests
 
         Handle(vm, CommandTreeAction.SetTriggerKind, kind: TriggerKind.None);
         Assert.Same(Trigger.None, Find(store, "Magnifier").Trigger);
+    }
+
+    [AvaloniaFact]
+    public void Click_KeepsTheKeysHeld_UntickingThemLeavesABareClick_AndNoTriggerStillUnbinds()
+    {
+        var (vm, store) = GlobalWith(("Mission Control", Trigger.ForWheel(WheelDirection.Up, TriggerHold.WithStroke(KeyModifiers.Shift))));
+        Select(vm, "Mission Control");
+
+        Handle(vm, CommandTreeAction.SetTriggerKind, kind: TriggerKind.Click);
+        Assert.Equal(Trigger.ForClick(TriggerHold.WithStroke(KeyModifiers.Shift)), Find(store, "Mission Control").Trigger);
+        Assert.Equal((TriggerKind.Click, "Shift + click"), (vm.SelectedCommand!.TriggerKind, vm.SelectedCommand.TriggerText));
+
+        Handle(vm, CommandTreeAction.SetTriggerHold, hold: TriggerHold.Default);
+        var bare = Trigger.ForClick(TriggerHold.Default);
+        Assert.Equal(bare, Find(store, "Mission Control").Trigger);
+        var header = vm.SelectedCommand!;
+        Assert.Equal((TriggerKind.Click, "Click", null), (header.TriggerKind, header.TriggerText, header.DraftNote));
+        Assert.Equal("Click the stroke button without drawing; with nothing bound here the click goes to the app.", header.TriggerHint);
+        Assert.Equal("Wait 10 ms", Item(vm, "Mission Control").StepSummary);
+
+        Handle(vm, CommandTreeAction.SetTriggerKind, kind: TriggerKind.None);
+        Assert.Same(Trigger.None, Find(store, "Mission Control").Trigger);
+        Assert.Equal(TriggerKind.None, vm.SelectedCommand!.TriggerKind);
     }
 
     [AvaloniaFact]

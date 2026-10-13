@@ -108,7 +108,25 @@ public sealed class TriggerCombinationTests
 
         Assert.Equal("Alt click", CommandResolver.Resolve(mapping, null, new PressedTrigger(Trigger.Click, Press(before: KeyModifiers.Alt)), HostPlatform.Windows).Command?.Name);
         Assert.False(CommandResolver.Resolve(mapping, null, new PressedTrigger(Trigger.Click, Press(before: KeyModifiers.Shift)), HostPlatform.Windows).Fires);
-        Assert.Equal(Trigger.None, Trigger.ForClick(TriggerHold.Default));
+    }
+
+    /// <summary>Joel, 2026-10-13 (reopening learnings 0003 §3.1): the stroke button clicked holding nothing else is a trigger of its own; no trigger stays unbound.</summary>
+    [Fact]
+    public void ABareClick_IsATrigger_FiresForAPlainClick_AndNoTriggerStaysUnbound()
+    {
+        var bare = Trigger.ForClick(TriggerHold.Default);
+        var mapping = Document(NewGlobal(NewCommand("Mission Control", bare, NewStep("x"))));
+
+        Assert.Equal(TriggerHold.Default, bare.Hold);
+        Assert.Equal("click", bare.Describe());
+        Assert.Equal("Mission Control", CommandResolver.Resolve(mapping, null, new PressedTrigger(Trigger.Click, Press()), HostPlatform.Windows).Command?.Name);
+        Assert.False(CommandResolver.Resolve(mapping, null, new PressedTrigger(Trigger.Click, Press(before: KeyModifiers.Alt)), HostPlatform.Windows).Fires);
+        Assert.True(bare.Overlaps(Trigger.ForClick(TriggerHold.Default)), "A7: two bare clicks in one group clash");
+        Assert.False(bare.Overlaps(Trigger.ForClick(TriggerHold.WithStroke(KeyModifiers.Alt))));
+        Assert.Equal(bare, bare.Normalised());
+        Assert.Same(Trigger.None, Trigger.None.Normalised());
+        Assert.Same(Trigger.None, Trigger.None.WithHold(TriggerHold.Default));
+        Assert.IsType<Trigger.ClickTrigger>(Trigger.None.WithHold(TriggerHold.WithStroke(KeyModifiers.Alt)));
     }
 
     [Fact]

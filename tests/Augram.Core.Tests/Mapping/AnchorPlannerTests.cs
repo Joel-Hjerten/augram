@@ -24,7 +24,7 @@ public sealed class AnchorPlannerTests
         Assert.True(AnchorPlanner.For(mapping, Window("chrome.exe"), HostPlatform.Windows, Stroke).IsAnchor(MouseButton.Right));
         Assert.False(AnchorPlanner.For(mapping, Window("explorer.exe"), HostPlatform.Windows, Stroke).IsAnchor(MouseButton.Right));
         Assert.False(AnchorPlanner.For(mapping, null, HostPlatform.Windows, Stroke).IsAnchor(MouseButton.Right));
-        Assert.True(AnchorPlanner.UsesButtons(mapping, HostPlatform.Windows));
+        Assert.True(AnchorPlanner.NeedsPlan(mapping, HostPlatform.Windows));
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class AnchorPlannerTests
         var mapping = MappingRules.ValidDocument(Document(NewGlobal(off, macOnly)));
 
         Assert.True(AnchorPlanner.For(mapping, null, HostPlatform.Windows, Stroke).IsEmpty);
-        Assert.False(AnchorPlanner.UsesButtons(mapping, HostPlatform.Windows));
+        Assert.False(AnchorPlanner.NeedsPlan(mapping, HostPlatform.Windows));
         Assert.True(AnchorPlanner.For(mapping, null, HostPlatform.MacOS, Stroke).IsAnchor(MouseButton.X1));
     }
 
@@ -65,6 +65,29 @@ public sealed class AnchorPlannerTests
         Assert.True(plan.Claims(MouseButton.Right, ownerIsStroke: false, MouseButton.X1));
         Assert.True(plan.Claims(MouseButton.X1, ownerIsStroke: false, MouseButton.Right));
         Assert.False(plan.IsAnchor(MouseButton.Left));
+    }
+
+    /// <summary>Joel, 2026-10-13: a bare click binds the stroke button's plain click only over windows where its command applies; an override to nothing gives the click back.</summary>
+    [Fact]
+    public void ABareClick_BindsThePlainClick_WhereItApplies_AndAnOverrideToNothingUnbindsIt()
+    {
+        var bare = Trigger.ForClick(TriggerHold.Default);
+        var chrome = NewGroup("Chrome", null, NewCommand("Mission Control", bare, NewStep("open")));
+        var inApp = MappingRules.ValidDocument(Document(NewGlobal(), chrome));
+
+        Assert.True(AnchorPlanner.For(inApp, Window("chrome.exe"), HostPlatform.Windows, Stroke).ClickBound);
+        Assert.False(AnchorPlanner.For(inApp, Window("explorer.exe"), HostPlatform.Windows, Stroke).ClickBound);
+        Assert.True(AnchorPlanner.NeedsPlan(inApp, HostPlatform.Windows), "the hook needs a plan per window although no other button is held");
+
+        var game = NewGroup("Game") with { SuppressGlobals = true };
+        var quiet = NewGroup("Quiet", null, NewCommand("No Mission Control", bare));
+        var everywhere = MappingRules.ValidDocument(Document(NewGlobal(NewCommand("Mission Control", bare, NewStep("open"))), game, quiet));
+
+        Assert.True(AnchorPlanner.For(everywhere, Window("notepad.exe"), HostPlatform.Windows, Stroke).ClickBound);
+        Assert.True(AnchorPlanner.For(everywhere, null, HostPlatform.Windows, Stroke).ClickBound);
+        Assert.False(AnchorPlanner.For(everywhere, Window("game.exe"), HostPlatform.Windows, Stroke).ClickBound);
+        Assert.False(AnchorPlanner.For(everywhere, Window("quiet.exe"), HostPlatform.Windows, Stroke).ClickBound);
+        Assert.False(AnchorPlanner.For(everywhere, null, HostPlatform.Windows, Stroke).IsAnchor(MouseButton.Right), "a bare click holds no other button back");
     }
 
     [Fact]
