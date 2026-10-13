@@ -38,7 +38,7 @@ Every shared control of the App: lookless (`TemplatedControl` with named `PART_*
 
 ## How a component finds a port
 
-Step forms and field renderers are built by assembly scan, without services, so the ports a component needs (`IKeyCapture`, `IButtonCapture`, `IWindowSystem`, `IDisplayModes`) are one application resource, `ComponentPorts` (`ComponentPorts.Near(control)`), which `Hosting/Modules/FormServices.Publish` puts there once the engine runs. A component's explicit property (`KeyCapture`, `Capture`, `ButtonCapture`, `WindowSystem`) wins: tests and the gallery set fakes. Without the engine the captures are null and each control falls back to its own window. Components never hold an engine adapter (`EngineKeyCapture`, `EngineButtonCapture` are in `Hosting/`).
+Step forms and field renderers are built by assembly scan, without services, so the ports a component needs (`IKeyCapture`, `IButtonCapture`, `IWindowSystem`, `IDisplayModes`, `IKeyboardLayouts`) are one application resource, `ComponentPorts` (`ComponentPorts.Near(control)`), which `Hosting/Modules/FormServices.Publish` puts there once the engine runs. A component's explicit property (`KeyCapture`, `Capture`, `ButtonCapture`, `WindowSystem`) wins: tests and the gallery set fakes. Without the engine the captures are null and each control falls back to its own window. Components never hold an engine adapter (`EngineKeyCapture`, `EngineButtonCapture` are in `Hosting/`).
 
 ## Templates
 

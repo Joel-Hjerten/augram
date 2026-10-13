@@ -29,6 +29,13 @@ public sealed record ComponentPorts
     /// <summary>The engine's button detection, for a hold remap command's Add button… (plan 0002 step 4); null without the engine.</summary>
     public IButtonCapture? ButtonCapture { get; init; }
 
+    /// <summary>
+    /// The OS's keyboard layouts, for the Hotkey form's per-layout rows (plan 0011); <see cref="NullKeyboardLayouts"/> when the
+    /// platform has no adapter. Re-published (the same instance) when the active layout changes, so a form that shows key names
+    /// hears <c>ResourcesChanged</c> and re-reads them.
+    /// </summary>
+    public IKeyboardLayouts? KeyboardLayouts { get; init; }
+
     /// <summary>The ports in reach of <paramref name="control"/>: its own or an ancestor's resources, up to the application's.</summary>
     public static ComponentPorts? Near(IResourceHost control) =>
         control.TryFindResource(ResourceKey, out var found) ? found as ComponentPorts : null;
