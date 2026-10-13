@@ -7,7 +7,8 @@ namespace Augram.App.Dialogs;
 
 /// <summary>
 /// The dialog chrome, lookless (its ControlTheme is in <c>Themes/Default/Lists.axaml</c>): an optional <see cref="Heading"/> with
-/// its ⓘ (<see cref="Help"/>), the <see cref="ContentControl.Content"/> filling the middle, and the buttons bottom right in
+/// its ⓘ (<see cref="Help"/>) and, right-aligned on the same row, any <see cref="HeadingTrailing"/> (the gesture picker's search box,
+/// as the Gestures tab places its own), the <see cref="ContentControl.Content"/> filling the middle, and the buttons bottom right in
 /// <c>PART_Buttons</c>: any <see cref="LeadingButtons"/>, then <see cref="CancelLabel"/>, then <see cref="ConfirmLabel"/> (the default
 /// button, enabled while <see cref="CanConfirm"/>). A null label leaves its button out (a message has OK only; "Used by…" has Close
 /// only). The two buttons raise <see cref="Confirmed"/> and <see cref="Cancelled"/>; the host decides what they mean. Escape is the
@@ -29,6 +30,9 @@ public class DialogShell : ContentControl
 
     public static readonly StyledProperty<bool> CanConfirmProperty =
         AvaloniaProperty.Register<DialogShell, bool>(nameof(CanConfirm), true);
+
+    public static readonly StyledProperty<object?> HeadingTrailingProperty =
+        AvaloniaProperty.Register<DialogShell, object?>(nameof(HeadingTrailing));
 
     public static readonly StyledProperty<bool> HasHeadingProperty =
         AvaloniaProperty.Register<DialogShell, bool>(nameof(HasHeading));
@@ -78,6 +82,13 @@ public class DialogShell : ContentControl
     {
         get => GetValue(CanConfirmProperty);
         set => SetValue(CanConfirmProperty, value);
+    }
+
+    /// <summary>Content right-aligned on the heading row (a search box); null leaves the row to the heading.</summary>
+    public object? HeadingTrailing
+    {
+        get => GetValue(HeadingTrailingProperty);
+        set => SetValue(HeadingTrailingProperty, value);
     }
 
     public bool HasHeading

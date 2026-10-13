@@ -18,8 +18,8 @@ namespace Augram.App.Components.GesturePicker;
 /// before them.
 /// Every way out raises <see cref="Closed"/> with a <see cref="GesturePickerResult"/>; New Gesture…
 /// raises <see cref="NewGestureRequested"/> for the host to open training, and the host selects the
-/// accepted gesture through <see cref="Select"/>. Selection survives a tile rebuild by id. The search box above the tiles
-/// (<c>PART_Search</c>, plan 0009) is two-way bound to <see cref="SearchText"/>; the presenter narrows and orders the tiles by it
+/// accepted gesture through <see cref="Select"/>. Selection survives a tile rebuild by id. The search box on the heading row, right
+/// (<c>PART_Search</c> in the shell's <c>HeadingTrailing</c>, plan 0009) is two-way bound to <see cref="SearchText"/> in code, since a TemplateBinding inside the slot would see the shell; the presenter narrows and orders the tiles by it
 /// (the names starting with the text first), and <see cref="EmptyText"/> says "No gestures match 'xyz'" while nothing is left.
 /// </summary>
 public sealed class GesturePicker : TemplatedControl
@@ -120,6 +120,7 @@ public sealed class GesturePicker : TemplatedControl
             shell.Cancelled += (_, _) => Cancel();
         }
 
+        e.NameScope.Find<SearchBox.SearchBox>("PART_Search")?.Bind(SearchBox.SearchBox.TextProperty, new Binding(nameof(SearchText)) { Source = this, Mode = BindingMode.TwoWay });
         e.OnClick("PART_NoGesture", ChooseNoGesture);
         e.OnClick("PART_NewGesture", () => NewGestureRequested?.Invoke(this, EventArgs.Empty));
     }

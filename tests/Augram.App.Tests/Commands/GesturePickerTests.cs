@@ -1,6 +1,7 @@
 using Augram.App.Components.GestureGrid;
 using Augram.App.Components.GesturePicker;
 using Augram.App.Components.SearchBox;
+using Augram.App.Dialogs;
 using Augram.Core.Gestures;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -73,6 +74,19 @@ public sealed class GesturePickerTests
         picker.SearchText = "zzz";
         picker.Tiles = GesturePickerPresenter.Tiles([], SearchQuery.Parse("zzz"));
         Assert.Equal("No gestures match 'zzz'", picker.EmptyText);
+    }
+
+    /// <summary>Joel, 2026-10-13: the search box sits on the heading row, right, as on the Gestures tab, and stays bound to SearchText.</summary>
+    [AvaloniaFact]
+    public void TheSearchBoxSitsOnTheHeadingRow()
+    {
+        var (picker, _, _) = Show();
+        var shell = picker.GetVisualDescendants().OfType<DialogShell>().Single();
+        var search = picker.GetVisualDescendants().OfType<SearchBox>().Single();
+
+        Assert.Same(search, shell.HeadingTrailing);
+        picker.SearchText = "ri";
+        Assert.Equal("ri", search.Text);
     }
 
     private static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));

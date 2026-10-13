@@ -1045,13 +1045,12 @@
                   <Button Name="PART_NoGesture" Classes="toolbar" Content="No Gesture" />
                   <Button Name="PART_NewGesture" Classes="toolbar" Content="New Gesture…" />
                 </dialogs:DialogShell.LeadingButtons>
+                <dialogs:DialogShell.HeadingTrailing>
+                  <!-- The search box on the heading row, right (plan 0009; Joel, 2026-10-13: as the Gestures tab). -->
+                  <!-- Bound in GesturePicker.OnApplyTemplate: inside the slot a TemplateBinding would see the shell, not the picker. -->
+                  <search:SearchBox Name="PART_Search" />
+                </dialogs:DialogShell.HeadingTrailing>
                 <DockPanel>
-                  <!-- The search box above the tiles (plan 0009): the names starting with the text come first. -->
-                  <search:SearchBox Name="PART_Search"
-                                    DockPanel.Dock="Top"
-                                    Text="{TemplateBinding SearchText, Mode=TwoWay}"
-                                    HorizontalAlignment="Left"
-                                    Margin="0,0,0,8" />
                   <Border Background="{DynamicResource Layer.Panel}"
                           BorderBrush="{DynamicResource Layer.Edge}"
                           BorderThickness="1"
@@ -1093,10 +1092,14 @@
           <ControlTemplate>
             <DockPanel>
               <StackPanel Name="PART_Buttons" DockPanel.Dock="Bottom" Classes="dialog-buttons" />
-              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" IsVisible="{TemplateBinding HasHeading}">
-                <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
-                <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
-              </StackPanel>
+              <!-- The heading row is the Gestures tab's: title and ⓘ left, HeadingTrailing (the picker's search box) right. -->
+              <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" IsVisible="{TemplateBinding HasHeading}">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                  <TextBlock Classes="section-title" Text="{TemplateBinding Heading}" />
+                  <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding Help}" IsVisible="{TemplateBinding HasHelp}" />
+                </StackPanel>
+                <ContentPresenter Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{TemplateBinding HeadingTrailing}" />
+              </Grid>
               <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
             </DockPanel>
           </ControlTemplate>
