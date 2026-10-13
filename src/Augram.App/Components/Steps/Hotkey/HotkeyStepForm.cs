@@ -17,7 +17,8 @@ namespace Augram.App.Components.Steps.Hotkey;
 /// "Cmd+Å" on the Swedish row, "Cmd+[" on the ABC row, whatever is active); a layout the step holds that is no longer installed
 /// shows after them by its id, with Remove on the line under it; a note under the rows says what the step list shows. The
 /// main shortcut is then derived, never edited on its own: turning the switch on seeds every installed layout's row with the
-/// main shortcut (one edit; only the layout that differs needs capturing again), and after any row edit the main shortcut is
+/// main shortcut (one edit; only the layout that differs needs capturing again), or brings back the rows the switch dropped
+/// earlier in this form (Joel, 2026-10-13, second round: off then on must not lose a captured row), and after any row edit the main shortcut is
 /// the active layout's row when that is set, else the first set row in display order (so the step list, the summary and the
 /// other platform's conversion show the active layout's shortcut). Off keeps the main shortcut and drops every row in one
 /// edit. Then the hand editor: four modifier toggles, each with an "R" toggle for its right-hand key (<see cref="ModifierToggle"/>),
@@ -73,6 +74,11 @@ public sealed class HotkeyStepForm : IStepForm
         var state = StepParameters.Expect<HotkeyStep>(current, HotkeyStepType.Instance).Normalized();
         var perLayout = state.HasLayouts;
         var shown = Fingerprint(Layouts(host));
+
+        // The rows the switch dropped when it went off, brought back when it goes on again (Joel, 2026-10-13, second round:
+        // off then on re-seeded every row from the main shortcut, so the ABC row lost its capture). Per form instance, for the
+        // session; the stored step holds no rows while off, so the undo step and the on-disk shape stay as they were.
+        IReadOnlyDictionary<string, HotkeyBinding>? remembered = null;
 
         void Show()
         {
@@ -147,7 +153,18 @@ public sealed class HotkeyStepForm : IStepForm
                 }
 
                 perLayout = on;
-                form.Emit(form.Current with { Layouts = on ? Seeded(installed, form.Current.Main) : HotkeyStep.NoLayouts });
+                if (on)
+                {
+                    // The rows dropped earlier in this form come back as they were; a step that never had rows starts every
+                    // layout from the main shortcut. The main then follows the rows, as after any row edit.
+                    form.Emit(Derived(form.Current with { Layouts = remembered is { Count: > 0 } ? remembered : Seeded(installed, form.Current.Main) }));
+                }
+                else
+                {
+                    remembered = form.Current.Layouts;
+                    form.Emit(form.Current with { Layouts = HotkeyStep.NoLayouts });
+                }
+
                 Show();
             }
 
