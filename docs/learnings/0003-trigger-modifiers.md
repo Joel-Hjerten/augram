@@ -238,6 +238,8 @@ B and A hold keys and buttons alike, as in SP.net. `CommandResolver`'s order is 
 
 Two commands in one group use "the same trigger" when kind and gesture/wheel are equal, the anchor and S are equal, and the modes overlap (Either overlaps all; Before–Before; After–After). This is SP.net's conflict rule. SP.net only warns and lets the first win; Augram keeps one bound, as A7 does today.
 
+**2026-10-14 (Joel):** the two clash only on a platform where both are used (Use on of group, category, hold remap and command), so the same trigger may be bound twice in a group when the two are used on different platforms.
+
 ### 3.6 Ignore key interaction
 
 - An ignore key held at button-down passes the press. Nothing is recorded, as today: read per press.
@@ -355,6 +357,6 @@ Joel answered §5 and widened §4 the same day; the build follows §3–4 except
 | §3.2 | auto-repeats of a Before key eaten; B from the key state at the press | Repeats pass: keys are paired per press (`KeySuppressionShadow`), a Before key's repeats follow its press. B is the press's modifier mask **limited to keys the hook saw go down** since its last reset, so a stale mask (Win's release missed during Win+L) cannot hold a phantom key that would stop every plain trigger matching; a key held since before Augram started is not Before |
 | §3.2 Win/Alt | a masking key before the Win/Alt up passes | A Ctrl tap when the press **starts** (Windows only); a relayed click with Alt or Win among its After keys taps Ctrl too |
 | §2.4, §6 | wheel after drawing matches gesture + wheel | No command can be gesture + wheel (the kinds are Gesture / Wheel / No trigger), so such a tick fires nothing; it no longer fires the no-gesture wheel command |
-| §3.5 | A7 per group | Checked on each platform's trigger (converted or own), so a Windows Ctrl + Up and a Mac Cmd + Up clash; sync placement and the importer use the same overlap rule |
+| §3.5 | A7 per group | Checked on each platform's trigger (converted or own), on a platform both commands are used on (2026-10-14), so a Windows Ctrl + Up and a Mac Cmd + Up clash; sync placement and the importer use the same overlap rule |
 | §3.6 | disable an ignore key's box while Before is chosen | Not built yet (the header has no link to the ignore keys); such a trigger can be saved and never fires, as in SP.net's WebView2 editor |
 | §3.8 | Shift+Right Click active; secondary with none set inactive | "Shift+Right Click" (a click trigger whose steps re-send the click) imports **inactive** with a note: Augram relays the click itself. A secondary-stroke-button wheel action with no secondary button set imports as **Right + wheel**, inactive, with a note to check the button |

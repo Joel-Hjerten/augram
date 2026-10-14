@@ -13,6 +13,7 @@ namespace Augram.Core.Sync;
 /// </summary>
 internal sealed class CommandPlacement
 {
+    private readonly Dictionary<GroupId, AppGroup> _groups;
     private readonly Dictionary<GroupId, string> _groupNames;
     private readonly Dictionary<GroupId, List<CommandCategory>> _categories;
     private readonly Dictionary<GroupId, List<HoldRemap>> _holdRemaps;
@@ -28,6 +29,7 @@ internal sealed class CommandPlacement
         SyncItemSet before,
         List<SyncRepair> repairs)
     {
+        _groups = groups.ToDictionary(group => group.Id);
         _groupNames = groups.ToDictionary(group => group.Id, group => group.Name);
         _categories = categories;
         _holdRemaps = holdRemaps;
@@ -103,6 +105,9 @@ internal sealed class CommandPlacement
     private List<Command> Unique(GroupId groupId, List<(Command Command, SyncItemKey Key, bool Incoming)> entries)
     {
         var result = new List<Command>(entries.Count);
+
+        // Where each command is used (group, category, hold remap) decides A7, so the rule sees the merged ones.
+        var group = _groups[groupId] with { Categories = _categories[groupId], HoldRemaps = _holdRemaps[groupId] };
         foreach (var (original, key, _) in entries.OrderBy(entry => entry.Incoming ? 1 : 0))
         {
             var command = original;
@@ -113,8 +118,8 @@ internal sealed class CommandPlacement
                 command = command with { Name = name };
             }
 
-            // A7 as MappingRules has it: overlapping triggers (combinations included) on either platform.
-            if (command.Trigger.IsBound && Clash(command, result) is { } clash)
+            // A7 as MappingRules has it: overlapping triggers (combinations included) on a platform both are used on.
+            if (command.Trigger.IsBound && Clash(group, command, result) is { } clash)
             {
                 _repairs.Add(new(key, SyncRepairKind.Unbound, $"Incoming command '{command.Name}' {where} unbound: '{clash.Holder.Name}' already uses {clash.Phrase}."));
                 command = command with { Trigger = Trigger.None };
@@ -129,11 +134,11 @@ internal sealed class CommandPlacement
     private string? HoldRemapName(GroupId groupId, Command command)
         => command.HoldRemapId is { } id ? _holdRemaps[groupId].FirstOrDefault(holdRemap => holdRemap.Id == id)?.Name : null;
 
-    private static (Command Holder, string Phrase)? Clash(Command command, List<Command> placed)
+    private static (Command Holder, string Phrase)? Clash(AppGroup group, Command command, List<Command> placed)
     {
         foreach (var other in placed)
         {
-            if (MappingRules.Overlap(command, other) is { } phrase)
+            if (MappingRules.Overlap(group, command, other) is { } phrase)
             {
                 return (other, phrase);
             }

@@ -84,11 +84,29 @@ public sealed class CommandsViewModelTriggerConflictTests
         Select(vm, "Zoom In");
         Handle(vm, CommandTreeAction.SetWheelDirection, wheel: WheelDirection.Up);
 
+        // The two share it on macOS only, where both are used (Joel, 2026-10-14).
+        Assert.Equal("Not saved yet: 'Zoom Out' already uses Right + wheel up on macOS. Change the direction, a button or a key.", vm.SelectedCommand!.DraftNote);
+
         Handle(vm, CommandTreeAction.TakeTrigger);
 
         Assert.True(vm.ShowOtherPlatforms);
         Assert.Equal("Zoom Out", vm.SelectedCommand!.Name);
         Assert.Same(Trigger.None, Find(store, "Zoom Out").Trigger);
+    }
+
+    [AvaloniaFact]
+    public void TheSameTriggerIsSavedWhenTheTwoAreUsedOnDifferentPlatforms()
+    {
+        // Joel, 2026-10-14: Window Snap Left on Windows and desktop 1 on macOS may share a gesture in Global.
+        var (vm, store) = GlobalWithZoom();
+        store.UpdateCommand(GroupId.Global, Find(store, "Zoom Out") with { UseOn = PlatformSet.MacOS });
+        store.UpdateCommand(GroupId.Global, Find(store, "Zoom In") with { UseOn = PlatformSet.Windows });
+        Select(vm, "Zoom In");
+
+        Handle(vm, CommandTreeAction.SetWheelDirection, wheel: WheelDirection.Up);
+
+        Assert.Equal(RightWheelUp, Find(store, "Zoom In").Trigger);
+        Assert.Null(vm.SelectedCommand!.DraftNote);
     }
 
     [AvaloniaFact]

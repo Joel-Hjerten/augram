@@ -76,6 +76,25 @@ public sealed class MappingRulesTests
     }
 
     [Fact]
+    public void ATriggerClashesOnlyOnAPlatformBothCommandsAreUsedOn()
+    {
+        // Joel, 2026-10-14: the same gesture twice in Global is fine when one is used on Windows and the other on macOS.
+        var snap = NewCommand("Window Snap Left", Up) with { UseOn = PlatformSet.Windows };
+        var desktop = NewCommand("desktop 1", Up) with { UseOn = PlatformSet.MacOS };
+        var store = new MappingStore(Document(NewGlobal(snap, desktop)));
+
+        // Widening one onto the other's platform is refused, naming the platform they now share.
+        var widened = Assert.Throws<MappingValidationException>(() => store.UpdateCommand(GroupId.Global, desktop with { UseOn = PlatformSet.All }));
+        Assert.Equal("'desktop 1' in 'Global' already uses this gesture on Windows.", widened.Message);
+
+        // A category that keeps it off Windows makes the same command legal again.
+        var mac = NewCategory("Mac") with { UseOn = PlatformSet.MacOS };
+        store.UpdateGroup(store.Global with { Categories = [.. store.Global.Categories, mac] });
+        store.UpdateCommand(GroupId.Global, desktop.In(mac) with { UseOn = PlatformSet.All });
+        Assert.Equal(PlatformSet.MacOS, store.Global.EffectiveUseOn(store.Global.Commands.Single(command => command.Id == desktop.Id)));
+    }
+
+    [Fact]
     public void ExactlyOneGlobalGroupIsRequiredAndItIsMovedFirst()
     {
         var missing = Assert.Throws<MappingValidationException>(() => MappingRules.ValidDocument(Document(NewGroup("Chrome"))));

@@ -198,8 +198,8 @@ public static class MappingRules
     /// Checks a normalised command against the other commands of its group: ids unique; a name unique among its siblings (the
     /// commands of its parent, <see cref="CommandNames"/>: its hold remap's, or the group's ordinary commands); A7 among the same
     /// siblings (one command per trigger, an input once per hold remap, where two triggers are the same when they overlap on
-    /// either platform, learnings 0003 §3.5); that every trigger it has can be held (a wheel trigger needs a button to hold);
-    /// and <see cref="HoldRemapRules.EnsureValid(Command, AppGroup)"/>.
+    /// a platform both commands are used on, <see cref="SharesTriggerOn"/>, learnings 0003 §3.5); that every trigger it has can
+    /// be held (a wheel trigger needs a button to hold); and <see cref="HoldRemapRules.EnsureValid(Command, AppGroup)"/>.
     /// </summary>
     public static void EnsureValid(Command command, AppGroup group, IEnumerable<Command> others)
     {
@@ -225,7 +225,6 @@ public static class MappingRules
 
         HoldRemapRules.EnsureValid(command, group);
 
-        var mine = TriggersOf(command);
         Unique.Ensure(
             others,
             other => other.Id == command.Id,
@@ -236,7 +235,7 @@ public static class MappingRules
             other => CommandNames.AreSiblings(command, other),
             other =>
             {
-                if (OverlapOf(mine, other) is { } clash)
+                if (OverlapOf(group, command, other) is { } clash)
                 {
                     throw new MappingValidationException($"'{other.Name}' {CommandNames.Where(group, command)} already uses {clash}.");
                 }
@@ -244,29 +243,48 @@ public static class MappingRules
     }
 
     /// <summary>
-    /// A7 between two commands: the phrase of the trigger they share on some platform ("Shift + this gesture", with " on macOS"
-    /// when they share it on one platform only), or null when they share none. Commands under different hold remaps (or one
-    /// under a hold remap and one not) share none: an input is unique per hold remap (F9, plan 0002).
+    /// A7 between two commands of <paramref name="group"/>: the phrase of the trigger they share on some platform ("Shift + this
+    /// gesture", with " on macOS" when they share it on one platform only), or null when they share none
+    /// (<see cref="SharesTriggerOn"/>). The group gives where each is used, so <paramref name="command"/> may be a candidate not
+    /// yet among its commands.
     /// </summary>
-    public static string? Overlap(Command command, Command other)
+    public static string? Overlap(AppGroup group, Command command, Command other)
     {
+        ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(other);
-        return CommandNames.AreSiblings(command, other) ? OverlapOf(TriggersOf(command), other) : null;
+        return CommandNames.AreSiblings(command, other) ? OverlapOf(group, command, other) : null;
     }
 
-    private static (Trigger Windows, Trigger MacOS) TriggersOf(Command command)
-        => (command.TriggerFor(HostPlatform.Windows), command.TriggerFor(HostPlatform.MacOS));
-
-    private static string? OverlapOf((Trigger Windows, Trigger MacOS) mine, Command other)
+    /// <summary>
+    /// A7 on one platform, the one place it is decided: two commands of <paramref name="group"/> share a trigger on
+    /// <paramref name="platform"/> when they are siblings (commands under different hold remaps, or one under a hold remap and
+    /// one not, share none: an input is unique per hold remap, F9, plan 0002), both are used there
+    /// (<see cref="AppGroup.IsCommandUsedOn"/>: the same gesture may be bound twice in a group when the two are used on
+    /// different platforms, Joel 2026-10-14) and their triggers there overlap (<see cref="Trigger.Overlaps"/>).
+    /// </summary>
+    public static bool SharesTriggerOn(AppGroup group, Command command, Command other, HostPlatform platform)
     {
-        var onWindows = mine.Windows.Overlaps(other.TriggerFor(HostPlatform.Windows));
-        var onMac = mine.MacOS.Overlaps(other.TriggerFor(HostPlatform.MacOS));
+        ArgumentNullException.ThrowIfNull(group);
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(other);
+        return CommandNames.AreSiblings(command, other) && SharedOn(group, command, other, platform);
+    }
+
+    private static bool SharedOn(AppGroup group, Command command, Command other, HostPlatform platform)
+        => group.IsCommandUsedOn(command, platform)
+            && group.IsCommandUsedOn(other, platform)
+            && command.TriggerFor(platform).Overlaps(other.TriggerFor(platform));
+
+    private static string? OverlapOf(AppGroup group, Command command, Command other)
+    {
+        var onWindows = SharedOn(group, command, other, HostPlatform.Windows);
+        var onMac = SharedOn(group, command, other, HostPlatform.MacOS);
         return (onWindows, onMac) switch
         {
-            (true, true) => mine.Windows.Describe(),
-            (true, false) => $"{mine.Windows.Describe(HostPlatform.Windows)} on Windows",
-            (false, true) => $"{mine.MacOS.Describe(HostPlatform.MacOS)} on macOS",
+            (true, true) => command.TriggerFor(HostPlatform.Windows).Describe(),
+            (true, false) => $"{command.TriggerFor(HostPlatform.Windows).Describe(HostPlatform.Windows)} on Windows",
+            (false, true) => $"{command.TriggerFor(HostPlatform.MacOS).Describe(HostPlatform.MacOS)} on macOS",
             _ => null,
         };
     }

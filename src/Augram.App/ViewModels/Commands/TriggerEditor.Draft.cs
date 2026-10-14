@@ -87,8 +87,9 @@ internal sealed partial class TriggerEditor
     /// Why the rules refuse <paramref name="trigger"/> as the command's trigger here, in plain words with how to fix it; null when
     /// they accept it. The rule is Core's (<see cref="MappingRules.EnsureValid(Command, AppGroup, IEnumerable{Command})"/>); this
     /// only finds the words: the button a wheel trigger lacks, the button a button trigger holds (plan 0005: "tick a button to
-    /// hold, as Right for Right + Left."), or the command that already uses the trigger in the group (A7),
-    /// which is also what the note's Swap and Take it act on when it uses it on this platform (<c>.Conflict</c>).
+    /// hold, as Right for Right + Left."), or the command that already uses the trigger in the group (A7:
+    /// on a platform both are used on, <see cref="MappingRules.SharesTriggerOn"/>), which is also what the note's Swap and Take it
+    /// act on when it holds the same trigger on this platform (<c>.Conflict</c>).
     /// </summary>
     private DraftRefusal? RefusalOf(AppGroup group, Command command, Trigger trigger)
     {
@@ -113,12 +114,15 @@ internal sealed partial class TriggerEditor
 
             foreach (var other in others)
             {
-                if (MappingRules.Overlap(candidate, other) is { } phrase)
+                if (MappingRules.Overlap(group, candidate, other) is { } phrase)
                 {
                     // Taken on this platform reads as the header does; taken only on the other one says which ("… on macOS").
-                    var here = trigger.Overlaps(other.TriggerFor(_platform));
+                    // Swap and Take it act on the other when it holds this very trigger here, even when it is used only on
+                    // the other platform (the clash is there, and taking or swapping ends it; .Conflict reveals it).
+                    var here = MappingRules.SharesTriggerOn(group, candidate, other, _platform);
                     var uses = here ? $"{Phrase(trigger)} here" : phrase;
-                    return new DraftRefusal($"Not saved yet: '{other.Name}' already uses {uses}. {TriggerKindExtensions.FixHint(trigger)}", here ? other : null);
+                    var takenBy = trigger.Overlaps(other.TriggerFor(_platform)) ? other : null;
+                    return new DraftRefusal($"Not saved yet: '{other.Name}' already uses {uses}. {TriggerKindExtensions.FixHint(trigger)}", takenBy);
                 }
             }
 
@@ -135,6 +139,6 @@ internal sealed partial class TriggerEditor
     /// <summary>A trigger the rules refused for one command, and the stored trigger it was drafted over.</summary>
     private sealed record TriggerDraft(CommandId Id, Trigger Stored, Trigger Trigger);
 
-    /// <summary>The note on a refused draft, and the command that uses the trigger on this platform when that is the refusal (else null).</summary>
+    /// <summary>The note on a refused draft, and the command that holds the trigger on this platform when that is the refusal (else null).</summary>
     private sealed record DraftRefusal(string Note, Command? TakenBy);
 }

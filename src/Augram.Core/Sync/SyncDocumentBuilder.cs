@@ -37,7 +37,7 @@ internal static partial class SyncDocumentBuilder
                     HoldRemaps = holdRemaps[group.Id],
                     Commands = OwnTriggersChecked(
                         [.. commands[group.Id].Select(command => versions.TryGetValue(command.Id, out var own) ? command with { OwnVersion = own } : command)],
-                        group with { HoldRemaps = holdRemaps[group.Id] },
+                        group with { Categories = categories[group.Id], HoldRemaps = holdRemaps[group.Id] },
                         gestureIds,
                         repairs),
                 },
@@ -192,7 +192,7 @@ internal static partial class SyncDocumentBuilder
             var key = SyncItemKey.ForCommandVersion(commands[i].Id);
             string? problem = trigger is Trigger.GestureTrigger gesture && !gestures.Contains(gesture.GestureId)
                 ? "its gesture is gone"
-                : commands.Where((other, index) => index != i).Select(other => MappingRules.Overlap(commands[i], other)).FirstOrDefault(clash => clash is not null) is { } clash
+                : commands.Where((other, index) => index != i).Select(other => MappingRules.Overlap(group, commands[i], other)).FirstOrDefault(clash => clash is not null) is { } clash
                     ? $"another command already uses {clash}"
                     : null;
             if (problem is not null)

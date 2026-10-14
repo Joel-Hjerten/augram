@@ -116,6 +116,18 @@ public sealed class SyncRepairTests
     }
 
     [Fact]
+    public void AnIncomingCommandOnTheSameTriggerUsedOnAnotherPlatformKeepsIt()
+    {
+        var mine = NewCommand("Close", Zig.Id) with { UseOn = PlatformSet.Windows };
+        var theirs = NewCommand("Shut", Zig.Id) with { UseOn = PlatformSet.MacOS };
+
+        var result = Merge(Set([Zig], NewGlobal(mine)), Set([Zig], NewGlobal(theirs)));
+
+        Assert.Equal(Trigger.ForGesture(Zig.Id), result.Mapping.Global.FindCommand(theirs.Id)!.Trigger);
+        Assert.DoesNotContain(result.Repairs, repair => repair.Kind == SyncRepairKind.Unbound);
+    }
+
+    [Fact]
     public void ACommandWhoseGroupIsGoneMovesIntoGlobal()
     {
         var kept = NewCommand("Close tab");
