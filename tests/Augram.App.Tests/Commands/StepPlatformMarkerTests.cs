@@ -57,4 +57,20 @@ public sealed class StepPlatformMarkerTests
         Assert.Equal("from Windows · 2 need a macOS version", StepPlatformMarker.ForSteps([WinD, WinD], HostPlatform.MacOS));
         Assert.Equal("from Windows", StepPlatformMarker.ForSteps([F5, Wait], HostPlatform.MacOS));
     }
+
+    [Fact]
+    public void ACommandRowsBadgeNamesThePlatformsWithStepsAndFlagsWhatWantsALook()
+    {
+        var command = new Command(CommandId.New(), "Close", Trigger.None, IsActive: true, [CtrlW]);
+
+        Assert.Null(StepPlatformMarker.BadgeFor(command, HostPlatform.Windows));
+        Assert.Equal(new PlatformBadge("Win", false), StepPlatformMarker.BadgeFor(command, HostPlatform.MacOS));
+        Assert.Equal(new PlatformBadge("Win", true), StepPlatformMarker.BadgeFor(command with { Steps = [CtrlW, WinD] }, HostPlatform.MacOS));
+
+        var withMac = command.WithStepsFor(HostPlatform.MacOS, [new CommandStep(new HotkeyStep(KeyModifiers.Meta, KeyCode.W), HostPlatform.MacOS)], DateTimeOffset.UnixEpoch);
+        Assert.Equal(new PlatformBadge("Win + Mac", false), StepPlatformMarker.BadgeFor(withMac, HostPlatform.MacOS));
+        Assert.Equal(new PlatformBadge("Win + Mac", true), StepPlatformMarker.BadgeFor(withMac.WithStepsFor(HostPlatform.Windows, [CtrlW, Wait], DateTimeOffset.UnixEpoch), HostPlatform.MacOS));
+        Assert.Equal(new PlatformBadge("Mac", false), StepPlatformMarker.BadgeFor(PlatformSet.MacOS));
+        Assert.Null(StepPlatformMarker.BadgeFor(PlatformSet.All));
+    }
 }

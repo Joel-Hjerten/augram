@@ -109,7 +109,7 @@
     <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
   </Style>
   <!-- Badge: a trigger badge's words, a command's category tag, a platform marker, a gesture tile's partner score. -->
-  <Style Selector="TextBlock.badge, TextBlock.trigger-badge, TextBlock.category-tag, TextBlock.platform-marker, TextBlock.tile-partner">
+  <Style Selector="TextBlock.badge, TextBlock.trigger-badge, TextBlock.category-tag, TextBlock.platform-marker, TextBlock.platform-badge, TextBlock.tile-partner">
     <Setter Property="FontSize" Value="{StaticResource Font.XS}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />

@@ -576,7 +576,7 @@
         </Setter>
       </ControlTheme>
 
-      <!-- A command (.row.cmd): glyph or trigger badge tile, name with its category tag, the step summary, F8 marker, active. -->
+      <!-- A command (.row.cmd): glyph or trigger badge tile, name with its category tag, the step summary, F8 platform badge, active. -->
       <ControlTheme x:Key="{x:Type tree:CommandRow}" TargetType="tree:CommandRow">
         <Setter Property="Template">
           <ControlTemplate>
@@ -607,11 +607,13 @@
                   <TextBox Name="PART_NameEditor" Classes="tile-editor" IsVisible="{TemplateBinding IsEditing}" />
                   <TextBlock Classes="row-summary" Text="{TemplateBinding SummaryText}" />
                 </StackPanel>
-                <TextBlock Grid.Column="2"
-                           Classes="platform-marker"
-                           Text="{TemplateBinding MarkerText}"
-                           IsVisible="{TemplateBinding HasMarker}"
-                           VerticalAlignment="Center" />
+                <!-- A badge, not the sentence (Joel, 0.19.7: the line was in the way); the sentence is its tooltip and the Steps for row's note. -->
+                <Border Grid.Column="2"
+                        Classes="platform-badge"
+                        ToolTip.Tip="{TemplateBinding MarkerText}"
+                        IsVisible="{TemplateBinding HasPlatformBadge}">
+                  <TextBlock Classes="platform-badge" Text="{TemplateBinding PlatformText}" />
+                </Border>
                 <CheckBox Grid.Column="3" Name="PART_Active" Classes="row-active" VerticalAlignment="Center" />
               </Grid>
             </Border>
@@ -1384,15 +1386,18 @@
   <Style Selector="TextBlock.row-detail">
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
-  <Style Selector="Border.category-tag">
+  <Style Selector="Border.category-tag, Border.platform-badge">
     <Setter Property="Background" Value="{DynamicResource Layer.Control}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="Padding" Value="6,1" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="TextBlock.platform-marker">
+  <Style Selector="TextBlock.platform-marker, Border.platform-badge">
     <Setter Property="Margin" Value="8,0" />
+  </Style>
+  <Style Selector="tree|CommandRow:platform-warn /template/ TextBlock.platform-badge">
+    <Setter Property="Foreground" Value="{DynamicResource Text.Warn}" />
   </Style>
   <!-- A trigger badge: the gesture tile's place for a wheel, button or no trigger, its words small and quiet (.gt.badge). -->
   <Style Selector="Border.trigger-badge">

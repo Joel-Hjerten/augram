@@ -90,7 +90,8 @@ public sealed partial class CommandsViewModel
     /// <summary>
     /// The header's Steps for line (plan 0010; Joel, 0.14.2: no label, the outline marks this computer's platform): the side in
     /// view, on the other side its note "Edit on Windows", Copy from while both sides have their own steps, and Mark as checked for
-    /// this platform's own steps made before the original last changed. Where steps come from shows on the rows and the command row.
+    /// this platform's own steps made before the original last changed. Where steps come from shows on the step rows, as the command
+    /// row's badge, and in this line's note on this computer's side (<c>StepSideBar</c>, from the row's marker).
     /// </summary>
     private StepSide StepSideOf(Command command)
     {

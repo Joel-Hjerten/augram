@@ -12,7 +12,8 @@ namespace Augram.App.Components.CommandHeader;
 /// identification card, so it reads as tied to the steps): a Windows · macOS switch (<c>PART_StepsForWindows</c>,
 /// <c>PART_StepsForMac</c>, the "Fields for" switch's segmented look, this computer's segment outlined with <c>here</c>) that asks
 /// the host to show that platform's steps, Copy from the other platform (<c>PART_CopySteps</c>), Mark as checked
-/// (<c>PART_MarkChecked</c>) and on the other platform's side its note ("Edit on Windows"). All of it comes from
+/// (<c>PART_MarkChecked</c>) and a note: on the other platform's side "Edit on Windows", on this one the row's F8 sentence ("From
+/// Windows · 1 needs a macOS version"; Joel, 0.19.7: moved here from the command row, which keeps a badge). All of it comes from
 /// <see cref="Item"/>'s <see cref="CommandHeaderItem.StepSide"/>; it only asks (<see cref="ActionRequested"/>, the tree's actions)
 /// and then shows its item again.
 /// </summary>
@@ -56,7 +57,7 @@ public sealed class StepSideBar : TemplatedControl
         private set => SetValue(HasStepSideProperty, value);
     }
 
-    /// <summary>On the other platform's side, its note: "Edit on Windows"; null here.</summary>
+    /// <summary>On the other platform's side, its note: "Edit on Windows"; on this one where the steps come from ("From Windows · converted"), null for steps authored here.</summary>
     public string? StepSideText
     {
         get => GetValue(StepSideTextProperty);
@@ -107,12 +108,14 @@ public sealed class StepSideBar : TemplatedControl
         {
             var side = Item?.StepSide;
             HasStepSide = side is not null;
-            StepSideText = side?.EditNote;
+            StepSideText = side is { IsHere: true } ? Sentence(Item?.PlatformMarker) : side?.EditNote;
             CopyStepsText = side?.CopyText;
             CanMarkChecked = side is { CanMarkChecked: true };
             Apply();
         }
     }
+
+    private static string? Sentence(string? marker) => string.IsNullOrEmpty(marker) ? null : char.ToUpperInvariant(marker[0]) + marker[1..];
 
     private void Apply()
     {

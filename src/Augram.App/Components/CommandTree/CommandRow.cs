@@ -10,11 +10,12 @@ namespace Augram.App.Components.CommandTree;
 /// Lookless command row of the <see cref="CommandTree"/> (F5a): the gesture's glyph, or a trigger
 /// badge ("Wheel up", "No trigger") when there is no glyph to draw, the name (editable in place), the
 /// category tag when the item has one (an app group with categories), the step summary, the F8
-/// platform marker when the command has one, and the active toggle. Marked <c>:elsewhere</c> for a command used only on the
+/// platform badge when the command has one (its marker sentence the tooltip; <c>:platform-warn</c> when it wants a look), and the
+/// active toggle. Marked <c>:elsewhere</c> for a command used only on the
 /// other platform (F8), listed while the list shows other platforms, and <c>:nested</c> for a command under a hold remap
 /// (indented one level more, under its hold remap's header).
 /// </summary>
-[PseudoClasses(":elsewhere", ":nested")]
+[PseudoClasses(":elsewhere", ":nested", ":platform-warn")]
 public sealed class CommandRow : ItemRow
 {
     public static readonly StyledProperty<CommandItem?> ItemProperty =
@@ -32,6 +33,9 @@ public sealed class CommandRow : ItemRow
     public static readonly StyledProperty<string?> MarkerTextProperty =
         AvaloniaProperty.Register<CommandRow, string?>(nameof(MarkerText));
 
+    public static readonly StyledProperty<string?> PlatformTextProperty =
+        AvaloniaProperty.Register<CommandRow, string?>(nameof(PlatformText));
+
     public static readonly StyledProperty<string?> CategoryTextProperty =
         AvaloniaProperty.Register<CommandRow, string?>(nameof(CategoryText));
 
@@ -41,8 +45,8 @@ public sealed class CommandRow : ItemRow
     public static readonly StyledProperty<bool> HasGlyphProperty =
         AvaloniaProperty.Register<CommandRow, bool>(nameof(HasGlyph));
 
-    public static readonly StyledProperty<bool> HasMarkerProperty =
-        AvaloniaProperty.Register<CommandRow, bool>(nameof(HasMarker));
+    public static readonly StyledProperty<bool> HasPlatformBadgeProperty =
+        AvaloniaProperty.Register<CommandRow, bool>(nameof(HasPlatformBadge));
 
     public static readonly StyledProperty<bool> HasCategoryProperty =
         AvaloniaProperty.Register<CommandRow, bool>(nameof(HasCategory));
@@ -72,10 +76,18 @@ public sealed class CommandRow : ItemRow
         private set => SetValue(SummaryTextProperty, value);
     }
 
+    /// <summary>The F8 sentence ("from Windows · 1 needs a macOS version"): the platform badge's tooltip.</summary>
     public string? MarkerText
     {
         get => GetValue(MarkerTextProperty);
         private set => SetValue(MarkerTextProperty, value);
+    }
+
+    /// <summary>The platform badge's text ("Win", "Win + Mac"); null when the item has none.</summary>
+    public string? PlatformText
+    {
+        get => GetValue(PlatformTextProperty);
+        private set => SetValue(PlatformTextProperty, value);
     }
 
     /// <summary>The category tag ("General"); null when the item has none.</summary>
@@ -97,10 +109,10 @@ public sealed class CommandRow : ItemRow
         private set => SetValue(HasGlyphProperty, value);
     }
 
-    public bool HasMarker
+    public bool HasPlatformBadge
     {
-        get => GetValue(HasMarkerProperty);
-        private set => SetValue(HasMarkerProperty, value);
+        get => GetValue(HasPlatformBadgeProperty);
+        private set => SetValue(HasPlatformBadgeProperty, value);
     }
 
     public bool HasCategory
@@ -141,12 +153,14 @@ public sealed class CommandRow : ItemRow
             BadgeText = BadgeLines(TriggerText);
             SummaryText = item?.StepSummary ?? string.Empty;
             MarkerText = item?.PlatformMarker;
+            PlatformText = item?.PlatformBadge?.Text;
+            PseudoClasses.Set(":platform-warn", item?.PlatformBadge is { NeedsAttention: true });
             PseudoClasses.Set(":elsewhere", item is { IsElsewhere: true });
             PseudoClasses.Set(":nested", item is { IsUnderHoldRemap: true });
             CategoryText = item?.CategoryLabel;
             Points = item?.GlyphPoints;
             HasGlyph = item?.HasGlyph ?? false;
-            HasMarker = item?.HasMarker ?? false;
+            HasPlatformBadge = item?.PlatformBadge is not null;
             HasCategory = item?.HasCategoryLabel ?? false;
         }
     }

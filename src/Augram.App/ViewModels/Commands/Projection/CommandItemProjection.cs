@@ -42,6 +42,7 @@ public static class CommandItemProjection
             trigger.IsBound && !trigger.Hold.IsDefault ? $"{triggerText} · {steps}" : steps,
             usedHere ? StepPlatformMarker.ForCommand(command, here) : StepPlatformMarker.Only(group.EffectiveUseOn(command)))
         {
+            PlatformBadge = usedHere ? StepPlatformMarker.BadgeFor(command, here) : StepPlatformMarker.BadgeFor(group.EffectiveUseOn(command)),
             Trigger = trigger,
             TriggerHint = holdRemap is null ? TriggerKindExtensions.Hint(trigger, here) : InputKindExtensions.Hint(holdRemap),
             AnchorWarning = TriggerKindExtensions.AnchorWarning(trigger, group),

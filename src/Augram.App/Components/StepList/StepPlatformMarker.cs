@@ -70,6 +70,33 @@ public static class StepPlatformMarker
         return plans.Any(plan => plan.Kind == StepConversionKind.Converted) ? $"{marker} · converted" : marker;
     }
 
+    /// <summary>
+    /// The command row's badge (<see cref="PlatformBadge"/>): "Win + Mac" with an own version (wanting a look while the original
+    /// changed since), the other platform's name when its steps run here (wanting a look while one has no counterpart here), none
+    /// for steps authored here.
+    /// </summary>
+    public static PlatformBadge? BadgeFor(Command command, HostPlatform here)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.OwnVersion is not null)
+        {
+            return new PlatformBadge($"{Short(HostPlatform.Windows)} + {Short(HostPlatform.MacOS)}", command.IsOwnVersionStale);
+        }
+
+        var elsewhere = command.Steps.Where(step => step.AuthoredOn != here).ToList();
+        return elsewhere.Count == 0
+            ? null
+            : new PlatformBadge(Short(elsewhere[0].AuthoredOn), elsewhere.Any(step => step.ForPlatform(here).Kind == StepConversionKind.NotConvertible));
+    }
+
+    /// <summary>The badge of a command used on one platform only (its "Use on" set, F8): that platform's name; none otherwise.</summary>
+    public static PlatformBadge? BadgeFor(PlatformSet set) => set switch
+    {
+        PlatformSet.Windows => new PlatformBadge(Short(HostPlatform.Windows), false),
+        PlatformSet.MacOS => new PlatformBadge(Short(HostPlatform.MacOS), false),
+        _ => null,
+    };
+
     /// <summary>A "Use on" set in a few words (F8): "Windows only", "macOS only", "used nowhere", "every platform".</summary>
     public static string Only(PlatformSet set) => set switch
     {
@@ -78,4 +105,6 @@ public static class StepPlatformMarker
         PlatformSet.MacOS => "macOS only",
         _ => "every platform",
     };
+
+    private static string Short(HostPlatform platform) => platform == HostPlatform.MacOS ? "Mac" : "Win";
 }

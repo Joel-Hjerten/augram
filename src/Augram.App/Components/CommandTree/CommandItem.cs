@@ -1,3 +1,4 @@
+using Augram.App.Components.StepList;
 using Augram.Core.Gestures;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
@@ -7,7 +8,7 @@ namespace Augram.App.Components.CommandTree;
 /// <summary>
 /// What one command row of the <see cref="CommandTree"/> shows (F5a): the glyph of its gesture (or a
 /// trigger badge when it has none), name, a one-line step summary ("Minimize window", "3 steps",
-/// "Does nothing here" for an override to nothing), the active flag, the F8 platform marker and, in an
+/// "Does nothing here" for an override to nothing), the active flag, the F8 platform badge and marker and, in an
 /// app group that has categories, the category as a small tag. It also carries what the header's
 /// Category dropdown offers for it, and for a command under a hold remap (F9, plan 0002) that hold remap, so the header shows
 /// the Input editor instead of the trigger. A projection of a <see cref="Command"/>, built by the view model
@@ -62,6 +63,9 @@ public record CommandItem(
     /// <summary>Who sets <see cref="UseOnLimit"/>: "Set by category 'Personal': Windows only"; null when nothing limits the command.</summary>
     public string? UseOnLimitText { get; init; }
 
+    /// <summary>The row's platform badge ("Win", "Win + Mac"); <see cref="PlatformMarker"/> is its tooltip and the Steps for row's note. Null shows none.</summary>
+    public PlatformBadge? PlatformBadge { get; init; }
+
     /// <summary>F8: not used on the platform Augram runs on (its group, category or itself leave it out); listed greyed only while the list shows other platforms.</summary>
     public bool IsElsewhere { get; init; }
 
@@ -104,8 +108,6 @@ public record CommandItem(
     public string AlsoInText { get; init; } = NoneNotIn;
 
     public bool HasGlyph => GlyphPoints is { Count: > 0 };
-
-    public bool HasMarker => !string.IsNullOrEmpty(PlatformMarker);
 
     public bool HasCategoryLabel => !string.IsNullOrEmpty(CategoryLabel);
 }
