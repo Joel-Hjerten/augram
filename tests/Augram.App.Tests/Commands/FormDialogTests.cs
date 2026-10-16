@@ -73,7 +73,7 @@ public sealed class FormDialogTests
         Assert.False(dialog.HasMessage);
         Assert.Equal(
             ["Name", "Active", "Use on", "Suppress global commands", "Fields for", "Read-only", "Executable", "Executable path", "Window title",
-                "Root title", "Parent title", "Control title", "Owner class", "Root class", "Parent class", "Control class", "Window classes (older)", "Not when full screen"],
+                "Root title", "Parent title", "Control title", "Owner class", "Root class", "Parent class", "Control class", "Window classes (older)", "Other fields", "Other fields", "Not when full screen"],
             rows.Select(row => row.Label));
         // The app group gets the window finder through the identification form it shares with ignored apps.
         Assert.Contains(rows, row => row.Label == "Executable" && row.Editor is Control editor && editor.GetVisualDescendants().OfType<WindowFinder>().Any());

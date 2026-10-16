@@ -33,6 +33,7 @@ public sealed class AppMatcherFinderFormTests
     public void EachRowHasItsMagnifierAndUseRegex_AndTheSwitchFlipsBetweenPlatforms()
     {
         var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
+        edit.ShowsAllFields = true;
         var rows = Show(edit).Rows;
 
         string[] windowsRows = ["Executable", "Executable path", "Window title", "Root title", "Parent title", "Control title", "Owner class", "Root class", "Parent class", "Control class"];
@@ -42,7 +43,7 @@ public sealed class AppMatcherFinderFormTests
 
         edit.View.Shown = HostPlatform.MacOS;
 
-        Assert.Equal(["Read-only", "Executable", "Executable path", "Window title", "Not when full screen"], rows.Where(row => row.IsVisible).Select(row => row.Label).Skip(1));
+        Assert.Equal(["Read-only", "Executable", "Executable path", "Window title", "Other fields", "Not when full screen"], rows.Where(row => row.IsVisible).Select(row => row.Label).Skip(1));
         Assert.Empty(FinderLabels(rows));
     }
 
@@ -56,6 +57,7 @@ public sealed class AppMatcherFinderFormTests
         // On a Mac the Windows side has no magnifiers: Use Regex then sits right after the box (Joel, 2026-10-09: it touched it).
         var edit = AppMatcherFinderTests.New(machine);
         edit.View.Shown = HostPlatform.Windows;
+        edit.ShowsAllFields = true;
         edit.ProcessPath = new string('x', 300);
         var form = new SectionForm { Screen = new FormScreen("Identification", edit.Sections()) };
         var window = new Window { Width = width, Height = 3200, Content = form };
@@ -79,18 +81,48 @@ public sealed class AppMatcherFinderFormTests
         }
     }
 
+    /// <summary>Joel, 2026-10-16: only Executable and the filled fields show until More options…; a field emptied to be retyped stays.</summary>
+    [AvaloniaFact]
+    public void EmptyFieldsHideUntilMoreOptions_AndAnEmptiedFieldStaysUntilFewerOptions()
+    {
+        var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
+        edit.SyncFrom(new AppMatcher { WindowsProcessNames = ["AfterFX.exe"], ControlClass = "AE_Viewer" });
+        var rows = Show(edit).Rows;
+
+        Assert.Equal(["Executable", "Control class", "Other fields", "Not when full screen"], Visible(rows).Skip(1));
+        Assert.Equal(8, edit.HiddenFieldCount);
+
+        edit.ShowsAllFields = true;
+        Assert.Contains("Executable path", Visible(rows));
+        Assert.Contains("Root title", Visible(rows));
+
+        edit.ShowFewerFields();
+        edit.ControlClass = string.Empty;
+        Assert.Contains("Control class", Visible(rows));
+
+        edit.ShowFewerFields();
+        Assert.Equal(["Executable", "Other fields", "Not when full screen"], Visible(rows).Skip(1));
+
+        edit.View.Shown = HostPlatform.MacOS;
+        Assert.Equal(2, edit.HiddenFieldCount);
+
+        static IEnumerable<string> Visible(IEnumerable<FieldRow> rows) => rows.Where(row => row.IsVisible).Select(row => row.Label);
+    }
+
     [AvaloniaFact]
     public void TheSwitchShowsEachPlatformsOwnValues_AndTypingGoesToTheShownOne()
     {
         var edit = AppMatcherFinderTests.New(HostPlatform.MacOS);
         edit.SyncFrom(new AppMatcher { WindowsProcessNames = ["chrome.exe"], ProcessPath = @"C:\chrome.exe", MacProcessNames = ["Google Chrome"], MacProcessNamesAreRegex = true });
-        var rows = Show(edit).Rows;
+        var (window, rows) = Show(edit);
 
         Assert.Equal("Google Chrome", Box(rows, "Executable").Text);
         Assert.True(RegexBox(rows, "Executable").IsChecked);
         Assert.Equal(string.Empty, Box(rows, "Executable path").Text ?? string.Empty);
 
         edit.View.Shown = HostPlatform.Windows;
+        // The path row was hidden (empty on the macOS side): its editor joins the tree, and takes its text, at the next layout.
+        window.UpdateLayout();
         Assert.Equal("chrome.exe", Box(rows, "Executable").Text);
         Assert.False(RegexBox(rows, "Executable").IsChecked);
         Assert.Equal(@"C:\chrome.exe", Box(rows, "Executable path").Text);
@@ -114,6 +146,7 @@ public sealed class AppMatcherFinderFormTests
     public void EachFieldsMagnifier_FillsItsField()
     {
         var edit = AppMatcherFinderTests.New(HostPlatform.Windows);
+        edit.ShowsAllFields = true;
         var (window, rows) = Show(edit);
 
         Drag(window, Finder(rows, "Executable"));

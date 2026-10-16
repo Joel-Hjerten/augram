@@ -13,7 +13,8 @@ namespace Augram.App.ViewModels;
 /// Use Regex check box (<see cref="PatternField"/>), under a Windows | macOS switch (<see cref="View"/>) that flips the same
 /// rows between the two platforms' values, the other platform's read-only with "Edit on Windows" (plan 0010 decision 7): the executable names (comma-separated; the known-app guess shows in an empty
 /// box), the executable path and the window title on both, the root, parent and control titles and the four classes on
-/// Windows only (<c>.WindowDetails</c>), then the full-screen rule (A21) for both. A magnifier shows only on this machine's
+/// Windows only (<c>.WindowDetails</c>), then the full-screen rule (A21) for both. Only Executable and the fields that hold
+/// something show until "More options…" (<see cref="ShowsAllFields"/>; Joel, 2026-10-16). A magnifier shows only on this machine's
 /// side, since only its windows are on screen (<c>.Picking</c>). <see cref="Sections"/> are its part of the host's
 /// <see cref="FormScreen"/>; <see cref="ToMatcher"/> turns the text back into an <see cref="AppMatcher"/> (every matcher
 /// field is on the form, so nothing is kept aside); <see cref="SyncFrom"/> re-reads a stored one without touching a list
@@ -28,9 +29,14 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
     /// <summary>The label of the other side's note ("Edit on Windows", <see cref="PlatformSideView.EditNote"/>; plan 0010 decision 7).</summary>
     public const string ReadOnlyLabel = "Read-only";
 
+    /// <summary>The button that shows every field, and the one that hides the empty ones again (Joel, 2026-10-16).</summary>
+    public const string MoreFieldsLabel = "More options…";
+    public const string FewerFieldsLabel = "Fewer options";
+
     private readonly Func<PlatformSet> _usedOn;
     private readonly string _noGuessAdvice;
     private readonly string _noneNeeded;
+    private readonly HashSet<(HostPlatform Side, string Label)> _revealed = [];
     private PlatformSideView? _view;
 
     /// <param name="usedOn">The platforms the host is used on: the guess is shown for those only.</param>
@@ -98,6 +104,32 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool IgnoreWhenFullScreen { get; set; }
+
+    /// <summary>
+    /// Every field shows, the empty ones too (<see cref="MoreFieldsLabel"/>). Off, the side in view shows Executable and the
+    /// fields that hold something (Joel, 2026-10-16: the empty rows clutter the form). View state, never an edit; another
+    /// selection makes a new form, which starts with it off.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool ShowsAllFields { get; set; }
+
+    /// <summary>How many of the side in view's fields are hidden now: the hint beside <see cref="MoreFieldsLabel"/>.</summary>
+    public int HiddenFieldCount => OptionalFields().Count(optional => !Reveals(optional.Label, optional.Holds()));
+
+    /// <summary>Back to the short form: only the fields that hold something stay (<see cref="FewerFieldsLabel"/>).</summary>
+    public void ShowFewerFields()
+    {
+        _revealed.Clear();
+        if (ShowsAllFields)
+        {
+            ShowsAllFields = false;
+        }
+        else
+        {
+            // Already short: the rows still re-read, so an emptied field kept on screen goes.
+            OnPropertyChanged(nameof(ShowsAllFields));
+        }
+    }
 
     /// <summary>
     /// What a platform left without names matches on: "macOS: Google Chrome (guessed)", "macOS: no guess; …" with the host's
@@ -217,6 +249,7 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
                     Finder = WindowFinderAccessory.Finder(PathOf, TakePath),
                     FinderVisible = here,
                     Enabled = here,
+                    Visible = Revealed(changes, PathLabel, HoldsPath),
                 },
                 new PatternField("Window title",
                     new DelegateBinding<string>(() => Mac() ? MacWindowTitle : WindowTitle, value => { if (Mac()) { MacWindowTitle = value; } else { WindowTitle = value; } }, changes, propertyName: null),
@@ -226,11 +259,62 @@ public sealed partial class AppMatcherEditViewModel : ObservableObject
                     Finder = WindowFinderAccessory.Finder(TitleOf, TakeTitle),
                     FinderVisible = here,
                     Enabled = here,
+                    Visible = Revealed(changes, TitleLabel, HoldsTitle),
                 },
                 .. WindowFieldRows(),
+                new ButtonsField("Other fields", [new FieldButton(MoreFieldsLabel, () => ShowsAllFields = true)], "Only Executable and the fields that hold something show; the rest are empty, and empty fields are ignored.")
+                {
+                    Visible = new DelegateBinding<bool>(() => !ShowsAllFields && HiddenFieldCount > 0, owner: changes, propertyName: null),
+                    Hint = new DelegateBinding<string>(() => HiddenFieldCount == 1 ? "1 empty field hidden" : $"{HiddenFieldCount} empty fields hidden", owner: changes, propertyName: null),
+                },
+                new ButtonsField("Other fields", [new FieldButton(FewerFieldsLabel, ShowFewerFields)], "Hides the empty fields again.")
+                {
+                    Visible = new DelegateBinding<bool>(() => ShowsAllFields, owner: changes, propertyName: null),
+                },
                 new ToggleField("Not when full screen", new DelegateBinding<bool>(() => IgnoreWhenFullScreen, value => IgnoreWhenFullScreen = value, this), "Both platforms: matches nothing while the window covers its whole screen."),
             ], "Every filled field must match; empty fields are ignored. Exact and case-insensitive unless Use Regex makes the field a pattern."),
         ];
+    }
+
+    private const string PathLabel = "Executable path";
+    private const string TitleLabel = "Window title";
+
+    private bool HoldsPath() => View.Shown == HostPlatform.MacOS ? Holds(MacProcessPath, MacPathIsRegex) : Holds(ProcessPath, PathIsRegex);
+
+    private bool HoldsTitle() => View.Shown == HostPlatform.MacOS ? Holds(MacWindowTitle, MacTitleIsRegex) : Holds(WindowTitle, TitleIsRegex);
+
+    private static bool Holds(string text, bool isRegex) => isRegex || !string.IsNullOrWhiteSpace(text);
+
+    /// <summary>The side in view's fields that hide while empty: the path and the title, and on Windows the per-window fields.</summary>
+    private IEnumerable<(string Label, Func<bool> Holds)> OptionalFields()
+    {
+        yield return (PathLabel, HoldsPath);
+        yield return (TitleLabel, HoldsTitle);
+        if (View.ShowsWindows)
+        {
+            foreach (var field in WindowFields)
+            {
+                yield return (field.Label, () => Holds(field.Text(), field.IsRegex()));
+            }
+        }
+    }
+
+    private DelegateBinding<bool> Revealed(FormChanges changes, string label, Func<bool> holds)
+        => new(() => Reveals(label, holds()), owner: changes, propertyName: null);
+
+    /// <summary>
+    /// Whether a field shows on the side in view: all do while <see cref="ShowsAllFields"/>; otherwise one that holds something,
+    /// and one that held something since the form opened or was last shortened, so a field emptied to be retyped stays put.
+    /// </summary>
+    private bool Reveals(string label, bool holds)
+    {
+        var key = (View.Shown, label);
+        if (holds)
+        {
+            _revealed.Add(key);
+        }
+
+        return ShowsAllFields || _revealed.Contains(key);
     }
 
     private string GuessFor(AppMatcher matcher, HostPlatform platform)

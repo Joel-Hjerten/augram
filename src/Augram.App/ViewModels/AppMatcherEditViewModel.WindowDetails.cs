@@ -141,13 +141,12 @@ public sealed partial class AppMatcherEditViewModel
     {
         // A nameless relay as the owner: the getters are delegates, so no property name could be read from them.
         var changes = new FormChanges(this, View);
-        var shown = new DelegateBinding<bool>(() => View.ShowsWindows, owner: View);
         var here = new DelegateBinding<bool>(() => View.IsHere, owner: View, propertyName: null);
         foreach (var field in WindowFields)
         {
             yield return new PatternField(field.Label, new DelegateBinding<string>(field.Text, field.SetText, changes), new DelegateBinding<bool>(field.IsRegex, field.SetIsRegex, changes), field.Help)
             {
-                Visible = shown,
+                Visible = new DelegateBinding<bool>(() => View.ShowsWindows && Reveals(field.Label, Holds(field.Text(), field.IsRegex())), owner: changes, propertyName: null),
                 Enabled = here,
                 Finder = Platform == HostPlatform.Windows ? WindowFinderAccessory.Finder(window => DescribeLevel(field, window), window => TakeWindowField(field, window)) : null,
             };
