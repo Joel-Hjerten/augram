@@ -8,7 +8,7 @@ namespace Augram.App.Components.Fields.Buttons;
 
 /// <summary>
 /// Renders a <see cref="ButtonsField"/>: toolbar buttons, and beside them a status line (<c>DockPanel.field-line</c>, the note
-/// role, wrapping), a hint (a plain horizontal line, the help role), or, without either, the buttons side by side after an
+/// role, wrapping), a hint (the help role, on the buttons' line with its gap), or, without either, the buttons side by side after an
 /// optional dropdown (<c>StackPanel.field-buttons</c>). The three lines are the ones Options and the import review had laid by hand.
 /// </summary>
 public sealed class ButtonsFieldRenderer : IFieldRenderer
@@ -40,9 +40,11 @@ public sealed class ButtonsFieldRenderer : IFieldRenderer
             var text = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
             text.Classes.Add("help");
             BindingObserver.Attach(text, hint, value => text.Text = value);
-            var line = new StackPanel { Orientation = Orientation.Horizontal };
+            var line = new StackPanel();
             line.Children.AddRange(buttons.Buttons.Select(Button));
             line.Children.Add(text);
+            // The buttons line's gap keeps the hint off the button (Joel, 2026-10-16: "More options…" touched its hint).
+            line.Classes.Add("field-buttons");
             return line;
         }
 
