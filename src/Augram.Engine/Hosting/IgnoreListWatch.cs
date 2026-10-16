@@ -9,8 +9,8 @@ namespace Augram.Engine.Hosting;
 
 /// <summary>
 /// Keeps the pointer's answer current for the hook, on its own thread (<c>augram-ignore-watch</c>): the ignore list's (F5;
-/// SP.net's Ignore List) and the anchor plan for the window under the pointer (trigger combinations, per app: Joel
-/// 2026-10-09), so the hook reads one volatile at button-down and never looks a window up (CLAUDE.md invariant 1); and the
+/// SP.net's Ignore List), the anchor plan (trigger combinations, per app: Joel 2026-10-09) and the Exclusions › While holding
+/// inputs (plan 0012) for the window under the pointer, so the hook reads one volatile at button-down and never looks a window up (CLAUDE.md invariant 1); and the
 /// foreground's hold remaps (F9), which the hook reads at a hold key's press. The hook
 /// hands it each move's position (<see cref="PointerAt"/>: one volatile write, and one wake per batch of moves); it also
 /// wakes on <see cref="Wake"/> (the mapping or the stroke button changed), on resume, unlock and display changes (every key
@@ -243,7 +243,7 @@ internal sealed class IgnoreListWatch : IDisposable
         if (watched != _lookup.WatchesPointer)
         {
             Volatile.Write(ref _watchesPointer, _lookup.WatchesPointer ? 1 : 0);
-            _log.Info(LogSources.Ignore, _lookup.WatchesPointer ? "Ignore list watched" : "Ignore list not watched", ("focus", _lookup.WatchesFocus), ("anchors", _lookup.WatchesAnchors));
+            _log.Info(LogSources.Ignore, _lookup.WatchesPointer ? "Ignore list watched" : "Ignore list not watched", ("focus", _lookup.WatchesFocus), ("anchors", _lookup.WatchesAnchors), ("holding", _lookup.WatchesHolding));
         }
 
         if (holdWatched != _lookup.WatchesHoldRemaps)
@@ -251,24 +251,24 @@ internal sealed class IgnoreListWatch : IDisposable
             _log.Info(LogSources.Hold, _lookup.WatchesHoldRemaps ? "Hold remaps watched" : "Hold remaps not watched");
         }
 
-        Publish(_lookup.Over, _lookup.PausedBy, _lookup.Plan, _lookup.Drags, _lookup.Outputs);
-        PublishForeground(_lookup.HoldPlan);
+        Publish(_lookup.Over, _lookup.PausedBy, _lookup.Plan, _lookup.Drags, _lookup.Outputs, _lookup.Holding);
+        PublishForeground(_lookup.HoldPlan, _lookup.ForegroundHolding);
     }
 
-    /// <summary>The foreground's hold remaps for the hook; a change of app group (or of its hold keys) is logged at Debug.</summary>
-    private void PublishForeground(HoldRemapPlan plan)
+    /// <summary>The foreground's hold remaps for the hook, with its While holding inputs (plan 0012 decision 8); a change of app group (or of its hold keys) is logged at Debug.</summary>
+    private void PublishForeground(HoldRemapPlan plan, WhileHoldingSet holding)
     {
         var last = _gate.ForegroundPlan;
-        _gate.PublishForeground(plan);
+        _gate.PublishForeground(plan, holding);
         if (!ReferenceEquals(plan, last) && _log.IsEnabled(EventLevel.Debug))
         {
             _log.Debug(LogSources.Hold, "Foreground hold remaps", ("app", plan.GroupName), ("keys", string.Join(", ", plan.Entries.Select(entry => HotkeyText.KeyName(entry.HoldKey)))));
         }
     }
 
-    private void Publish(IgnoredApp? over, IgnoredApp? pausedBy, AnchorPlan plan, AnchorDragDistances drags, ButtonOutputs outputs)
+    private void Publish(IgnoredApp? over, IgnoredApp? pausedBy, AnchorPlan plan, AnchorDragDistances drags, ButtonOutputs outputs, WhileHoldingSet holding)
     {
-        _gate.PublishPointer((over is null ? 0 : InputGate.OverIgnoredApp) | (pausedBy is null ? 0 : InputGate.PausedByFocus), plan, drags, outputs);
+        _gate.PublishPointer((over is null ? 0 : InputGate.OverIgnoredApp) | (pausedBy is null ? 0 : InputGate.PausedByFocus), plan, drags, outputs, holding);
 
         var lastOver = Volatile.Read(ref _over);
         Volatile.Write(ref _over, over);

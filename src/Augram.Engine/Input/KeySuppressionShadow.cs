@@ -49,12 +49,34 @@ public sealed class KeySuppressionShadow
     /// it never saw, such as Win's after Win+L locked the desktop) cannot make every press hold a phantom key: the hook reset
     /// at unlock and resume clears this record. Eight reads; hook thread.
     /// </summary>
-    public KeyModifiers HeldModifiers()
+    public KeyModifiers HeldModifiers() => Modifiers(passedOnly: false);
+
+    /// <summary>
+    /// Ctrl, Alt, Shift and Win whose press the OS saw (<em>passed</em>, never <em>owed</em>): the keys an Exclusions › While
+    /// holding entry may count as held at a press (plan 0012 decision 10: a key Augram swallowed never counts). Like
+    /// <see cref="HeldModifiers"/> it does not age: a modifier does not repeat on macOS. Eight reads; hook thread.
+    /// </summary>
+    public KeyModifiers PassedModifiers() => Modifiers(passedOnly: true);
+
+    /// <summary>
+    /// True when <paramref name="key"/> is held as far as the OS knows (plan 0012 decision 10): its press was <em>passed</em>
+    /// (a key Augram swallowed, such as a hold remap's hold key, never counts) and its last event is no older than
+    /// <see cref="LostReleaseAfterMs"/> at <paramref name="nowMs"/> (a held key repeats; with key repeat off a key held longer
+    /// counts as released, which errs towards strokes). Two reads; hook thread.
+    /// </summary>
+    public bool IsHeldByOs(KeyCode key, long nowMs)
+    {
+        var slot = Slot(key);
+        return slot != 0 && Volatile.Read(ref _state[slot]) == Passed && nowMs - _lastMs[slot] <= LostReleaseAfterMs;
+    }
+
+    private KeyModifiers Modifiers(bool passedOnly)
     {
         var held = KeyModifiers.None;
         for (var key = KeyCode.LeftShift; key <= KeyCode.RightMeta; key++)
         {
-            if (Volatile.Read(ref _state[(int)key]) != Up)
+            var state = Volatile.Read(ref _state[(int)key]);
+            if (passedOnly ? state == Passed : state != Up)
             {
                 held |= HotkeyKeys.ModifierOf(key);
             }

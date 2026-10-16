@@ -84,6 +84,12 @@ internal sealed partial class EngineWorker
         {
             case WorkerMessage.MessageKind.Input:
                 OnInput(message.Event!, message.HookSuppressed, message.Payload);
+                if (message.Ignored.IsSet && _log.IsEnabled(EventLevel.Debug))
+                {
+                    // Which list ignored it (plan 0012): a global ignore key or the window's While holding entries.
+                    _log.Debug(LogSources.Ignore, "Press passed through: an ignoring input is held", ("button", ((CaptureEvent.ButtonDown)message.Event!).Button), ("by", message.Ignored.Describe()));
+                }
+
                 break;
             case WorkerMessage.MessageKind.SetStrokeButton:
                 var button = (MouseButton)message.Payload!;

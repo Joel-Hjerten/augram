@@ -15,8 +15,9 @@ namespace Augram.Engine.Hosting;
 /// only when a key changed (on a platform without cheap keys, at most every <c>slowLookupInterval</c>, the latest position
 /// retried at <see cref="RetryAtMs"/>). A change of focus re-checks the pointer even when it did not move, since a window
 /// brought to the front under a motionless pointer usually takes focus. The pointer is looked up only while an active ignored
-/// app can match on this platform or an active command needs a plan per window (it holds a button besides the stroke button,
-/// or binds the stroke button's bare click, <see cref="AnchorPlanner.NeedsPlan"/>); the focus also while an
+/// app can match on this platform, an active command needs a plan per window (it holds a button besides the stroke button,
+/// or binds the stroke button's bare click, <see cref="AnchorPlanner.NeedsPlan"/>), or an Exclusions › While holding entry
+/// can match (plan 0012: its inputs for the window, <see cref="Holding"/>, and for the app in front); the focus also while an
 /// active hold remap can match here; the foreground identity is read only while a "disable while focused" app or a hold
 /// remap can match.
 /// </summary>
@@ -35,6 +36,10 @@ internal sealed class IgnoreLookup
     private bool _anchoring;
     private bool _excluding;
     private bool _holdRemaps;
+    private bool _holding;
+    private bool _holdingStale = true;
+    private WindowIdentity? _holdingWindow;
+    private WindowIdentity? _focusHoldingWindow;
     private MouseButton _planStrokeButton;
     private WindowIdentity? _planWindow;
     private bool _planStale = true;
@@ -58,7 +63,7 @@ internal sealed class IgnoreLookup
         _slowLookupMs = (long)slowLookupInterval.TotalMilliseconds;
     }
 
-    /// <summary>An active ignored app can match here, or a command needs a plan per window (per-app anchors, a bare click): the pointer and the focus are watched.</summary>
+    /// <summary>An active ignored app can match here, a command needs a plan per window (per-app anchors, a bare click), or a While holding entry can match (plan 0012): the pointer and the focus are watched.</summary>
     public bool WatchesPointer { get; private set; }
 
     /// <summary>An active hold remap can match here (<see cref="HoldRemapPlan.WatchesFocus"/>): the focus is watched and <see cref="HoldPlan"/> follows the app in front.</summary>
@@ -66,6 +71,22 @@ internal sealed class IgnoreLookup
 
     /// <summary>Anything is watched at all: the pointer, or the focus for hold remaps. Otherwise a pass looks nothing up.</summary>
     public bool Watches => WatchesPointer || _holdRemaps;
+
+    /// <summary>An active Exclusions › While holding entry can match here (plan 0012, <see cref="IgnoreList.WatchesHolding"/>): <see cref="Holding"/> follows the window under the pointer.</summary>
+    public bool WatchesHolding => _holding;
+
+    /// <summary>
+    /// The inputs of the While holding entries over the window under the pointer as of the last pass (plan 0012,
+    /// <see cref="IgnoreList.HeldInputsUnder"/>); <see cref="WhileHoldingSet.None"/> while none can match. Worked out again
+    /// only when the window or the mapping changed.
+    /// </summary>
+    public WhileHoldingSet Holding { get; private set; } = WhileHoldingSet.None;
+
+    /// <summary>
+    /// The same for the window in front, while hold remaps follow it (plan 0012 decision 8: a hold remap is chosen by the app in
+    /// front, so its hold key is judged by that app's list); <see cref="WhileHoldingSet.None"/> otherwise.
+    /// </summary>
+    public WhileHoldingSet ForegroundHolding { get; private set; } = WhileHoldingSet.None;
 
     /// <summary>Some active command holds a button besides the stroke button or binds the bare click: <see cref="Plan"/> follows the window under the pointer.</summary>
     public bool WatchesAnchors => _anchoring;
@@ -117,12 +138,14 @@ internal sealed class IgnoreLookup
             _ignoring = IgnoreList.WatchesPointer(mapping, _platform);
             _anchoring = AnchorPlanner.NeedsPlan(mapping, _platform);
             _excluding = IgnoreList.UsesPerCommand(mapping, _platform);
-            WatchesPointer = _ignoring || _anchoring;
+            _holding = IgnoreList.WatchesHolding(mapping, _platform);
+            WatchesPointer = _ignoring || _anchoring || _holding;
             _pausing = IgnoreList.WatchesFocus(mapping, _platform);
             _holdRemaps = HoldRemapPlan.WatchesFocus(mapping, _platform);
             _focusKey = null;
             _planStale = true;
             _holdStale = true;
+            _holdingStale = true;
             checkFocus = true;
         }
 
@@ -150,6 +173,8 @@ internal sealed class IgnoreLookup
             PausedBy = null;
             _answer = AnchorAnswer.None;
             HoldPlan = HoldRemapPlan.Empty;
+            Holding = WhileHoldingSet.None;
+            ForegroundHolding = WhileHoldingSet.None;
             return;
         }
 
@@ -171,6 +196,34 @@ internal sealed class IgnoreLookup
         PausedBy = _ignoring ? IgnoreList.PausedBy(mapping, _focusWindow, _platform) : null;
         _answer = _anchoring ? AnswerFor(mapping, _pointerWindow) : AnchorAnswer.None;
         HoldPlan = _holdRemaps ? HoldPlanFor(mapping, _focusWindow) : HoldRemapPlan.Empty;
+        HoldingFor(mapping);
+    }
+
+    /// <summary>The While holding inputs over the pointer's window and, while hold remaps follow focus, the focused one's; looked up again only when that window or the mapping changed.</summary>
+    private void HoldingFor(MappingDocument mapping)
+    {
+        if (!_holding)
+        {
+            Holding = WhileHoldingSet.None;
+            ForegroundHolding = WhileHoldingSet.None;
+            _holdingStale = true;
+            return;
+        }
+
+        if (_holdingStale || !ReferenceEquals(_pointerWindow, _holdingWindow))
+        {
+            _holdingWindow = _pointerWindow;
+            Holding = IgnoreList.HeldInputsUnder(mapping, _pointerWindow, _platform);
+        }
+
+        var focus = _holdRemaps ? _focusWindow : null;
+        if (_holdingStale || !ReferenceEquals(focus, _focusHoldingWindow))
+        {
+            _focusHoldingWindow = focus;
+            ForegroundHolding = IgnoreList.HeldInputsUnder(mapping, focus, _platform);
+        }
+
+        _holdingStale = false;
     }
 
     /// <summary>The plan, drag distances and button trigger outputs over the window, worked out again only when the window, the mapping or the stroke button changed; cached per app group.</summary>

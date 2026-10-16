@@ -35,6 +35,7 @@ public sealed class SuppressionShadow
     private bool _firing;
     private bool _cancelled;
     private KeyModifiers _beforeKeys;
+    private int _down;
 
     /// <summary>The anchor that owns the press in progress, or null.</summary>
     public MouseButton? Owed
@@ -48,6 +49,13 @@ public sealed class SuppressionShadow
 
     /// <summary>Every button whose consumed down still owes a consumed up, the owner included.</summary>
     public HeldButtons OwedButtons => (HeldButtons)Volatile.Read(ref _owed);
+
+    /// <summary>
+    /// The buttons this hook saw go down and not up whose press reached the OS (none it owes a consumed release for): what an
+    /// Exclusions › While holding entry may count as held at a press (plan 0012 decision 10: a press Augram swallowed never
+    /// counts). Kept outside <see cref="Save"/>: a press undone because it could not be enqueued still went to the OS. Hook thread.
+    /// </summary>
+    public HeldButtons PassedButtons => (HeldButtons)(_down & ~Volatile.Read(ref _owed));
 
     /// <summary>Everything this shadow knows, to undo a decision whose event could not be enqueued.</summary>
     public Snapshot Save() => new(_owner, _ownerIsStroke, _owed, _plan, _wheel, _firing, _cancelled, _beforeKeys);
@@ -65,7 +73,11 @@ public sealed class SuppressionShadow
     }
 
     /// <summary>Forget every owed release. Only when the hook was reinstalled or the OS state is otherwise unknown.</summary>
-    public void Reset() => Restore(new Snapshot(NoButton, false, 0, AnchorPlan.None, false, false, false, KeyModifiers.None));
+    public void Reset()
+    {
+        _down = 0;
+        Restore(new Snapshot(NoButton, false, 0, AnchorPlan.None, false, false, false, KeyModifiers.None));
+    }
 
     /// <summary>
     /// The keys a modifier press starting now would join the press as (an After key, consumed): Ctrl, Alt, Shift and Win not
@@ -80,6 +92,7 @@ public sealed class SuppressionShadow
     /// </summary>
     public void ReleasedElsewhere(MouseButton button)
     {
+        _down &= ~(int)button.Flag();
         if (Volatile.Read(ref _owner) == (int)button)
         {
             Volatile.Write(ref _owner, NoButton);
@@ -99,6 +112,15 @@ public sealed class SuppressionShadow
     {
         var owner = Volatile.Read(ref _owner);
         var flag = (int)input.Button.Flag();
+        if (input.Kind == RawInputKind.ButtonDown)
+        {
+            _down |= flag;
+        }
+        else if (input.Kind == RawInputKind.ButtonUp)
+        {
+            _down &= ~flag;
+        }
+
         switch (input.Kind)
         {
             case RawInputKind.ButtonDown:

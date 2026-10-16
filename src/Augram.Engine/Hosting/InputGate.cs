@@ -13,7 +13,8 @@ namespace Augram.Engine.Hosting;
 /// <summary>
 /// Everything that runs on the hook thread, in one class so it can be audited against CLAUDE.md
 /// invariant 1: <see cref="Handle"/> reads four volatiles (state, stroke button, enabled, the pointer's
-/// answer: the ignore list's bits and the window's <see cref="AnchorPlan"/>), asks the <see cref="SuppressionShadow"/>,
+/// answer: the ignore list's bits and the window's <see cref="AnchorPlan"/>), at a press one more (the window's While holding
+/// inputs, plan 0012, checked against the hook's own records in <c>InputGate.WhileHolding.cs</c>), asks the <see cref="SuppressionShadow"/>,
 /// allocates one <see cref="CaptureEvent"/>, <c>TryWrite</c>s one message, measures itself, returns the decision. A key
 /// event reads one volatile (the hotkey-capture flag), asks the <see cref="KeySuppressionShadow"/> (which a held press may
 /// claim a Ctrl/Alt/Shift/Win press for), and posts one message while capturing, and one for a modifier press while a
@@ -57,7 +58,9 @@ internal sealed partial class InputGate
     private long _pointerAnswer;
     private long _pointerDrags;
     private ButtonOutputs _pointerOutputs = ButtonOutputs.Empty;
+    private WhileHoldingSet _pointerHolding = WhileHoldingSet.None;
     private HoldRemapPlan _foreground = HoldRemapPlan.Empty;
+    private WhileHoldingSet _foregroundHolding = WhileHoldingSet.None;
     private int _pointerX;
     private int _pointerY;
     private IgnoreListWatch? _watch;
@@ -120,27 +123,40 @@ internal sealed partial class InputGate
     /// <summary>The button trigger outputs over the same window (plan 0005), handed to the worker with each press.</summary>
     public ButtonOutputs Outputs => Volatile.Read(ref _pointerOutputs);
 
+    /// <summary>The inputs of the Exclusions › While holding entries over the same window (plan 0012), read at a press.</summary>
+    public WhileHoldingSet Holding => Volatile.Read(ref _pointerHolding);
+
+    /// <summary>The inputs of the While holding entries over the app in front (plan 0012 decision 8), read at a hold key's press.</summary>
+    public WhileHoldingSet ForegroundHolding => Volatile.Read(ref _foregroundHolding);
+
     /// <summary>The watch's ignore answer, keeping the plan: read at the next press only, so a press already consumed still gets its release consumed (A19).</summary>
-    public void PublishIgnore(int state) => PublishPointer(state, Plan, Drags, Outputs);
+    public void PublishIgnore(int state) => PublishPointer(state, Plan, Drags, Outputs, Holding);
 
     /// <summary>
     /// The watch's whole answer for the window under the pointer, as one volatile the hook reads at a press: the ignore bits
-    /// and the anchor plan. Single writer (the watch's thread). The drag distances and the button trigger outputs go in two more
-    /// volatiles, written first: a press that reads them from another pass than its plan only hands back at another distance or
-    /// looks its held output up among another window's, it decides nothing else.
+    /// and the anchor plan. Single writer (the watch's thread). The drag distances, the button trigger outputs and the While
+    /// holding inputs (plan 0012) go in three more volatiles, written first: a press that reads them from another pass than its
+    /// plan only hands back at another distance, looks its held output up among another window's, or judges its held inputs
+    /// by another window's list, as a press within one pass of the pointer entering a window is judged by the last one anyway.
     /// </summary>
-    public void PublishPointer(int ignoreState, AnchorPlan plan, AnchorDragDistances drags = default, ButtonOutputs? outputs = null)
+    public void PublishPointer(int ignoreState, AnchorPlan plan, AnchorDragDistances drags = default, ButtonOutputs? outputs = null, WhileHoldingSet? holding = null)
     {
         Volatile.Write(ref _pointerDrags, drags.Bits);
         Volatile.Write(ref _pointerOutputs, outputs ?? ButtonOutputs.Empty);
+        Volatile.Write(ref _pointerHolding, holding ?? WhileHoldingSet.None);
         Volatile.Write(ref _pointerAnswer, (plan.Bits << IgnoreBits) | (uint)(ignoreState & ((1 << IgnoreBits) - 1)));
     }
 
     /// <summary>
     /// The watch's answer for the app in front: its hold remaps, read by the hook at a hold key's press only (plan 0002
-    /// decision 8), so a hold in progress keeps the plan it started with. Single writer (the watch's thread).
+    /// decision 8), so a hold in progress keeps the plan it started with; and its While holding inputs (plan 0012 decision 8),
+    /// written first, which stop a hold key's press from starting the hold remap while one is held. Single writer (the watch's thread).
     /// </summary>
-    public void PublishForeground(HoldRemapPlan plan) => Volatile.Write(ref _foreground, plan ?? HoldRemapPlan.Empty);
+    public void PublishForeground(HoldRemapPlan plan, WhileHoldingSet? holding = null)
+    {
+        Volatile.Write(ref _foregroundHolding, holding ?? WhileHoldingSet.None);
+        Volatile.Write(ref _foreground, plan ?? HoldRemapPlan.Empty);
+    }
 
     /// <summary>Worker: the injections of one message the hook counted as a pending replay are made.</summary>
     public void HoldReplayDone() => _hold.ReplayDone();
@@ -233,13 +249,17 @@ internal sealed partial class InputGate
                     var ignoreBits = (int)(answer & ((1 << IgnoreBits) - 1));
                     var allowed = Enabled && (ignoreBits == 0 || (ignoreBits == OverIgnoredApp && input.Button != StrokeButton && plan.IsAnchor(input.Button)));
                     var drags = new AnchorDragDistances(Volatile.Read(ref _pointerDrags));
-                    var ignore = (input.Modifiers & IgnoreKey) != 0;
+                    // A global ignore key, or an input of this window's While holding entries (plan 0012), held at the press.
+                    var ignoredBy = IgnoredAtPress(Volatile.Read(ref _pointerHolding), in input, input.Button.Flag());
+                    var ignore = ignoredBy.IsSet;
                     // The press's Before keys: the library's mask, limited to keys this hook saw go down (a stale mask holds no phantom key).
                     var press = input with { Modifiers = input.Modifiers & _keys.HeldModifiers() };
                     var before = _shadow.Save();
                     suppress = _shadow.Decide(in press, state, StrokeButton, allowed, ignore, plan);
                     var down = new CaptureEvent.ButtonDown(input.Button, input.X, input.Y, input.TimestampMs, allowed, ignore, press.Modifiers, plan, drags);
-                    if (!Post(WorkerMessage.Press(down, suppress, Volatile.Read(ref _pointerOutputs)), critical: true))
+                    // Said in the log only where it made the difference: an anchor's press capture would otherwise have taken.
+                    var logged = ignore && allowed && (input.Button == StrokeButton || plan.IsAnchor(input.Button)) ? ignoredBy : IgnoredBy.None;
+                    if (!Post(WorkerMessage.Press(down, suppress, Volatile.Read(ref _pointerOutputs), logged), critical: true))
                     {
                         _shadow.Restore(before);
                         suppress = false;

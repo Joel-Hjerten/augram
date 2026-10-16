@@ -1,4 +1,5 @@
 using Augram.Core.Abstractions;
+using Augram.Core.Capture;
 using Augram.Core.HoldRemaps;
 using Augram.Engine.Input;
 
@@ -78,9 +79,10 @@ internal sealed partial class InputGate
 
     /// <summary>
     /// A key event, hold remaps first: the hold key's press is offered when the foreground's plan has it and nothing else
-    /// stands in the way (enabled, not paused by a focused app, the ignore key up, no hotkey capture, no gesture press owned, a
-    /// fresh press; "over an ignored app" does not count: Blender is ignored that way and keeps its hold remap). One message
-    /// per decision; a press that cannot be enqueued is undone, a release is still swallowed.
+    /// stands in the way (enabled, not paused by a focused app, no global ignore key and no input of the app in front's While
+    /// holding entries held (plan 0012), no hotkey capture, no gesture press owned, a fresh press; "over an ignored app" does
+    /// not count: Blender is ignored that way and keeps its hold remap). One message per decision; a press that cannot be
+    /// enqueued is undone, a release is still swallowed.
     /// </summary>
     private bool DecideHoldKey(in RawInput input, bool capturing)
     {
@@ -94,10 +96,15 @@ internal sealed partial class InputGate
             if (!plan.IsEmpty
                 && Enabled
                 && (IgnoreState & PausedByFocus) == 0
-                && (input.Modifiers & IgnoreKey) == 0
                 && !_shadow.Owed.HasValue)
             {
                 candidate = plan.Find(input.Key);
+                // A global ignore key or an input of the app in front's While holding entries held (plan 0012 decision 8):
+                // decided at this press only, so an input pressed after the hold key leaves a running hold remap alone.
+                if (candidate is not null && IgnoredAtPress(Volatile.Read(ref _foregroundHolding), in input, HeldButtons.None).IsSet)
+                {
+                    candidate = null;
+                }
             }
         }
 

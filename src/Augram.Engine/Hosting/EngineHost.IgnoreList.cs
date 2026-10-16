@@ -26,6 +26,12 @@ public sealed partial class EngineHost
     /// <summary>For tests: the anchor plan the hook reads for the window under the pointer, as the watch last published it.</summary>
     internal AnchorPlan AnchorPlanUnderPointer => _gate.Plan;
 
+    /// <summary>For tests: the While holding inputs (plan 0012) the hook reads at a press over the window under the pointer, as the watch last published them.</summary>
+    internal WhileHoldingSet HoldingUnderPointer => _gate.Holding;
+
+    /// <summary>For tests: the While holding inputs of the app in front, read at a hold key's press (plan 0012 decision 8).</summary>
+    internal WhileHoldingSet ForegroundHolding => _gate.ForegroundHolding;
+
     /// <summary>For tests: the hold remaps the hook reads at a hold key's press, the app in front's as the watch last published them (F9).</summary>
     internal HoldRemapPlan ForegroundHoldPlan => _gate.ForegroundPlan;
 

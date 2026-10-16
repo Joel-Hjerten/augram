@@ -16,7 +16,8 @@ namespace Augram.Engine.Hosting;
 /// <param name="Payload">A setting, a reason, a captured key, an action, or a <see cref="HoldRemapEvent"/>, by kind.</param>
 /// <param name="Ordered">The hook counted this message as a pending replay (<c>HoldRemapShadow.PendingReplays</c>): the worker calls <c>InputGate.HoldReplayDone</c> once it has made its injections.</param>
 /// <param name="App">For a hold key's press: the name of the app group whose plan it was claimed with, for the log.</param>
-internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, CaptureEvent? Event = null, bool HookSuppressed = false, object? Payload = null, bool Ordered = false, string? App = null)
+/// <param name="Ignored">For an anchor's press passed through as ignored: the held input that did it (a global ignore key or a While holding entry's input, plan 0012), for the log.</param>
+internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, CaptureEvent? Event = null, bool HookSuppressed = false, object? Payload = null, bool Ordered = false, string? App = null, IgnoredBy Ignored = default)
 {
     internal enum MessageKind
     {
@@ -33,8 +34,9 @@ internal readonly record struct WorkerMessage(WorkerMessage.MessageKind Kind, Ca
 
     public static WorkerMessage Input(CaptureEvent e, bool hookSuppressed) => new(MessageKind.Input, e, hookSuppressed);
 
-    /// <summary>A press with the button trigger outputs of the window it went down over (plan 0005 decision 9), in <see cref="Payload"/>.</summary>
-    public static WorkerMessage Press(CaptureEvent.ButtonDown e, bool hookSuppressed, ButtonOutputs outputs) => new(MessageKind.Input, e, hookSuppressed, outputs);
+    /// <summary>A press with the button trigger outputs of the window it went down over (plan 0005 decision 9), in <see cref="Payload"/>, and what ignored it, if anything did.</summary>
+    public static WorkerMessage Press(CaptureEvent.ButtonDown e, bool hookSuppressed, ButtonOutputs outputs, IgnoredBy ignored = default)
+        => new(MessageKind.Input, e, hookSuppressed, outputs, Ignored: ignored);
 
     public static WorkerMessage StrokeButton(MouseButton button) => new(MessageKind.SetStrokeButton, Payload: button);
 
