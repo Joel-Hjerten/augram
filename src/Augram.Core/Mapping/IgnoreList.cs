@@ -10,7 +10,8 @@ namespace Augram.Core.Mapping;
 /// off the hook thread and publishes the answers the hook reads at button-down; <see cref="CommandResolver"/>'s
 /// <see cref="ResolutionOutcome.Ignored"/> stays as the backstop for an answer that was stale. Inactive entries, and entries
 /// that can match nothing on this platform, are invisible here, and so are Per command entries (plan 0004): they stop only
-/// the commands that name them (<see cref="PerCommandUnder"/>).
+/// the commands that name them (<see cref="PerCommandUnder"/>), and While holding entries (plan 0012): they stop only the
+/// presses made while one of their inputs is held (<see cref="HeldInputsUnder"/>).
 /// </summary>
 public static class IgnoreList
 {
@@ -18,14 +19,14 @@ public static class IgnoreList
     public static bool WatchesPointer(MappingDocument mapping, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
-        return mapping.Ignored.Any(app => app.IsActive && !app.IsPerCommand && CanMatchOn(app.Matcher, platform));
+        return mapping.Ignored.Any(app => app.IsActive && app.IsGlobal && CanMatchOn(app.Matcher, platform));
     }
 
     /// <summary>An active "disable while focused" app can match a window on <paramref name="platform"/>: the foreground is worth watching.</summary>
     public static bool WatchesFocus(MappingDocument mapping, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
-        return mapping.Ignored.Any(app => app.IsActive && !app.IsPerCommand && app.DisableEntirely && CanMatchOn(app.Matcher, platform));
+        return mapping.Ignored.Any(app => app.IsActive && app.IsGlobal && app.DisableEntirely && CanMatchOn(app.Matcher, platform));
     }
 
     /// <summary>
@@ -37,14 +38,14 @@ public static class IgnoreList
     public static IgnoredApp? Under(MappingDocument mapping, WindowIdentity? window, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
-        return Claiming(mapping, window, platform, static app => !app.IsPerCommand).FirstOrDefault();
+        return Claiming(mapping, window, platform, static app => app.IsGlobal).FirstOrDefault();
     }
 
     /// <summary>The first active "disable while focused" app that claims the focused window, or null: while it has focus Augram behaves as if disabled.</summary>
     public static IgnoredApp? PausedBy(MappingDocument mapping, WindowIdentity? focused, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(mapping);
-        return Claiming(mapping, focused, platform, static app => !app.IsPerCommand && app.DisableEntirely).FirstOrDefault();
+        return Claiming(mapping, focused, platform, static app => app.IsGlobal && app.DisableEntirely).FirstOrDefault();
     }
 
     /// <summary>
@@ -74,7 +75,35 @@ public static class IgnoreList
         return under ?? (IReadOnlyList<GroupId>)[];
     }
 
-    /// <summary>The one loop behind the three lookups above: the active entries of <paramref name="kind"/> whose matcher claims <paramref name="window"/>, in list order; none for no window.</summary>
+    /// <summary>
+    /// An active Exclusions › While holding entry (plan 0012) with an input that counts on <paramref name="platform"/> can match a
+    /// window there: the pointer's answer then carries <see cref="HeldInputsUnder"/>.
+    /// </summary>
+    public static bool WatchesHolding(MappingDocument mapping, HostPlatform platform)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        return mapping.Ignored.Any(app => app.IsActive && app.IsWhileHolding && app.HeldInputsOn(platform).Count > 0 && CanMatchOn(app.Matcher, platform));
+    }
+
+    /// <summary>
+    /// The inputs of the active While holding entries that claim the window (plan 0012 decisions 3 and 9: the window under the
+    /// pointer at the press; several entries add up), as they count on <paramref name="platform"/> (<see cref="IgnoredApp.HeldInputsOn"/>);
+    /// <see cref="WhileHoldingSet.None"/> for no window or none. Holding any of them at a press makes it pass through, beside the
+    /// global ignore keys. The engine's ignore-list watch asks it off the hook thread.
+    /// </summary>
+    public static WhileHoldingSet HeldInputsUnder(MappingDocument mapping, WindowIdentity? window, HostPlatform platform)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        List<KeyOrButton>? inputs = null;
+        foreach (var app in Claiming(mapping, window, platform, static app => app.IsWhileHolding))
+        {
+            (inputs ??= []).AddRange(app.HeldInputsOn(platform));
+        }
+
+        return inputs is null ? WhileHoldingSet.None : WhileHoldingSet.Of(inputs);
+    }
+
+    /// <summary>The one loop behind the lookups above: the active entries of <paramref name="kind"/> whose matcher claims <paramref name="window"/>, in list order; none for no window.</summary>
     private static IEnumerable<IgnoredApp> Claiming(MappingDocument mapping, WindowIdentity? window, HostPlatform platform, Func<IgnoredApp, bool> kind)
     {
         if (window is null)

@@ -240,7 +240,7 @@ internal sealed partial class MappingJsonReader
         return apps;
     }
 
-    /// <summary>An ignored app; its <c>scope</c> (schema 6, plan 0004) missing or null is Ignored › Global, as before.</summary>
+    /// <summary>An ignored app; its <c>scope</c> (schema 6, plan 0004) missing or null is Ignored › Global, as before; a While holding entry's inputs (schema 9, plan 0012) in <c>MappingJsonReader.WhileHolding.cs</c>.</summary>
     public static IgnoredApp ReadIgnored(JsonNode? node)
     {
         var app = JsonMembers.RequireObject(node, "An ignored app");
@@ -255,6 +255,7 @@ internal sealed partial class MappingJsonReader
             JsonMembers.OptionalBool(app, "disableEntirely", fallback: false, where))
         {
             Scope = JsonMembers.OptionalEnum(app, "scope", IgnoreScope.Global, where),
+            Holding = ReadHolding(app, where),
         };
     }
 }

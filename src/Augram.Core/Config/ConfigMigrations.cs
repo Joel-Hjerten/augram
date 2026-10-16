@@ -31,10 +31,10 @@ public static class ConfigMigrations
     {
         switch (version)
         {
-            case 1 or 2 or 3 or 4 or 5 or 6 or 7:
-                // 1 → 2 up to 7 → 8 change no node: every member each bump added is optional and its absence means what the older
+            case 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8:
+                // 1 → 2 up to 8 → 9 change no node: every member each bump added is optional and its absence means what the older
                 // version meant (a schema 5 notIn names no Per command entry, so MappingRules drops it on load, plan 0004 decision
-                // 6; a schema 7 Hotkey step has no layouts, plan 0011). Each bump exists so an older build refuses the newer file.
+                // 6; a schema 7 Hotkey step has no layouts, plan 0011; a schema 8 file has no While holding entries, plan 0012). Each bump exists so an older build refuses the newer file.
                 // What each added: Config/README.md, "Schema history".
                 break;
             default:

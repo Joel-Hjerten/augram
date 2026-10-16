@@ -300,6 +300,7 @@ internal static partial class MappingJsonWriter
         writer.WriteBoolean("isActive", app.IsActive);
         WriteMatcher(writer, app.Matcher);
         writer.WriteBoolean("disableEntirely", app.DisableEntirely);
+        WriteHolding(writer, app.Holding);
         writer.WriteEndObject();
     }
 }

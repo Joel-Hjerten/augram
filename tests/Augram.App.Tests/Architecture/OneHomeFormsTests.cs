@@ -34,6 +34,17 @@ public sealed partial class OneHomeFormsTests
             new Allowed("src/Augram.Core/Mapping/", "the home"));
 
     [Fact]
+    public void ThePlatformSideRulesLiveInPlatformSides()
+        => AssertOnlyIn(
+            SideRule(),
+            Code("src"),
+            "Use Core/Mapping/PlatformSides (Command.IsInferredOn, EditableStepsFor; PlatformList<T>) instead of comparing an origin with a platform by hand (plan 0012).",
+            new Allowed("src/Augram.Core/Mapping/Command.Trigger.cs", "the trigger half: the original's trigger converts from the origin (TriggerConversion), not a list's side"),
+            new Allowed(App + "ViewModels/Commands/StepEditor.cs", "leftover, fold later: Command.IsInferredOn / EditableStepsFor (plan 0012 step 3)"),
+            new Allowed(App + "ViewModels/Commands/TriggerEditor.cs", "leftover, fold later: Command.IsInferredOn with the own trigger (plan 0012 step 3)"),
+            new Allowed(App + "ViewModels/Commands/Projection/CommandItemProjection.cs", "leftover, fold later: PlatformSides.EditsOriginal (plan 0012 step 3)"));
+
+    [Fact]
     public void TheAppProjectsAMatcherOnlyThroughItsSummary()
         => AssertOnlyIn(
             MatcherSummary(),
@@ -118,6 +129,10 @@ public sealed partial class OneHomeFormsTests
             AppCode,
             "Use Declarations/FormChanges to raise one nameless change from several sources (plan 0007 S13).",
             new Allowed(App + "Declarations/FormChanges.cs", "the home"));
+
+    // A list's side rule written by hand: an origin taken apart and compared with a platform ("Origin is { } origin && origin != platform").
+    [GeneratedRegex(@"\bOrigin is (?:not )?\{ \} \w+ (?:&&|\|\|) \w+ [!=]= ")]
+    private static partial Regex SideRule();
 
     // "a" + " › " + "b", $"{a} › {b}"; a fixed UI path ("Options › Sync") is not a join.
     [GeneratedRegex(@"""\s*›\s*""|\}\s*›\s*\{")]

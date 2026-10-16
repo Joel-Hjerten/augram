@@ -121,6 +121,23 @@ public sealed class ExportTests
         Assert.Empty(file.Gestures);
     }
 
+    /// <summary>Plan 0012: a While holding entry is selectable with the Exclusions and travels with its inputs on both sides, everything included.</summary>
+    [Fact]
+    public void AWhileHoldingEntry_TravelsWithItsInputs_SelectedOrWithEverything()
+    {
+        var entry = Config.WhileHoldingSerializationTests.AfterEffects();
+        var config = SampleConfig();
+        config = config with { Mapping = MappingRules.ValidDocument(config.Mapping with { Ignored = [.. config.Mapping.Ignored, entry] }) };
+        var expected = new SyncItem.IgnoredItem(config.Mapping.Ignored.Single(app => app.Id == entry.Id)).Content;
+
+        var selected = Exported(config, ExportScope.Of([], [entry.Id]));
+        var everything = Exported(config, ExportScope.Everything);
+
+        Assert.Equal(expected, new SyncItem.IgnoredItem(selected.Mapping!.Ignored.Single()).Content);
+        Assert.Equal(expected, new SyncItem.IgnoredItem(everything.Mapping!.Ignored.Single(app => app.Id == entry.Id)).Content);
+        Assert.Contains("\"ownHolding\"", expected, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void AnExportedSelection_IsAValidConfigFile()
     {

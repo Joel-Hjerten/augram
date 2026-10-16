@@ -12,9 +12,13 @@ namespace Augram.Core.Mapping;
 public sealed record CommandStep(
     IStep Step,
     HostPlatform AuthoredOn,
-    bool IsActive = true)
+    bool IsActive = true) : IPlatformItem<CommandStep>
 {
     /// <summary>What runs on <paramref name="platform"/>: the step itself where it was authored, else the step type's best guess, which may be "none" with a reason.</summary>
     public StepConversion ForPlatform(HostPlatform platform)
         => platform == AuthoredOn ? StepConversion.Same(Step) : Step.Type.Convert(Step, AuthoredOn, platform);
+
+    /// <summary>The step as it runs on <paramref name="platform"/>, authored there, keeping its on/off state; null when the type has no guess there.</summary>
+    public CommandStep? ConvertedTo(HostPlatform platform)
+        => ForPlatform(platform) is { Step: { } run } ? new CommandStep(run, platform, IsActive) : null;
 }

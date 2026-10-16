@@ -61,7 +61,7 @@ public static class Exporter
         var notIn = groups.SelectMany(group => group.Commands).SelectMany(command => command.NotIn).ToHashSet();
         var alsoIn = groups.SelectMany(group => group.Commands).SelectMany(command => command.AlsoIn).ToHashSet();
         var ignored = mapping.Ignored
-            .Where(app => selection.Ignored.Contains(app.Id) || (app.IsPerCommand ? notIn.Contains(app.Id) : alsoIn.Contains(app.Id)))
+            .Where(app => selection.Ignored.Contains(app.Id) || (app.IsPerCommand ? notIn.Contains(app.Id) : app.IsGlobal && alsoIn.Contains(app.Id)))
             .ToArray();
         var used = groups.SelectMany(group => group.Commands).SelectMany(command => command.GestureIds()).ToHashSet();
         var gestures = current.Gestures.Where(gesture => used.Contains(gesture.Id)).ToArray();

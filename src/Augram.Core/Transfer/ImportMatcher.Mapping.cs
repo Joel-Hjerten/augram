@@ -34,7 +34,7 @@ internal sealed partial class ImportMatcher
             app => app.Id,
             app => app.Name,
             SyncItemKey.ForIgnored,
-            (ImportMatchKind.Name, (app, twin) => MappingRules.NameComparer.Equals(app.Name, twin.Name)));
+            (ImportMatchKind.Name, (app, twin) => app.IsWhileHolding == twin.IsWhileHolding && MappingRules.NameComparer.Equals(app.Name, twin.Name)));
         _localCommands = local.AllCommands().Select(pair => pair.Command.Id).ToHashSet();
         _claimedCommands = file.AllCommands().Select(pair => pair.Command.Id).Where(_localCommands.Contains).ToHashSet();
         var groups = file.Groups

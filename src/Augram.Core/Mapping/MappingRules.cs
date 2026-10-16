@@ -60,7 +60,7 @@ public static class MappingRules
         }
 
         var perCommand = ignored.Where(app => app.IsPerCommand).Select(app => app.Id).ToHashSet();
-        var plainGlobal = ignored.Where(app => !app.IsPerCommand && !app.DisableEntirely).Select(app => app.Id).ToHashSet();
+        var plainGlobal = ignored.Where(app => app.IsGlobal && !app.DisableEntirely).Select(app => app.Id).ToHashSet();
         groups = [.. groups.Select(group => WithKnownAlsoIn(WithKnownNotIn(group, perCommand), plainGlobal))];
 
         var sortedGroups = groups
@@ -148,11 +148,53 @@ public static class MappingRules
                 || command.TriggerFor(HostPlatform.MacOS) is { IsBound: true, Hold.HandsBackDrags: true });
     }
 
-    /// <summary>Trims the name; a Per command entry never disables Augram while focused (it stops only the commands that name it).</summary>
+    /// <summary>
+    /// Trims the name; only a Global entry disables Augram while focused (a Per command entry stops only the commands that name
+    /// it, a While holding entry only the presses made while an input is held, plan 0012). Only a While holding entry keeps a
+    /// list of inputs, each side with valid inputs only, each once (<see cref="NormalisedHolding"/>).
+    /// </summary>
     public static IgnoredApp Normalised(IgnoredApp app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        return app with { Name = Trimmed(app.Name), DisableEntirely = app.DisableEntirely && !app.IsPerCommand };
+        return app with
+        {
+            Name = Trimmed(app.Name),
+            DisableEntirely = app.DisableEntirely && app.IsGlobal,
+            Holding = app.IsWhileHolding ? NormalisedHolding(app.Holding) : PlatformList<WhileHoldingInput>.Empty,
+        };
+    }
+
+    /// <summary>
+    /// A While holding entry's inputs as the rules keep them (plan 0012), normalised, never refused: on each side a recorded
+    /// modifier key is its modifier (<see cref="KeyOrButton.FromKey"/>), an invalid input (no key, two modifiers) is dropped,
+    /// and an input already on that side is dropped. The same instance when nothing changes.
+    /// </summary>
+    public static PlatformList<WhileHoldingInput> NormalisedHolding(PlatformList<WhileHoldingInput> holding)
+    {
+        ArgumentNullException.ThrowIfNull(holding);
+        var original = Distinct(holding.Original);
+        var own = holding.Own;
+        if (own is not null && Distinct(own.Items) is var items && !ReferenceEquals(items, own.Items))
+        {
+            own = own with { Items = items };
+        }
+
+        return ReferenceEquals(original, holding.Original) && ReferenceEquals(own, holding.Own) ? holding : new PlatformList<WhileHoldingInput>(original, own);
+
+        static IReadOnlyList<WhileHoldingInput> Distinct(IReadOnlyList<WhileHoldingInput> rows)
+        {
+            var kept = new List<WhileHoldingInput>(rows.Count);
+            foreach (var row in rows)
+            {
+                var input = row.Input is KeyOrButton.Key key && KeyOrButton.FromKey(key.KeyCode) is KeyOrButton.Modifier folded ? folded : row.Input;
+                if (input.IsValid && !kept.Any(other => other.Input == input))
+                {
+                    kept.Add(input == row.Input ? row : row with { Input = input });
+                }
+            }
+
+            return kept.Count == rows.Count && kept.Zip(rows).All(pair => ReferenceEquals(pair.First, pair.Second)) ? rows : kept;
+        }
     }
 
     /// <summary>Checks a normalised group, its categories and each of its commands against the groups it will sit beside.</summary>
@@ -326,8 +368,8 @@ public static class MappingRules
             throw new MappingValidationException("An excluded app needs a name.");
         }
 
-        // Names unique like group names (Joel, 2026-10-09), within the entry's own list: Global and Per command may each hold
-        // a "Blender" (Joel, 2026-10-12: the picked one was stuck as "Blender (2)"). Ids are unique across both.
+        // Names unique like group names (Joel, 2026-10-09), within the entry's own list: Global, Per command and While holding
+        // may each hold a "Blender" (Joel, 2026-10-12: the picked one was stuck as "Blender (2)"). Ids are unique across all three.
         Unique.Ensure(
             others,
             other => other.Id == app.Id,
@@ -340,8 +382,17 @@ public static class MappingRules
         EnsureValid(app.Matcher);
     }
 
-    /// <summary>"Global" or "Per command": the Exclusions list the entry is on, for the name rule's refusal and the sync's repair line.</summary>
-    public static string ListName(IgnoredApp app) => app.IsPerCommand ? "Per command" : "Global";
+    /// <summary>"Global", "Per command" or "While holding": the Exclusions list the entry is on, for the name rule's refusal and the sync's repair line.</summary>
+    public static string ListName(IgnoredApp app)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        return app.Scope switch
+        {
+            IgnoreScope.PerCommand => "Per command",
+            IgnoreScope.WhileHolding => "While holding",
+            _ => "Global",
+        };
+    }
 
     /// <summary>A regex field that is switched on must hold a pattern the regex engine accepts.</summary>
     public static void EnsureValid(AppMatcher matcher)

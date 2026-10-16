@@ -46,4 +46,12 @@ internal static class MappingFixtures
         => new(new FakeStep(text), authoredOn);
 
     public static MappingDocument Document(params AppGroup[] groups) => new(groups, []);
+
+    /// <summary>An active Exclusions › While holding entry (plan 0012) matching <c>&lt;name lower-cased&gt;.exe</c>, its inputs authored on Windows.</summary>
+    public static IgnoredApp WhileHolding(string name, params KeyOrButton[] inputs)
+        => new(GroupId.New(), name, IsActive: true, ByProcess(name.ToLowerInvariant().Replace(" ", string.Empty, StringComparison.Ordinal) + ".exe"), DisableEntirely: false)
+        {
+            Scope = IgnoreScope.WhileHolding,
+            Holding = new PlatformList<WhileHoldingInput>([.. inputs.Select(input => new WhileHoldingInput(input, HostPlatform.Windows))], null),
+        };
 }

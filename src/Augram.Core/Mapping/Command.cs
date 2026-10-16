@@ -77,9 +77,10 @@ public sealed partial record Command(
 
     /// <summary>
     /// The platform the original steps were authored on: the other one than the own version's, else the first step's;
-    /// null for a command with no steps and no own version (its first step makes this platform the origin).
+    /// null for a command with no steps and no own version (its first step makes this platform the origin). The side rules
+    /// here are <see cref="PlatformSides"/>'s, shared with the Exclusions › While holding inputs (plan 0012).
     /// </summary>
-    public HostPlatform? Origin => OwnVersion is { } own ? own.Platform.Other() : Steps.Count > 0 ? Steps[0].AuthoredOn : null;
+    public HostPlatform? Origin => PlatformSides.Origin(Steps, OwnVersion?.Platform);
 
     /// <summary>True when the original changed after the own version was made or last checked: its fingerprint moved on.</summary>
     public bool IsOwnVersionStale => OwnVersion is { } own && own.BasedOn != Fingerprint(Steps);
@@ -91,7 +92,13 @@ public sealed partial record Command(
     public bool IsOverrideToNothingOn(HostPlatform platform) => StepsFor(platform).Count == 0;
 
     /// <summary>The step list <paramref name="platform"/> shows and edits: its own version's, else the original.</summary>
-    public IReadOnlyList<CommandStep> StepsFor(HostPlatform platform) => OwnVersion is { } own && own.Platform == platform ? own.Steps : Steps;
+    public IReadOnlyList<CommandStep> StepsFor(HostPlatform platform) => PlatformSides.For(platform, Steps, OwnVersion?.Platform, OwnVersion?.Steps);
+
+    /// <summary>True when <paramref name="platform"/> runs the original converted: it is not the origin and has no own version (<see cref="PlatformSides.IsInferred"/>).</summary>
+    public bool IsInferredOn(HostPlatform platform) => PlatformSides.IsInferred(Origin, OwnVersion?.Platform, platform);
+
+    /// <summary>The step list an edit on <paramref name="platform"/> starts from: the original converted where it is inferred, else <see cref="StepsFor"/>.</summary>
+    public IReadOnlyList<CommandStep> EditableStepsFor(HostPlatform platform) => IsInferredOn(platform) ? ConvertedFor(platform) : StepsFor(platform);
 
     /// <summary>
     /// What runs on <paramref name="platform"/>, step by step: its own version as stored, else the original with each step as it
@@ -108,7 +115,7 @@ public sealed partial record Command(
     public Command WithStepsFor(HostPlatform platform, IReadOnlyList<CommandStep> steps, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(steps);
-        return Origin is not { } origin || origin == platform
+        return PlatformSides.EditsOriginal(Origin, platform)
             ? this with { Steps = steps }
             : this with { OwnVersion = new CommandVersion(platform, steps, Fingerprint(Steps), now) };
     }
@@ -117,10 +124,7 @@ public sealed partial record Command(
     /// The original converted for <paramref name="platform"/>, as the start of an own version: each step as it runs there,
     /// authored there; a step with no guess is kept as it is, so it still says what it needs.
     /// </summary>
-    public IReadOnlyList<CommandStep> ConvertedFor(HostPlatform platform)
-        => [.. Steps.Select(step => step.ForPlatform(platform) is { Step: { } run } && step.AuthoredOn != platform
-            ? new CommandStep(run, platform, step.IsActive)
-            : step)];
+    public IReadOnlyList<CommandStep> ConvertedFor(HostPlatform platform) => PlatformSides.Converted(Steps, platform);
 
     /// <summary>
     /// Back to running the converted original on the own version's platform: "Copy from" on the own version's side (plan 0010

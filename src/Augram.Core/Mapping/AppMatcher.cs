@@ -155,6 +155,24 @@ public sealed record AppMatcher
         return ProcessNamesAreRegexOn(other) ? [] : KnownApps.Guess(ProcessNamesFor(other).Where(HasText), platform);
     }
 
+    /// <summary>
+    /// True when this matcher and <paramref name="other"/> name one executable on <paramref name="platform"/> (plan 0012
+    /// decision 10, "matching the same app"): a plain name of each one's <see cref="EffectiveProcessNames"/> there in common,
+    /// compared trimmed and case-insensitively; a list of patterns names nothing to compare, and the other fields are not
+    /// consulted, so this can miss two matchers that claim the same windows (a warning, never a refusal).
+    /// </summary>
+    public bool SharesExecutableWith(AppMatcher other, HostPlatform platform)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        var mine = PlainNames(this, platform);
+        return mine.Count > 0 && PlainNames(other, platform).Any(mine.Contains);
+
+        static HashSet<string> PlainNames(AppMatcher matcher, HostPlatform platform)
+            => matcher.ProcessNamesFor(platform).Any(HasText) && matcher.ProcessNamesAreRegexOn(platform)
+                ? []
+                : matcher.EffectiveProcessNames(platform).Where(HasText).Select(name => name.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     public bool Matches(WindowIdentity window, HostPlatform platform)
     {
         ArgumentNullException.ThrowIfNull(window);

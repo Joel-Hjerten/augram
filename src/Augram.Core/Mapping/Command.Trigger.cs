@@ -38,7 +38,7 @@ public sealed partial record Command
     public Command WithTriggerFor(HostPlatform platform, Trigger trigger, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(trigger);
-        if (Origin is not { } origin || origin == platform)
+        if (PlatformSides.EditsOriginal(Origin, platform))
         {
             return this with { Trigger = trigger };
         }

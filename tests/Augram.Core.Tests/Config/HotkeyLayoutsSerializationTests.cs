@@ -36,8 +36,8 @@ public sealed class HotkeyLayoutsSerializationTests
         var back = ConfigSerializer.Read(json, Registry, notices.Add);
 
         Assert.Empty(notices);
-        Assert.Equal(8, ConfigDocument.CurrentSchemaVersion);
-        Assert.Contains("\"schemaVersion\": 8", json, StringComparison.Ordinal);
+        Assert.True(ConfigDocument.CurrentSchemaVersion >= 8);
+        Assert.Contains($"\"schemaVersion\": {ConfigDocument.CurrentSchemaVersion}", json, StringComparison.Ordinal);
         Assert.Contains("\"layouts\"", json, StringComparison.Ordinal);
         Assert.True(json.IndexOf("\"key\": \"OpenBracket\"", StringComparison.Ordinal) < json.IndexOf("\"layouts\"", StringComparison.Ordinal), "layouts follows the main shortcut");
         Assert.Equal(Back, Assert.Single(back.Mapping.Global.Commands.Single().Steps).Step);

@@ -128,7 +128,7 @@ public sealed class NotInAndDragDistanceSerializationTests
     [InlineData("""{ "buttons": "Right", "dragDistancePx": 2.5 }""", "", PerCommandSpine, $"'dragDistancePx' of 'hold' of 'trigger' of {Where} must be an integer.")]
     [InlineData("""{ "buttons": "Right" }""", """, "notIn": "Spine" """, PerCommandSpine, $"'notIn' of {Where} must be an array.")]
     [InlineData("""{ "buttons": "Right" }""", """, "notIn": [ 3 ] """, PerCommandSpine, $"'notIn' of {Where} must be an array of strings.")]
-    [InlineData("""{ "buttons": "Right" }""", "", """{ "id": "6d1e7f3a-0000-4000-8000-0000000000c1", "name": "Spine", "scope": "Commands" }""", "'scope' of ignored app 'Spine' must be one of Global, PerCommand.")]
+    [InlineData("""{ "buttons": "Right" }""", "", """{ "id": "6d1e7f3a-0000-4000-8000-0000000000c1", "name": "Spine", "scope": "Commands" }""", "'scope' of ignored app 'Spine' must be one of Global, PerCommand, WhileHolding.")]
     [InlineData("""{ "buttons": "Right" }""", "", """{ "id": "6d1e7f3a-0000-4000-8000-0000000000c1", "name": "Spine", "scope": 1 }""", "'scope' of ignored app 'Spine' must be a string.")]
     public void AMemberOfTheWrongJsonType_IsAFormatErrorNamingIt(string hold, string notIn, string ignored, string message)
     {
