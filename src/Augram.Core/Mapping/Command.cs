@@ -117,7 +117,7 @@ public sealed partial record Command(
         ArgumentNullException.ThrowIfNull(steps);
         return PlatformSides.EditsOriginal(Origin, platform)
             ? this with { Steps = steps }
-            : this with { OwnVersion = new CommandVersion(platform, steps, Fingerprint(Steps), now) };
+            : this with { OwnVersion = new CommandVersion(platform, steps, Fingerprint(Steps), now) { Trigger = OwnVersion?.Trigger } };
     }
 
     /// <summary>

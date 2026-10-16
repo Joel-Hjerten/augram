@@ -204,6 +204,16 @@ public sealed class TriggerCombinationTests
     }
 
     [Fact]
+    public void AStepEditOnTheOwnVersionsPlatform_KeepsItsOwnTrigger()
+    {
+        var command = NewCommand("Copy", Trigger.ForGesture(Up), NewStep("copy")).WithTriggerFor(HostPlatform.MacOS, Trigger.ForGesture(Down), DateTimeOffset.UnixEpoch);
+
+        var edited = command.WithStepsFor(HostPlatform.MacOS, [NewStep("mac copy")], DateTimeOffset.UnixEpoch);
+
+        Assert.Equal(Trigger.ForGesture(Down), edited.TriggerFor(HostPlatform.MacOS));
+    }
+
+    [Fact]
     public void ReplacingAGesture_KeepsWhatTheTriggerHolds_InTheOriginalAndTheOwnVersion()
     {
         var shiftUp = Trigger.ForGesture(Up, TriggerHold.WithStroke(KeyModifiers.Shift));
