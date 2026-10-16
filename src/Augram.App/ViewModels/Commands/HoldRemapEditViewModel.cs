@@ -24,6 +24,9 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
     /// <summary>The end of the form's ⓘ (plan 0005 decision 7: a hold remap never uses the stroke button, so an exclusion leaves it alone).</summary>
     public const string WorksOverExclusions = "Works even where the app is on Exclusions › Global.";
 
+    /// <summary>The label of the hold key's warning row (plan 0012 decision 10).</summary>
+    public const string HoldKeyWarningLabel = "Also ignored";
+
     private bool _syncing;
 
     public HoldRemapEditViewModel()
@@ -42,6 +45,13 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// The hold key's warning (plan 0012 decision 10: "Space is on Exclusions › While holding for Blender; while Navigate runs it
+    /// never ignores there."); set by the host, never an edit; null hides it.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? HoldKeyWarning { get; set; }
 
     /// <summary>Where the hold remap is used; its changes are raised as this view model's own.</summary>
     public UseOnEdit UseOn { get; } = new();
@@ -92,6 +102,11 @@ public sealed partial class HoldRemapEditViewModel : ObservableObject
         [
             new TextField("Name", new DelegateBinding<string>(() => Name, value => Name = value, this), "Shown in the list inside its app group; the hold key's name until you rename it."),
             new CustomField("Hold key", HoldKeyField, Help: $"The key you hold. Any key but {HotkeyCaptureBox.ModifierWords()} or Fn: those are held for triggers. Unique in the app group."),
+            new NoteField(HoldKeyWarningLabel, new DelegateBinding<string>(() => HoldKeyWarning ?? string.Empty, owner: this, propertyName: nameof(HoldKeyWarning)))
+            {
+                Visible = new DelegateBinding<bool>(() => HoldKeyWarning is not null, owner: this, propertyName: nameof(HoldKeyWarning)),
+                Warns = true,
+            },
             new NumberField(
                 "Tap time (ms)",
                 new DelegateBinding<double>(() => TapTimeMs, value => TapTimeMs = (int)Math.Round(value), this),

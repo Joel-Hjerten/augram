@@ -39,10 +39,7 @@ public sealed partial class OneHomeFormsTests
             SideRule(),
             Code("src"),
             "Use Core/Mapping/PlatformSides (Command.IsInferredOn, EditableStepsFor; PlatformList<T>) instead of comparing an origin with a platform by hand (plan 0012).",
-            new Allowed("src/Augram.Core/Mapping/Command.Trigger.cs", "the trigger half: the original's trigger converts from the origin (TriggerConversion), not a list's side"),
-            new Allowed(App + "ViewModels/Commands/StepEditor.cs", "leftover, fold later: Command.IsInferredOn / EditableStepsFor (plan 0012 step 3)"),
-            new Allowed(App + "ViewModels/Commands/TriggerEditor.cs", "leftover, fold later: Command.IsInferredOn with the own trigger (plan 0012 step 3)"),
-            new Allowed(App + "ViewModels/Commands/Projection/CommandItemProjection.cs", "leftover, fold later: PlatformSides.EditsOriginal (plan 0012 step 3)"));
+            new Allowed("src/Augram.Core/Mapping/Command.Trigger.cs", "the trigger half: the original's trigger converts from the origin (TriggerConversion), not a list's side"));
 
     [Fact]
     public void TheAppProjectsAMatcherOnlyThroughItsSummary()

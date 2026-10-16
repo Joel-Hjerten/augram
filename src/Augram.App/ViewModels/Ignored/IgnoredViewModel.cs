@@ -47,31 +47,60 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
         Project();
     }
 
-    /// <summary>Which list this sub-tab shows: Exclusions › Global or Exclusions › Per command.</summary>
+    /// <summary>Which list this sub-tab shows: Exclusions › Global, Per command or While holding (plan 0012).</summary>
     public IgnoreScope Scope { get; }
 
     public bool IsPerCommand => Scope == IgnoreScope.PerCommand;
 
-    public string Heading => IsPerCommand ? "Per command apps" : "Excluded apps";
+    /// <summary>"Exclusions › Global", "Exclusions › Per command", "Exclusions › While holding": the sub-tab's screen title.</summary>
+    public string ScreenTitle => Scope switch
+    {
+        IgnoreScope.PerCommand => "Exclusions › Per command",
+        IgnoreScope.WhileHolding => "Exclusions › While holding",
+        _ => "Exclusions › Global",
+    };
+
+    public string Heading => Scope switch
+    {
+        IgnoreScope.PerCommand => "Per command apps",
+        IgnoreScope.WhileHolding => "While holding apps",
+        _ => "Excluded apps",
+    };
 
     public string NewLabel => IgnoredEditViewModel.NewTitle(Scope);
 
-    /// <summary>The right-click menu's move to the other list.</summary>
-    public string MoveLabel => IsPerCommand ? "Move to Global" : "Move to Per command";
+    /// <summary>
+    /// The right-click menu's move to the other list: between Global and Per command only. A While holding entry moves nowhere
+    /// (plan 0012: its inputs exist only on that list, so a move would drop them), and no entry moves onto While holding.
+    /// </summary>
+    public string? MoveLabel => Scope switch
+    {
+        IgnoreScope.PerCommand => "Move to Global",
+        IgnoreScope.Global => "Move to Per command",
+        _ => null,
+    };
 
     /// <summary>The list's ⓘ; on Global it says that hold remaps still work there (plan 0005 decision 7) and what Also in does.</summary>
-    public string Help => IsPerCommand
-        ? "Apps listed here change nothing on their own; a command that names one in its Not in does nothing over it and holds no button back there. "
+    public string Help => Scope switch
+    {
+        IgnoreScope.PerCommand => "Apps listed here change nothing on their own; a command that names one in its Not in does nothing over it and holds no button back there. "
             + "Name them in a command's Not in on the Commands tab (its Change… also adds an app with the magnifier). "
-            + "Right-click a row for the menu (Move to Global stops all of Augram over the app); rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back."
-        : "Augram stays out of these apps: over their windows the stroke button passes through untouched, and a \"Disable while focused\" app pauses Augram while it has focus. "
+            + "Right-click a row for the menu (Move to Global stops all of Augram over the app); rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back.",
+        IgnoreScope.WhileHolding => "While you hold one of an app's listed keys or buttons, a press over that app passes straight through: no gesture, button trigger or hold remap starts (After Effects navigating with Alt + middle drag). "
+            + "Each app keeps a list per platform, as a command's steps; added to the global ignore keys of Options › General. "
+            + "Rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back.",
+        _ => "Augram stays out of these apps: over their windows the stroke button passes through untouched, and a \"Disable while focused\" app pauses Augram while it has focus. "
             + IgnoredModes.HoldRemapsInTheseApps + " "
             + "A command whose trigger holds no stroke button (Right + Left, Right + wheel) also works in an app its Also in names. "
-            + "Right-click a row for the menu (Move to Per command keeps Augram on and lets single commands leave the app alone); rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back.";
+            + "Right-click a row for the menu (Move to Per command keeps Augram on and lets single commands leave the app alone); rename with the rename key. Deleting asks first; " + EditKeymap.Current.Undo + " brings it back.",
+    };
 
-    public string EmptyDetailText => IsPerCommand
-        ? "Select an app to see how it is recognised and which commands leave it alone, or add one with New app."
-        : "Select an excluded app to see how it is recognised, or add one with New excluded app.";
+    public string EmptyDetailText => Scope switch
+    {
+        IgnoreScope.PerCommand => "Select an app to see how it is recognised and which commands leave it alone, or add one with New app.",
+        IgnoreScope.WhileHolding => "Select an app to see how it is recognised and what holding makes gestures pass through, or add one with New app.",
+        _ => "Select an excluded app to see how it is recognised, or add one with New excluded app.",
+    };
 
     [ObservableProperty]
     public partial IReadOnlyList<MasterItem> Items { get; private set; } = [];
@@ -116,7 +145,7 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
                 var app = Require(item.Id);
                 _store.UpdateIgnored(app with { IsActive = !app.IsActive });
                 break;
-            case MasterDetailAction.Move when e.Item is { } item:
+            case MasterDetailAction.Move when e.Item is { } item && MoveLabel is not null:
                 _ = MoveAsync(item);
                 break;
             case MasterDetailAction.Delete when e.Item is { } item:
@@ -149,9 +178,12 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
 
     private async Task DeleteAsync(MasterItem item)
     {
-        var (title, question) = IsPerCommand
-            ? ("Delete app", $"Delete '{item.Name}' from Per command?{UsersSentence(new GroupId(item.Id))}")
-            : ("Delete excluded app", $"Delete excluded app '{item.Name}'? Augram works over it again.");
+        var (title, question) = Scope switch
+        {
+            IgnoreScope.PerCommand => ("Delete app", $"Delete '{item.Name}' from Per command?{UsersSentence(new GroupId(item.Id))}"),
+            IgnoreScope.WhileHolding => ("Delete app", $"Delete '{item.Name}' from While holding? Holding its keys and buttons no longer makes gestures pass through over it."),
+            _ => ("Delete excluded app", $"Delete excluded app '{item.Name}'? Augram works over it again."),
+        };
         await DeleteAsync(title, question, () => Deleted(_store.RemoveIgnored(new GroupId(item.Id)).Name, EditKeymap.Current.Undo)).ConfigureAwait(true);
     }
 
@@ -175,8 +207,22 @@ public sealed partial class IgnoredViewModel : StoreViewModel, IDisposable
         ProjectDetail();
     }
 
-    /// <summary>"Gestures off over this app · blender.exe", "Used by 2 commands · Spine.exe": the mode (or its users) and what it matches here.</summary>
-    private string Summary(IgnoredApp app) => $"{(app.IsPerCommand ? UsersText(app.Id) : IgnoredModes.Label(app.DisableEntirely))} · {app.Matcher.Summary(_platform).Text}";
+    /// <summary>
+    /// "Gestures off over this app · blender.exe", "Used by 2 commands · Spine.exe", "While holding Alt, S · AfterFX.exe": the mode
+    /// (its users, or what holding passes through here) and what it matches here.
+    /// </summary>
+    private string Summary(IgnoredApp app)
+    {
+        var first = app.Scope switch
+        {
+            IgnoreScope.PerCommand => UsersText(app.Id),
+            IgnoreScope.WhileHolding => app.HeldInputsOn(_platform) is { Count: > 0 } inputs
+                ? $"While holding {string.Join(", ", inputs.Select(input => input.Describe(_platform)))}"
+                : "Nothing to hold yet",
+            _ => IgnoredModes.Label(app.DisableEntirely),
+        };
+        return $"{first} · {app.Matcher.Summary(_platform).Text}";
+    }
 
     private IgnoredApp? Find(Guid id) => _store.FindIgnored(new GroupId(id));
 

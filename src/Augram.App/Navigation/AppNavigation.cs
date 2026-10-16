@@ -18,6 +18,7 @@ public static class AppNavigation
     public const string IgnoredKey = "ignored";
     public const string IgnoredGlobalKey = "ignored.global";
     public const string IgnoredPerCommandKey = "ignored.percommand";
+    public const string IgnoredWhileHoldingKey = "ignored.whileholding";
     public const string OptionsKey = "options";
     public const string OptionsGeneralKey = "options.general";
     public const string OptionsStrokesKey = "options.strokes";

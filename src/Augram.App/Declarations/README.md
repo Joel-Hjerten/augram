@@ -26,7 +26,7 @@ Each kind is a record here and a renderer in `Components/Fields/<Kind>/` (found 
 | Number, Slider | `NumberField`, `SliderField` | a number in a range |
 | Color | `ColorField` (`Presets`) | a colour |
 | Pattern | `PatternField` | text + Use Regex + magnifier on one line (the identification form) |
-| Note | `NoteField` | read-only text, live or fixed |
+| Note | `NoteField` (`Warns`: in the warning colour) | read-only text, live or fixed |
 | Links | `LinksField` + `LinkItem` | names that open something ("Used by") |
 | Buttons | `ButtonsField` + `FieldButton` (`Status`, `Hint`, `Choice`) | buttons on a form line: alone (Export…, Import…), with a wrapping status line (Sync now, Resolve…), with a hint (Detect…), after a dropdown (Apply to all) |
 | Custom | `CustomField` | a component with no kind of its own (a capture box, the window finder) |

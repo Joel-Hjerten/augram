@@ -1,6 +1,21 @@
 # ViewModels/Ignored
 
-The Exclusions tab's view models ("Exclusions" in the UI since plan 0005, "Ignored" in the code and keys): `IgnoredViewModel`, one per sub-tab (Global, Per command; singletons over the one `MappingStore`, sharing its history with the Commands tab), its form `IgnoredEditViewModel`, the Allowed for dialog `AllowedForEditViewModel`, and `IgnoredModes` (the two modes' words). The rules are Core's (`IgnoreList`, `MappingRules`); the list's row summary is `AppMatcher.Summary(platform).Text`.
+The Exclusions tab's view models ("Exclusions" in the UI since plan 0005, "Ignored" in the code and keys): `IgnoredViewModel`, one per sub-tab (Global, Per command, While holding; singletons over the one `MappingStore`, sharing its history with the Commands tab), its form `IgnoredEditViewModel`, the Allowed for dialog `AllowedForEditViewModel`, and `IgnoredModes` (the two modes' words). The rules are Core's (`IgnoreList`, `MappingRules`); the list's row summary is `AppMatcher.Summary(platform).Text`.
+
+## While holding (plan 0012)
+
+The third sub-tab, **While holding** (`ignored.whileholding`, a third keyed `IgnoredViewModel`), lists entries whose summary says what holding passes through here ("While holding Alt, S · AfterFX.exe", "Nothing to hold yet · …"). The form (`IgnoredEditViewModel.WhileHoldingTitle`) is name, active, the note **On Global too** while an active Global entry shares an executable name with it on this platform (decision 9; `IgnoredEditViewModel.GlobalNote`, the host's), then the identification. Under it, in the `MasterDetail`'s footer, the **Ignore gestures while holding** card (`Components/HeldInputList`), driven by `IgnoredViewModel.WhileHolding`:
+
+| Intent (`HeldInputListAction`) | Store call |
+|---|---|
+| ShowSide (the "Ignore for" switch; a `PlatformSideView`, opens on this platform, back to it when another entry is selected) | none |
+| Add (recorded or picked), Paste (the input copied with Copy, kept in the view model) | `AddHeldInput` on this platform |
+| Delete, Reorder | `RemoveHeldInput`, `MoveHeldInput` on this platform |
+| CopyFromOtherPlatform (either side, shown while there is an own version) | `CopyHeldInputsFromOtherPlatform` on the side in view |
+| CopyTo (a row of the other side, shown while that side is its own) | `CopyHeldInputFromOtherPlatform` |
+| Undo, Redo | `Undo`/`Redo` |
+
+Edits other than the switch and the Copies reach the store only while this platform's side is in view; the first one on an inferred side says the side is its own now. Each row names its input in the side's words with its F8 marker (`StepPlatformMarker.For(WhileHoldingInput, …)`) and, for a hold key of a hold remap for the same app, Core's warning (`HoldKeyConflicts.ForEntry(…).OnEntry`). The hold remap's form shows the other half (`HoldRemapEditViewModel.HoldKeyWarning`, set by `Commands/SectionPanel` from `ForHoldRemap`). **Move** is between Global and Per command only: a While holding entry has no Move to (its inputs exist only on that list), and none moves onto it.
 
 ## The search (plan 0009)
 

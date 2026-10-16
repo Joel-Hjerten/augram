@@ -126,10 +126,18 @@ public sealed class SyncConflictSideText
         return string.Create(CultureInfo.InvariantCulture, $"{holdRemap.Name}: {key}, tap {holdRemap.TapTimeMs} ms{useOn}{(holdRemap.IsActive ? string.Empty : " (inactive)")}");
     }
 
-    /// <summary>"Game: game.exe, turns Augram off": the Exclusions row's summary of what it matches.</summary>
+    /// <summary>
+    /// "Game: game.exe, turns Augram off", "After Effects: AfterFX.exe, while holding Alt, S": the Exclusions row's summary of what
+    /// it matches, and for a While holding entry (plan 0012) this platform's inputs.
+    /// </summary>
     private string IgnoredText(IgnoredApp app)
     {
         var matches = app.Matcher.Summary(_platform).Text;
-        return $"{app.Name}: {matches}{(app.DisableEntirely ? ", turns Augram off" : string.Empty)}{(app.IsActive ? string.Empty : " (inactive)")}";
+        var holding = app.IsWhileHolding ? $", while holding {HeldInputs(app)}" : string.Empty;
+        return $"{app.Name}: {matches}{(app.DisableEntirely ? ", turns Augram off" : string.Empty)}{holding}{(app.IsActive ? string.Empty : " (inactive)")}";
     }
+
+    private string HeldInputs(IgnoredApp app) => app.HeldInputsOn(_platform) is { Count: > 0 } inputs
+        ? string.Join(", ", inputs.Select(input => input.Describe(_platform)))
+        : "nothing";
 }

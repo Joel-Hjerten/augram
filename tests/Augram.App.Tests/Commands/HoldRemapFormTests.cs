@@ -27,7 +27,8 @@ public sealed class HoldRemapFormTests
 
         var form = vm.GroupForm!;
         Assert.Equal(HoldRemapEditViewModel.Title, form.Sections[0].Title);
-        Assert.Equal(["Name", "Hold key", "Tap time (ms)", "Active", "Use on"], form.Sections[0].Fields.Select(field => field.Label));
+        Assert.Equal(["Name", "Hold key", HoldRemapEditViewModel.HoldKeyWarningLabel, "Tap time (ms)", "Active", "Use on"], form.Sections[0].Fields.Select(field => field.Label));
+        Assert.False(Field<NoteField>(form, HoldRemapEditViewModel.HoldKeyWarningLabel).Visible!.Get());
         var tap = Field<NumberField>(form, "Tap time (ms)");
         Assert.Equal((0d, 2000d, 180d), (tap.Min, tap.Max, tap.Value.Get()));
 
@@ -101,6 +102,24 @@ public sealed class HoldRemapFormTests
         Assert.Equal("Use 'S' on at least one platform.", vm.Message);
         Assert.True(useOn.Options[0].Value.Get());
         Assert.Equal(PlatformSet.Windows, Blender(store).HoldRemaps.Single(holdRemap => holdRemap.Name == "S").UseOn);
+    }
+
+    /// <summary>Plan 0012 decision 10: a hold key listed on Exclusions › While holding for the same app warns on the hold remap's form, and the warning follows the store.</summary>
+    [AvaloniaFact]
+    public void AHoldKeyOnTheSameAppsWhileHoldingList_WarnsOnTheForm()
+    {
+        var (vm, store, _) = CreateBlender();
+        var entry = store.AddIgnored(new IgnoredApp(GroupId.New(), "Blender", IsActive: true, new AppMatcher { WindowsProcessNames = ["blender.exe"] }, DisableEntirely: false) { Scope = IgnoreScope.WhileHolding });
+        store.AddHeldInput(entry.Id, HostPlatform.Windows, new KeyOrButton.Key(KeyCode.Space));
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Select, HoldRemapSection(vm, "Space")));
+
+        var warning = Field<NoteField>(vm.GroupForm!, HoldRemapEditViewModel.HoldKeyWarningLabel);
+        Assert.True(warning.Warns);
+        Assert.True(warning.Visible!.Get());
+        Assert.Equal("Space is on Exclusions › While holding for Blender; while Space runs it never ignores there.", warning.Text.Get());
+
+        store.RemoveHeldInput(entry.Id, HostPlatform.Windows, 0);
+        Assert.False(warning.Visible!.Get());
     }
 
     private static T Field<T>(FormScreen form, string label)

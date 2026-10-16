@@ -17,8 +17,16 @@ public sealed partial class HotkeyCaptureBox
 
     public static readonly StyledProperty<bool> SingleKeyProperty = AvaloniaProperty.Register<HotkeyCaptureBox, bool>(nameof(SingleKey));
 
+    public static readonly StyledProperty<bool> AcceptsModifierProperty = AvaloniaProperty.Register<HotkeyCaptureBox, bool>(nameof(AcceptsModifier));
+
     /// <summary>One key, no modifiers: a modifier is refused, and modifiers held with a key are dropped.</summary>
     public bool SingleKey { get => GetValue(SingleKeyProperty); set => SetValue(SingleKeyProperty, value); }
+
+    /// <summary>
+    /// In one-key mode, a modifier pressed alone is the key (Exclusions › While holding, plan 0012: "a modifier pressed alone records
+    /// the modifier"); the last key pressed wins, so Ctrl then S records S. Off (the default), a modifier is refused.
+    /// </summary>
+    public bool AcceptsModifier { get => GetValue(AcceptsModifierProperty); set => SetValue(AcceptsModifierProperty, value); }
 
     /// <summary>In one-key mode, why a key cannot be taken (a sentence to show), or null when it can; from the host's rules.</summary>
     public Func<KeyCode, string?>? KeyProblem { get; set; }
@@ -29,7 +37,7 @@ public sealed partial class HotkeyCaptureBox
     /// <summary>Why one-key mode refuses <paramref name="key"/>; null to take it.</summary>
     public string? Refusal(KeyCode key)
     {
-        if (!HotkeyKeys.IsModifier(key))
+        if (!HotkeyKeys.IsModifier(key) || AcceptsModifier)
         {
             return KeyProblem?.Invoke(key);
         }

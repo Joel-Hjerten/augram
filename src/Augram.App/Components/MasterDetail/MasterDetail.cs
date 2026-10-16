@@ -15,7 +15,7 @@ namespace Augram.App.Components.MasterDetail;
 /// Lookless list-beside-form layout (ADR-0002 §5 <c>MasterDetail</c>; the Exclusions tab, F5): a list of
 /// <see cref="MasterItem"/>s as <see cref="MasterRow"/>s (<c>PART_Rows</c>) under a heading and the new button
 /// (<c>PART_New</c>, labelled <see cref="NewLabel"/>), the selected item's declared form (<see cref="Detail"/>, rendered by
-/// a <c>SectionForm</c> in <c>PART_Detail</c>) beside it, the help line under the list and the message line at the bottom.
+/// a <c>SectionForm</c> in <c>PART_Detail</c>, with the host's <see cref="DetailFooter"/> under it) beside it, the help line under the list and the message line at the bottom.
 /// It looks like a Commands sub-tab and shares its keymap (<see cref="EditKeymap"/>): the rename key or a double click
 /// renames in place, Delete deletes, the new and undo keys work, and the right-click menu offers new, rename, delete and, while
 /// the host gives it a label (<see cref="MoveLabel"/>), a move to the host's other list.
@@ -37,6 +37,9 @@ public sealed class MasterDetail : TemplatedControl
 
     public static readonly StyledProperty<FormScreen?> DetailProperty =
         AvaloniaProperty.Register<MasterDetail, FormScreen?>(nameof(Detail));
+
+    public static readonly StyledProperty<object?> DetailFooterProperty =
+        AvaloniaProperty.Register<MasterDetail, object?>(nameof(DetailFooter));
 
     public static readonly StyledProperty<bool> HasDetailProperty =
         AvaloniaProperty.Register<MasterDetail, bool>(nameof(HasDetail));
@@ -99,6 +102,16 @@ public sealed class MasterDetail : TemplatedControl
     {
         get => GetValue(DetailProperty);
         set => SetValue(DetailProperty, value);
+    }
+
+    /// <summary>
+    /// A control drawn under the selected item's form, in the same scroll (Exclusions › While holding's "Ignore gestures while
+    /// holding" card, plan 0012); null draws nothing, and it never shows while nothing is selected. The host binds it.
+    /// </summary>
+    public object? DetailFooter
+    {
+        get => GetValue(DetailFooterProperty);
+        set => SetValue(DetailFooterProperty, value);
     }
 
     public bool HasDetail

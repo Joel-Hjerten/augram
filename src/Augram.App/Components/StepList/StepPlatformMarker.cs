@@ -35,6 +35,49 @@ public static class StepPlatformMarker
         };
     }
 
+    /// <summary>
+    /// An Exclusions › While holding input's row in the same words as a step's (plan 0012 decision 11): itself where authored
+    /// here; from the other platform "Ctrl → Cmd" with "from Windows · converted" when it reads otherwise here, itself with
+    /// "from Windows · needs a macOS version" when it has no counterpart, else itself with "from Windows".
+    /// </summary>
+    public static StepRowText For(WhileHoldingInput input, HostPlatform here)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var original = input.Input.Describe(input.AuthoredOn);
+        if (input.AuthoredOn == here)
+        {
+            return new StepRowText(original, null);
+        }
+
+        var from = $"from {input.AuthoredOn.DisplayName()}";
+        return input.ForPlatform(here) switch
+        {
+            null => new StepRowText(original, $"{from} · needs a {here.DisplayName()} version"),
+            var converted when converted.Describe(here) is var there && there != original => new StepRowText($"{original} → {there}", $"{from} · converted"),
+            _ => new StepRowText(original, from),
+        };
+    }
+
+    /// <summary>The marker of a While holding list as it shows on <paramref name="here"/>, as <see cref="ForSteps"/> words a step list's.</summary>
+    public static string? ForInputs(IReadOnlyList<WhileHoldingInput> inputs, HostPlatform here)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        var elsewhere = inputs.Where(input => input.AuthoredOn != here).ToList();
+        if (elsewhere.Count == 0)
+        {
+            return null;
+        }
+
+        var marker = $"from {elsewhere[0].AuthoredOn.DisplayName()}";
+        var missing = elsewhere.Count(input => input.ForPlatform(here) is null);
+        if (missing > 0)
+        {
+            return $"{marker} · {missing} need{(missing == 1 ? "s" : string.Empty)} a {here.DisplayName()} version";
+        }
+
+        return elsewhere.Any(input => input.ForPlatform(here)!.Describe(here) != input.Input.Describe(input.AuthoredOn)) ? $"{marker} · converted" : marker;
+    }
+
     public static string? ForCommand(Command command, HostPlatform here)
     {
         ArgumentNullException.ThrowIfNull(command);

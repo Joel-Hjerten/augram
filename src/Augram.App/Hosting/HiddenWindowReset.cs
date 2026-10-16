@@ -43,7 +43,7 @@ public static class HiddenWindowReset
             }
         }
 
-        foreach (var scope in new[] { IgnoreScope.Global, IgnoreScope.PerCommand })
+        foreach (var scope in new[] { IgnoreScope.Global, IgnoreScope.PerCommand, IgnoreScope.WhileHolding })
         {
             if (services.GetKeyedService<IgnoredViewModel>(scope) is { } ignored)
             {

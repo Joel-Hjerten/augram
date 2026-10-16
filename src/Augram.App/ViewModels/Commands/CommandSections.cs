@@ -212,7 +212,7 @@ internal static class CommandSections
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(command);
         var names = command.AlsoIn
-            .Select(id => document.Ignored.FirstOrDefault(app => app.Id == id && !app.IsPerCommand)?.Name)
+            .Select(id => document.Ignored.FirstOrDefault(app => app.Id == id && app.IsGlobal)?.Name)
             .OfType<string>()
             .Order(MappingRules.NameComparer)
             .ToList();

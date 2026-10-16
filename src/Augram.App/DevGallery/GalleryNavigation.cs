@@ -58,6 +58,8 @@ public static class GalleryNavigation
         new("Exclusions, searching", Key + ".ignored.search", SearchGalleryPages.IgnoredSearchPage),
         new("Exclusions per command", Key + ".ignored.percommand", IgnoredGalleryPages.PerCommandPage),
         new("Exclusions allowed for", Key + ".ignored.allowedfor", IgnoredGalleryPages.AllowedForPage),
+        new("Exclusions while holding", Key + ".ignored.whileholding", IgnoredGalleryPages.WhileHoldingPage),
+        new("Exclusions while holding, macOS side", Key + ".ignored.whileholding.mac", IgnoredGalleryPages.WhileHoldingMacSidePage),
         new("MasterDetail", Key + ".masterdetail", IgnoredGalleryPages.MasterDetailPage),
         new("WindowFinder", Key + ".windowfinder", IgnoredGalleryPages.WindowFinderPage),
         new("Sync join", Key + ".syncjoin", SyncGalleryPages.JoinPage),

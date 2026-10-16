@@ -17,7 +17,9 @@
         xmlns:sync="using:Augram.App.Components.SyncConflictList"
         xmlns:wf="using:Augram.App.Components.WindowFinder"
         xmlns:hk="using:Augram.App.Components.Capture"
-        xmlns:search="using:Augram.App.Components.SearchBox">
+        xmlns:search="using:Augram.App.Components.SearchBox"
+        xmlns:parts="using:Augram.App.Components.Parts"
+        xmlns:held="using:Augram.App.Components.HeldInputList">
   <!--
     The glass look for lists, panels and the workbenches (plan 0006 step 4; visual reference
     design/mockups/augram-glass-theme.html: .island, .ihead, .row, .gt, .tag, .steps, .ggrid, .log). Included by Default.axaml
@@ -689,9 +691,14 @@
                   <TextBlock Classes="panel-empty"
                              Text="{TemplateBinding EmptyDetailText}"
                              IsVisible="{TemplateBinding HasDetail, Converter={x:Static BoolConverters.Not}}" />
-                  <form:SectionForm Name="PART_Detail"
-                                    Screen="{TemplateBinding Detail}"
-                                    IsVisible="{TemplateBinding HasDetail}" />
+                  <!-- The form and the host's footer under it (plan 0012: While holding's card) in one scroll, laid out as a form is. -->
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="12,8,12,12" MaxWidth="{StaticResource Form.MaxWidth}" IsVisible="{TemplateBinding HasDetail}">
+                      <form:SectionForm Name="PART_Detail" Classes="embedded" Screen="{TemplateBinding Detail}" IsVisible="{TemplateBinding HasDetail}" />
+                      <ContentPresenter Content="{TemplateBinding DetailFooter}"
+                                        IsVisible="{TemplateBinding DetailFooter, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                  </ScrollViewer>
                 </Panel>
               </Grid>
             </DockPanel>
@@ -892,10 +899,11 @@
         </Setter>
       </ControlTheme>
 
-      <!-- The "Steps for" row (plan 0010), the first row of the Steps card (Joel, 0.14.3: as "Fields for" is of App identification).
-           Padded as a form row (Form.RowPadding, Form.RowMinHeight), and split from the steps under it by a form card's row line
-           (Layer.Divider). Without a command it is not drawn at all. -->
-      <ControlTheme x:Key="{x:Type header:StepSideBar}" TargetType="header:StepSideBar">
+      <!-- A per-platform list's "… for" row (PlatformSideBar: the Steps card's "Steps for", plan 0010, the While holding card's
+           "Ignore for", plan 0012), the card's first row (Joel, 0.14.3: as "Fields for" is of App identification).
+           Padded as a form row (Form.RowPadding, Form.RowMinHeight), and split from the rows under it by a form card's row line
+           (Layer.Divider). Without a side it is not drawn at all. -->
+      <ControlTheme x:Key="{x:Type parts:PlatformSideBar}" TargetType="parts:PlatformSideBar">
         <Setter Property="Padding" Value="{StaticResource Form.RowPadding}" />
         <Setter Property="MinHeight" Value="{StaticResource Form.RowMinHeight}" />
         <Setter Property="Template">
@@ -904,28 +912,30 @@
                     MinHeight="{TemplateBinding MinHeight}"
                     BorderBrush="{DynamicResource Layer.Divider}"
                     BorderThickness="0,0,0,1"
-                    IsVisible="{TemplateBinding HasStepSide}">
-              <!-- Plan 0010: which platform's steps the list shows (a view switch, the "Fields for" look, this computer's platform
+                    IsVisible="{TemplateBinding HasSide}">
+              <!-- Plan 0010: which platform's list the card shows (a view switch, the "Fields for" look, this computer's platform
                    outlined), then Copy from and Mark as checked when they apply, Copy first so it never moves, and on the other
                    platform's side its note last (Joel, 0.14.2: one line). -->
               <WrapPanel VerticalAlignment="Center" ItemSpacing="{StaticResource Space.M}" LineSpacing="4">
                   <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Classes="bench-label" Text="Steps for" />
-                    <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:StepSideBar.StepsForHelp}" />
+                    <TextBlock Classes="bench-label" Text="{TemplateBinding Label}" />
+                    <TextBlock Classes="help-icon"
+                               ToolTip.Tip="{TemplateBinding Help}"
+                               IsVisible="{TemplateBinding Help, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <RadioButton Name="PART_StepsForWindows" Classes="button-radio" Content="Windows" />
-                    <RadioButton Name="PART_StepsForMac" Classes="button-radio" Content="macOS" />
+                    <RadioButton Name="PART_ForWindows" Classes="button-radio" Content="Windows" />
+                    <RadioButton Name="PART_ForMac" Classes="button-radio" Content="macOS" />
                   </StackPanel>
-                  <Button Name="PART_CopySteps"
+                  <Button Name="PART_Copy"
                           Classes="toolbar"
-                          Content="{TemplateBinding CopyStepsText}"
-                          IsVisible="{TemplateBinding CopyStepsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                          Content="{TemplateBinding CopyText}"
+                          IsVisible="{TemplateBinding CopyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   <Button Name="PART_MarkChecked" Classes="toolbar" Content="Mark as checked" IsVisible="{TemplateBinding CanMarkChecked}" />
                   <TextBlock Classes="bench-note"
-                             Text="{TemplateBinding StepSideText}"
+                             Text="{TemplateBinding NoteText}"
                              VerticalAlignment="Center"
-                             IsVisible="{TemplateBinding StepSideText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                             IsVisible="{TemplateBinding NoteText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </WrapPanel>
             </Border>
           </ControlTemplate>
@@ -1015,6 +1025,120 @@
                 <Border Name="PART_FormHost" Classes="step-form" IsVisible="{TemplateBinding IsExpanded}">
                   <ContentPresenter Content="{TemplateBinding Form}" />
                 </Border>
+              </StackPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- Exclusions › While holding's "Ignore gestures while holding" card (plan 0012): the step list's layout (title line with
+           New…, then a card whose first row is "Ignore for", the recorder line while adding, the rows as step cards). -->
+      <ControlTheme x:Key="{x:Type held:HeldInputList}" TargetType="held:HeldInputList">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <StackPanel>
+              <Grid Margin="4,4,4,8" ColumnDefinitions="Auto,*">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                  <TextBlock Classes="section-heading" Text="Ignore gestures while holding" VerticalAlignment="Center" />
+                  <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static held:HeldInputList.Help}" />
+                </StackPanel>
+                <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" ItemSpacing="6" LineSpacing="4">
+                  <Button Name="PART_New"
+                          Classes="toolbar primary"
+                          Content="New…"
+                          IsVisible="{TemplateBinding IsReadOnly, Converter={x:Static BoolConverters.Not}}" />
+                </WrapPanel>
+              </Grid>
+              <Panel>
+                <Border Background="{DynamicResource Layer.Panel}"
+                        BorderBrush="{DynamicResource Layer.Edge}"
+                        BorderThickness="{StaticResource Border.Hairline}"
+                        CornerRadius="{DynamicResource Radius.Panel}">
+                  <StackPanel>
+                    <parts:PlatformSideBar Name="PART_Side" />
+                    <held:HeldInputPicker Name="PART_Picker"
+                                          Platform="{TemplateBinding Platform}"
+                                          IsVisible="{TemplateBinding IsAdding}" />
+                    <TextBlock Classes="panel-empty"
+                               Text="{TemplateBinding EmptyText}"
+                               IsVisible="{TemplateBinding EmptyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <ListBox Name="PART_Rows"
+                             ItemsSource="{TemplateBinding Rows}"
+                             ItemContainerTheme="{StaticResource Lists.Step}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0"
+                             Margin="10,8,10,8"
+                             AutoScrollToSelectedItem="False"
+                             SelectionMode="Single">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                    </ListBox>
+                  </StackPanel>
+                </Border>
+                <Border BorderBrush="{DynamicResource Layer.EdgeTop}" BorderThickness="0,1,0,0" CornerRadius="{DynamicResource Radius.Panel}" IsHitTestVisible="False" />
+              </Panel>
+            </StackPanel>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- One held input: a step row's frame (grip and number, the name with the hold-key warning under it, the F8 marker), and on
+           the other platform's side its Copy to link. -->
+      <ControlTheme x:Key="{x:Type held:HeldInputRow}" TargetType="held:HeldInputRow">
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Frame" Classes="row">
+              <Grid Classes="row-line" ColumnDefinitions="Auto,*,Auto,Auto">
+                <StackPanel Grid.Column="0" Name="PART_Grip" Orientation="Horizontal">
+                  <TextBlock Classes="drag-handle" Text="⋮⋮" />
+                  <TextBlock Classes="row-index" Text="{TemplateBinding IndexText}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{StaticResource Space.XS}">
+                  <TextBlock Name="PART_Name" Classes="row-name" Text="{TemplateBinding NameText}" />
+                  <TextBlock Classes="row-summary warn"
+                             Text="{TemplateBinding WarningText}"
+                             TextWrapping="Wrap"
+                             IsVisible="{TemplateBinding HasWarning}" />
+                </StackPanel>
+                <TextBlock Grid.Column="2"
+                           Classes="platform-marker"
+                           Text="{TemplateBinding MarkerText}"
+                           IsVisible="{TemplateBinding HasMarker}"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="3"
+                        Name="PART_CopyTo"
+                        Classes="link"
+                        VerticalAlignment="Center"
+                        Content="{TemplateBinding CopyToText}"
+                        IsVisible="{TemplateBinding CopyToText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- The While holding card's recorder line (New…): record a key, listen for a mouse button, or pick from the drop-down;
+           padded as a form row and split from the rows by its line. -->
+      <ControlTheme x:Key="{x:Type held:HeldInputPicker}" TargetType="held:HeldInputPicker">
+        <Setter Property="Padding" Value="{StaticResource Form.RowPadding}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Padding="{TemplateBinding Padding}" BorderBrush="{DynamicResource Layer.Divider}" BorderThickness="0,0,0,1">
+              <StackPanel Spacing="{StaticResource Space.S}">
+                <WrapPanel ItemSpacing="{StaticResource Space.M}" LineSpacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" VerticalAlignment="Top">
+                    <TextBlock Classes="bench-label" Text="Key" VerticalAlignment="Center" />
+                    <hk:HotkeyCaptureBox Name="PART_Key" />
+                  </StackPanel>
+                  <Button Name="PART_Button" Classes="toolbar" Content="Mouse button…" VerticalAlignment="Top" />
+                  <ComboBox Name="PART_Pick" Classes="field-editor" PlaceholderText="{x:Static held:HeldInputPicker.PickPlaceholder}" VerticalAlignment="Top" />
+                  <Button Name="PART_Cancel" Classes="toolbar" Content="Cancel" VerticalAlignment="Top" />
+                </WrapPanel>
+                <TextBlock Classes="bench-note" Text="{TemplateBinding ButtonStatus}" IsVisible="{TemplateBinding HasButtonStatus}" />
               </StackPanel>
             </Border>
           </ControlTemplate>
@@ -1314,7 +1438,7 @@
   <Style Selector="StackPanel.list-filter">
     <Setter Property="Spacing" Value="{StaticResource Space.S}" />
   </Style>
-  <!-- The dragged step floats above the others under the pointer (StepDragReorder): solid, with the accent's tint, so it reads as picked up (Joel, 0.11.12: half see-through, it seemed to vanish). -->
+  <!-- The dragged step floats above the others under the pointer (ListEditing/RowDragReorder): solid, with the accent's tint, so it reads as picked up (Joel, 0.11.12: half see-through, it seemed to vanish). -->
   <Style Selector="steps|StepRow:dragging /template/ Border.row">
     <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
   </Style>
@@ -1331,6 +1455,16 @@
   </Style>
   <Style Selector="steps|StepRow:readonly /template/ CheckBox#PART_Active">
     <Setter Property="IsEnabled" Value="False" />
+  </Style>
+  <!-- Plan 0012: the While holding inputs drawn as steps are: the dragged row tinted, the other platform's side a step back with no grip. -->
+  <Style Selector="held|HeldInputRow:dragging /template/ Border.row">
+    <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+  </Style>
+  <Style Selector="held|HeldInputList:readonly /template/ ListBox#PART_Rows">
+    <Setter Property="Opacity" Value="0.55" />
+  </Style>
+  <Style Selector="held|HeldInputRow:readonly /template/ TextBlock.drag-handle">
+    <Setter Property="IsVisible" Value="False" />
   </Style>
 
   <!-- A section header's chevron: right while collapsed, down while open. -->

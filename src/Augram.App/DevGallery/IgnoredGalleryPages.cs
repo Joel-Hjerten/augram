@@ -1,10 +1,12 @@
 #if DEBUG
+using Augram.App.Components.HeldInputList;
 using Augram.App.Components.MasterDetail;
 using Augram.App.Components.WindowFinder;
 using Augram.App.Declarations;
 using Augram.App.ViewModels;
 using Augram.App.ViewModels.Ignored;
 using Augram.Core.Abstractions;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
 namespace Augram.App.DevGallery;
@@ -47,6 +49,47 @@ public static class IgnoredGalleryPages
         vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, vm.Items.Single(item => item.Name == "Blender")));
         return Screens.IgnoredScreen.Declare(vm);
     }
+
+    /// <summary>
+    /// Exclusions › While holding (plan 0012) on a PC, Blender selected: its Windows list Alt, Space and Win (the original), with
+    /// Space warned as the hold key of Blender › Space; After Effects beside it has its own macOS list. The card opens on Windows.
+    /// </summary>
+    public static ScreenDeclaration WhileHoldingPage() => WhileHolding(HostPlatform.Windows, "Blender");
+
+    /// <summary>After Effects with the card switched to macOS: its own macOS list (S), read-only, with Copy to Windows on its row.</summary>
+    public static ScreenDeclaration WhileHoldingMacSidePage() => WhileHolding(HostPlatform.MacOS, "After Effects");
+
+    /// <summary>A store with Blender (a hold remap on Space) and two While holding entries, one inferred on macOS and one with an own macOS list.</summary>
+    public static MappingStore WhileHoldingStore()
+    {
+        var blenderApp = new AppMatcher { WindowsProcessNames = ["blender.exe"], MacProcessNames = ["Blender"] };
+        var blender = new AppGroup(GroupId.New(), "Blender", IsActive: true, SuppressGlobals: false, blenderApp, []) { HoldRemaps = [HoldRemap.For(KeyCode.Space)] };
+        var onBlender = new IgnoredApp(GroupId.New(), "Blender", IsActive: true, blenderApp, DisableEntirely: false)
+        {
+            Scope = IgnoreScope.WhileHolding,
+            Holding = new PlatformList<WhileHoldingInput>(
+                [Windows(new KeyOrButton.Modifier(KeyModifiers.Alt)), Windows(new KeyOrButton.Key(KeyCode.Space)), Windows(new KeyOrButton.Modifier(KeyModifiers.Meta))],
+                null),
+        };
+        var afterEffects = new IgnoredApp(GroupId.New(), "After Effects", IsActive: true, new AppMatcher { WindowsProcessNames = ["AfterFX.exe"], MacProcessNames = ["After Effects"] }, DisableEntirely: false)
+        {
+            Scope = IgnoreScope.WhileHolding,
+            Holding = new PlatformList<WhileHoldingInput>(
+                [Windows(new KeyOrButton.Modifier(KeyModifiers.Alt))],
+                new PlatformVersion<WhileHoldingInput>(HostPlatform.MacOS, [new(new KeyOrButton.Key(KeyCode.S), HostPlatform.MacOS)])),
+        };
+        return new MappingStore(new MappingDocument([AppGroup.EmptyGlobal, blender], [onBlender, afterEffects]));
+    }
+
+    private static ScreenDeclaration WhileHolding(HostPlatform shown, string selected)
+    {
+        var vm = new IgnoredViewModel(WhileHoldingStore(), new CommandGalleryFakes.FormDialogs(), new CommandGalleryFakes.Confirm(), HostPlatform.Windows, IgnoreScope.WhileHolding, new CommandGalleryFakes.Locator());
+        vm.Handle(new MasterDetailActionEventArgs(MasterDetailAction.Select, vm.Items.Single(item => item.Name == selected)));
+        vm.HandleHeldInput(new HeldInputListActionEventArgs(HeldInputListAction.ShowSide, platform: shown));
+        return Screens.IgnoredScreen.Declare(vm);
+    }
+
+    private static WhileHoldingInput Windows(KeyOrButton input) => new(input, HostPlatform.Windows);
 
     /// <summary>The bare component: nothing in the list, then three items with the second selected and its form beside it.</summary>
     public static ScreenDeclaration MasterDetailPage()

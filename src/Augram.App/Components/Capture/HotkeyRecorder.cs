@@ -81,6 +81,18 @@ public sealed class HotkeyRecorder
         Key = key;
     }
 
+    /// <summary>
+    /// <paramref name="key"/> alone as the combination, a modifier key included (a one-key field that takes modifiers, plan 0012):
+    /// no modifiers, and the key is still counted as held so its release is tracked.
+    /// </summary>
+    public void Alone(KeyCode key)
+    {
+        Down(key, KeyModifiers.None);
+        Modifiers = KeyModifiers.None;
+        RightHand = KeyModifiers.None;
+        Key = key;
+    }
+
     public void Up(KeyCode key)
     {
         var modifier = HotkeyKeys.ModifierOf(key);

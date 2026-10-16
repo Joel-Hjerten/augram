@@ -89,7 +89,7 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
         _platform = platform;
         _trigger = new TriggerEditor(store, gestures, picker, platform, this);
         _steps = new StepEditor(store, clipboard, platform, _trigger, this);
-        _panel = new SectionPanel(store, this);
+        _panel = new SectionPanel(store, platform, this);
         _stepsView = new PlatformSideView(platform);
         _store.Changed += OnStoreChanged;
         _gestures.Changed += OnStoreChanged;

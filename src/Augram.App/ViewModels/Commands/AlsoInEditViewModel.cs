@@ -73,7 +73,7 @@ public sealed class AlsoInEditViewModel : ObservableObject, IDialogForm
     public static bool Offered(IgnoredApp app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        return !app.IsPerCommand && !app.DisableEntirely;
+        return app.IsGlobal && !app.DisableEntirely;
     }
 
     /// <summary>True when no other command names the entry and it is not ticked here: it reads "unused" and may be removed.</summary>

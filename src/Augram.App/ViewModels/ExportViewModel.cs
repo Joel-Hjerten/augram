@@ -161,7 +161,12 @@ public sealed partial class ExportViewModel : ObservableObject, IDialogForm
     private static IEnumerable<ExportItem> IgnoredItems(MappingDocument mapping)
         => mapping.Ignored
             .OrderBy(app => app.Name, MappingRules.NameComparer)
-            .Select(app => new ExportItem(app.Id, IsIgnoredApp: true, app.Name, app.IsPerCommand ? "Per command app" : "excluded app"));
+            .Select(app => new ExportItem(app.Id, IsIgnoredApp: true, app.Name, app.Scope switch
+            {
+                IgnoreScope.PerCommand => "Per command app",
+                IgnoreScope.WhileHolding => "While holding app",
+                _ => "excluded app",
+            }));
 
     /// <summary>"8 commands · 1 hold remap · Windows only".</summary>
     private static string GroupDetail(AppGroup group)

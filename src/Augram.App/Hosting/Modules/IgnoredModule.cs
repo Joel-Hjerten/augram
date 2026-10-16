@@ -12,8 +12,8 @@ namespace Augram.App.Hosting.Modules;
 /// <summary>
 /// The Exclusions tab's slice of the composition root (F5 ignore list; plan 0001 M2 step 6; Global / Per command, plan 0004;
 /// "Exclusions" in the UI since plan 0005, "Ignored" in the code):
-/// one <see cref="IgnoredViewModel"/> per sub-tab (keyed singletons, <see cref="IgnoreScope.Global"/> and
-/// <see cref="IgnoreScope.PerCommand"/>), process-lifetime like the Commands tabs' (the selection survives tab switches), and
+/// one <see cref="IgnoredViewModel"/> per sub-tab (keyed singletons, <see cref="IgnoreScope.Global"/>,
+/// <see cref="IgnoreScope.PerCommand"/> and <see cref="IgnoreScope.WhileHolding"/>, plan 0012), process-lifetime like the Commands tabs' (the selection survives tab switches), and
 /// the tab entry with its two sub-tabs. Resolves <see cref="MappingStore"/> (<see cref="ConfigModule"/>) and the form dialog
 /// and confirm presenters (<see cref="DialogsModule"/>), and takes the Commands tab's <see cref="ICommandLocator"/> when there
 /// is one (a Per command entry's "Used by" opens its commands through it).
@@ -25,6 +25,7 @@ public static class IgnoredModule
         ArgumentNullException.ThrowIfNull(services);
         services.AddKeyedSingleton(IgnoreScope.Global, (sp, _) => Create(sp, IgnoreScope.Global));
         services.AddKeyedSingleton(IgnoreScope.PerCommand, (sp, _) => Create(sp, IgnoreScope.PerCommand));
+        services.AddKeyedSingleton(IgnoreScope.WhileHolding, (sp, _) => Create(sp, IgnoreScope.WhileHolding));
         return services;
     }
 
@@ -32,7 +33,7 @@ public static class IgnoredModule
     public const string Title = "Exclusions";
 
     /// <summary>
-    /// The Exclusions tab with its Global and Per command sub-tabs; <c>AppNavigation.Build</c> puts it second. Without
+    /// The Exclusions tab with its Global, Per command and While holding sub-tabs; <c>AppNavigation.Build</c> puts it second. Without
     /// <see cref="Register"/> each says so instead of failing the window.
     /// </summary>
     public static NavEntry NavEntry(IServiceProvider services)
@@ -42,6 +43,7 @@ public static class IgnoredModule
         [
             SubEntry(services, "Global", AppNavigation.IgnoredGlobalKey, IgnoreScope.Global),
             SubEntry(services, "Per command", AppNavigation.IgnoredPerCommandKey, IgnoreScope.PerCommand),
+            SubEntry(services, "While holding", AppNavigation.IgnoredWhileHoldingKey, IgnoreScope.WhileHolding),
         ]);
     }
 

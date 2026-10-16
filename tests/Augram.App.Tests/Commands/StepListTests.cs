@@ -279,7 +279,7 @@ public sealed class StepListTests
 
         // Closed here only, so its form is not dragged along: the host is not asked, and the other open step stays open.
         window.MouseDown(from, MouseButton.Left);
-        window.MouseMove(new Point(from.X, from.Y + StepDragReorder.ThresholdPx + 2));
+        window.MouseMove(new Point(from.X, from.Y + IReorderRow.DragThresholdPx + 2));
         Assert.Contains(":dragging", list.Rows[0].Classes);
         Assert.Empty(actions);
         Assert.Equal([0, 1], list.OpenIndexes);

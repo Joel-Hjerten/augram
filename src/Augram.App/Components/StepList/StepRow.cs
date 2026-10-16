@@ -22,7 +22,7 @@ namespace Augram.App.Components.StepList;
 /// <c>PART_Header</c>, the header line, is where the list anchors the "Change to…" picker (<see cref="HeaderPart"/>).
 /// </summary>
 [PseudoClasses(":expanded", ":dragging", ":readonly")]
-public sealed class StepRow : ItemRow
+public sealed class StepRow : ItemRow, IReorderRow
 {
     public static readonly StyledProperty<StepItem?> ItemProperty =
         AvaloniaProperty.Register<StepRow, StepItem?>(nameof(Item));
@@ -128,6 +128,10 @@ public sealed class StepRow : ItemRow
 
     /// <summary>How far a drag in progress shows this row from its place, in pixels (the dragged row under the pointer, the others making room); 0 at rest.</summary>
     public double DragOffset { get; internal set; }
+
+    int IReorderRow.ReorderIndex => Item?.Index ?? -1;
+
+    double IReorderRow.DragOffset { get => DragOffset; set => DragOffset = value; }
 
     /// <summary>
     /// Whether a press landed on the grip: on the header line, left of where <c>PART_Grip</c> (the drag handle and the

@@ -83,7 +83,7 @@ public sealed partial class CommandsViewModel
             return [.. command.StepsFor(shown).Select((step, index) => StepItemProjection.From(step, index, shown))];
         }
 
-        var editable = StepEditor.EditableSteps(command, shown);
+        var editable = command.EditableStepsFor(shown);
         return [.. command.StepsFor(shown).Select((step, index) => StepItemProjection.From(step, index, shown) with { Step = editable[index] })];
     }
 

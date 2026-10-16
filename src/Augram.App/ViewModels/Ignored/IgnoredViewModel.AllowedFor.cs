@@ -24,7 +24,7 @@ public sealed partial class IgnoredViewModel
     /// </summary>
     private async Task EditAllowedForAsync(GroupId id)
     {
-        if (_store.FindIgnored(id) is not { IsPerCommand: false, DisableEntirely: false } app)
+        if (_store.FindIgnored(id) is not { IsGlobal: true, DisableEntirely: false } app)
         {
             return;
         }

@@ -1,4 +1,5 @@
 using Augram.App.Components.CommandTree;
+using Augram.Core.Abstractions;
 using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 
@@ -18,6 +19,7 @@ namespace Augram.App.ViewModels.Commands;
 internal sealed class SectionPanel
 {
     private readonly MappingStore _store;
+    private readonly HostPlatform _platform;
     private readonly ICommandsHost _host;
 
     // GuessText is computed from the fields; its notice follows a real edit that is applied already.
@@ -25,12 +27,13 @@ internal sealed class SectionPanel
     private readonly PanelEdit<HoldRemapEditViewModel, (GroupId Group, HoldRemapId HoldRemap)> _holdRemap;
     private readonly PanelEdit<CategoryEditViewModel, (GroupId Group, CategoryId Category)> _category;
 
-    public SectionPanel(MappingStore store, ICommandsHost host)
+    public SectionPanel(MappingStore store, HostPlatform platform, ICommandsHost host)
     {
         _store = store;
+        _platform = platform;
         _host = host;
         _group = new(OnGroupEdited, nameof(AppMatcherEditViewModel.GuessText));
-        _holdRemap = new(OnHoldRemapEdited);
+        _holdRemap = new(OnHoldRemapEdited, nameof(HoldRemapEditViewModel.HoldKeyWarning));
         _category = new(OnCategoryEdited);
     }
 
@@ -81,11 +84,24 @@ internal sealed class SectionPanel
 
     /// <summary>
     /// The selected hold remap's form (F9, plan 0002 step 4; as a category's on the Global tab): name, hold key, tap time, active
-    /// and Use on (<see cref="HoldRemapEditViewModel"/>).
+    /// and Use on (<see cref="HoldRemapEditViewModel"/>), and the hold key's warning when an Exclusions › While holding entry for
+    /// the same app lists it (plan 0012 decision 10: <see cref="HoldKeyConflicts.ForHoldRemap"/>), re-read on every store change.
     /// </summary>
     private void ShowHoldRemap(GroupId groupId, HoldRemap holdRemap)
     {
-        if (_holdRemap.Show((groupId, holdRemap.Id), () => HoldRemapEditViewModel.From(holdRemap), edit => edit.SyncFrom(holdRemap)) is { } shown)
+        void Warn(HoldRemapEditViewModel edit)
+            => edit.HoldKeyWarning = HoldKeyConflicts.ForHoldRemap(_store.Current, groupId, holdRemap.Id, _platform).FirstOrDefault()?.OnHoldRemap(_platform);
+
+        if (_holdRemap.Show(
+            (groupId, holdRemap.Id),
+            () =>
+            {
+                var edit = HoldRemapEditViewModel.From(holdRemap);
+                Warn(edit);
+                return edit;
+            },
+            edit => edit.SyncFrom(holdRemap),
+            Warn) is { } shown)
         {
             _host.ShowForm(shown.Declare());
         }

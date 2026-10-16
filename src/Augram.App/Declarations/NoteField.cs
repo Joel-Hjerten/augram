@@ -15,6 +15,9 @@ public sealed record NoteField(
     {
     }
 
+    /// <summary>A warning, not an explanation (a hold key also on Exclusions › While holding, plan 0012): drawn in the warning colour.</summary>
+    public bool Warns { get; init; }
+
     public override string Kind => "Note";
 
     public override IValueBinding Binding => Text;

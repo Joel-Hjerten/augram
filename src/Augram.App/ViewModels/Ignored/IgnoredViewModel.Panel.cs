@@ -18,12 +18,13 @@ public sealed partial class IgnoredViewModel
 {
     private PanelEdit<IgnoredEditViewModel, GroupId>? _panel;
 
-    // GuessText is computed from the fields; its notice follows a real edit that is applied already. UsedBy and AllowedFor are the host's.
+    // GuessText is computed from the fields; its notice follows a real edit that is applied already. UsedBy, AllowedFor and GlobalNote are the host's.
     private PanelEdit<IgnoredEditViewModel, GroupId> Panel => _panel ??= new(
         OnEdited,
         nameof(AppMatcherEditViewModel.GuessText),
         nameof(IgnoredEditViewModel.UsedBy),
-        nameof(IgnoredEditViewModel.AllowedFor));
+        nameof(IgnoredEditViewModel.AllowedFor),
+        nameof(IgnoredEditViewModel.GlobalNote));
 
     /// <summary>The selected app's form; null while nothing is selected.</summary>
     [ObservableProperty]
@@ -32,6 +33,7 @@ public sealed partial class IgnoredViewModel
     private void ProjectDetail()
     {
         var app = SelectedId is { } id ? _store.FindIgnored(new GroupId(id)) : null;
+        ProjectHeldInputs(app);
         if (app is null)
         {
             Panel.Close();
@@ -44,24 +46,40 @@ public sealed partial class IgnoredViewModel
             () =>
             {
                 var edit = IgnoredEditViewModel.From(app);
-                edit.UsedBy = app.IsPerCommand ? UsedByLinks(app.Id) : [];
-                edit.AllowedFor = app.IsPerCommand ? [] : AllowedForLinks(app.Id);
+                Refresh(edit, app);
                 var allowedId = app.Id;
-                edit.EditAllowedFor = app.IsPerCommand ? null : () => _ = EditAllowedForAsync(allowedId);
+                edit.EditAllowedFor = app.IsGlobal ? () => _ = EditAllowedForAsync(allowedId) : null;
                 return edit;
             },
             edit => edit.SyncFrom(app),
-            edit =>
-            {
-                // A command ticking or unticking the entry in its Not in (or Also in) changes these, never the form.
-                edit.UsedBy = app.IsPerCommand ? UsedByLinks(app.Id) : [];
-                edit.AllowedFor = app.IsPerCommand ? [] : AllowedForLinks(app.Id);
-            });
+            edit => Refresh(edit, app));
         if (shown is not null)
         {
             Detail = shown.Declare();
         }
     }
+
+    /// <summary>
+    /// What the host fills in the form, never an edit, re-read on every store change: a command ticking or unticking the entry in
+    /// its Not in (or Also in) changes the links; a Global entry for the same app changes a While holding entry's note (plan 0012
+    /// decision 9).
+    /// </summary>
+    private void Refresh(IgnoredEditViewModel edit, IgnoredApp app)
+    {
+        edit.UsedBy = app.IsPerCommand ? UsedByLinks(app.Id) : [];
+        edit.AllowedFor = app.IsGlobal ? AllowedForLinks(app.Id) : [];
+        edit.GlobalNote = app.IsWhileHolding ? GlobalNote(app) : null;
+    }
+
+    /// <summary>
+    /// "'Blender' on Exclusions › Global names this app too: gestures pass through there anyway; this list adds only its hold
+    /// remaps.", for a While holding entry whose app an active Global entry also names on this platform (plan 0012 decision 9;
+    /// the hold-key conflict's matcher comparison, <see cref="AppMatcher.SharesExecutableWith"/>); null otherwise.
+    /// </summary>
+    private string? GlobalNote(IgnoredApp app)
+        => _store.Current.Ignored.FirstOrDefault(other => other.IsGlobal && other.IsActive && other.Matcher.SharesExecutableWith(app.Matcher, _platform)) is { } global
+            ? $"'{global.Name}' on Exclusions › Global names this app too: gestures pass through there anyway; this list adds only its hold remaps."
+            : null;
 
     private void OnEdited(IgnoredEditViewModel edit, GroupId id, string? property)
     {

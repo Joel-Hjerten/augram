@@ -37,7 +37,7 @@ Paths are under `src/Augram.App/` unless they start with a project. Test classes
 | The layering (ADR-0002 §1) | Core references nothing; Engine, Platform, Sync.Git, Import only Core; Avalonia only in the App | an assembly reference against it (reflection) | `OneHomePlatformTests.ProjectsReferenceOnlyWhatTheLayeringAllows` |
 | Names joined for display | `Augram.Core/Mapping/CommandNames.Label` / `.Parent` | `" › "` joins; allowlisted: a form's region path and a tab's path | `OneHomeFormsTests.NamesAreJoinedOnlyByCommandNames` |
 | Retarget or unbind a gesture | `MappingStore.RetargetGesture` / `UnbindGesture` | `WithGestureReplaced(` outside `Core/Mapping/`, an `UpdateCommand` loop over `UsedBy(` | `OneHomeFormsTests.GesturesAreRetargetedOnlyByTheMappingStore` |
-| A list's platform sides (original, own version, inferred; plan 0012) | `Augram.Core/Mapping/PlatformSides` (`PlatformList<T>`; `Command.IsInferredOn`, `EditableStepsFor`) | an origin taken apart and compared with a platform by hand (`Origin is { } origin && origin != platform`); allowlisted: `Command.Trigger.cs` (the trigger converts from the origin); leftovers: `StepEditor`, `TriggerEditor`, `CommandItemProjection` | `OneHomeFormsTests.ThePlatformSideRulesLiveInPlatformSides` |
+| A list's platform sides (original, own version, inferred; plan 0012) | `Augram.Core/Mapping/PlatformSides` (`PlatformList<T>`; `Command.IsInferredOn`, `EditableStepsFor`) | an origin taken apart and compared with a platform by hand (`Origin is { } origin && origin != platform`); allowlisted: `Command.Trigger.cs` (the trigger converts from the origin) | `OneHomeFormsTests.ThePlatformSideRulesLiveInPlatformSides` |
 | What an app matcher matches | `AppMatcher.Summary` | `EffectiveProcessNames(`, `IsGuessedOn(`, `(guessed)`, "matches nothing yet", `"nothing on ` in the App | `OneHomeFormsTests.TheAppProjectsAMatcherOnlyThroughItsSummary` |
 | The Global rename rule | `MappingRules.EnsureNotRenamingGlobal` | "cannot be renamed" in the App | `OneHomeFormsTests.TheGlobalRenameRuleIsTheMappingRules` |
 | A side panel's form | `ViewModels/PanelEdit` (Commands: `SectionPanel`) | `bool _applying…`/`_syncing…`, `.PropertyChanged +=` in `CommandsViewModel*`, `IgnoredViewModel*`, `SectionPanel` | `OneHomeFormsTests.SidePanelFormsFollowThroughPanelEdit` |
@@ -77,7 +77,6 @@ The older rules on the theme stay where they were: `ComponentColorTests` (no lit
 - `CommandsViewModel.Categories` and `.HoldRemaps`: "no longer exists" written by hand (no `RequireCategory` yet; the hold remap's delete asks before `Guard`).
 - `Components/Steps/Run/RunStepForm`: the Browse… line is built by hand with `field-line`.
 - The HDR, Window, Display mode and Open app step forms keep their own `Emit` (S14's watch list).
-- `ViewModels/Commands/StepEditor` (`EditableSteps`, the fork test), `TriggerEditor.ForksHere` and `Projection/CommandItemProjection` compare a command's origin with the platform by hand: fold onto `Command.IsInferredOn` / `EditableStepsFor` / `PlatformSides.EditsOriginal` (plan 0012 step 3).
 
 ## Adding a guard when a new fold happens
 

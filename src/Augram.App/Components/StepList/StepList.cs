@@ -21,7 +21,7 @@ namespace Augram.App.Components.StepList;
 /// menu act on; selected is not open. A click on a step's header asks to open or close that step only (ToggleOpen); the grip
 /// only drags (Joel, 0.11.4), and a dragged step is closed while it is dragged, its form left behind. <c>PART_New</c> opens the <see cref="StepTypePicker"/>
 /// in a flyout, and the menu's "Change to…" another at the selected step's header (<c>StepList.Picker.cs</c>); the menu, the
-/// keymap and a left-button drag (<see cref="StepDragReorder"/>) end in the same event.
+/// keymap and a left-button drag (<see cref="RowDragReorder{TRow}"/>) end in the same event.
 /// Rows are reused when the count is unchanged, so a form survives the store echoing its own edit back. While
 /// <see cref="IsReadOnly"/> (plan 0010: the other platform's steps, a peek) it is <c>:readonly</c>: no New step…, no menu,
 /// no drag, no step opens, and it raises nothing but Undo and Redo. <see cref="CardHeader"/>, when set, is drawn as the card's
@@ -55,14 +55,14 @@ public sealed partial class StepList : TemplatedControl
         AvaloniaProperty.Register<StepList, IReadOnlyList<StepRow>>(nameof(Rows), []);
 
     private readonly RowListHost _rows;
-    private readonly StepDragReorder _drag;
+    private readonly RowDragReorder<StepRow> _drag;
     private Button? _new;
     private StepRow? _dragClosed;
 
     public StepList()
     {
         _rows = new RowListHost(() => IsEditing);
-        _drag = new StepDragReorder(() => Rows, () => _rows.List, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to), OnDragStarted, OnHeaderClicked, OnDragEnded);
+        _drag = new RowDragReorder<StepRow>(() => Rows, () => _rows.List, (from, to) => Raise(StepListAction.Reorder, Rows[from].Item, targetIndex: to), OnDragStarted, OnHeaderClicked, OnDragEnded);
     }
 
     public event EventHandler<StepListActionEventArgs>? ActionRequested;

@@ -32,17 +32,17 @@ public sealed class StepSideBarTests
         var bar = bench.StepSidePart!;
         var steps = bench.StepsPart!;
         Assert.True(bar.IsEffectivelyVisible);
-        Assert.True(bar.HasStepSide);
+        Assert.True(bar.HasSide);
         Assert.Contains(bar, steps.GetVisualDescendants());
         Assert.DoesNotContain(bar, bench.HeaderPart!.GetVisualDescendants());
-        Assert.DoesNotContain(bench.HeaderPart!.GetVisualDescendants().OfType<RadioButton>(), button => button.Name?.StartsWith("PART_StepsFor", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(bench.HeaderPart!.GetVisualDescendants().OfType<RadioButton>(), button => button.Name?.StartsWith("PART_For", StringComparison.Ordinal) == true);
         var rows = steps.GetVisualDescendants().OfType<ListBox>().Single(list => list.Name == "PART_Rows");
         Assert.True(bar.TranslatePoint(new Point(0, bar.Bounds.Height), rows)!.Value.Y <= 0, "the Steps for row sits above the step rows");
 
         var asked = new List<CommandTreeActionEventArgs>();
         bench.TreeActionRequested += (_, e) => asked.Add(e);
         var other = bar.Item!.StepSide!.Shown.Other();
-        bar.GetVisualDescendants().OfType<RadioButton>().Single(button => button.Name == (other == HostPlatform.Windows ? "PART_StepsForWindows" : "PART_StepsForMac")).IsChecked = true;
+        bar.GetVisualDescendants().OfType<RadioButton>().Single(button => button.Name == (other == HostPlatform.Windows ? "PART_ForWindows" : "PART_ForMac")).IsChecked = true;
         var ask = Assert.Single(asked);
         Assert.Equal(CommandTreeAction.ShowStepsFor, ask.Action);
         Assert.Equal(other, ask.Platform);

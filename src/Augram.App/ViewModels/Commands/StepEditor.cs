@@ -12,7 +12,7 @@ namespace Augram.App.ViewModels.Commands;
 /// form's edit included, becomes one <c>UpdateCommand</c> on the selected command, one undo step each. The list edited is this
 /// platform's (F8): the original where it was authored, the own version where it has one, and otherwise the converted
 /// original, so the first edit on the other platform makes its own steps from what was running there
-/// (<see cref="Command.WithStepsFor"/>; <see cref="EditableSteps"/>). A step added (new, duplicated or pasted) or changed to
+/// (<see cref="Command.WithStepsFor"/>; <see cref="Command.EditableStepsFor"/>). A step added (new, duplicated or pasted) or changed to
 /// another type is first offered to Core's <see cref="StepOffer"/>, as "New step…" and "Change to…" grey a type by, against
 /// the header's trigger (<see cref="TriggerEditor.DraftedTrigger"/>, a draft included). It owns no state: the selected step
 /// and the open ones are the view model's (<see cref="CommandsViewModel.SelectedStepIndex"/>,
@@ -36,12 +36,6 @@ internal sealed class StepEditor
         _host = host;
     }
 
-    /// <summary>The step list this platform edits: its own version, the original where it was authored, else the converted original.</summary>
-    public static IReadOnlyList<CommandStep> EditableSteps(Command command, HostPlatform platform)
-        => command.Origin is { } origin && origin != platform && command.OwnVersion?.Platform != platform
-            ? command.ConvertedFor(platform)
-            : command.StepsFor(platform);
-
     /// <summary>One step list intent; the view model runs it inside <c>Guard</c>.</summary>
     public void Dispatch(StepListActionEventArgs e)
     {
@@ -62,7 +56,7 @@ internal sealed class StepEditor
         }
 
         var (group, command) = found;
-        var steps = EditableSteps(command, _platform).ToList();
+        var steps = command.EditableStepsFor(_platform).ToList();
         var step = e.Step is { } item && item.Index >= 0 && item.Index < steps.Count ? item : null;
         switch (e.Action)
         {
@@ -183,7 +177,7 @@ internal sealed class StepEditor
     /// <summary>One store call per edit, then the step to leave selected and the steps to leave open.</summary>
     private void Commit(AppGroup group, Command command, IReadOnlyList<CommandStep> steps, int select, IReadOnlySet<int> open)
     {
-        var forked = command.Origin is { } origin && origin != _platform && command.OwnVersion?.Platform != _platform;
+        var forked = command.IsInferredOn(_platform);
         _store.UpdateCommand(group.Id, command.WithStepsFor(_platform, steps, DateTimeOffset.UtcNow));
         _host.SelectedStepIndex = select;
         _host.OpenStepIndexes = open;

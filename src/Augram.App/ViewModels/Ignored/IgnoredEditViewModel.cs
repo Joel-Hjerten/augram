@@ -34,8 +34,14 @@ public sealed partial class IgnoredEditViewModel : ObservableObject, IDialogForm
     /// <summary>The Global form's title and section: the UI word is "Exclusions" (plan 0005), the code's "Ignored".</summary>
     public const string GlobalTitle = "Excluded app";
 
-    /// <summary>The new entry dialog's title, also the list's New button: "New excluded app" on Global, "New app" on Per command.</summary>
-    public static string NewTitle(IgnoreScope scope) => scope == IgnoreScope.PerCommand ? "New app" : "New excluded app";
+    /// <summary>The While holding form's title and section (plan 0012).</summary>
+    public const string WhileHoldingTitle = "While holding app";
+
+    /// <summary>The While holding form's note row, shown while a Global entry names the same app (plan 0012 decision 9).</summary>
+    public const string GlobalNoteLabel = "On Global too";
+
+    /// <summary>The new entry dialog's title, also the list's New button: "New excluded app" on Global, "New app" on Per command and While holding.</summary>
+    public static string NewTitle(IgnoreScope scope) => scope == IgnoreScope.Global ? "New excluded app" : "New app";
 
     /// <param name="scope">The list the entry is on: Exclusions › Global (the default) or Exclusions › Per command.</param>
     public IgnoredEditViewModel(IgnoreScope scope = IgnoreScope.Global)
@@ -75,6 +81,10 @@ public sealed partial class IgnoredEditViewModel : ObservableObject, IDialogForm
     [ObservableProperty]
     public partial IReadOnlyList<LinkItem> AllowedFor { get; set; } = [];
 
+    /// <summary>A While holding entry's note (plan 0012 decision 9): a Global entry names the same app; set by the host, never an edit; null hides it.</summary>
+    [ObservableProperty]
+    public partial string? GlobalNote { get; set; }
+
     /// <summary>What the Allowed for row's Change… does (the host opens its dialog; Joel, 2026-10-11); nothing while unset (a new entry's dialog).</summary>
     public Action? EditAllowedFor { get; set; }
 
@@ -101,7 +111,7 @@ public sealed partial class IgnoredEditViewModel : ObservableObject, IDialogForm
 
     /// <summary>A new ignored app with these settings, on this form's list.</summary>
     public IgnoredApp ToIgnored(GroupId id)
-        => new(id, Name, IsActive, Identification.ToMatcher(), DisableWhileFocused && !IsPerCommand) { Scope = Scope };
+        => new(id, Name, IsActive, Identification.ToMatcher(), DisableWhileFocused && Scope == IgnoreScope.Global) { Scope = Scope };
 
     /// <summary>The existing ignored app with these settings, its id and its list kept.</summary>
     public IgnoredApp Apply(IgnoredApp existing)
@@ -112,11 +122,25 @@ public sealed partial class IgnoredEditViewModel : ObservableObject, IDialogForm
             Name = Name,
             IsActive = IsActive,
             Matcher = Identification.ToMatcher(),
-            DisableEntirely = existing.IsPerCommand ? existing.DisableEntirely : DisableWhileFocused,
+            DisableEntirely = existing.IsGlobal ? DisableWhileFocused : existing.DisableEntirely,
         };
     }
 
-    public FormScreen Declare() => IsPerCommand
+    public FormScreen Declare() => Scope == IgnoreScope.WhileHolding
+        ? new(WhileHoldingTitle,
+        [
+            new Section(WhileHoldingTitle,
+            [
+                new TextField("Name", new DelegateBinding<string>(() => Name, value => Name = value, this), "Shown in the list; unique on this list (the other lists may hold the same name)."),
+                new ToggleField("Active", new DelegateBinding<bool>(() => IsActive, value => IsActive = value, this), "An inactive entry ignores nothing: holding its keys and buttons changes nothing over the app."),
+                new NoteField(GlobalNoteLabel, new DelegateBinding<string>(() => GlobalNote ?? string.Empty, owner: this, propertyName: nameof(GlobalNote)))
+                {
+                    Visible = new DelegateBinding<bool>(() => GlobalNote is not null, owner: this, propertyName: nameof(GlobalNote)),
+                },
+            ]),
+            .. Identification.Sections(),
+        ])
+        : IsPerCommand
         ? new("Per command app",
         [
             new Section("Per command app",

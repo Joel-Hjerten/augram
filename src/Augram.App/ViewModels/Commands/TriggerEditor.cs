@@ -254,7 +254,7 @@ internal sealed partial class TriggerEditor
 
     /// <summary>True when a trigger edit here makes the command this platform's own (F8: authored on the other platform, no own trigger here yet).</summary>
     private bool ForksHere(Command command)
-        => command.Origin is { } origin && origin != _platform && !command.HasOwnTriggerOn(_platform);
+        => !PlatformSides.EditsOriginal(command.Origin, _platform) && !command.HasOwnTriggerOn(_platform);
 
     /// <summary>
     /// The command with <paramref name="trigger"/> as this platform's trigger, one edit: its steps are first fitted to it
@@ -266,7 +266,7 @@ internal sealed partial class TriggerEditor
     private Command WithTriggerHere(Command command, Trigger trigger)
     {
         var now = DateTimeOffset.UtcNow;
-        var steps = StepEditor.EditableSteps(command, _platform);
+        var steps = command.EditableStepsFor(_platform);
         var fitted = steps.Select(step => step with { Step = HoldRemapRules.FittedTo(step.Step, trigger) }).ToList();
         if (!fitted.SequenceEqual(steps))
         {

@@ -1083,6 +1083,10 @@
   <Style Selector="form|SectionForm form|SectionForm /template/ ItemsControl#PART_Sections">
     <Setter Property="Margin" Value="0" />
   </Style>
+  <!-- A form inside a host that lays it out and scrolls it (MasterDetail's detail column, the form above While holding's card). -->
+  <Style Selector="form|SectionForm.embedded /template/ ItemsControl#PART_Sections">
+    <Setter Property="Margin" Value="0" />
+  </Style>
   <!-- The pattern line (text box, magnifier, Use Regex; as SP.net's App Definition): the magnifier is a field-high button, so
        side margins only, and the text box keeps its height and gives way in a narrow window. -->
   <Style Selector="Grid.pattern-line > :is(Control).pattern-finder">

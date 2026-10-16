@@ -102,7 +102,7 @@ public static class CommandItemProjection
             return $"Own {name} trigger; the original keeps its own on {here.Other().DisplayName()}.";
         }
 
-        if (command.Origin is not { } origin || origin == here)
+        if (PlatformSides.EditsOriginal(command.Origin, here) || command.Origin is not { } origin)
         {
             return null;
         }

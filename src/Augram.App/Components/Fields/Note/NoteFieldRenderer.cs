@@ -13,6 +13,7 @@ public sealed class NoteFieldRenderer : IFieldRenderer
         var note = (NoteField)field;
         var editor = new TextBlock { TextWrapping = TextWrapping.Wrap };
         editor.Classes.Add("note");
+        editor.Classes.Set("warn", note.Warns);
         BindingObserver.Attach(editor, note.Text, value => editor.Text = value);
         return editor;
     }

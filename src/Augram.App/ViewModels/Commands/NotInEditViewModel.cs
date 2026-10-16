@@ -124,7 +124,7 @@ public sealed partial class NotInEditViewModel : ObservableObject, IDialogForm
         OnPropertyChanged(nameof(Entries));
         _checked.SetChecked(added.Id, true);
 
-        var global = _ignored.FirstOrDefault(app => !app.IsPerCommand && app.IsActive && app.Matcher.Matches(window, _platform));
+        var global = _ignored.FirstOrDefault(app => app.IsGlobal && app.IsActive && app.Matcher.Matches(window, _platform));
         AddStatus = $"Added '{name}' ({window.ProcessName}), ticked."
             + (global is null ? string.Empty : $" '{global.Name}' on Exclusions › Global stops all of Augram over it already.");
         return added;

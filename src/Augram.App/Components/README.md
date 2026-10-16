@@ -7,7 +7,7 @@ Every shared control of the App: lookless (`TemplatedControl` with named `PART_*
 | Kind | Folders | What they are |
 |---|---|---|
 | Declarative renderers (ADR-0002 §5c) | `ScreenHost/`, `SectionForm/`, `Fields/`, `ItemList/`, `TextPanel/`, `Shell/`, `FormDialog/`, and `SearchBox/` (the box every list's toolbar carries and the one search rule, plan 0009) | A `Screens/` declaration in, controls out. `ItemList` is the read-only table renderer (Log, Recognition, Used by); the editable lists below are bespoke controls, not `ListSpec`s, whatever ADR §5c foresaw. |
-| Editable lists | `CommandTree/`, `CommandHeader/`, `CommandsWorkbench/`, `StepList/`, `StepTypePicker/`, `MasterDetail/`, `GestureGrid/`, `GesturePicker/`, `SyncConflictList/`, with the shared pieces in `ListEditing/` and `Parts/` | The contract below. |
+| Editable lists | `CommandTree/`, `CommandHeader/`, `CommandsWorkbench/`, `StepList/`, `StepTypePicker/`, `MasterDetail/`, `HeldInputList/` (Exclusions › While holding, plan 0012), `GestureGrid/`, `GesturePicker/`, `SyncConflictList/`, with the shared pieces in `ListEditing/` and `Parts/` | The contract below. |
 | Gesture drawing | `GestureGlyph/`, `GestureDrawArea/` | A stroke as a glyph (normalised, gradient, arrowhead), and the training canvas (as drawn). |
 | Input capture | `Capture/`, `WindowFinder/` | Controls that take keys, a mouse button or a window from the whole system through a port, and fall back to their own window without the engine. |
 | Step forms | `Steps/<Name>/` | One `IStepForm` per step type, found by scan, each a declared `FormScreen` rendered by `SectionForm`. |
@@ -27,7 +27,7 @@ Every shared control of the App: lookless (`TemplatedControl` with named `PART_*
 | Job | Use | Not |
 |---|---|---|
 | A list's `ListBox`: selection by id without an echo, rebuild with focus restore, right-click select, the double-click rule, the keys standing down | `ListEditing/RowListHost` (a field of the list) | a `SelectionChanged`/`DoubleTapped` handler or an `_applying` flag in a list |
-| In-place rename, the active box, `:editing`/`:inactive` | `ListEditing/ItemRow` (base of `SectionRow`, `CommandRow`, `StepRow`, `MasterRow`, `GestureTile`) | a `PART_NameEditor` handled in a row of its own |
+| In-place rename, the active box, `:editing`/`:inactive` | `ListEditing/ItemRow` (base of `SectionRow`, `CommandRow`, `StepRow`, `MasterRow`, `HeldInputRow`, `GestureTile`) | a `PART_NameEditor` handled in a row of its own |
 | A list's context menu and its keys | `ListEditing/ActionMenu<TAction>` + `ListEditing/EditKeymap` | `new MenuItem`, `new KeyBinding`, or a `Key.F2`/`Key.Return` rename outside them |
 | A dropdown that only asks | `Parts/AskingDropdown` (the header, the sync conflict row) | an `_applying` flag around a `ComboBox` |
 | A template button's click | `Parts/TemplateParts.OnClick(e, "PART_X", action)` | `e.NameScope.Find<Button>(…).Click +=` |

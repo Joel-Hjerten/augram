@@ -9,7 +9,8 @@ namespace Augram.App.ViewModels.Ignored;
 /// <summary>
 /// The two lists half of <see cref="IgnoredViewModel"/> (plan 0004, decisions 5 and 7): an Exclusions › Per command entry's users,
 /// the commands whose "Not in" names it (its row's summary, its form's "Used by" links that open each command, the delete and
-/// move questions), and the right-click menu's move between Global and Per command. A move is one <c>UpdateIgnored</c>, one
+/// move questions), and the right-click menu's move between Global and Per command (a While holding entry moves nowhere, plan
+/// 0012: its inputs exist only on that list). A move is one <c>UpdateIgnored</c>, one
 /// undo step: moving to Global, Core's normalisation drops the entry from every command's "Not in" in the same step, so the
 /// user is asked first when a command names it; moving to Per command, a "Disable while focused" mode is dropped the same way.
 /// Names are unique per list, so a move lands as "Blender (2)" when the other list has a "Blender" (<see cref="NameScope"/>, the
@@ -20,6 +21,12 @@ public sealed partial class IgnoredViewModel
     private async Task MoveAsync(MasterItem item)
     {
         var app = Require(item.Id);
+        if (app.IsWhileHolding)
+        {
+            // Plan 0012: a While holding entry's inputs live only on that list; it moves nowhere.
+            return;
+        }
+
         var users = UsersOf(app.Id);
         if (app.IsPerCommand && users.Count > 0
             && !await Confirm.ConfirmAsync(
@@ -39,8 +46,9 @@ public sealed partial class IgnoredViewModel
         Guard(() =>
         {
             var current = Require(item.Id);
-            var name = NameScope.Free(current.Name, _store.Current.Ignored.Where(app => app.IsPerCommand != current.IsPerCommand).Select(app => app.Name));
-            var moved = _store.UpdateIgnored(current with { Scope = current.IsPerCommand ? IgnoreScope.Global : IgnoreScope.PerCommand, Name = name });
+            var target = current.IsPerCommand ? IgnoreScope.Global : IgnoreScope.PerCommand;
+            var name = NameScope.Free(current.Name, _store.Current.Ignored.Where(app => app.Scope == target).Select(app => app.Name));
+            var moved = _store.UpdateIgnored(current with { Scope = target, Name = name });
             var renamed = name == current.Name ? string.Empty : $" as '{name}' ('{current.Name}' is taken there)";
             var undo = $"{EditKeymap.Current.Undo} undoes it.";
             Message = moved.IsPerCommand

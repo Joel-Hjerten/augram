@@ -186,6 +186,11 @@ public sealed partial class HotkeyCaptureBox : TemplatedControl
                 // One-key mode (a hold key, an input): a refused key is not recorded, and the field says why.
                 Refresh(why);
                 return;
+            case KeyCaptureEventKind.KeyDown when SingleKey && AcceptsModifier && HotkeyKeys.IsModifier(captured.Key):
+                // A modifier alone is the key here (plan 0012); the last key pressed wins.
+                _recorder.Alone(captured.Key);
+                Refresh(CaptureHelp);
+                return;
             case KeyCaptureEventKind.KeyDown:
                 _recorder.Down(captured.Key, captured.Modifiers);
                 if (SingleKey && _recorder.HasCombination)

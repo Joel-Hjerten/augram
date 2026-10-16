@@ -6,40 +6,42 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-namespace Augram.App.Components.StepList;
+namespace Augram.App.Components.ListEditing;
 
 /// <summary>
-/// Left-button press tracking for the step list (F5a): the list hands it a press on a row's header or grip
+/// Left-button press tracking for a list reordered by dragging (F5a; the step list, and the Exclusions › While holding inputs,
+/// plan 0012): the list hands it a press on a row's header or grip
 /// (<see cref="Press"/>), and the press ends as a click or a drag. A release without moving past
-/// <see cref="ThresholdPx"/> is a click, reported for a header press only: the grip only drags (Joel, 0.11.4). A move past
+/// <see cref="IReorderRow.DragThresholdPx"/> is a click, reported for a header press only: the grip only drags (Joel, 0.11.4). A move past
 /// it starts the drag (the row captures the pointer, is marked <c>:dragging</c> and reported as started). While it drags the
 /// list shows the order a release would give (Joel, 0.11.11: "they should reorganize immediately and not after release"): the
 /// dragged row follows the pointer above the others, and the rows between its place and the target slide aside to make room
-/// (render offsets only, <see cref="StepRow.DragOffset"/>; nothing is stored). A drag's end (dropped or lost) is reported once the rows are put back. A release then calls back once with (from, to)
-/// indexes, so a drag is one undo step; a lost capture (Escape, another window) puts every row back. The host moves the step;
+/// (render offsets only, <see cref="IReorderRow.DragOffset"/>; nothing is stored). A drag's end (dropped or lost) is reported once the rows are put back. A release then calls back once with (from, to)
+/// indexes, so a drag is one undo step; a lost capture (Escape, another window) puts every row back. The host moves the item;
 /// this class never does. Positions are measured in the surface's coordinates (the list), so rows may be any height.
 /// </summary>
-internal sealed class StepDragReorder
+internal sealed class RowDragReorder<TRow>
+    where TRow : Control, IReorderRow
 {
-    public const double ThresholdPx = 6;
+    private const double ThresholdPx = IReorderRow.DragThresholdPx;
 
     private static readonly TimeSpan Slide = TimeSpan.FromMilliseconds(120);
 
-    private readonly Func<IReadOnlyList<StepRow>> _rows;
+    private readonly Func<IReadOnlyList<TRow>> _rows;
     private readonly Func<Visual?> _surface;
     private readonly Action<int, int> _reorder;
-    private readonly Action<StepRow> _started;
-    private readonly Action<StepRow> _clicked;
+    private readonly Action<TRow> _started;
+    private readonly Action<TRow> _clicked;
     private readonly Action _ended;
-    private readonly List<StepRow> _shifted = [];
-    private StepRow? _pressed;
+    private readonly List<TRow> _shifted = [];
+    private TRow? _pressed;
     private Point _start;
     private double _grab;
     private int _to = -1;
     private bool _clickable;
     private bool _dragging;
 
-    public StepDragReorder(Func<IReadOnlyList<StepRow>> rows, Func<Visual?> surface, Action<int, int> reorder, Action<StepRow> started, Action<StepRow> clicked, Action ended)
+    public RowDragReorder(Func<IReadOnlyList<TRow>> rows, Func<Visual?> surface, Action<int, int> reorder, Action<TRow> started, Action<TRow> clicked, Action ended)
     {
         _rows = rows;
         _surface = surface;
@@ -49,7 +51,7 @@ internal sealed class StepDragReorder
         _ended = ended;
     }
 
-    public void Attach(StepRow row)
+    public void Attach(TRow row)
     {
         row.PointerMoved += OnMoved;
         row.PointerReleased += OnReleased;
@@ -57,7 +59,7 @@ internal sealed class StepDragReorder
     }
 
     /// <summary>Arms the tracker for a left press on <paramref name="row"/>; <paramref name="clickable"/> is false for the grip, whose click is nothing.</summary>
-    public void Press(StepRow row, PointerEventArgs e, bool clickable)
+    public void Press(TRow row, PointerEventArgs e, bool clickable)
     {
         if (_surface() is not { } surface)
         {
@@ -116,9 +118,9 @@ internal sealed class StepDragReorder
         }
 
         Reset();
-        if (dragging && pressed.Item is { } from && to >= 0 && from.Index != to)
+        if (dragging && pressed.ReorderIndex is var from and >= 0 && to >= 0 && from != to)
         {
-            _reorder(from.Index, to);
+            _reorder(from, to);
         }
         else if (!dragging && clickable)
         {
@@ -131,7 +133,7 @@ internal sealed class StepDragReorder
     /// list), its target is the number of other rows whose middle is above its own, and the rows it passed slide one slot (its
     /// height plus the gap between rows) the other way. A tie with a row's middle counts as passing it, toward either end.
     /// </summary>
-    private void Arrange(StepRow pressed, double pointerY, Visual surface)
+    private void Arrange(TRow pressed, double pointerY, Visual surface)
     {
         var rows = _rows();
         var from = IndexOf(rows, pressed);
@@ -177,16 +179,16 @@ internal sealed class StepDragReorder
     /// What a drag moves for <paramref name="row"/>: its list item, not the row itself. The item clips what it holds, so a row
     /// offset inside it vanished as soon as it left the item's bounds (Joel, 0.11.12); the items panel clips nothing.
     /// </summary>
-    private static Control Host(StepRow row) => row.FindAncestorOfType<ListBoxItem>() ?? (Control)row;
+    private static Control Host(TRow row) => row.FindAncestorOfType<ListBoxItem>() ?? (Control)row;
 
     /// <summary>Where the row's item sits without the offset this drag gave it.</summary>
-    private static double RestTop(StepRow row, Visual surface)
+    private static double RestTop(TRow row, Visual surface)
     {
         var host = Host(row);
         return (host.TranslatePoint(new Point(0, 0), surface)?.Y ?? 0) - ((host.RenderTransform as TranslateTransform)?.Y ?? 0);
     }
 
-    private void Shift(StepRow row, double offset, bool lifted)
+    private void Shift(TRow row, double offset, bool lifted)
     {
         var host = Host(row);
         if (host.RenderTransform is not TranslateTransform transform)
@@ -207,7 +209,7 @@ internal sealed class StepDragReorder
         }
     }
 
-    private static int IndexOf(IReadOnlyList<StepRow> rows, StepRow row)
+    private static int IndexOf(IReadOnlyList<TRow> rows, TRow row)
     {
         for (var i = 0; i < rows.Count; i++)
         {
