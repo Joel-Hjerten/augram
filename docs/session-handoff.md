@@ -62,7 +62,7 @@ When Joel calls a plan done on both machines, move it to `docs/plans/completed/`
 - **Start at login has never run on a real login** (off on the PC). Check lists: [Hosting README](../src/Augram.App/Hosting/README.md) "Windows check list", Platform.MacOS README "Start at login on macOS".
 - **Export/import (plan 0003, PROPOSED):** "Decided for Joel" and "Questions for Joel" wait for him; his check list is plan 0003 step 5 (throwaway config folders, `--config-folder … --no-engine`). Follow-ups: plan 0003 "Follow-ups from Joel's questions".
 - **Sync conflicts show only in Options › Sync.** Proposed: "· 1 conflict" in the tray tooltip and Resolve… in the tray menu.
-- **Augram stops while Task Manager has focus** (elevated windows); "later" (requirements §4 has the cause and two fixes).
+- **Augram stops over Task Manager and Windhawk** (elevated windows). Route decided 2026-10-17, parked until Joel asks ("too lazy right now"): UIAccess with a self-signed certificate, Velopack kept; requirements §4 has the full recipe (what SP.net does, the one-time admin setup, the trade-off, the public-release differences). When asked, write it as plan 0013, about a day.
 - **Debug logging cannot be switched on** in any build (`ChannelEventLog.MinimumLevel` is set by nothing); Joel: not needed now.
 - **Dialog headings sit right on their panel** (the gesture picker, sync conflicts; since plan 0007 S19 every dialog shares one shell). A gap is one setter in `Themes/Default/Lists.axaml` and changes every dialog with a heading; Joel has not said.
 - **Is the refactor making small requests faster?** Measure the first few feature requests with `node scripts/agent-time.mjs` against plan 0007's close-out numbers.
