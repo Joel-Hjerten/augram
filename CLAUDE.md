@@ -50,3 +50,15 @@ These come from research + the spike; they are quality-bar-critical, not prefere
 | Hold remaps (F9: hold key, Remap step, the hook's hold shadow) | [docs/plans/completed/0002-hold-remaps.md](docs/plans/completed/0002-hold-remaps.md) (decisions) + `src/Augram.Core/HoldRemaps/README.md` (the machine's contract table) + `src/Augram.Engine/README.md` "Hold remaps" + `src/Augram.App/ViewModels/Commands/README.md` "Hold remaps" + [docs/reference/autohotkey-navigation-for-blender/](docs/reference/autohotkey-navigation-for-blender/README.md) |
 | Export/import of Augram JSON (F8: scopes, two-way merge, conflict choices) | [docs/plans/0003-export-import.md](docs/plans/0003-export-import.md) (decisions to confirm with Joel) + `src/Augram.Core/Transfer/README.md` + `src/Augram.Core/Sync/README.md` (the merge it reuses) + `src/Augram.App/Transfer/README.md` |
 | Actions, app matching, capture thresholds, SP.net import | [docs/reference/strokesplus-net-config.md](docs/reference/strokesplus-net-config.md) (Joel's real usage = the spec) + [docs/reference/strokesplus-net-import-mapping.md](docs/reference/strokesplus-net-import-mapping.md) (what the importer makes of each SP.net field) + `src/Augram.Import.StrokesPlus/README.md` and `src/Augram.App/Import/README.md` + [docs/reference/gesturesign-notes.md](docs/reference/gesturesign-notes.md) (GPL, read-only reference) + [docs/reference/strokeit-notes.md](docs/reference/strokeit-notes.md) (cancel-by-click, activation trick) + [docs/reference/stroke-notes.md](docs/reference/stroke-notes.md) (GPL; minimal engine, overlay hidden when idle) + [docs/reference/bettermouse-notes.md](docs/reference/bettermouse-notes.md) (MIT; hold-modifier-across-wheel pattern, anti-patterns) |
+
+## Browser access through Vizar
+
+When a task needs a real browser, such as a site that blocks agents, a
+page as Joel sees it logged in, or something to try in Chrome, use the
+`vizar` MCP server. It drives Joel's own Chrome through the Vizar
+extension (`C:\_myProjects\vizar`; its README explains the setup). The
+default profile is Pam; use Home, his main profile, only when Joel says
+so, and expect it to ask him before any click or keystroke there. Agents
+work in a tab group of their own and never touch other tabs. If the
+`vizar` tools are missing, the session predates the registration: ask
+Joel to start a new session.
