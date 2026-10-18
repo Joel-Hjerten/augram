@@ -65,6 +65,9 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     /// <summary>Not offered (<see cref="RepostsRemapDrags"/> is false): the engine never calls it here.</summary>
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => SimulationResult.Unsupported;
 
+    /// <summary>Not offered (<see cref="RepostsRemapDrags"/> is false): the engine never calls it here.</summary>
+    public SimulationResult RepostMove(int x, int y, int dx, int dy) => SimulationResult.Unsupported;
+
     public SimulationResult MoveTo(int x, int y)
     {
         var (sx, sy) = Point(x, y);

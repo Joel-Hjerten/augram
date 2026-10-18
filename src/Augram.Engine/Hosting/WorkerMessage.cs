@@ -12,7 +12,7 @@ namespace Augram.Engine.Hosting;
 /// </summary>
 /// <param name="Kind">What the message is.</param>
 /// <param name="Event">For <see cref="MessageKind.Input"/>: the capture event.</param>
-/// <param name="HookSuppressed">The hook's decision for the event (for a hold remap event: whether the hold remap swallowed it).</param>
+/// <param name="HookSuppressed">The hook's decision for the event (for a hold remap event: whether the hold remap swallowed it; for a capture move: swallowed for the worker to re-post, while a chord holds modifiers).</param>
 /// <param name="Payload">A setting, a reason, a captured key, an action, or a <see cref="HoldRemapEvent"/>, by kind.</param>
 /// <param name="Ordered">The hook counted this message as a pending replay (<c>HoldRemapShadow.PendingReplays</c>): the worker calls <c>InputGate.HoldReplayDone</c> once it has made its injections.</param>
 /// <param name="App">For a hold key's press: the name of the app group whose plan it was claimed with, for the log.</param>

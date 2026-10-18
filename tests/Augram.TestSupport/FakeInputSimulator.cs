@@ -8,7 +8,7 @@ namespace Augram.TestSupport;
 /// keys and text in <see cref="Keys"/>, and every mouse injection (clicks included) in order in <see cref="Mouse"/>
 /// ("click Right@10,20", "down Right@10,20", "move 50,20", "scroll Down x1@10,20", "up Right"), so a test can check that every injected down got
 /// its up (A19). A hold remap's button output is recorded the same way, its modifiers in front ("down Shift+Middle@10,20",
-/// "up Middle"), and a re-posted drag as "drag Middle@15,20 by 5,0". <see cref="All"/> has both in the one order they were
+/// "up Middle"), a re-posted drag as "drag Middle@15,20 by 5,0" and a re-posted move as "repost move 15,20 by 5,0". <see cref="All"/> has both in the one order they were
 /// made (hold remaps interleave keys and buttons). Key entries: "press VolumeUp", "release VolumeUp", "hotkey Control+W",
 /// "hotkey Alt+F9 right Alt", "text hi", "keys hi". <see cref="RepostsRemapDrags"/> is set for a simulator that asks the
 /// engine to re-post drags, as the macOS one does.
@@ -123,6 +123,8 @@ public sealed class FakeInputSimulator : IInputSimulator
     public SimulationResult ReleaseRemapButton(MouseButton button) => RecordMouse($"up {button}");
 
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => RecordMouse($"drag {button}@{x},{y} by {dx},{dy}");
+
+    public SimulationResult RepostMove(int x, int y, int dx, int dy) => RecordMouse($"repost move {x},{y} by {dx},{dy}");
 
     public SimulationResult MoveTo(int x, int y) => RecordMouse($"move {x},{y}");
 

@@ -21,6 +21,10 @@ namespace Augram.Platform.MacOS.Input;
 /// <c>DeltaY</c> (fields 4 and 5) set to the deltas and the session's modifier flags as they are now.
 /// <see cref="RepostsRemapDrags"/> is true: macOS does not move a posted Middle with physical right-drags (left-drags it
 /// does), so the engine swallows every physical move while a button output is held and re-posts it here.</item>
+/// <item><see cref="RepostMove"/>: the same event as a plain <c>kCGEventMouseMoved</c>, for the moves the engine swallows while
+/// a button trigger's chord holds a key output with modifiers (plan 0005): a passing hardware move carries the hardware's flags
+/// (none) and resets the session's modifier state, so an app polling <c>flagsState(.combinedSessionState)</c> read the posted
+/// modifiers as up (Iris's loupe, learnings 0005, "Synthetic modifiers and passing moves").</item>
 /// </list>
 /// Engine worker thread. No AppKit, so no main-thread hop and no autorelease pool. What is posted comes back through the hook
 /// marked simulated and is dropped there (the spike relied on that too: otherwise a re-posted drag would be swallowed again).
@@ -64,17 +68,11 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy)
     {
         var mouse = MacRemapButtonEvents.For(button);
-        var cgEvent = MacNative.CGEventCreateMouseEvent(0, mouse.Dragged, Point(x, y), mouse.Button);
-        if (cgEvent == 0)
-        {
-            return SimulationResult.Failed;
-        }
-
-        MacNative.CGEventSetIntegerValueField(cgEvent, MacNative.CGMouseEventDeltaX, dx);
-        MacNative.CGEventSetIntegerValueField(cgEvent, MacNative.CGMouseEventDeltaY, dy);
-        MacNative.CGEventSetFlags(cgEvent, MacNative.CGEventSourceFlagsState(MacNative.CGEventSourceStateCombinedSession));
-        return Post(cgEvent);
+        return PostMotion(mouse.Dragged, mouse.Button, x, y, dx, dy);
     }
+
+    /// <summary>A plain move, built as a drag is (the button number is ignored for <c>kCGEventMouseMoved</c>).</summary>
+    public SimulationResult RepostMove(int x, int y, int dx, int dy) => PostMotion(MacRemapButtonEvents.MouseMoved, 0, x, y, dx, dy);
 
     public SimulationResult Click(MouseButton button, int x, int y) => inner.Click(button, x, y);
 
@@ -97,6 +95,21 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
     public SimulationResult TypeTextByKeys(string text) => inner.TypeTextByKeys(text);
 
     private static MacNative.CGPoint Point(int x, int y) => new() { X = x, Y = y };
+
+    /// <summary>A drag or a move at the position, <c>kCGMouseEventDeltaX</c> and <c>DeltaY</c> set, with the session's modifier flags as they are now.</summary>
+    private static SimulationResult PostMotion(uint type, uint button, int x, int y, int dx, int dy)
+    {
+        var cgEvent = MacNative.CGEventCreateMouseEvent(0, type, Point(x, y), button);
+        if (cgEvent == 0)
+        {
+            return SimulationResult.Failed;
+        }
+
+        MacNative.CGEventSetIntegerValueField(cgEvent, MacNative.CGMouseEventDeltaX, dx);
+        MacNative.CGEventSetIntegerValueField(cgEvent, MacNative.CGMouseEventDeltaY, dy);
+        MacNative.CGEventSetFlags(cgEvent, MacNative.CGEventSourceFlagsState(MacNative.CGEventSourceStateCombinedSession));
+        return Post(cgEvent);
+    }
 
     /// <summary>A keyboard event of the modifier's key retyped as flagsChanged, carrying the flags it leaves set.</summary>
     private static SimulationResult PostFlagsChanged(MacFlagsChange change, bool keyDown)

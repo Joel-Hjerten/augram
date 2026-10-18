@@ -17,6 +17,9 @@ internal static class MacRemapButtonEvents
     /// <summary><c>kCGEventFlagsChanged</c>.</summary>
     public const uint FlagsChanged = 12;
 
+    /// <summary><c>kCGEventMouseMoved</c>: a move with no button down (<see cref="MacRemapButtonSimulator.RepostMove"/>).</summary>
+    public const uint MouseMoved = 5;
+
     /// <summary><c>NX_NONCOALSESCEDMASK</c>.</summary>
     public const ulong NonCoalesced = 0x100;
 

@@ -5,7 +5,7 @@ namespace Augram.Core.Abstractions;
 /// <summary>
 /// Synthesises input (ADR-0002 §2): the click replay of a motionless press, a held-back press handed
 /// back to the app (trigger combinations), the keyboard side of steps (hotkey, text, media keys), the wheel (Scroll) and a
-/// hold remap's button output with its drags (F9, the <c>…RemapButton</c> members).
+/// hold remap's button output with its drags (F9, the <c>…RemapButton</c> members) and a move re-posted with the modifiers held (<see cref="RepostMove"/>).
 /// The engine worker and the command executor call it, never the hook thread, and every injected
 /// down gets its up (checklist A19). Injected input comes back through the hook flagged as simulated and is ignored
 /// there. <see cref="TypeText"/> is Unicode entry (layout independent; some games do not see it);
@@ -50,6 +50,16 @@ public interface IInputSimulator
     /// <see cref="RepostsRemapDrags"/>; a simulator that does not re-post answers <see cref="SimulationResult.Unsupported"/>.
     /// </summary>
     SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy);
+
+    /// <summary>
+    /// One swallowed physical move re-posted as a plain move (no button down), built as <see cref="DragRemapButton"/> builds a
+    /// drag: the pointer at (<paramref name="x"/>, <paramref name="y"/>), moved by (<paramref name="dx"/>, <paramref name="dy"/>)
+    /// since the previous physical position, with the modifier keys held now. The engine swallows and re-posts moves while a
+    /// button trigger's chord holds a key output with modifiers (plan 0005): on macOS a passing hardware move carries the
+    /// hardware's flags (none) and resets the posted modifiers (learnings 0005, "Synthetic modifiers and passing moves"). Called only when
+    /// <see cref="RepostsRemapDrags"/>; a simulator that does not re-post answers <see cref="SimulationResult.Unsupported"/>.
+    /// </summary>
+    SimulationResult RepostMove(int x, int y, int dx, int dy);
 
     /// <summary>Moves the pointer to the given screen position.</summary>
     SimulationResult MoveTo(int x, int y);

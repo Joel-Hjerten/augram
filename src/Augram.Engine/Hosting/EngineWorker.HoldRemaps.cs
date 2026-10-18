@@ -32,9 +32,12 @@ internal sealed partial class EngineWorker
 
     private long _holdDownAt;
 
-    /// <summary>The last physical position a hold message carried (a button event's or a move's): a re-posted drag's delta is from here.</summary>
-    private int _holdX;
-    private int _holdY;
+    /// <summary>
+    /// The last physical position a hold or capture message carried (a button event's or a move's): a re-posted drag's or
+    /// move's delta is from here (<c>NotePosition</c>, <c>NoteCapturePosition</c>).
+    /// </summary>
+    private int _physicalX;
+    private int _physicalY;
 
     /// <summary>Drags re-posted, and how many failed, under the button output held now; reported with its release.</summary>
     private int _drags;
@@ -190,7 +193,7 @@ internal sealed partial class EngineWorker
     /// </summary>
     private SimulationResult Drag(HoldRemapOutcome.DragOutput drag)
     {
-        var result = _simulator.DragRemapButton(drag.Output.MouseButton, drag.X, drag.Y, drag.X - _holdX, drag.Y - _holdY);
+        var result = _simulator.DragRemapButton(drag.Output.MouseButton, drag.X, drag.Y, drag.X - _physicalX, drag.Y - _physicalY);
         _drags++;
         if (result == SimulationResult.Success)
         {
@@ -209,10 +212,10 @@ internal sealed partial class EngineWorker
         switch (e)
         {
             case HoldRemapEvent.Button button:
-                (_holdX, _holdY) = (button.X, button.Y);
+                (_physicalX, _physicalY) = (button.X, button.Y);
                 break;
             case HoldRemapEvent.Move move:
-                (_holdX, _holdY) = (move.X, move.Y);
+                (_physicalX, _physicalY) = (move.X, move.Y);
                 if (hookSuppressed && outcomes[0] is HoldRemapOutcome.PassThrough)
                 {
                     _simulator.MoveTo(move.X, move.Y);

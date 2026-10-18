@@ -71,6 +71,46 @@ public sealed class ButtonTriggerEngineTests
     }
 
     [Fact]
+    public void WhereMovesAreReposted_AnOutputWithModifiers_SwallowsEachMoveAndRepostsItWithItsDelta_UntilTheChordEnds()
+    {
+        var loupe = new RemapOutput.Key(KeyCode.X, KeyModifiers.Alt | KeyModifiers.Shift);
+        using var harness = Over(Mappings.Global(Mappings.Command("Loupe", RightLeft, new RemapStep(loupe))), new FakeInputSimulator(repostsRemapDrags: true));
+
+        Assert.True(harness.Down(Right, 100, 100, 10));
+        Assert.True(harness.Down(Left, 100, 100, 50));
+        EngineHarness.WaitFor(() => harness.Simulator.Keys.Count == 3, "Opt+Shift+X pressed");
+        Assert.True(harness.Move(130, 90, 100), "a hardware move would reset Opt+Shift on macOS");
+        EngineHarness.WaitFor(() => harness.Simulator.Mouse.Count == 1, "the move re-posted");
+        Assert.Equal(["repost move 130,90 by 30,-10"], harness.Simulator.Mouse);
+
+        Assert.True(harness.Up(Right, 130, 90, 200));
+        EngineHarness.WaitFor(() => harness.Simulator.Keys.Count == 6, "Opt+Shift+X released");
+        Assert.True(harness.Up(Left, 130, 90, 250));
+        harness.WaitForState(CaptureState.Idle);
+        Assert.False(harness.Move(160, 90, 300), "the chord is over: moves pass again");
+        Thread.Sleep(50);
+
+        Assert.Single(harness.Simulator.Mouse);
+    }
+
+    [Fact]
+    public void WhereMovesAreReposted_AnOutputWithoutModifiers_LetsMovesPass()
+    {
+        var plain = new RemapOutput.Key(KeyCode.X, KeyModifiers.None);
+        using var harness = Over(Mappings.Global(Mappings.Command("Plain", RightLeft, new RemapStep(plain))), new FakeInputSimulator(repostsRemapDrags: true));
+
+        Assert.True(harness.Down(Right, 100, 100, 10));
+        Assert.True(harness.Down(Left, 100, 100, 50));
+        EngineHarness.WaitFor(() => harness.Simulator.Keys.Count == 1, "X pressed");
+        Assert.False(harness.Move(130, 90, 100));
+        Thread.Sleep(50);
+
+        Assert.Empty(harness.Simulator.Mouse);
+        Assert.True(harness.Up(Left, 130, 90, 200));
+        Assert.True(harness.Up(Right, 130, 90, 250));
+    }
+
+    [Fact]
     public void AResetMidChord_ReleasesTheKey()
     {
         using var harness = Magnifier();
@@ -168,11 +208,14 @@ public sealed class ButtonTriggerEngineTests
         return Over(Mappings.Global(Mappings.Command("Magnifier", RightLeft, new RemapStep(output))));
     }
 
-    private static EngineHarness Over(MappingDocument mapping)
+    /// <param name="mapping">The commands, over Chrome.</param>
+    /// <param name="simulator">The default one does not re-post moves (as on Windows); one made with <c>repostsRemapDrags</c> does (as on macOS).</param>
+    private static EngineHarness Over(MappingDocument mapping, FakeInputSimulator? simulator = null)
     {
         var harness = new EngineHarness(
             new EngineHostOptions(MouseButton.Middle, TickInterval: TimeSpan.FromMilliseconds(1), HealthPollInterval: TimeSpan.FromHours(1)),
-            mapping: mapping);
+            mapping: mapping,
+            simulator: simulator);
         harness.Windows.Window = FakeWindowSystem.Identity("chrome.exe");
         harness.Move(100, 100, 0);
         EngineHarness.WaitFor(() => harness.Host.AnchorPlanUnderPointer.Fires(Right, Left), "Right + Left to fire over Chrome");

@@ -32,6 +32,8 @@ public sealed class MacMediaKeySimulator(IInputSimulator inner) : IInputSimulato
 
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => inner.DragRemapButton(button, x, y, dx, dy);
 
+    public SimulationResult RepostMove(int x, int y, int dx, int dy) => inner.RepostMove(x, y, dx, dy);
+
     public SimulationResult MoveTo(int x, int y) => inner.MoveTo(x, y);
 
     public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => inner.Scroll(direction, notches, x, y);

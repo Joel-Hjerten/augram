@@ -135,6 +135,12 @@ internal sealed partial class EngineWorker
         var outcomes = _machine.Handle(e);
         _gate.PublishState(_machine.State);
         NotePress(e, payload);
+        if (e is CaptureEvent.Move move && hookSuppressed)
+        {
+            RepostMove(move);
+        }
+
+        NoteCapturePosition(e);
         if (e is CaptureEvent.ButtonDown or CaptureEvent.ButtonUp or CaptureEvent.Wheel)
         {
             CrossCheck(e, hookSuppressed, outcomes, activeBefore);
@@ -148,6 +154,23 @@ internal sealed partial class EngineWorker
         if (e is CaptureEvent.ButtonDown down && _machine.State == CaptureState.Held && _machine.ActiveButton == down.Button)
         {
             MaskWinAlt(down);
+        }
+    }
+
+    /// <summary>After a capture event with a position: the next re-posted move's or drag's delta is from here.</summary>
+    private void NoteCapturePosition(CaptureEvent e)
+    {
+        switch (e)
+        {
+            case CaptureEvent.Move move:
+                (_physicalX, _physicalY) = (move.X, move.Y);
+                break;
+            case CaptureEvent.ButtonDown down:
+                (_physicalX, _physicalY) = (down.X, down.Y);
+                break;
+            case CaptureEvent.ButtonUp up:
+                (_physicalX, _physicalY) = (up.X, up.Y);
+                break;
         }
     }
 
