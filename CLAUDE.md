@@ -53,12 +53,17 @@ These come from research + the spike; they are quality-bar-critical, not prefere
 
 ## Browser access through Vizar
 
-When a task needs a real browser, such as a site that blocks agents, a
-page as Joel sees it logged in, or something to try in Chrome, use the
-`vizar` MCP server. It drives Joel's own Chrome through the Vizar
-extension (`C:\_myProjects\vizar`; its README explains the setup). The
-default profile is Pam; use Home, his main profile, only when Joel says
-so, and expect it to ask him before any click or keystroke there. Agents
-work in a tab group of their own and never touch other tabs. If the
-`vizar` tools are missing, the session predates the registration: ask
-Joel to start a new session.
+Vizar is for sources your own tools cannot reach: a Reddit thread Joel
+pastes, documentation that blocks bots, a page that needs his login. When
+a source is out of reach, say so and offer to go through Vizar rather
+than guessing or giving up quietly. The `vizar` MCP server drives Joel's
+own Chrome through the Vizar extension (`C:\_myProjects\vizar`; its
+README explains the setup).
+
+Research runs in the Pam profile. If Pam is not open, the first call
+starts it; call `close_browser` when the research is done, so Chrome is
+closed again. Home is Joel's main profile: use it only when he names it,
+and expect it to ask him before any click or keystroke. Agents work in a
+tab group of their own and never touch other tabs. If the `vizar` tools
+are missing, the session predates the registration: ask Joel to start a
+new session.
