@@ -27,15 +27,39 @@ namespace Augram.Platform.MacOS.Input;
 /// modifiers as up (Iris's loupe, learnings 0005, "Synthetic modifiers and passing moves").</item>
 /// </list>
 /// Engine worker thread. No AppKit, so no main-thread hop and no autorelease pool. What is posted comes back through the hook
-/// marked simulated and is dropped there (the spike relied on that too: otherwise a re-posted drag would be swallowed again).
-/// A release posted here is announced first through <paramref name="announceRelease"/> (the engine's <c>OwnInjections</c>),
-/// so the hook does not take it for another program's release (plan 0005 decision 10).
-/// <b>Compiled, not yet run on a Mac</b> (the Platform.MacOS README lists the checks).
+/// marked simulated, and since the Mac takes other programs' simulated input as real (2026-10-19, the Wacom pen; Engine
+/// <c>ForeignInput.Take</c>) every mouse event posted here is announced first through <see cref="MacPostedInput"/> (the engine's
+/// <c>OwnInjections</c>), one per event: the down of <see cref="PressRemapButton"/>, the up of <see cref="ReleaseRemapButton"/>,
+/// the one drag of <see cref="DragRemapButton"/> and the one move of <see cref="RepostMove"/>. The hook claims and drops exactly
+/// those; a re-posted drag taken as a real move would be swallowed and re-posted again without end (the spike relied on the drop
+/// too). The flagsChanged events are keyboard events, which the hook drops simulated or not, and are not announced. An
+/// announcement is made once the event exists, just before <c>CGEventPost</c>, which cannot fail, so nothing is withdrawn.
+/// Posting is checked by Joel on his Mac (the Platform.MacOS README lists the checks); the announcements are tested with the
+/// post replaced (the internal constructor), on a Mac only, since the events are built by CoreGraphics.
 /// </summary>
 [SupportedOSPlatform("macos")]
-public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseButton>? announceRelease = null) : IInputSimulator
+public sealed class MacRemapButtonSimulator : IInputSimulator
 {
     private const uint HidEventTap = 0;
+
+    private readonly IInputSimulator _inner;
+    private readonly MacPostedInput? _announce;
+    private readonly Action<nint> _post;
+
+    public MacRemapButtonSimulator(IInputSimulator inner, MacPostedInput? announce = null)
+        : this(inner, announce, static cgEvent => MacNative.CGEventPost(HidEventTap, cgEvent))
+    {
+    }
+
+    /// <summary>Tests: <paramref name="post"/> stands in for <c>CGEventPost</c>; the events are still built and released.</summary>
+    internal MacRemapButtonSimulator(IInputSimulator inner, MacPostedInput? announce, Action<nint> post)
+    {
+        ArgumentNullException.ThrowIfNull(inner);
+        ArgumentNullException.ThrowIfNull(post);
+        _inner = inner;
+        _announce = announce;
+        _post = post;
+    }
 
     public bool RepostsRemapDrags => true;
 
@@ -49,7 +73,7 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
             result = InputSimulation.Worst(result, PostFlagsChanged(change, keyDown: true));
         }
 
-        result = InputSimulation.Worst(result, PostButton(mouse.Down, mouse.Button, Point(x, y), keys.MouseDownFlags));
+        result = InputSimulation.Worst(result, PostButton(mouse.Down, mouse.Button, Point(x, y), keys.MouseDownFlags, beforePost: () => _announce?.Press(button)));
         foreach (var change in keys.Ups)
         {
             result = InputSimulation.Worst(result, PostFlagsChanged(change, keyDown: false));
@@ -61,8 +85,8 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
     public SimulationResult ReleaseRemapButton(MouseButton button)
     {
         var mouse = MacRemapButtonEvents.For(button);
-        var result = MacPointer.TryRead(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => announceRelease?.Invoke(button)) : SimulationResult.Failed;
-        return result == SimulationResult.Success ? result : inner.ReleaseRemapButton(button);
+        var result = MacPointer.TryRead(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => _announce?.Release(button)) : SimulationResult.Failed;
+        return result == SimulationResult.Success ? result : _inner.ReleaseRemapButton(button);
     }
 
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy)
@@ -74,30 +98,30 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
     /// <summary>A plain move, built as a drag is (the button number is ignored for <c>kCGEventMouseMoved</c>).</summary>
     public SimulationResult RepostMove(int x, int y, int dx, int dy) => PostMotion(MacRemapButtonEvents.MouseMoved, 0, x, y, dx, dy);
 
-    public SimulationResult Click(MouseButton button, int x, int y) => inner.Click(button, x, y);
+    public SimulationResult Click(MouseButton button, int x, int y) => _inner.Click(button, x, y);
 
-    public SimulationResult Press(MouseButton button, int x, int y) => inner.Press(button, x, y);
+    public SimulationResult Press(MouseButton button, int x, int y) => _inner.Press(button, x, y);
 
-    public SimulationResult Release(MouseButton button) => inner.Release(button);
+    public SimulationResult Release(MouseButton button) => _inner.Release(button);
 
-    public SimulationResult MoveTo(int x, int y) => inner.MoveTo(x, y);
+    public SimulationResult MoveTo(int x, int y) => _inner.MoveTo(x, y);
 
-    public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => inner.Scroll(direction, notches, x, y);
+    public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y) => _inner.Scroll(direction, notches, x, y);
 
-    public SimulationResult KeyPress(KeyCode key) => inner.KeyPress(key);
+    public SimulationResult KeyPress(KeyCode key) => _inner.KeyPress(key);
 
-    public SimulationResult KeyRelease(KeyCode key) => inner.KeyRelease(key);
+    public SimulationResult KeyRelease(KeyCode key) => _inner.KeyRelease(key);
 
-    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) => inner.Hotkey(modifiers, key, rightHand);
+    public SimulationResult Hotkey(KeyModifiers modifiers, KeyCode key, KeyModifiers rightHand = KeyModifiers.None) => _inner.Hotkey(modifiers, key, rightHand);
 
-    public SimulationResult TypeText(string text) => inner.TypeText(text);
+    public SimulationResult TypeText(string text) => _inner.TypeText(text);
 
-    public SimulationResult TypeTextByKeys(string text) => inner.TypeTextByKeys(text);
+    public SimulationResult TypeTextByKeys(string text) => _inner.TypeTextByKeys(text);
 
     private static MacNative.CGPoint Point(int x, int y) => new() { X = x, Y = y };
 
-    /// <summary>A drag or a move at the position, <c>kCGMouseEventDeltaX</c> and <c>DeltaY</c> set, with the session's modifier flags as they are now.</summary>
-    private static SimulationResult PostMotion(uint type, uint button, int x, int y, int dx, int dy)
+    /// <summary>A drag or a move at the position, <c>kCGMouseEventDeltaX</c> and <c>DeltaY</c> set, with the session's modifier flags as they are now; announced as one move.</summary>
+    private SimulationResult PostMotion(uint type, uint button, int x, int y, int dx, int dy)
     {
         var cgEvent = MacNative.CGEventCreateMouseEvent(0, type, Point(x, y), button);
         if (cgEvent == 0)
@@ -108,11 +132,12 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
         MacNative.CGEventSetIntegerValueField(cgEvent, MacNative.CGMouseEventDeltaX, dx);
         MacNative.CGEventSetIntegerValueField(cgEvent, MacNative.CGMouseEventDeltaY, dy);
         MacNative.CGEventSetFlags(cgEvent, MacNative.CGEventSourceFlagsState(MacNative.CGEventSourceStateCombinedSession));
+        _announce?.Move();
         return Post(cgEvent);
     }
 
     /// <summary>A keyboard event of the modifier's key retyped as flagsChanged, carrying the flags it leaves set.</summary>
-    private static SimulationResult PostFlagsChanged(MacFlagsChange change, bool keyDown)
+    private SimulationResult PostFlagsChanged(MacFlagsChange change, bool keyDown)
     {
         var cgEvent = MacNative.CGEventCreateKeyboardEvent(0, change.VirtualKey, keyDown ? (byte)1 : (byte)0);
         if (cgEvent == 0)
@@ -126,7 +151,7 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
     }
 
     /// <summary>A button's down or up (click count 1); <paramref name="flags"/> set on it unless zero; <paramref name="beforePost"/> runs once the event exists, just before it is posted.</summary>
-    private static SimulationResult PostButton(uint type, uint button, MacNative.CGPoint at, ulong flags, Action? beforePost = null)
+    private SimulationResult PostButton(uint type, uint button, MacNative.CGPoint at, ulong flags, Action? beforePost = null)
     {
         var cgEvent = MacNative.CGEventCreateMouseEvent(0, type, at, button);
         if (cgEvent == 0)
@@ -144,9 +169,9 @@ public sealed class MacRemapButtonSimulator(IInputSimulator inner, Action<MouseB
         return Post(cgEvent);
     }
 
-    private static SimulationResult Post(nint cgEvent)
+    private SimulationResult Post(nint cgEvent)
     {
-        MacNative.CGEventPost(HidEventTap, cgEvent);
+        _post(cgEvent);
         Cf.Release(cgEvent);
         return SimulationResult.Success;
     }

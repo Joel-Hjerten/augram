@@ -6,11 +6,48 @@ namespace Augram.Engine.Tests.Input;
 
 /// <summary>
 /// Our own injections are claimed one each, per slot: Scroll step notches (anything else simulated, a vendor tool's re-posted
-/// wheel, is not ours) and each button's releases (anything else simulated is another program's release, plan 0005 decision 10);
-/// a withdrawn announcement claims nothing; announcements expire per slot.
+/// wheel, is not ours), each button's releases (anything else simulated is another program's release, plan 0005 decision 10),
+/// and since the Mac takes other programs' input (2026-10-19) each button's presses and moves; a withdrawn announcement claims
+/// nothing; announcements expire per slot.
 /// </summary>
 public sealed class OwnInjectionsTests
 {
+    [Fact]
+    public void AButtonsPressSlotIsItsOwn_ApartFromItsReleaseSlot()
+    {
+        foreach (var button in Enum.GetValues<MouseButton>())
+        {
+            Assert.Equal(button + "Press", OwnInjections.PressSlotOf(button).ToString());
+            Assert.NotEqual(OwnInjections.ReleaseSlotOf(button), OwnInjections.PressSlotOf(button));
+        }
+    }
+
+    [Fact]
+    public void AnAnnouncedPressIsClaimedOnce_ForItsOwnButtonOnly_NeverAsARelease()
+    {
+        var own = new OwnInjections(() => 0);
+        own.Expect(OwnInjections.PressSlotOf(MouseButton.Left));
+
+        Assert.False(own.TryClaim(OwnInjections.ReleaseSlotOf(MouseButton.Left)));
+        Assert.False(own.TryClaim(OwnInjections.PressSlotOf(MouseButton.Right)));
+        Assert.True(own.TryClaim(OwnInjections.PressSlotOf(MouseButton.Left)));
+        Assert.False(own.TryClaim(OwnInjections.PressSlotOf(MouseButton.Left)));
+    }
+
+    [Fact]
+    public void AnAnnouncedMoveIsClaimedOnce_AndExpiresLikeTheRest()
+    {
+        long now = 0;
+        var own = new OwnInjections(() => now);
+        own.Expect(InjectionSlot.Move, 2);
+
+        Assert.True(own.TryClaim(InjectionSlot.Move));
+        now += (long)OwnInjections.Lifetime.TotalMilliseconds + 1;
+
+        Assert.Equal(0, own.Pending(InjectionSlot.Move));
+        Assert.False(own.TryClaim(InjectionSlot.Move));
+    }
+
     [Theory]
     [InlineData(InjectionSlot.Wheel)]
     [InlineData(InjectionSlot.Right)]
@@ -58,7 +95,7 @@ public sealed class OwnInjectionsTests
     {
         foreach (var button in Enum.GetValues<MouseButton>())
         {
-            Assert.Equal(button.ToString(), OwnInjections.SlotOf(button).ToString());
+            Assert.Equal(button.ToString(), OwnInjections.ReleaseSlotOf(button).ToString());
         }
 
         Assert.Equal((int)InjectionSlot.Wheel, Enum.GetValues<MouseButton>().Length);

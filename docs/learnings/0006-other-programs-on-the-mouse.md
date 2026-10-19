@@ -48,3 +48,17 @@ Requirements F1 already holds pass-first off; this is the evidence from another 
 
 - PowerShell 5.1 splits a `git commit -m` argument at embedded double quotes ("Works when the app is excluded" became pathspecs). Write the message to a scratch file and `git commit -F <file>`.
 - After a merge, `dotnet build-server shutdown` releases the locks a worktree's build left (an Avalonia `AVLN9999` "file in use" on `obj\…\Augram.App.dll` otherwise).
+
+## 7. Wacom on the Mac (2026-10-19)
+
+**Symptom (Joel's log, `~/Library/Application Support/Augram/logs/augram-20261019.log`):** the pen's tip, Right and Middle never reached Augram; Space + pen button in Blender was a plain click or drag. Rate-limited once per button, direction and reason per 30 s:
+
+```
+13:20:49.304 INFO hook Button ignored {button=1 direction=down reason=simulated mask=0x0100 ...}
+13:20:49.421 INFO hook Button ignored {button=1 direction=up reason=released elsewhere ...}
+13:20:52.146 INFO hook Button ignored {button=3 direction=down reason=simulated ...}
+```
+
+**Cause:** libuiohook (SharpHook 7.1.3, `src/darwin/dispatch_event.c`) sets the simulated mask whenever `CGEventGetIntegerValueField(event, kCGEventSourceUnixProcessID)` is nonzero, i.e. for every event any user-space process posts. The Wacom daemon posts the pen's button and move events, so they all carry `IsEventSimulated`. The hook dropped the presses and moves and took the releases as released elsewhere (§2), so a hold remap never saw the press and the re-posting of swallowed moves never saw the pen's.
+
+**Decision (Joel: "Let's do it"):** on macOS only, input another process posts is taken as real, except Augram's own (`Engine/Input/ForeignInput`: `Take` there, `Drop` on Windows, chosen in `EngineModule`). For that the ledger of §2 grew a press slot per button and one move slot, and both simulators announce every mouse event they post (one per hook event; the Mac remap simulator's flagsChanged events are keyboard events, dropped anyway). Without the move claim a re-posted drag would be taken as a real move, swallowed and re-posted again without end. Windows keeps today's rule byte for byte; a Windows driver that posts its input would get the same switch. Not covered: Wacom ExpressKeys posting keys (the hook still drops simulated keys).

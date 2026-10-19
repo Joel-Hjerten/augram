@@ -39,9 +39,14 @@ public static class EngineModule
 
         services.AddSingleton<IClock>(SystemClock.Instance);
         // Shared by the hook and the simulator: the hook takes other programs' wheel events but not our own Scroll step's,
-        // and other programs' button releases (plan 0005 decision 10) but not the ones we post.
+        // and other programs' button releases (plan 0005 decision 10) but not the ones we post. On macOS it takes other programs'
+        // presses and moves too (the Wacom driver posts the pen's; libuiohook marks every posted event simulated), still not our own.
         services.AddSingleton(_ => new OwnInjections());
-        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(sp.GetRequiredService<IClock>(), sp.GetRequiredService<IEventLog>(), sp.GetRequiredService<OwnInjections>()));
+        services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(
+            sp.GetRequiredService<IClock>(),
+            sp.GetRequiredService<IEventLog>(),
+            sp.GetRequiredService<OwnInjections>(),
+            OperatingSystem.IsMacOS() ? ForeignInput.Take : ForeignInput.Drop));
         services.AddSingleton(sp => CreateSimulator(sp.GetRequiredService<OwnInjections>(), options.PlatformAdapters));
         // The Open app step's "This app (Augram)"; App attaches it once the main window exists.
         services.AddSingleton<MainWindowOpener>();
@@ -160,8 +165,17 @@ public static class EngineModule
     private static IInputSimulator CreateSimulator(OwnInjections own, bool adapters)
     {
         var simulator = new SharpHookInputSimulator(own);
-        // Platform may not reference the Engine, so the macOS wrapper announces its releases through a delegate.
-        return adapters && OperatingSystem.IsMacOS() ? new MacRemapButtonSimulator(new MacMediaKeySimulator(simulator), button => own.Expect(OwnInjections.SlotOf(button))) : simulator;
+        if (!adapters || !OperatingSystem.IsMacOS())
+        {
+            return simulator;
+        }
+
+        // Platform may not reference the Engine, so the macOS wrapper announces what it posts through delegates.
+        var announce = new MacPostedInput(
+            Press: button => own.Expect(OwnInjections.PressSlotOf(button)),
+            Release: button => own.Expect(OwnInjections.ReleaseSlotOf(button)),
+            Move: () => own.Expect(InjectionSlot.Move));
+        return new MacRemapButtonSimulator(new MacMediaKeySimulator(simulator), announce);
     }
 
     private static EngineHost CreateHost(IServiceProvider sp)

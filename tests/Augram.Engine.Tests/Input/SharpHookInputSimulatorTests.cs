@@ -134,6 +134,43 @@ public sealed class SharpHookInputSimulatorTests
     }
 
     [Fact]
+    public void EveryPressAndMovePostedIsAnnouncedFirst_SoTheMacHookNeverTakesItForThePens()
+    {
+        using var hook = new TestGlobalHook();
+        var own = new OwnInjections(() => 0);
+        var simulator = new SharpHookInputSimulator(hook, own);
+
+        // A click is one press and one release at the hook; a scroll moves once first; a hotkey posts no mouse event.
+        simulator.Click(MouseButton.Right, 10, 10);
+        simulator.Press(MouseButton.Left, 10, 10);
+        simulator.PressRemapButton(MouseButton.Left, KeyModifiers.Shift, 10, 10);
+        simulator.MoveTo(20, 20);
+        simulator.Scroll(ScrollDirection.Up, 2, 30, 30);
+        simulator.Hotkey(KeyModifiers.Control, KeyCode.F9);
+
+        Assert.Equal(1, own.Pending(InjectionSlot.RightPress));
+        Assert.Equal(2, own.Pending(InjectionSlot.LeftPress));
+        Assert.Equal(2, own.Pending(InjectionSlot.Move));
+        Assert.Equal(1, own.Pending(InjectionSlot.Right));
+        Assert.Equal(0, own.Pending(InjectionSlot.Left));
+        Assert.Equal(2, own.Pending(InjectionSlot.Wheel));
+    }
+
+    [Fact]
+    public void APressOrMoveThatFailsToPostIsWithdrawn()
+    {
+        using var hook = new TestGlobalHook { SimulateMousePressResult = UioHookResult.Failure, SimulateMouseMovementResult = UioHookResult.Failure };
+        var own = new OwnInjections(() => 0);
+        var simulator = new SharpHookInputSimulator(hook, own);
+
+        Assert.Equal(SimulationResult.Failed, simulator.Press(MouseButton.Right, 1, 1));
+        Assert.Equal(SimulationResult.Failed, simulator.MoveTo(2, 2));
+
+        Assert.Equal(0, own.Pending(InjectionSlot.RightPress));
+        Assert.Equal(0, own.Pending(InjectionSlot.Move));
+    }
+
+    [Fact]
     public void AReleaseThatFailsToPostIsWithdrawn()
     {
         using var hook = new TestGlobalHook { SimulateMouseReleaseResult = UioHookResult.Failure };

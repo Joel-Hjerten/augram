@@ -12,16 +12,20 @@ namespace Augram.Engine.Input;
 /// handlers run synchronously and can therefore set <c>SuppressEvent</c> (CLAUDE.md invariant 2). Mouse
 /// and keyboard, one hook per <see cref="Start"/> on its own named thread (<c>augram-hook-gN</c>). A
 /// handler translates the event to a <see cref="RawInput"/>, calls the <see cref="InputHandler"/>, copies
-/// its answer to <c>SuppressEvent</c>, returns; nothing else. Simulated events are dropped before the
-/// handler: <c>IsEventSimulated</c> is true for input injected by any process, so other utilities'
-/// synthetic input is ignored too (learnings 0001, B4), except wheel events: a vertical simulated wheel event is taken unless
-/// <see cref="OwnInjections"/> claims it as one of Augram's own Scroll step notches, because a vendor tool (Logi Options+)
-/// re-posts every wheel turn of its mouse and wheel triggers would otherwise never fire (2026-10-09). Without an
-/// <see cref="OwnInjections"/> every simulated wheel event is dropped, as before. A simulated button release that the same
-/// ledger does not claim as Augram's own is another program's (plan 0005 decision 10): it reaches the handler as
-/// <see cref="RawInputKind.ButtonReleasedElsewhere"/> and is never suppressed. A dropped button press or release (simulated, a
-/// release elsewhere, or a button number past 5) and a dropped wheel event (one of our own, horizontal, or no whole-line
-/// rotation) are logged by <see cref="IgnoredInputLog"/>, rate-limited. Key events take the same path; the handler
+/// its answer to <c>SuppressEvent</c>, returns; nothing else. Simulated events (<c>IsEventSimulated</c>, true for input injected
+/// by any process) are Augram's own when <see cref="OwnInjections"/> claims them, and dropped; the rest is other programs' input,
+/// handled by the <see cref="ForeignInput"/> policy chosen at construction (<see cref="ForeignInputRules"/>, the tested decision).
+/// Under <see cref="ForeignInput.Drop"/> (Windows) other utilities' synthetic presses and moves are ignored (learnings 0001, B4) and
+/// an unclaimed release is another program's (plan 0005 decision 10): it reaches the handler as
+/// <see cref="RawInputKind.ButtonReleasedElsewhere"/> and is never suppressed. Under <see cref="ForeignInput.Take"/> (macOS,
+/// 2026-10-19: libuiohook marks everything the Wacom driver posts for the pen as simulated) an unclaimed press, release or move
+/// is an ordinary <see cref="RawInput"/>, suppressible like any other. Wheel events are taken on both unless claimed as one of
+/// Augram's own Scroll step notches, because a vendor tool (Logi Options+) re-posts every wheel turn of its mouse and wheel
+/// triggers would otherwise never fire (2026-10-09); simulated key events are always dropped. Without an
+/// <see cref="OwnInjections"/> every simulated event is dropped, whatever the policy. A dropped button press or release
+/// (simulated, a release elsewhere, or a button number past 5) and a dropped wheel event (one of our own, horizontal, or no
+/// whole-line rotation) are logged by <see cref="IgnoredInputLog"/>, rate-limited; a claimed press or move, and foreign input
+/// taken as real, are not logged. Key events take the same path; the handler
 /// suppresses them only while a hotkey capture is armed (<c>EngineHost.CaptureKeys</c>, decided in
 /// <c>InputGate</c>). Thin and untested on purpose: it needs a desktop, and everything above it is
 /// driven through a fake source in tests.
@@ -32,6 +36,7 @@ public sealed class SharpHookInputSource : IInputSource
 
     private readonly IClock _clock;
     private readonly OwnInjections? _own;
+    private readonly ForeignInput _foreign;
 
     // Hook thread only.
     private readonly IgnoredInputLog _ignored;
@@ -40,11 +45,16 @@ public sealed class SharpHookInputSource : IInputSource
     private InputHandler? _handler;
     private int _generation;
 
-    public SharpHookInputSource(IClock clock, IEventLog? log = null, OwnInjections? own = null)
+    /// <param name="clock">Stamps every <see cref="RawInput"/>.</param>
+    /// <param name="log">Where <see cref="IgnoredInputLog"/>'s lines go.</param>
+    /// <param name="own">The ledger of Augram's own injections; without one every simulated event is dropped.</param>
+    /// <param name="foreign">What becomes of simulated mouse input the ledger does not claim: dropped (Windows) or taken as real (macOS).</param>
+    public SharpHookInputSource(IClock clock, IEventLog? log = null, OwnInjections? own = null, ForeignInput foreign = ForeignInput.Drop)
     {
         ArgumentNullException.ThrowIfNull(clock);
         _clock = clock;
         _own = own;
+        _foreign = foreign;
         _ignored = new IgnoredInputLog(clock, log ?? NullEventLog.Instance, ownCounted: own is not null);
     }
 
@@ -183,45 +193,39 @@ public sealed class SharpHookInputSource : IInputSource
             return;
         }
 
+        var pressed = e.RawEvent.Type == EventType.MousePressed;
         if (e.IsEventSimulated)
         {
-            OnSimulatedButton(e, button);
-            return;
+            switch (ForeignInputRules.Button(_foreign, _own, button, pressed))
+            {
+                case SimulatedButtonVerdict.Take:
+                    break;
+                case SimulatedButtonVerdict.ReleasedElsewhere:
+                    // The OS has the button up; the handler's answer is ignored (never suppressed).
+                    _ignored.Button(e, "released elsewhere");
+                    var elsewhere = RawInput.ButtonReleasedElsewhere(button, e.Data.X, e.Data.Y, _clock.MonotonicMs);
+                    _handler!(in elsewhere);
+                    return;
+                default:
+                    // One of Augram's own (claimed: a release, or under Take a press) is dropped silently; the rest is logged.
+                    if (_own is null || (pressed && _foreign == ForeignInput.Drop))
+                    {
+                        _ignored.Button(e, "simulated");
+                    }
+
+                    return;
+            }
         }
 
-        var raw = e.RawEvent.Type == EventType.MousePressed
+        var raw = pressed
             ? RawInput.ButtonDown(button, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask))
             : RawInput.ButtonUp(button, e.Data.X, e.Data.Y, _clock.MonotonicMs, Modifiers(e.RawEvent.Mask));
         e.SuppressEvent = _handler!(in raw);
     }
 
-    /// <summary>
-    /// A simulated press is dropped (logged). A simulated release is one of Augram's own, claimed and dropped silently, or another
-    /// program's: the OS now has the button up, so it goes to the handler as released elsewhere (plan 0005 decision 10), whose
-    /// answer is ignored (it is never suppressed). Without an <see cref="OwnInjections"/> every simulated release is dropped,
-    /// as before.
-    /// </summary>
-    private void OnSimulatedButton(MouseHookEventArgs e, Core.Capture.MouseButton button)
-    {
-        if (e.RawEvent.Type != EventType.MouseReleased || _own is null)
-        {
-            _ignored.Button(e, "simulated");
-            return;
-        }
-
-        if (_own.TryClaim(OwnInjections.SlotOf(button)))
-        {
-            return;
-        }
-
-        _ignored.Button(e, "released elsewhere");
-        var raw = RawInput.ButtonReleasedElsewhere(button, e.Data.X, e.Data.Y, _clock.MonotonicMs);
-        _handler!(in raw);
-    }
-
     private void OnMove(object? sender, MouseHookEventArgs e)
     {
-        if (e.IsEventSimulated)
+        if (e.IsEventSimulated && !ForeignInputRules.TakesMove(_foreign, _own))
         {
             return;
         }

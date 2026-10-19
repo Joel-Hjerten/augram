@@ -13,11 +13,12 @@ namespace Augram.Engine.Input;
 /// <c>TestGlobalHook</c>, which posts nothing); everything above it is driven through a fake in tests. The keys a hotkey or a
 /// hold remap button output holds are Core's (<see cref="HotkeyKeys.Keys"/>, held through
 /// <see cref="InputSimulation.WithModifiersHeld"/>). Injected events come back through the hook with <c>IsEventSimulated</c>
-/// set and <see cref="SharpHookInputSource"/> drops them, which is what keeps a replayed click from being captured again.
-/// Wheel notches are the exception: the hook takes other programs' simulated wheel events, so <see cref="Scroll"/> announces
-/// its vertical notches to <see cref="OwnInjections"/> first and the hook drops exactly those. Button releases are the other:
-/// the hook takes another program's simulated release as "released elsewhere" (plan 0005 decision 10), so every release
-/// posted here is announced to the same ledger first (and withdrawn when the post fails).
+/// set, and <see cref="SharpHookInputSource"/> must drop Augram's own while it takes other programs' (wheel events everywhere;
+/// releases, as "released elsewhere", on Windows, plan 0005 decision 10; presses, releases and moves on macOS,
+/// <see cref="ForeignInput.Take"/>). So every mouse event posted here is announced to <see cref="OwnInjections"/> first, one per
+/// hook event it becomes (<see cref="Scroll"/>'s vertical notches; a click's press and release; a press; a release; a move), and
+/// withdrawn when the post fails; the hook claims and drops exactly those. Keyboard events are not announced: the hook drops
+/// every simulated key event.
 /// </summary>
 public sealed class SharpHookInputSimulator : IInputSimulator
 {
@@ -40,18 +41,19 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     {
         var hookButton = MouseButtonMap.ToHook(button);
         var (sx, sy) = Point(x, y);
-        var press = _simulator.SimulateMousePress(sx, sy, hookButton);
-        var release = Announced(button, () => _simulator.SimulateMouseRelease(sx, sy, hookButton));
+        // One press and one release event at the hook (the click event libuiohook adds is a hook-side notion, never posted).
+        var press = Announced(OwnInjections.PressSlotOf(button), () => _simulator.SimulateMousePress(sx, sy, hookButton));
+        var release = Announced(OwnInjections.ReleaseSlotOf(button), () => _simulator.SimulateMouseRelease(sx, sy, hookButton));
         return Combine(press, release);
     }
 
     public SimulationResult Press(MouseButton button, int x, int y)
     {
         var (sx, sy) = Point(x, y);
-        return Translate(_simulator.SimulateMousePress(sx, sy, MouseButtonMap.ToHook(button)));
+        return Translate(Announced(OwnInjections.PressSlotOf(button), () => _simulator.SimulateMousePress(sx, sy, MouseButtonMap.ToHook(button))));
     }
 
-    public SimulationResult Release(MouseButton button) => Translate(Announced(button, () => _simulator.SimulateMouseRelease(MouseButtonMap.ToHook(button))));
+    public SimulationResult Release(MouseButton button) => Translate(Announced(OwnInjections.ReleaseSlotOf(button), () => _simulator.SimulateMouseRelease(MouseButtonMap.ToHook(button))));
 
     /// <summary>False: on Windows the physical moves drive a posted button as they are (the AutoHotkey script proves it).</summary>
     public bool RepostsRemapDrags => false;
@@ -71,7 +73,7 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     public SimulationResult MoveTo(int x, int y)
     {
         var (sx, sy) = Point(x, y);
-        return Translate(_simulator.SimulateMouseMovement(sx, sy));
+        return Translate(Announced(InjectionSlot.Move, () => _simulator.SimulateMouseMovement(sx, sy)));
     }
 
     public SimulationResult Scroll(ScrollDirection direction, int notches, int x, int y)
@@ -148,14 +150,14 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         };
     }
 
-    /// <summary>A release of ours, announced before it is posted so the hook does not take it for another program's; withdrawn when it fails.</summary>
-    private SharpHook.Data.UioHookResult Announced(MouseButton button, Func<SharpHook.Data.UioHookResult> release)
+    /// <summary>One mouse event of ours, announced into <paramref name="slot"/> before it is posted so the hook does not take it for another program's; withdrawn when the post fails.</summary>
+    private SharpHook.Data.UioHookResult Announced(InjectionSlot slot, Func<SharpHook.Data.UioHookResult> post)
     {
-        _own?.Expect(OwnInjections.SlotOf(button));
-        var result = release();
+        _own?.Expect(slot);
+        var result = post();
         if (result != SharpHook.Data.UioHookResult.Success)
         {
-            _own?.Withdraw(OwnInjections.SlotOf(button));
+            _own?.Withdraw(slot);
         }
 
         return result;

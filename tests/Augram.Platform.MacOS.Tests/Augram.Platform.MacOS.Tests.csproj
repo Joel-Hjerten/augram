@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Augram.Platform.MacOS/Augram.Platform.MacOS.csproj" />
+    <ProjectReference Include="../Augram.TestSupport/Augram.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
