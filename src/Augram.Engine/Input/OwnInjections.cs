@@ -4,8 +4,8 @@ namespace Augram.Engine.Input;
 
 /// <summary>
 /// Tells Augram's own injected input from other programs', one ledger per <see cref="InjectionSlot"/>: the wheel, each mouse
-/// button's releases and presses, and moves. On Windows the hook drops simulated input as a rule, with two exceptions that need
-/// this ledger; on macOS it takes every simulated mouse event the ledger does not claim (<see cref="ForeignInput"/>, third item):
+/// button's releases and presses, and moves. The hook took simulated input in two steps, each needing this ledger, and since
+/// 0.20.5 takes every simulated mouse event it does not claim, on both platforms (<see cref="ForeignInput.Take"/>, third item):
 /// <list type="bullet">
 /// <item><b>Wheel</b> (2026-10-09). A vendor tool such as Logi Options+ re-posts every wheel turn of its mouse, so all of them
 /// arrive with <c>IsEventSimulated</c> set; dropping those left wheel triggers nothing to see. So the hook takes simulated
@@ -18,12 +18,12 @@ namespace Augram.Engine.Input;
 /// macOS remap wrapper, through an <c>Action&lt;MouseButton&gt;</c> since Platform may not reference the Engine) announce each
 /// release before posting it, and <see cref="Withdraw"/> it when the post fails; the hook claims one per simulated release of
 /// that button. Without the claim, a replayed click's release could end the next real press of the same button.</item>
-/// <item><b>Presses and moves</b> (macOS, 2026-10-19, <see cref="ForeignInput.Take"/>). libuiohook marks every event any
-/// user-space process posts as simulated, the Wacom driver's pen among them, so on the Mac an unclaimed simulated press, release or
-/// move is taken as real. The two simulators announce every press (<see cref="PressSlotOf"/>) and every move or drag
-/// (<see cref="InjectionSlot.Move"/>) they post, so Augram's own come back claimed and dropped; without the move claim a hold
-/// remap's re-posted drag would be swallowed and re-posted again without end. On Windows the press and move announcements are
-/// made too and expire unclaimed.</item>
+/// <item><b>Presses and moves</b> (<see cref="ForeignInput.Take"/>: macOS 2026-10-19, Windows 2026-10-21). Both hooks mark
+/// input any other process posts as simulated, the Wacom driver's pen among them (on Windows with Windows Ink on), so an unclaimed
+/// simulated press, release or move is taken as real. The two simulators announce every press (<see cref="PressSlotOf"/>) and
+/// every move or drag (<see cref="InjectionSlot.Move"/>) they post, on Windows also the move libuiohook posts before a press or
+/// release at a point, so Augram's own come back claimed and dropped; without the move claim a hold remap's re-posted drag would
+/// be swallowed and re-posted again without end.</item>
 /// </list>
 /// Announcements that never come back (a failed post, another program's hook swallowing ours) expire <see cref="Lifetime"/>
 /// after that slot's last announcement, so a lost one cannot hide foreign input for long. Announcements come from the worker or

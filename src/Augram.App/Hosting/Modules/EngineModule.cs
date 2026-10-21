@@ -38,15 +38,15 @@ public static class EngineModule
         var marshal = options.Marshal ?? UiThread.Post;
 
         services.AddSingleton<IClock>(SystemClock.Instance);
-        // Shared by the hook and the simulator: the hook takes other programs' wheel events but not our own Scroll step's,
-        // and other programs' button releases (plan 0005 decision 10) but not the ones we post. On macOS it takes other programs'
-        // presses and moves too (the Wacom driver posts the pen's; libuiohook marks every posted event simulated), still not our own.
+        // Shared by the hook and the simulator: the hook takes other programs' mouse input (presses, releases, moves, wheel) as
+        // real but not what we post ourselves. The Wacom driver posts the pen's, on the Mac (0.20.4) and on Windows with Windows
+        // Ink on (0.20.5), and both mark it simulated.
         services.AddSingleton(_ => new OwnInjections());
         services.AddSingleton(sp => options.InputSource?.Invoke(sp) ?? new SharpHookInputSource(
             sp.GetRequiredService<IClock>(),
             sp.GetRequiredService<IEventLog>(),
             sp.GetRequiredService<OwnInjections>(),
-            OperatingSystem.IsMacOS() ? ForeignInput.Take : ForeignInput.Drop));
+            ForeignInput.Take));
         services.AddSingleton(sp => CreateSimulator(sp.GetRequiredService<OwnInjections>(), options.PlatformAdapters));
         // The Open app step's "This app (Augram)"; App attaches it once the main window exists.
         services.AddSingleton<MainWindowOpener>();

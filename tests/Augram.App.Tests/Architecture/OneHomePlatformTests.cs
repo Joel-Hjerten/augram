@@ -27,7 +27,7 @@ public sealed partial class OneHomePlatformTests
             new Allowed("src/Augram.Core/Abstractions/RunningPlatform.cs", "the home"),
             new Allowed("src/Augram.Core/Config/DefaultConfigFolder.cs", "the OS's own folder convention, whatever the process reads as"),
             new Allowed("src/Augram.Sync.Git/RemoteUrl.cs", "the file system's case rule for a local path"),
-            new Allowed("src/Augram.Engine/Input/", "SharpHook's two macOS quirks (Engine README)"),
+            new Allowed("src/Augram.Engine/Input/", "SharpHook's per-OS quirks (Engine README)"),
             new Allowed(App + "App.axaml.cs", "the macOS launch event and Dock, observed before the main loop"),
             new Allowed(App + "App.Launch.cs", "the macOS launch event"),
             new Allowed(App + "Hosting/Modules/", "picks the Windows or macOS adapters (the analyzer's platform guard)"),

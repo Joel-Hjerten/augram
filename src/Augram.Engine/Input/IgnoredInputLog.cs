@@ -9,8 +9,8 @@ namespace Augram.Engine.Input;
 /// The hook's two rate-limited Info lines for input it drops before the handler (<see cref="SharpHookInputSource"/>):
 /// "Button ignored" with the raw number, at most once per <see cref="Interval"/> for each button (numbers past 15 share one
 /// slot), simulated or not and direction, so a remapped mouse button that never reaches the engine (a vendor tool injecting it)
-/// shows what it arrives as (on Windows; on macOS foreign presses and releases are taken, <see cref="ForeignInput.Take"/>, so the
-/// "simulated" reason is left to unknown buttons and a source without a ledger); "Wheel ignored", once per interval and reason (simulated, horizontal, no rotation), so a scrolling
+/// shows what it arrives as (foreign presses and releases are taken on both platforms since 0.20.5, <see cref="ForeignInput.Take"/>,
+/// so the "simulated" reason is left to a source without a ledger or under <see cref="ForeignInput.Drop"/>); "Wheel ignored", once per interval and reason (simulated, horizontal, no rotation), so a scrolling
 /// utility that re-posts every wheel event is visible. One throttle (<see cref="Due"/>) over two tables of last-logged times.
 /// Hook thread only: one writer, no lock; nothing is allocated unless a line is written.
 /// </summary>

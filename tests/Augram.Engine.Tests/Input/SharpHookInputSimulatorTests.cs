@@ -134,11 +134,11 @@ public sealed class SharpHookInputSimulatorTests
     }
 
     [Fact]
-    public void EveryPressAndMovePostedIsAnnouncedFirst_SoTheMacHookNeverTakesItForThePens()
+    public void EveryPressAndMovePostedIsAnnouncedFirst_SoTheHookNeverTakesItForThePens()
     {
         using var hook = new TestGlobalHook();
         var own = new OwnInjections(() => 0);
-        var simulator = new SharpHookInputSimulator(hook, own);
+        var simulator = new SharpHookInputSimulator(hook, own, movesBeforeButtonAtPoint: false);
 
         // A click is one press and one release at the hook; a scroll moves once first; a hotkey posts no mouse event.
         simulator.Click(MouseButton.Right, 10, 10);
@@ -157,11 +157,28 @@ public sealed class SharpHookInputSimulatorTests
     }
 
     [Fact]
+    public void OnWindowsAPressOrReleaseAtAPointAnnouncesTheMoveLibuiohookPostsBeforeIt_ABareReleaseDoesNot()
+    {
+        using var hook = new TestGlobalHook();
+        var own = new OwnInjections(() => 0);
+        var simulator = new SharpHookInputSimulator(hook, own, movesBeforeButtonAtPoint: true);
+
+        // A click: move, press, move, release. A press at a point: move, press. Release (no point): the release alone.
+        simulator.Click(MouseButton.Right, 10, 10);
+        simulator.Press(MouseButton.Left, 10, 10);
+        simulator.Release(MouseButton.Left);
+
+        Assert.Equal(3, own.Pending(InjectionSlot.Move));
+        Assert.Equal(1, own.Pending(InjectionSlot.RightPress));
+        Assert.Equal(1, own.Pending(InjectionSlot.LeftPress));
+    }
+
+    [Fact]
     public void APressOrMoveThatFailsToPostIsWithdrawn()
     {
         using var hook = new TestGlobalHook { SimulateMousePressResult = UioHookResult.Failure, SimulateMouseMovementResult = UioHookResult.Failure };
         var own = new OwnInjections(() => 0);
-        var simulator = new SharpHookInputSimulator(hook, own);
+        var simulator = new SharpHookInputSimulator(hook, own, movesBeforeButtonAtPoint: true);
 
         Assert.Equal(SimulationResult.Failed, simulator.Press(MouseButton.Right, 1, 1));
         Assert.Equal(SimulationResult.Failed, simulator.MoveTo(2, 2));

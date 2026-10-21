@@ -17,13 +17,13 @@ public enum InjectionSlot
     /// <summary>Vertical wheel notches (the Scroll step's, and a hold remap's wheel output).</summary>
     Wheel,
 
-    /// <summary>Presses, in <see cref="MouseButton"/> order (<see cref="OwnInjections.PressSlotOf"/>); claimed only where foreign input is taken (macOS).</summary>
+    /// <summary>Presses, in <see cref="MouseButton"/> order (<see cref="OwnInjections.PressSlotOf"/>); claimed only where foreign input is taken (<see cref="ForeignInput.Take"/>, both platforms).</summary>
     LeftPress,
     MiddlePress,
     RightPress,
     X1Press,
     X2Press,
 
-    /// <summary>Moves and drags: a hold remap's re-posted drags and a chord's re-posted moves on macOS, and the simulator's <c>MoveTo</c>.</summary>
+    /// <summary>Moves and drags: a hold remap's re-posted drags and a chord's re-posted moves on macOS, the simulator's <c>MoveTo</c>, and on Windows the move libuiohook posts before a press or release at a point.</summary>
     Move,
 }

@@ -13,10 +13,10 @@ namespace Augram.Engine.Input;
 /// <c>TestGlobalHook</c>, which posts nothing); everything above it is driven through a fake in tests. The keys a hotkey or a
 /// hold remap button output holds are Core's (<see cref="HotkeyKeys.Keys"/>, held through
 /// <see cref="InputSimulation.WithModifiersHeld"/>). Injected events come back through the hook with <c>IsEventSimulated</c>
-/// set, and <see cref="SharpHookInputSource"/> must drop Augram's own while it takes other programs' (wheel events everywhere;
-/// releases, as "released elsewhere", on Windows, plan 0005 decision 10; presses, releases and moves on macOS,
-/// <see cref="ForeignInput.Take"/>). So every mouse event posted here is announced to <see cref="OwnInjections"/> first, one per
-/// hook event it becomes (<see cref="Scroll"/>'s vertical notches; a click's press and release; a press; a release; a move), and
+/// set, and <see cref="SharpHookInputSource"/> must drop Augram's own while it takes other programs' (presses, releases, moves
+/// and wheel events, <see cref="ForeignInput.Take"/>, on both platforms since 0.20.5). So every mouse event posted here is announced
+/// to <see cref="OwnInjections"/> first, one per hook event it becomes (<see cref="Scroll"/>'s vertical notches; a click's press and
+/// release; a press; a release; a move; on Windows also the move libuiohook posts before a press or release at a point), and
 /// withdrawn when the post fails; the hook claims and drops exactly those. Keyboard events are not announced: the hook drops
 /// every simulated key event.
 /// </summary>
@@ -24,6 +24,7 @@ public sealed class SharpHookInputSimulator : IInputSimulator
 {
     private readonly IEventSimulator _simulator;
     private readonly OwnInjections? _own;
+    private readonly bool _movesBeforeButtonAtPoint;
 
     public SharpHookInputSimulator(OwnInjections? own = null)
         : this(new EventSimulator(), own)
@@ -31,10 +32,23 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     }
 
     public SharpHookInputSimulator(IEventSimulator simulator, OwnInjections? own = null)
+        : this(simulator, own, OperatingSystem.IsWindows())
+    {
+    }
+
+    /// <param name="simulator">What posts the events.</param>
+    /// <param name="own">The ledger the posted mouse events are announced to.</param>
+    /// <param name="movesBeforeButtonAtPoint">
+    /// libuiohook on Windows (<c>src/windows/post_event.c</c>, <c>map_mouse_event</c>) posts a move to the point, its own
+    /// <c>SendInput</c>, before a press or release that carries coordinates (<see cref="Click"/>'s two, <see cref="Press"/>); the
+    /// hook sees it as a simulated move, so it is announced too. macOS posts the button event alone. Tests pass either.
+    /// </param>
+    internal SharpHookInputSimulator(IEventSimulator simulator, OwnInjections? own, bool movesBeforeButtonAtPoint)
     {
         ArgumentNullException.ThrowIfNull(simulator);
         _simulator = simulator;
         _own = own;
+        _movesBeforeButtonAtPoint = movesBeforeButtonAtPoint;
     }
 
     public SimulationResult Click(MouseButton button, int x, int y)
@@ -42,15 +56,15 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         var hookButton = MouseButtonMap.ToHook(button);
         var (sx, sy) = Point(x, y);
         // One press and one release event at the hook (the click event libuiohook adds is a hook-side notion, never posted).
-        var press = Announced(OwnInjections.PressSlotOf(button), () => _simulator.SimulateMousePress(sx, sy, hookButton));
-        var release = Announced(OwnInjections.ReleaseSlotOf(button), () => _simulator.SimulateMouseRelease(sx, sy, hookButton));
+        var press = AnnouncedAtPoint(OwnInjections.PressSlotOf(button), () => _simulator.SimulateMousePress(sx, sy, hookButton));
+        var release = AnnouncedAtPoint(OwnInjections.ReleaseSlotOf(button), () => _simulator.SimulateMouseRelease(sx, sy, hookButton));
         return Combine(press, release);
     }
 
     public SimulationResult Press(MouseButton button, int x, int y)
     {
         var (sx, sy) = Point(x, y);
-        return Translate(Announced(OwnInjections.PressSlotOf(button), () => _simulator.SimulateMousePress(sx, sy, MouseButtonMap.ToHook(button))));
+        return Translate(AnnouncedAtPoint(OwnInjections.PressSlotOf(button), () => _simulator.SimulateMousePress(sx, sy, MouseButtonMap.ToHook(button))));
     }
 
     public SimulationResult Release(MouseButton button) => Translate(Announced(OwnInjections.ReleaseSlotOf(button), () => _simulator.SimulateMouseRelease(MouseButtonMap.ToHook(button))));
@@ -158,6 +172,28 @@ public sealed class SharpHookInputSimulator : IInputSimulator
         if (result != SharpHook.Data.UioHookResult.Success)
         {
             _own?.Withdraw(slot);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// A press or release at a point: <see cref="Announced"/>, plus on Windows the move libuiohook posts first (withdrawn with it
+    /// when the post fails). Should Windows not report that move, its announcement expires after <see cref="OwnInjections.Lifetime"/>,
+    /// having claimed at most one other program's simulated move.
+    /// </summary>
+    private SharpHook.Data.UioHookResult AnnouncedAtPoint(InjectionSlot slot, Func<SharpHook.Data.UioHookResult> post)
+    {
+        if (!_movesBeforeButtonAtPoint)
+        {
+            return Announced(slot, post);
+        }
+
+        _own?.Expect(InjectionSlot.Move);
+        var result = Announced(slot, post);
+        if (result != SharpHook.Data.UioHookResult.Success)
+        {
+            _own?.Withdraw(InjectionSlot.Move);
         }
 
         return result;
