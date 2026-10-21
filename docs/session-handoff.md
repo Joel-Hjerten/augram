@@ -6,6 +6,20 @@ Joel works on a **Windows 11 PC** and a **Mac**; both run Augram and sync throug
 
 ## 0. Right now
 
+**2026-10-21, the Wacom pen (PC session; Joel on the Mac for the day, PC testing resumes tonight).**
+- **0.20.5, merged and checked on the PC:** Windows takes the input other programs post, as the Mac has since 0.20.4. Wacom's pen mode injects the pen's clicks, and Augram used to drop them. The Mac's behaviour is unchanged (only the Windows simulator and `EngineModule`'s choice changed), so installing 0.20.5 on the Mac is optional.
+- **What the PC check found** ([learnings 0006 §7](learnings/0006-other-programs-on-the-mouse.md), last two paragraphs):
+  - With Windows Ink off, the pen works fully in Wacom's pen mode and mouse mode.
+  - With Ink on, Augram gets the clicks but none of the moves (strokes have 2 points), and Windows takes the barrel button, so the loupe chord fails. Ink off is the supported setup. Joel's setup is in his memory notes; Photoshop 27.11 needs Preferences › Tools › WinTab for pressure without Ink.
+- **[Plan 0013](plans/0013-pen-and-mouse-distances.md), PROPOSED, awaiting Joel's word on decisions 1–9:**
+  - Pen values beside the start distance and the button drag distance.
+  - The device is decided at the press, from proximity or a recent pen move.
+  - Step 1 is a listen-only probe (`tools/PenProbe`).
+  - The PC run waits for tonight, with Joel at the tablet.
+  - **The Mac half can go first, if Joel wants it today:** a listen-only `CGEventTap` that logs tablet proximity, `kCGMouseEventSubtype` and the source pid, in Wacom pen mode and mouse mode. Joel runs it; agents never do (CLAUDE.md's hook rule).
+- **Still pending on the Mac:** 0.20.4's own check ("Wacom and other posting drivers" in `src/Augram.Platform.MacOS/README.md`) if the tablet is at hand.
+- **Krita workaround until plan 0013 lands:** add Krita to Zoom In/Out's *Not in*. The pen's right-click wobbles past the 10 px button drag distance, because Right is held back for Right + wheel.
+
 **[Plan 0007, the refactor](plans/completed/0007-refactor.md), done 2026-10-12.** Every App folder has a README (the App README is a map of them); 52 architecture tests fail CI when a second implementation of a folded job comes back ([reference/one-home-guards.md](reference/one-home-guards.md)); CLAUDE.md's "One home per job" rule. Features resume. **Main has visible changes since 0.11.14 that Joel has not installed:** every dialog on one base (the import review's margin, the picker's heading), the light theme's swatch ring and cleaned-stroke gold, Enter renames on the Gestures tab (Windows), one undo step for deleting or merging used gestures, command labels ("Global › Minimize", "Blender › Space › Orbit") in Used by, sync conflicts and the log, the sync conflict text right on the Mac. The next package should get a new version.
 
 **0.19.5–0.19.6 (2026-10-13): every command activates the window under the gesture start first.** Joel: a maximize stroke over Chrome while VS Code had focus maximized Chrome *behind* VS Code; SP.net activates before every action. 0.19.5 activated before on-screen window operations only; Joel: one blanket rule, no exceptions per step kind until a real issue asks for one, so 0.19.6 activates once before the first step of every command (`CommandRunner.Run`), with no settle delay; keys still settle once. 0.19.6 also skips a window operation over the desktop in the executor (SP.net had no guard; Joel minimized the Windows desktop by accident). The 2026-10-07 reason for skipping it (310 ms Alt tap) is gone since plan 0008: a week of logs, 131 `set-foreground`, 22 `alt-tap`, 15 `attach-thread-input`, 0 failed. **Joel's check (PC):** VS Code and Chrome side by side, VS Code focused, the maximize stroke over Chrome → Chrome comes forward maximized; the log's `Window activated` line before `Command fired` shows the technique and `elapsedMs`. Also fixed the red main (`ToggleFullScreen_IsNotSupported_PerformSaysSo`, red since 0.16.0).
