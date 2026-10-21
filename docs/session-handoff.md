@@ -16,7 +16,13 @@ Joel works on a **Windows 11 PC** and a **Mac**; both run Augram and sync throug
   - The device is decided at the press, from proximity or a recent pen move.
   - Step 1 is a listen-only probe (`tools/PenProbe`).
   - The PC run waits for tonight, with Joel at the tablet.
-  - **The Mac half can go first, if Joel wants it today:** a listen-only `CGEventTap` that logs tablet proximity, `kCGMouseEventSubtype` and the source pid, in Wacom pen mode and mouse mode. Joel runs it; agents never do (CLAUDE.md's hook rule).
+  - **Joel plans to carry plan 0013 on at work on the Mac (2026-10-21)**, so that the pen's right-click in Krita stops turning into a drag there. Suggested order:
+    1. Confirm decisions 1–9 with him.
+    2. The Mac probe.
+    3. Step 2 (Core and Engine: the pen values, the device on the press). It is platform-neutral, so it can be built and tested on the Mac.
+    4. The Mac adapter.
+    - The Windows adapter waits for tonight's PC probe; until it exists, Windows reads Mouse, which is today's behaviour.
+  - **The Mac half of the probe:** a listen-only `CGEventTap` that logs tablet proximity, `kCGMouseEventSubtype` and the source pid, in Wacom pen mode and mouse mode. Joel runs it; agents never do (CLAUDE.md's hook rule).
 - **Still pending on the Mac:** 0.20.4's own check ("Wacom and other posting drivers" in `src/Augram.Platform.MacOS/README.md`) if the tablet is at hand.
 - **Krita workaround until plan 0013 lands:** add Krita to Zoom In/Out's *Not in*. The pen's right-click wobbles past the 10 px button drag distance, because Right is held back for Right + wheel.
 
