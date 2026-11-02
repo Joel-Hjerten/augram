@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Augram.Core.Abstractions;
 using Augram.Platform.MacOS.Interop;
 using Augram.Platform.MacOS.WindowSystem;
 
@@ -11,14 +12,15 @@ namespace Augram.Platform.MacOS.Display;
 /// twins of HiDPI sizes and their TV rates are there too ("Show all resolutions"). A mode is applied by finding the same
 /// <c>CGDisplayMode</c> again (IOKit mode id, sizes and rate) and configuring it <c>kCGConfigurePermanently</c>, as
 /// System Settings does; a failed step cancels the transaction. CoreGraphics only, no AppKit, so it runs on the calling
-/// thread (the command executor, or the UI thread for a step form).
+/// thread (the command executor, or the UI thread for a step form). HDR is read through SkyLight's private calls
+/// (<see cref="MacNative.SkyLightHdr"/>, plan 0014).
 /// </summary>
 [SupportedOSPlatform("macos")]
 internal static class MacDisplayList
 {
     private static readonly Lazy<nint> AllModesOptions = new(CreateAllModesOptions);
 
-    /// <summary>Every active display (<see cref="MacWindowList.ActiveDisplays"/>) with its main and built-in flags, its current mode and every mode it offers.</summary>
+    /// <summary>Every active display (<see cref="MacWindowList.ActiveDisplays"/>) with its main and built-in flags, its current mode, every mode it offers and its HDR.</summary>
     public static IReadOnlyList<MacDisplayReading> Read()
     {
         var active = MacWindowList.ActiveDisplays();
@@ -37,7 +39,8 @@ internal static class MacDisplayList
                 id == main,
                 MacNative.CGDisplayIsBuiltin(id) != 0,
                 CurrentMode(id),
-                AllModes(id)));
+                AllModes(id),
+                ReadHdr(id)));
         }
 
         return displays;
@@ -90,6 +93,12 @@ internal static class MacDisplayList
         error = MacNative.CGCompleteDisplayConfiguration(config, MacNative.CGConfigurePermanently);
         return error == MacNative.CGErrorSuccess ? null : $"CGCompleteDisplayConfiguration failed ({error})";
     }
+
+    /// <summary>The display's HDR now: unsupported when SkyLight's calls are missing or the current mode has no HDR.</summary>
+    public static HdrState ReadHdr(uint display)
+        => !MacNative.SkyLightHdr.Supports(display) ? HdrState.Unsupported
+            : MacNative.SkyLightHdr.IsEnabled(display) ? HdrState.On
+            : HdrState.Off;
 
     private static MacNativeMode? CurrentMode(uint display)
     {

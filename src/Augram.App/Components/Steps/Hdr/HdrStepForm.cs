@@ -33,7 +33,7 @@ public sealed class HdrStepForm : IStepForm
                     "Action",
                     Actions,
                     new DelegateBinding<HdrAction>(() => state.Action, action => Emit(state with { Action = action })),
-                    "Windows' \"Use HDR\" switch; Win+Alt+B does the same from the keyboard. macOS lets no app switch HDR, so there the step is skipped."),
+                    "The system's own HDR switch: Windows' \"Use HDR\" (Win+Alt+B does the same from the keyboard), and on macOS System Settings › Displays › High Dynamic Range."),
                 new DropdownField<DisplayTarget>(
                     "Display",
                     DisplayModeChoices.Targets,

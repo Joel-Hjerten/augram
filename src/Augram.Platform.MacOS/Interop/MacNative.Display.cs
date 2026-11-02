@@ -71,4 +71,66 @@ internal static partial class MacNative
 
     /// <summary>The CoreGraphics framework path, for <see cref="ExportAddress"/>.</summary>
     public static string CoreGraphicsPath => CoreGraphicsLibrary;
+
+    /// <summary>
+    /// SkyLight's private HDR switch, the one behind System Settings › Displays › High Dynamic Range (plan 0014):
+    /// <c>bool SLSDisplaySupportsHDRMode(id)</c>, <c>bool SLSDisplayIsHDRModeEnabled(id)</c> and
+    /// <c>CGError SLSDisplaySetHDRModeEnabled(id, bool, int, int)</c>, with their <c>CoreDisplay_Display_…</c> twins as
+    /// the fallback names. Resolved once at run time, never linked, so a macOS without them leaves
+    /// <see cref="IsAvailable"/> false instead of failing to load.
+    /// </summary>
+    public static unsafe class SkyLightHdr
+    {
+        private const string SkyLightLibrary = "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight";
+
+        private static readonly Lazy<Exports?> Resolved = new(Resolve);
+
+        /// <summary>Whether all three calls were found.</summary>
+        public static bool IsAvailable => Resolved.Value is not null;
+
+        /// <summary>Whether the display's current mode can show HDR; false when the calls are missing.</summary>
+        public static bool Supports(uint display) => Resolved.Value is { } calls && calls.Supports(display) != 0;
+
+        /// <summary>Whether HDR is on; false when the calls are missing.</summary>
+        public static bool IsEnabled(uint display) => Resolved.Value is { } calls && calls.IsEnabled(display) != 0;
+
+        /// <summary>Asks for HDR on or off; the <c>CGError</c> (<see cref="CGErrorSuccess"/>), -1 when the calls are missing. The display re-syncs afterwards, so the state changes a moment later.</summary>
+        public static int SetEnabled(uint display, bool on)
+            => Resolved.Value is { } calls ? calls.SetEnabled(display, on ? (byte)1 : (byte)0, 0, 0) : -1;
+
+        private static Exports? Resolve()
+        {
+            if (!NativeLibrary.TryLoad(SkyLightLibrary, out var skyLight))
+            {
+                return null;
+            }
+
+            nint Find(string name, string fallback)
+                => NativeLibrary.TryGetExport(skyLight, name, out var address) || NativeLibrary.TryGetExport(skyLight, fallback, out address)
+                    ? address
+                    : 0;
+
+            var supports = Find("SLSDisplaySupportsHDRMode", "CoreDisplay_Display_SupportsHDRMode");
+            var isEnabled = Find("SLSDisplayIsHDRModeEnabled", "CoreDisplay_Display_IsHDRModeEnabled");
+            var setEnabled = Find("SLSDisplaySetHDRModeEnabled", "CoreDisplay_Display_SetHDRModeEnabled");
+            return supports == 0 || isEnabled == 0 || setEnabled == 0
+                ? null
+                : new Exports(
+                    (delegate* unmanaged<uint, byte>)supports,
+                    (delegate* unmanaged<uint, byte>)isEnabled,
+                    (delegate* unmanaged<uint, byte, int, int, int>)setEnabled);
+        }
+
+        private sealed class Exports(
+            delegate* unmanaged<uint, byte> supports,
+            delegate* unmanaged<uint, byte> isEnabled,
+            delegate* unmanaged<uint, byte, int, int, int> setEnabled)
+        {
+            public byte Supports(uint display) => supports(display);
+
+            public byte IsEnabled(uint display) => isEnabled(display);
+
+            public int SetEnabled(uint display, byte on, int a, int b) => setEnabled(display, on, a, b);
+        }
+    }
 }

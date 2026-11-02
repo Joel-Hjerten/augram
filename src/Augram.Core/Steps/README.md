@@ -25,7 +25,7 @@ Picker order within a category is `BuiltIn` order.
 | `mediaKey` | `MediaKey/` | Media key | System | yes | "Volume up", "Mute", "Play/pause", "Next track" |
 | `clearClipboard` | `ClearClipboard/` | Clear clipboard | System | yes | "Clear clipboard" |
 | `displayMode` | `DisplayMode/` | Display mode | Display | yes (resolution in each platform's units) | "Display 1920×1080 at 119.88 Hz", "Display refresh 24 Hz", "Display 3840×2160 (main display)" |
-| `hdr` | `Hdr/` | HDR | Display | no (no macOS equivalent) | "Toggle HDR", "HDR on", "HDR off" |
+| `hdr` | `Hdr/` | HDR | Display | yes | "Toggle HDR", "HDR on", "HDR off" |
 | `hotkey` | `Hotkey/` | Hotkey | Keyboard | no (F8: Ctrl ↔ Cmd, Alt ↔ Option, exception table) | "Ctrl+Shift+T", "Alt+F4", "Esc", "Cmd+[ · per layout", "Hotkey (no key set)" |
 | `scroll` | `Scroll/` | Scroll | Mouse | yes (held keys swap Ctrl ↔ Cmd like a hotkey's) | "Scroll up", "Ctrl + scroll down ×3", "Scroll right" |
 | `remap` | `Remap/` | Remap (offered only under a hold remap, F9, or on a button trigger, plan 0005; a command's only step) | Mouse | yes (never converted: "same on both"; a platform version gives another output) | "Remap to Middle", "Remap to Shift + Middle", "Remap to G"; never run by the command executor (Skipped), the engine worker plays it |

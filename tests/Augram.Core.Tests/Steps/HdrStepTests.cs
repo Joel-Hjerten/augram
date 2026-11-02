@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Augram.Core.Tests.Steps;
 
-/// <summary>The HDR step: metadata, summaries, JSON, the macOS conversion and every execute branch against a fake adapter.</summary>
+/// <summary>The HDR step: metadata, summaries, JSON, the conversion (unchanged both ways) and every execute branch against a fake adapter.</summary>
 public sealed class HdrStepTests
 {
     private static readonly HdrStepType Type = HdrStepType.Instance;
@@ -17,7 +17,7 @@ public sealed class HdrStepTests
         Assert.Equal("hdr", Type.Key);
         Assert.Equal("HDR", Type.DisplayName);
         Assert.Equal(StepCategory.Display, Type.Category);
-        Assert.False(Type.IsPlatformNeutral);
+        Assert.True(Type.IsPlatformNeutral);
 
         var step = Assert.IsType<HdrStep>(Type.CreateDefault());
         Assert.Equal(new HdrStep(HdrAction.Toggle, DisplayTarget.UnderGesture), step);
@@ -54,13 +54,11 @@ public sealed class HdrStepTests
     }
 
     [Fact]
-    public void OnMacOSThereIsNoEquivalent_OnWindowsItIsUnchanged()
+    public void ConvertsUnchangedBothWays()
     {
         var step = new HdrStep(HdrAction.On);
 
-        var mac = Type.Convert(step, HostPlatform.Windows, HostPlatform.MacOS);
-        Assert.Equal(StepConversionKind.NotConvertible, mac.Kind);
-        Assert.Equal("HDR on has no macOS equivalent: macOS offers apps no way to switch HDR", mac.Reason);
+        Assert.Equal(StepConversion.Same(step), Type.Convert(step, HostPlatform.Windows, HostPlatform.MacOS));
         Assert.Equal(StepConversion.Same(step), Type.Convert(step, HostPlatform.MacOS, HostPlatform.Windows));
         Assert.Equal(StepConversion.Same(step), Type.Convert(step, HostPlatform.Windows, HostPlatform.Windows));
     }
