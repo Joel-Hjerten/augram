@@ -51,6 +51,8 @@ The signatures come from two open-source projects that call them: joevt/AllRez (
 
 ## Joel's check (Mac)
 
+**Lead's check on the TV (2026-11-02, with Joel watching):** the private calls alone switched HDR on in 0.73 s and off in 0.83 s (`CGError` 0). `MacDisplayModes` itself, run from a throwaway console (no hooks), read `CanSwitchHdr=True` and the TV `Off`, then `SetHdr(true)` → Ok in 720 ms, read `On`, and `SetHdr(false)` → Ok in 693 ms, read `Off`; Joel saw HDR toggle. The H gesture had done nothing earlier because the running app was still 0.20.4 (`stepsSkipped=1` in the log); the signed 0.21.0 `.pkg` was built the same night for Joel to install. Left to check: steps 3–4 below on 0.21.0.
+
 1. Install 0.21.0 and restart Augram (quit from the menu bar first).
 2. Commands: open the small-H command, switch "Steps for" to macOS, replace its steps with **HDR › Toggle** (display: under the gesture).
 3. Draw H over the SONY TV: HDR turns on, and System Settings › Displays shows High Dynamic Range on. Draw it again: HDR off.
