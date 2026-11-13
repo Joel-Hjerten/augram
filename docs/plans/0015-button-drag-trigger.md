@@ -1,6 +1,6 @@
 # Plan 0015: a Drag trigger: a held-back button's drag played as a Remap (Photoshop's Right-drag pan)
 
-Status: **BUILT as 0.22.0 (2026-11-13, Mac session), awaiting Joel's check below.** Engine log lines are Info (not Debug), so an installed build shows them. Joel accepted decisions 1–10 ("Yes, build it"), then widened it to any button but the stroke button (decision 1). Origin: Joel, 2026-11-13: "in photoshop, i would like the RMB drag = photoshops viewport pan -> Space+LMB while RMB is held, and then on RMB release if not drag happened allow the RMB menu to pop up."
+Status: **BUILT as 0.22.0 (2026-11-13, Mac session); Joel checked it on the Mac the same day ("it works": Right + drag pans Photoshop 2027 as Left with Space held). The PC check is pending.** The Mac build was signed but not notarized: Apple's notary service kept answering 403 "agreement missing or expired" for some minutes after Joel accepted the new agreements. Engine log lines are Info (not Debug), so an installed build shows them. Joel accepted decisions 1–10 ("Yes, build it"), then widened it to any button but the stroke button (decision 1). Origin: Joel, 2026-11-13: "in photoshop, i would like the RMB drag = photoshops viewport pan -> Space+LMB while RMB is held, and then on RMB release if not drag happened allow the RMB menu to pop up."
 
 ## Why nothing built does it today
 
