@@ -11,10 +11,11 @@ namespace Augram.Core.Mapping;
 /// nothing yet, each with a "while holding" set (<see cref="Hold"/>, F1 "Triggers as combinations", Joel 2026-10-09):
 /// "Shift + gesture", "Right + wheel up", "Shift + click" (SP.net's no-gesture action, fired at the stroke button's release),
 /// a bare "click" (Joel, 2026-10-13: the stroke button clicked holding nothing else, so a middle click can open Mission Control),
-/// "Right + Left" (<see cref="ButtonTrigger"/>, plan 0005: fired at Left's press while Right is held); or, for a command under a
+/// "Right + Left" (<see cref="ButtonTrigger"/>, plan 0005: fired at Left's press while Right is held), "Right + drag"
+/// (<see cref="DragTrigger"/>, plan 0015: fired when held-back Right moves past its drag distance); or, for a command under a
 /// hold remap (F9, plan 0002), the <see cref="InputTrigger"/> that fires it while the hold key is held. A closed set of records
 /// with value equality; <see cref="Overlaps"/> is the A7 rule ("bound twice in this group", per hold remap for an input) and a
-/// <see cref="PressedTrigger"/> says whether a press fires it (never an input). The constructor is private: the six nested
+/// <see cref="PressedTrigger"/> says whether a press fires it (never an input). The constructor is private: the seven nested
 /// records are the whole set.
 /// </summary>
 public abstract record Trigger
@@ -55,6 +56,16 @@ public abstract record Trigger
     {
         ArgumentNullException.ThrowIfNull(hold);
         return new(button) { Hold = (hold with { Buttons = hold.Buttons & ~button.Flag() }).Normalised(strokeRequired: false) };
+    }
+
+    /// <summary>
+    /// A drag trigger (plan 0015): the one button <paramref name="hold"/> names besides keys, held back and dragged past its drag
+    /// distance ("Right + drag"). A set with other buttons or the stroke button is <see cref="MappingRules"/>' to refuse.
+    /// </summary>
+    public static DragTrigger ForDrag(TriggerHold hold)
+    {
+        ArgumentNullException.ThrowIfNull(hold);
+        return new DragTrigger { Hold = hold.Normalised(strokeRequired: false) };
     }
 
     /// <summary>
@@ -114,6 +125,7 @@ public abstract record Trigger
             ClickTrigger => other is ClickTrigger,
             InputTrigger input => other is InputTrigger o && o.Input == input.Input,
             ButtonTrigger button => other is ButtonTrigger o && o.Button == button.Button,
+            DragTrigger => other is DragTrigger,
             _ => other is NoTrigger,
         };
     }
@@ -151,6 +163,21 @@ public abstract record Trigger
 
         /// <summary>The pressed button's name: "Left", so the whole reads "Right + Left".</summary>
         public override string KindPhrase => Button.ToString();
+    }
+
+    /// <summary>
+    /// The set's one button dragged (plan 0015, Joel 2026-11-13: Photoshop's Right-drag pan): a press of that button is held back
+    /// as an anchor's, and moving it past its drag distance (<see cref="TriggerHold.DragDistancePx"/>, else Options') fires this
+    /// instead of handing the press back; a click is still replayed, and the hold-still time hands nothing back. The set names
+    /// exactly one button, any but the stroke button (Left included), plus keys if wanted (<see cref="MappingRules"/>). A Remap
+    /// step's button output is held from the drag's start until the button's release (the engine plays it); ordinary steps run
+    /// once at the drag's start. "Right + drag".
+    /// </summary>
+    public sealed record DragTrigger : Trigger
+    {
+        public override bool NeedsStroke => false;
+
+        public override string KindPhrase => "drag";
     }
 
     /// <summary>

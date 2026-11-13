@@ -160,9 +160,10 @@ internal static partial class MappingJsonWriter
 
     /// <summary>
     /// <c>{ "gesture": id }</c>, <c>{ "wheel": "Up" }</c>, <c>{ "click": true }</c>, <c>{ "button": "Left" }</c> (schema 7, plan
-    /// 0005), <c>{ "input": { … } }</c> (schema 4, a command under a hold remap) or null, with a <c>hold</c> (schema 2) only when
-    /// the trigger holds more than the stroke button alone, so a plain trigger reads as it did before combinations (an input
-    /// never has one; a valid button trigger always has one, since its set holds another button and not the stroke button).
+    /// 0005), <c>{ "drag": true }</c> (schema 10, plan 0015), <c>{ "input": { … } }</c> (schema 4, a command under a hold remap)
+    /// or null, with a <c>hold</c> (schema 2) only when the trigger holds more than the stroke button alone, so a plain trigger
+    /// reads as it did before combinations (an input never has one; a valid button or drag trigger always has one, since its set
+    /// holds another button and not the stroke button).
     /// </summary>
     private static void WriteTrigger(Utf8JsonWriter writer, Trigger trigger)
     {
@@ -183,6 +184,10 @@ internal static partial class MappingJsonWriter
             case Trigger.ButtonTrigger button:
                 writer.WriteStartObject("trigger");
                 writer.WriteString("button", button.Button.ToString());
+                break;
+            case Trigger.DragTrigger:
+                writer.WriteStartObject("trigger");
+                writer.WriteBoolean("drag", true);
                 break;
             case Trigger.InputTrigger input:
                 writer.WriteStartObject("trigger");

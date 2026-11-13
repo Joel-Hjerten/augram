@@ -10,7 +10,9 @@ namespace Augram.Core.Config;
 /// A trigger as <see cref="MappingJsonWriter"/> writes it, a command's and an own version's alike: null, an input (schema 4),
 /// or a gesture, wheel, click or button object with an optional <c>hold</c> (schema 2). A button trigger (schema 7, plan 0005)
 /// is <c>{ "button": "Left", "hold": { "buttons": "Right" } }</c>, the pressed button by its <see cref="MouseButton"/> name; one
-/// without a <c>hold</c> holds the stroke button, which <see cref="MappingRules"/> refuses. A member of the wrong shape, a
+/// without a <c>hold</c> holds the stroke button, which <see cref="MappingRules"/> refuses. A drag trigger (schema 10, plan
+/// 0015) is <c>{ "drag": true, "hold": { "buttons": "Right" } }</c>, its one button in <c>hold</c>, refused the same way
+/// without one. A member of the wrong shape, a
 /// button name the enum lacks among them, is a format error naming it. The hold's <c>dragDistancePx</c> (schema 5, plan 0004)
 /// must be an integer; one outside 1 to
 /// <see cref="TriggerHold.MaxDragDistancePx"/> never fails a load: it is dropped with a notice and the command uses the
@@ -48,12 +50,17 @@ internal sealed partial class MappingJsonReader
             return Trigger.ForButton(JsonMembers.OptionalEnum(trigger, "button", MouseButton.Left, what), hold);
         }
 
+        if (JsonMembers.OptionalBool(trigger, "drag", fallback: false, what))
+        {
+            return Trigger.ForDrag(hold);
+        }
+
         if (JsonMembers.OptionalBool(trigger, "click", fallback: false, what))
         {
             return Trigger.ForClick(hold);
         }
 
-        throw new ConfigFormatException($"{what} must be null, {{ \"gesture\": \"<id>\" }}, {{ \"wheel\": \"Up\" | \"Down\" }}, {{ \"click\": true }} or {{ \"button\": \"Left\" }}, each with an optional \"hold\", or {{ \"input\": {{ … }} }}.");
+        throw new ConfigFormatException($"{what} must be null, {{ \"gesture\": \"<id>\" }}, {{ \"wheel\": \"Up\" | \"Down\" }}, {{ \"click\": true }}, {{ \"button\": \"Left\" }} or {{ \"drag\": true }}, each with an optional \"hold\", or {{ \"input\": {{ … }} }}.");
     }
 
     /// <summary>F1 combinations (schema 2): the "while holding" set; missing or null is the stroke button alone.</summary>

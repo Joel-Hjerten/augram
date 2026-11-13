@@ -123,14 +123,14 @@ public sealed class TriggerSerializationTests : IDisposable
         store.Save(new ConfigDocument());
         store.Save(new ConfigDocument());
         var current = File.ReadAllText(store.Location);
-        var older = current.Replace("\"schemaVersion\": 9", "\"schemaVersion\": 8", StringComparison.Ordinal);
+        var older = current.Replace("\"schemaVersion\": 10", "\"schemaVersion\": 9", StringComparison.Ordinal);
         File.Copy(store.Location, Path.Combine(store.Backups.Folder, "augram-20261009-130000.json"));
         File.WriteAllText(store.Location, older);
 
         store.Load();
 
         var notice = Assert.Single(_notices);
-        Assert.Contains("saved by an older Augram (schema 8) over a newer one (schema 9)", notice, StringComparison.Ordinal);
+        Assert.Contains("saved by an older Augram (schema 9) over a newer one (schema 10)", notice, StringComparison.Ordinal);
         Assert.Contains("augram-20261009-130000.json", notice, StringComparison.Ordinal);
     }
 }

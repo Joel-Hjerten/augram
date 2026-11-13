@@ -59,7 +59,8 @@ public sealed class ChordPairingTests
             Assert.Equal(CaptureState.Idle, machine.State);
         }
 
-        foreach (var state in Enum.GetValues<CaptureState>())
+        // DragFiring (plan 0015) needs drag-bound drags, which this generator does not make yet: plan 0015 step 3 adds them here.
+        foreach (var state in Enum.GetValues<CaptureState>().Where(state => state != CaptureState.DragFiring))
         {
             Assert.Contains((state, RawInputKind.ButtonUp), seen);
         }

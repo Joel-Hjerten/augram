@@ -101,9 +101,10 @@ public static partial class HoldRemapRules
     /// <summary>
     /// <paramref name="step"/> as a command with <paramref name="trigger"/> may have it: a Remap step's output fitted to an input
     /// (<see cref="FittedTo(RemapOutput, HoldInput?)"/>), or on a button trigger (plan 0005 decision 8: it holds a key) a button
-    /// or wheel output made a key output with no key yet, its modifiers kept; any other step, and any step under another trigger,
-    /// as it is. The editor applies it to the step "New step…" adds (<see cref="StepOffer.NewStep"/>) and to every step when a
-    /// command's trigger or input changes, so neither is refused for its output.
+    /// or wheel output made a key output with no key yet, its modifiers kept; on a drag trigger (plan 0015 decision 3: it holds a
+    /// button through the drag) a key or wheel output made the Left button, its modifiers kept; any other step, and any step
+    /// under another trigger, as it is. The editor applies it to the step "New step…" adds (<see cref="StepOffer.NewStep"/>) and
+    /// to every step when a command's trigger or input changes, so neither is refused for its output.
     /// </summary>
     public static IStep FittedTo(IStep step, Trigger trigger)
     {
@@ -113,9 +114,36 @@ public static partial class HoldRemapRules
         {
             Trigger.InputTrigger { Input: var input } => new RemapStep(FittedTo(remap.Output, input)),
             Trigger.ButtonTrigger => new RemapStep(remap.Output is RemapOutput.Key ? remap.Output : new RemapOutput.Key(KeyCode.None, remap.Output.Modifiers)),
+            Trigger.DragTrigger => new RemapStep(remap.Output is RemapOutput.Button ? remap.Output : new RemapOutput.Button(MouseButton.Left, remap.Output.Modifiers)),
             _ => step,
         };
     }
+
+    /// <summary>
+    /// <paramref name="step"/>, a type's fresh default, as "New step…" adds it to a command with <paramref name="trigger"/>:
+    /// <see cref="FittedTo(IStep, Trigger)"/>, and on a drag trigger a Remap step presses Left (plan 0015: Photoshop's pan is a
+    /// Left drag) instead of the default Middle. Only for a new step: a Middle chosen on a drag trigger stays Middle when the
+    /// trigger is fitted again.
+    /// </summary>
+    public static IStep NewStepFor(IStep step, Trigger trigger)
+    {
+        var fitted = FittedTo(step, trigger);
+        return trigger is Trigger.DragTrigger && fitted is RemapStep { Output: RemapOutput.Button button }
+            ? new RemapStep(button with { MouseButton = MouseButton.Left })
+            : fitted;
+    }
+
+    /// <summary>
+    /// Why <paramref name="key"/> cannot be held through a Remap button output's press (plan 0015 decision 4: "Left with Space
+    /// held"): "Left Shift cannot be held through the press: Ctrl, Alt, Shift and Win are the output's modifiers."; null when it
+    /// can (<see cref="KeyCode.None"/>, no key held, included). The same reason the rules refuse such a step with; the App's
+    /// one-key field asks it before it takes a key. The keys are named as <paramref name="names"/> names them (<see cref="HotkeyText.Names"/>' platform when null).
+    /// </summary>
+    public static string? HeldKeyProblem(KeyCode key, HostPlatform? names = null)
+        => HeldKeyReason(key, names) is { } reason ? $"{HotkeyText.KeyName(key, names)} cannot be held through the press: {reason}." : null;
+
+    private static string? HeldKeyReason(KeyCode key, HostPlatform? names = null)
+        => HotkeyKeys.IsModifier(key) ? $"{HotkeyText.ModifierList("and", names)} are the output's modifiers" : null;
 
     /// <summary>
     /// The output of the command's Remap step as <paramref name="platform"/> runs it (<see cref="Command.PlanFor"/>, so an own
@@ -187,6 +215,18 @@ public static partial class HoldRemapRules
         if (trigger is Trigger.ButtonTrigger && remap.Output is not RemapOutput.Key)
         {
             return new StepsRule("has a button trigger", "its Remap output must be a key", "On a button trigger, a Remap step's output is a key.");
+        }
+
+        // Plan 0015 decision 3: a drag trigger holds a button from the drag's start until the release (Photoshop's Space + Left pan).
+        if (trigger is Trigger.DragTrigger && remap.Output is not RemapOutput.Button)
+        {
+            return new StepsRule("has a drag trigger", "its Remap output must be a button", "On a drag trigger, a Remap step's output is a button.");
+        }
+
+        // Plan 0015 decision 4: the key held through a button output's press is never a modifier (modifiers keep their meaning).
+        if (remap.Output is RemapOutput.Button { HeldKey: var held } && HeldKeyReason(held) is { } heldReason)
+        {
+            return new StepsRule($"holds {HotkeyText.KeyName(held)} through its Remap press", heldReason, HeldKeyProblem(held));
         }
 
         if (trigger is not Trigger.InputTrigger { Input: var input })

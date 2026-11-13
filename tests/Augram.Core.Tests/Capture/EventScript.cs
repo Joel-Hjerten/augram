@@ -27,13 +27,22 @@ internal sealed class EventScript
     public EventScript Down(MouseButton button, int x, int y, bool captureAllowed = true, bool ignoreKeyHeld = false)
     {
         MoveTo(x, y);
-        return Add(new CaptureEvent.ButtonDown(button, x, y, _now, captureAllowed, ignoreKeyHeld, Modifiers, Plan));
+        return Add(new CaptureEvent.ButtonDown(button, x, y, _now, captureAllowed, ignoreKeyHeld, Modifiers, Plan, Drags));
     }
 
     public EventScript Down(MouseButton button) => Down(button, _x, _y);
 
     /// <summary>The anchor plan every later press carries (the window's, as the hook read it).</summary>
     public AnchorPlan Plan { get; set; }
+
+    /// <summary>The drag distances (and drag-bound anchors, plan 0015) every later press carries.</summary>
+    public AnchorDragDistances Drags { get; set; }
+
+    public EventScript WithDrags(AnchorDragDistances drags)
+    {
+        Drags = drags;
+        return this;
+    }
 
     /// <summary>The keys every later press reports held.</summary>
     public Abstractions.KeyModifiers Modifiers { get; set; }

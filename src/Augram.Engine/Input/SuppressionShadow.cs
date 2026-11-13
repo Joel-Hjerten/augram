@@ -178,7 +178,7 @@ public sealed class SuppressionShadow
 
             case RawInputKind.Wheel:
                 // While a button trigger holds the press, or after it was cancelled, ticks pass (plan 0005 decision 4: a loupe may use the wheel).
-                var suppress = owner != NoButton && !_firing && !_cancelled && machineState is not (CaptureState.Cancelled or CaptureState.HandedBack or CaptureState.ButtonFiring);
+                var suppress = owner != NoButton && !_firing && !_cancelled && machineState is not (CaptureState.Cancelled or CaptureState.HandedBack or CaptureState.ButtonFiring or CaptureState.DragFiring);
                 _wheel |= suppress;
                 return suppress;
 
@@ -187,9 +187,9 @@ public sealed class SuppressionShadow
         }
     }
 
-    /// <summary>A wheel tick froze the press, a button trigger holds it or was cancelled, or the machine cancelled it or handed it back: nothing joins it any more.</summary>
+    /// <summary>A wheel tick froze the press, a button trigger holds it or was cancelled, or the machine cancelled it, handed it back or fired its drag (plan 0015): nothing joins it any more.</summary>
     private bool Frozen(CaptureState machineState)
-        => _wheel || _firing || _cancelled || machineState is CaptureState.WheelFiring or CaptureState.Cancelled or CaptureState.HandedBack or CaptureState.ButtonFiring;
+        => _wheel || _firing || _cancelled || machineState is CaptureState.WheelFiring or CaptureState.Cancelled or CaptureState.HandedBack or CaptureState.ButtonFiring or CaptureState.DragFiring;
 
     /// <summary>What <see cref="Save"/> returns; opaque to callers.</summary>
     public readonly record struct Snapshot(int Owner, bool OwnerIsStroke, int Owed, AnchorPlan Plan, bool Wheel, bool Firing, bool Cancelled, KeyModifiers BeforeKeys);
