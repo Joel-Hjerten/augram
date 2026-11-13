@@ -46,6 +46,23 @@ public sealed class SyncButtonTriggerAndAlsoInTests : TwoMachineTest
         Assert.Equal(item.Content, back.Content);
     }
 
+    /// <summary>Plan 0015 (sync format 18): a drag trigger and its Remap output's held key travel in the command item.</summary>
+    [Fact]
+    public void ACommandItemCarriesADragTriggerAndItsHeldKey()
+    {
+        var remap = new CommandStep(new RemapStep(new RemapOutput.Button(MouseButton.Left) { HeldKey = KeyCode.Space }), HostPlatform.Windows);
+        var pan = NewCommand("Pan", Trigger.ForDrag(new TriggerHold(HeldButtons.Right)), remap);
+
+        var item = new SyncItem.CommandItem(GroupId.Global, pan);
+
+        Assert.Contains("\"trigger\":{\"drag\":true,\"hold\":{\"buttons\":\"Right\"}}", item.Content, StringComparison.Ordinal);
+        Assert.Contains("\"heldKey\":\"Space\"", item.Content, StringComparison.Ordinal);
+        var back = Assert.IsType<SyncItem.CommandItem>(SyncItem.Parse(item.Key, item.Content, Registry));
+        Assert.Equal(pan.Trigger, back.Command.Trigger);
+        Assert.Equal(remap.Step, Assert.Single(back.Command.Steps).Step);
+        Assert.Equal(item.Content, back.Content);
+    }
+
     [Fact]
     public void AnOwnStepsItemCarriesAnOwnButtonTrigger()
     {

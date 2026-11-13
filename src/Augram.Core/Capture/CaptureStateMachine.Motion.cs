@@ -23,7 +23,8 @@ public sealed partial class CaptureStateMachine
                 {
                     // A drag of a held-back button: give it back at once, so the drag or the selection starts where it began.
                     // It never draws, so its own (shorter) distance decides: the largest its commands here set, else Options'.
-                    return HandBackNow(move.X, move.Y, null);
+                    // A drag-bound anchor (plan 0015) fires its drag trigger there instead.
+                    return _drags.IsDragBound(_owner) ? DragNow(move.X, move.Y) : HandBackNow(move.X, move.Y, null);
                 }
 
                 State = CaptureState.Drawing;
@@ -73,8 +74,9 @@ public sealed partial class CaptureStateMachine
 
         if (!_ownerIsStroke)
         {
-            // A long press of a held-back button reaches the app after the hold-still time (press-and-hold, games).
-            return HandBackNow(_pointer.X, _pointer.Y, null);
+            // A long press of a held-back button reaches the app after the hold-still time (press-and-hold, games); a drag-bound
+            // one waits (plan 0015 decision 2: a slow click still opens the menu, a pause before the drag still drags).
+            return _drags.IsDragBound(_owner) ? None : HandBackNow(_pointer.X, _pointer.Y, null);
         }
 
         return Cancel(State == CaptureState.Drawing ? CancelDrawing : CancelHeld);
@@ -102,6 +104,13 @@ public sealed partial class CaptureStateMachine
         State = CaptureState.HandedBack;
         var handBack = new CaptureOutcome.HandBack(_owner, _start, x, y);
         return decision is null ? [handBack] : [decision, handBack];
+    }
+
+    /// <summary>A drag-bound anchor's drag fires its drag trigger (plan 0015): from the start point, the pointer now at (x, y), with what the press held.</summary>
+    private CaptureOutcome[] DragNow(int x, int y)
+    {
+        State = CaptureState.DragFiring;
+        return [new CaptureOutcome.DragTrigger(_owner, _start, x, y) { Hold = Hold() }];
     }
 
     /// <summary>Something joined the press: the hold-still deadline starts again from now (never earlier than it was).</summary>

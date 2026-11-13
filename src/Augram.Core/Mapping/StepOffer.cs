@@ -12,7 +12,7 @@ namespace Augram.Core.Mapping;
 /// is named; the Remap step is reached through <see cref="IStepType.HoldRemapsOnly"/> and <see cref="HoldRemapRules"/>. Two parts, in this order:
 /// <list type="number">
 /// <item>Where a type may appear at all: a <see cref="IStepType.HoldRemapsOnly"/> type (the Remap step) only for a command under a
-/// hold remap (plan 0002) or with a button trigger here (plan 0005 decision 8), <see cref="NotHere"/>. This is the offer's own
+/// hold remap (plan 0002) or with a button trigger (plan 0005 decision 8) or a drag trigger (plan 0015) here, <see cref="NotHere"/>. This is the offer's own
 /// rule: loading never checks it, so a Remap step left on an ordinary command (pasted out of a hold remap) still loads and is
 /// skipped when it runs.</item>
 /// <item>The step rules validation runs (<see cref="HoldRemapRules.StepsProblem"/>: a Remap step is a command's only step; its
@@ -20,7 +20,7 @@ namespace Augram.Core.Mapping;
 /// store would and with the same reason.</item>
 /// </list>
 /// A type is checked with the step "New step…" would add (<see cref="NewStep"/>: a Remap step fitted to the command's input, a key
-/// output on a button trigger), so it is never refused for an output the editor would have fitted. A change is judged as a
+/// output on a button trigger, a button output on a drag trigger), so it is never refused for an output the editor would have fitted. A change is judged as a
 /// replacement, not an addition (<see cref="CheckChange(IStep, Command, int, HostPlatform, Trigger?)"/>): the step's own type is
 /// refused (<see cref="Already"/>), then the same two parts on the command with the new step in that step's place, so a Remap step
 /// that is a command's only step may become a Hotkey step while a step among others may not become a Remap step. Pure; Mapping is
@@ -123,8 +123,10 @@ public static class StepOffer
     /// <summary>
     /// The step "New step…" adds of <paramref name="type"/> to the command on <paramref name="platform"/>: the type's default,
     /// fitted (<see cref="HoldRemapRules.FittedTo(IStep, Trigger)"/>) to the command's stored input there (a Remap step on a wheel
-    /// input starts with a wheel notch the same way), or else to a button trigger (<paramref name="drafted"/>, the header's, a
-    /// draft included; plan 0005: a key output with no key set); so it is never refused for its output.
+    /// input starts with a wheel notch the same way), or else to a button or drag trigger (<paramref name="drafted"/>, the header's,
+    /// a draft included; plan 0005: a key output with no key set; plan 0015: a button output, Left by default,
+    /// <see cref="HoldRemapRules.NewStepFor"/>); so it is never
+    /// refused for its output.
     /// </summary>
     public static IStep NewStep(IStepType type, Command command, HostPlatform platform, Trigger? drafted = null)
     {
@@ -133,20 +135,20 @@ public static class StepOffer
         var step = type.CreateDefault();
         var stored = command.TriggerFor(platform);
         return stored is Trigger.InputTrigger ? HoldRemapRules.FittedTo(step, stored)
-            : (drafted ?? stored) is Trigger.ButtonTrigger button ? HoldRemapRules.FittedTo(step, button)
+            : (drafted ?? stored) is Trigger.ButtonTrigger or Trigger.DragTrigger ? HoldRemapRules.NewStepFor(step, drafted ?? stored)
             : step;
     }
 
-    /// <summary>Why a <see cref="IStepType.HoldRemapsOnly"/> type is not offered here: "Remap is for a command under a hold remap or with a button trigger."</summary>
+    /// <summary>Why a <see cref="IStepType.HoldRemapsOnly"/> type is not offered here: "Remap is for a command under a hold remap or with a button or drag trigger."</summary>
     public static string NotHere(IStepType type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return $"{type.DisplayName} is for a command under a hold remap or with a button trigger.";
+        return $"{type.DisplayName} is for a command under a hold remap or with a button or drag trigger.";
     }
 
-    /// <summary>A command under a hold remap, or one whose trigger here is a button trigger (plan 0005: its key is held while both buttons are down).</summary>
+    /// <summary>A command under a hold remap, or one whose trigger here is a button trigger (plan 0005: its key is held while both buttons are down) or a drag trigger (plan 0015: its button is held through the drag).</summary>
     private static bool TakesHoldRemapsOnly(Command command, Trigger trigger)
-        => command.HoldRemapId is not null || trigger is Trigger.ButtonTrigger;
+        => command.HoldRemapId is not null || trigger is Trigger.ButtonTrigger or Trigger.DragTrigger;
 
     /// <summary>
     /// The two parts for <paramref name="step"/> going into the command: where its type may appear (<see cref="NotHere"/>), then

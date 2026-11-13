@@ -5,7 +5,7 @@ using Augram.Core.Steps.Remap;
 
 namespace Augram.Core.Mapping;
 
-/// <summary>One window's answer (<see cref="AnchorPlanner.Answer"/>): the anchor plan, the drag distances, and the button trigger outputs the worker holds.</summary>
+/// <summary>One window's answer (<see cref="AnchorPlanner.Answer"/>): the anchor plan, the drag distances (with the drag-bound anchors), and the button and drag trigger outputs the worker holds.</summary>
 public sealed record AnchorAnswer(AnchorPlan Plan, AnchorDragDistances Drags, ButtonOutputs Outputs)
 {
     public static AnchorAnswer None { get; } = new(AnchorPlan.None, AnchorDragDistances.None, ButtonOutputs.Empty);
@@ -21,6 +21,9 @@ public sealed record AnchorAnswer(AnchorPlan Plan, AnchorDragDistances Drags, Bu
 /// entry claiming the window (plan 0004; such a command shadows nothing either). It also says how far each anchor's press may move before it is handed back as a drag (<see cref="Answer"/>).
 /// A button trigger (plan 0005, "Right + Left") holds its anchors back, takes its pressed button into their presses and marks it
 /// firing for them; <see cref="Answer"/> also lists the button trigger commands whose Remap key output the engine worker holds.
+/// A drag trigger (plan 0015, "Right + drag") holds its button back like any anchor's, with its drag distance, marks the anchor
+/// drag-bound in the drag distances (<see cref="AnchorDragDistances.IsDragBound"/>: the plan has no room left, and only the
+/// machine reads it, at the hand-back), and lists its Remap button output among the outputs.
 /// A bare click trigger (Joel, 2026-10-13: the stroke button clicked holding nothing else) marks the plan <see cref="AnchorPlan.ClickBound"/>
 /// over the windows where such a command applies, by the same rules: an app command's override to nothing shadows a Global bare
 /// click, so there the plain click is replayed without a round trip, and over an excluded app the stroke button is the app's.
@@ -144,8 +147,9 @@ public static class AnchorPlanner
                 return (plan.WithClickBound(), drags);
             }
 
-            // A button trigger never anchors on the stroke button (plan 0005 decision 2): one that names this machine's holds nothing back here.
-            return fires is null ? (plan.WithExtras(strokeButton, ownerIsStroke: true, hold.Physical), drags) : (plan, drags);
+            // A button or drag trigger never anchors on the stroke button (plan 0005 decision 2, plan 0015 decision 10): one that
+            // names this machine's holds nothing back here.
+            return fires is null && trigger is not Trigger.DragTrigger ? (plan.WithExtras(strokeButton, ownerIsStroke: true, hold.Physical), drags) : (plan, drags);
         }
 
         foreach (var anchor in hold.Physical.Buttons())
@@ -155,6 +159,8 @@ public static class AnchorPlanner
             plan = plan.WithAnchor(anchor).WithExtras(anchor, ownerIsStroke: false, extras);
             plan = fires is null ? plan : plan.WithFires(anchor, fires.Button);
             drags = hold.DragDistancePx is { } own ? drags.WithOwn(anchor, own) : drags.WithOptionsValue(anchor);
+            // A drag trigger (plan 0015 decision 7): the anchor's drag fires it instead of handing the press back.
+            drags = trigger is Trigger.DragTrigger ? drags.WithDragBound(anchor) : drags;
         }
 
         return (plan, drags);
@@ -162,15 +168,22 @@ public static class AnchorPlanner
 
     /// <summary>
     /// A button trigger command that holds a key while its buttons are down (plan 0005 decisions 8 and 9): its one active step is
-    /// a Remap step with a key set. Null for anything else, which the executor runs at the press as for a wheel trigger.
+    /// a Remap step with a key set; or a drag trigger command that holds a button through the drag (plan 0015 decision 3): its one
+    /// active step is a Remap step with a button output. Null for anything else, which the executor runs at the press (the drag's
+    /// start) as for a wheel trigger.
     /// </summary>
     private static ButtonOutput? OutputOf(Command command, Trigger trigger, HostPlatform platform, MouseButton strokeButton)
     {
-        if (trigger is not Trigger.ButtonTrigger || command.IsOverrideToNothingOn(platform) || trigger.Hold.ForStrokeButton(strokeButton).HoldsStroke)
+        if (trigger is not (Trigger.ButtonTrigger or Trigger.DragTrigger) || command.IsOverrideToNothingOn(platform) || trigger.Hold.ForStrokeButton(strokeButton).HoldsStroke)
         {
             return null;
         }
 
-        return command.RemapOutputOn(platform) is RemapOutput.Key key ? new ButtonOutput(command.Id, command.Name, trigger, key) : null;
+        return (trigger, command.RemapOutputOn(platform)) switch
+        {
+            (Trigger.ButtonTrigger, RemapOutput.Key key) => new ButtonOutput(command.Id, command.Name, trigger, key),
+            (Trigger.DragTrigger, RemapOutput.Button button) => new ButtonOutput(command.Id, command.Name, trigger, button),
+            _ => null,
+        };
     }
 }

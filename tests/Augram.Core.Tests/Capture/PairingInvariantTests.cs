@@ -107,7 +107,8 @@ public sealed class PairingInvariantTests
     /// press or join one. Every button's release gets its press's decision, a hand-back's injected down always gets its injected
     /// release, and nothing is owed once every button is up. With another program's releases (plan 0005 decision 10), sometimes
     /// swallowing the real one: the release that still comes keeps its press's decision, a handed-back press is never released
-    /// again after the other program released it, and what stays owed is only a release that never came.
+    /// again after the other program released it, and what stays owed is only a release that never came. With drag-bound anchors
+    /// (plan 0015): a drag trigger fires only from a press its anchor owns, never over one still dragging, and always ends.
     /// </summary>
     [Fact]
     public void RandomSequencesWithAnchorsAndChords_PairEveryButton_AndEveryHandBack()
@@ -117,6 +118,7 @@ public sealed class PairingInvariantTests
         var handBacks = 0;
         var endedElsewhere = 0;
         var chords = 0;
+        var drags = 0;
 
         for (var sequence = 0; sequence < Sequences; sequence++)
         {
@@ -126,7 +128,8 @@ public sealed class PairingInvariantTests
             var injected = new bool[Buttons.Length];
             var physicallyDown = HeldButtons.None;
             MouseButton? chord = null;
-            foreach (var e in Generate(rng, () => RandomPlan(rng), foreignReleases: sequence % 2 == 1))
+            MouseButton? dragging = null;
+            foreach (var e in Generate(rng, () => RandomPlan(rng), foreignReleases: sequence % 2 == 1, () => RandomDrags(rng)))
             {
                 var stateBefore = machine.State;
                 var outcomes = machine.Handle(e);
@@ -176,12 +179,28 @@ public sealed class PairingInvariantTests
                         Assert.Equal(chord, ended.Button);
                         chord = null;
                     }
+                    else if (outcome is CaptureOutcome.DragTrigger drag)
+                    {
+                        // Plan 0015: a drag fires from its anchor's own held press, never over a drag still held.
+                        Assert.Null(dragging);
+                        Assert.Equal(CaptureState.Held, stateBefore);
+                        Assert.IsType<CaptureEvent.Move>(e);
+                        dragging = drag.Button;
+                        drags++;
+                    }
+                    else if (outcome is CaptureOutcome.DragTriggerEnded dragEnded)
+                    {
+                        Assert.Equal(dragging, dragEnded.Button);
+                        dragging = null;
+                    }
                 }
 
                 Assert.True(chord is null || machine.State == CaptureState.ButtonFiring, $"a chord is held in {machine.State}");
+                Assert.Equal(dragging is not null, machine.State == CaptureState.DragFiring);
             }
 
             Assert.Null(chord);
+            Assert.Null(dragging);
             Assert.Equal(CaptureState.Idle, machine.State);
             // Still down here means the other program swallowed the real release: only those may stay owed.
             Assert.Equal(HeldButtons.None, machine.OwedButtons & ~physicallyDown);
@@ -193,6 +212,19 @@ public sealed class PairingInvariantTests
         Assert.True(endedElsewhere > 100, $"only {endedElsewhere} presses ended by a release elsewhere");
         // Sparse here (time steps up to 400 ms, a new random plan per press); ChordPairingTests' denser sequences fire many more.
         Assert.True(chords > 25, $"only {chords} button triggers fired");
+        Assert.True(drags > 50, $"only {drags} drag triggers fired");
+    }
+
+    /// <summary>Random drag distances with some anchors drag-bound (plan 0015).</summary>
+    private static AnchorDragDistances RandomDrags(Random rng)
+    {
+        var drags = AnchorDragDistances.None;
+        foreach (var button in Buttons)
+        {
+            drags = rng.Next(2) == 0 ? drags.WithDragBound(button) : drags;
+        }
+
+        return drags;
     }
 
     /// <summary>Random anchors and extras, and (plan 0005) some extras that fire a button trigger for their anchor.</summary>
@@ -229,9 +261,9 @@ public sealed class PairingInvariantTests
     /// <summary>
     /// Random events where each button alternates down/up and time never goes backwards; ends with every button released. With
     /// <paramref name="foreignReleases"/>, another program sometimes posts a release of a button that is down, and half the time
-    /// swallows the real one, which then never comes.
+    /// swallows the real one, which then never comes. <paramref name="drags"/> gives each press its drag distances (plan 0015: drag-bound anchors).
     /// </summary>
-    private static List<CaptureEvent> Generate(Random rng, Func<AnchorPlan>? plan = null, bool foreignReleases = false)
+    private static List<CaptureEvent> Generate(Random rng, Func<AnchorPlan>? plan = null, bool foreignReleases = false, Func<AnchorDragDistances>? drags = null)
     {
         var events = new List<CaptureEvent>();
         var isDown = new bool[Buttons.Length];
@@ -254,7 +286,7 @@ public sealed class PairingInvariantTests
             {
                 case 0 when !isDown[(int)button]:
                     isDown[(int)button] = true;
-                    events.Add(new CaptureEvent.ButtonDown(button, x, y, t, CaptureAllowed: rng.Next(12) != 0, IgnoreKeyHeld: rng.Next(12) == 0, Plan: plan?.Invoke() ?? AnchorPlan.None));
+                    events.Add(new CaptureEvent.ButtonDown(button, x, y, t, CaptureAllowed: rng.Next(12) != 0, IgnoreKeyHeld: rng.Next(12) == 0, Plan: plan?.Invoke() ?? AnchorPlan.None, Drags: drags?.Invoke() ?? AnchorDragDistances.None));
                     break;
                 case 1 when isDown[(int)button]:
                     isDown[(int)button] = false;

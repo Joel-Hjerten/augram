@@ -7,15 +7,26 @@ namespace Augram.Core.Capture;
 /// (<see cref="CaptureThresholds.ButtonDragDistancePx"/>). Worked out with the <see cref="AnchorPlan"/> off the hook thread by
 /// <c>Mapping.AnchorPlanner</c>; the hook hands it to the machine with the press, untouched. One <see cref="long"/>: per button
 /// (bit offset 9 × <see cref="MouseButton"/> value) 8 bits of the largest own distance (0: none) and 1 bit "a command uses the
-/// Options value". <see cref="None"/> (no command, or a press decided before the planner said) uses the Options value.
+/// Options value"; then (plan 0015 decision 7) from bit 45 one bit per button, "a drag trigger is bound to this anchor here"
+/// (<see cref="IsDragBound"/>): its drag past the distance fires that trigger instead of handing the press back, and the
+/// hold-still time hands nothing back. It lives here, not in the <see cref="AnchorPlan"/> (full), because only the machine reads
+/// it, at the hand-back. <see cref="None"/> (no command, or a press decided before the planner said) uses the Options value and
+/// binds no drag.
 /// </summary>
 public readonly record struct AnchorDragDistances(long Bits)
 {
     private const int SlotBits = 9;
     private const int UsesDefaultBit = 8;
     private const long DistanceMask = 0xFF;
+    private const int DragBoundShift = 5 * SlotBits;
 
     public static AnchorDragDistances None => default;
+
+    /// <summary>True when an active drag trigger here drags <paramref name="anchor"/> (plan 0015): a press it owns is drag-bound.</summary>
+    public bool IsDragBound(MouseButton anchor) => (Bits & DragBoundBit(anchor)) != 0;
+
+    /// <summary>These distances with a drag trigger bound to <paramref name="anchor"/> (<see cref="IsDragBound"/>).</summary>
+    public AnchorDragDistances WithDragBound(MouseButton anchor) => new(Bits | DragBoundBit(anchor));
 
     /// <summary>These distances with a command holding <paramref name="anchor"/> at its own <paramref name="distancePx"/> (1 to <see cref="CaptureThresholds.MaxButtonDragDistancePx"/>).</summary>
     public AnchorDragDistances WithOwn(MouseButton anchor, int distancePx)
@@ -40,4 +51,6 @@ public readonly record struct AnchorDragDistances(long Bits)
     }
 
     private static int Shift(MouseButton anchor) => (int)anchor * SlotBits;
+
+    private static long DragBoundBit(MouseButton anchor) => 1L << (DragBoundShift + (int)anchor);
 }

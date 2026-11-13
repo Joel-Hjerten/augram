@@ -19,7 +19,9 @@ namespace Augram.Core.Capture;
 /// ClickTrigger (resolved, relayed when nothing fires); another anchor → ReplayClick with the After keys, or nothing when an
 /// After button took part.</item>
 /// <item>A stroke button past the start distance draws; any other anchor is handed back (HandBack) and its release is
-/// consumed and re-injected (ReleaseHandedBack), as it is after the hold-still time or another button.</item>
+/// consumed and re-injected (ReleaseHandedBack), as it is after the hold-still time or another button. A drag-bound anchor
+/// (<see cref="AnchorDragDistances.IsDragBound"/>, plan 0015) fires DragTrigger at that distance instead (DragFiring, ended by its
+/// release with DragTriggerEnded), and the hold-still time hands it nothing back.</item>
 /// <item>Wheel while Held or Drawing: WheelFiring, the sets freeze; each tick is a WheelTrigger (marked AfterDrawing when the
 /// stroke had started).</item>
 /// <item>Every button's up is suppressed exactly when its down was (A19), whatever happened in between.</item>
@@ -176,8 +178,13 @@ public sealed partial class CaptureStateMachine
     {
         var prior = State;
         var isAnchor = down.Button == _strokeButton || down.Plan.IsAnchor(down.Button);
-        // The owner again while its press was handed back or firing: what the missed release would have ended ends first.
-        CaptureOutcome? release = prior == CaptureState.HandedBack ? new CaptureOutcome.ReleaseHandedBack(_owner, down.X, down.Y) : Ended();
+        // The owner again while its press was handed back, firing or dragging: what the missed release would have ended ends first.
+        CaptureOutcome? release = prior switch
+        {
+            CaptureState.HandedBack => new CaptureOutcome.ReleaseHandedBack(_owner, down.X, down.Y),
+            CaptureState.DragFiring => new CaptureOutcome.DragTriggerEnded(_owner),
+            _ => Ended(),
+        };
         if (!isAnchor || !down.CaptureAllowed || down.IgnoreKeyHeld)
         {
             _owed &= ~flag;
@@ -284,6 +291,9 @@ public sealed partial class CaptureStateMachine
                 return [CaptureOutcome.Suppress.Instance, CaptureOutcome.EndStroke.Instance, new CaptureOutcome.StrokeComplete(_points, _start, up.Button) { Hold = hold }];
             case CaptureState.HandedBack:
                 return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.ReleaseHandedBack(up.Button, up.X, up.Y)];
+            case CaptureState.DragFiring:
+                // The dragged button is up (plan 0015): the drag's output is released; its own release stays swallowed, as its down was.
+                return [CaptureOutcome.Suppress.Instance, new CaptureOutcome.DragTriggerEnded(up.Button)];
             case CaptureState.ButtonFiring when Ended() is { } ended:
                 // The anchor is up before the fired button: the chord is over; the fired button's release is still owed.
                 return [CaptureOutcome.Suppress.Instance, ended];
@@ -312,7 +322,7 @@ public sealed partial class CaptureStateMachine
         }
 
         var state = State;
-        var ended = Ended();
+        var ended = state == CaptureState.DragFiring ? new CaptureOutcome.DragTriggerEnded(_owner) : (CaptureOutcome?)Ended();
         ToIdle();
         return state == CaptureState.Drawing ? EndedElsewhereDrawing
             : ended is not null ? [ended, new CaptureOutcome.Cancelled(CancelReason.ReleasedElsewhere)]

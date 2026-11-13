@@ -34,4 +34,11 @@ public enum CaptureState
     /// new press of it fires again; the anchor's release is consumed and replays nothing.
     /// </summary>
     ButtonFiring,
+
+    /// <summary>
+    /// A drag trigger fired (plan 0015): a drag-bound anchor moved past its drag distance. Frozen like <see cref="HandedBack"/>,
+    /// which it replaces: other buttons and wheel ticks pass, moves and ticks do nothing; the anchor's release is consumed and
+    /// ends the drag (<see cref="CaptureOutcome.DragTriggerEnded"/>), replaying nothing.
+    /// </summary>
+    DragFiring,
 }

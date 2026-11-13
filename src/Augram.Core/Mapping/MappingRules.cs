@@ -347,6 +347,20 @@ public static class MappingRules
             }
         }
 
+        if (trigger is Trigger.DragTrigger)
+        {
+            // Plan 0015 decision 1: exactly one button is dragged, any but the stroke button (whose movement draws), keys allowed.
+            if (trigger.Hold.HoldsStroke)
+            {
+                throw new MappingValidationException($"'{command.Name}' holds the stroke button: a drag trigger drags another button, as Right in Right + drag.");
+            }
+
+            if (trigger.Hold.Physical.Buttons().Count() != 1)
+            {
+                throw new MappingValidationException($"'{command.Name}' must hold exactly one button: a drag trigger drags one button, as Right in Right + drag.");
+            }
+        }
+
         if (trigger.IsBound && !trigger.Hold.HasAnchor)
         {
             throw new MappingValidationException($"'{command.Name}' holds no button: a wheel trigger needs the stroke button or another button to hold.");

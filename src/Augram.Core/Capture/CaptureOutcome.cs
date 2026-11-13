@@ -92,6 +92,22 @@ public abstract record CaptureOutcome
     public sealed record ButtonTriggerEnded(MouseButton Button) : CaptureOutcome;
 
     /// <summary>
+    /// A drag trigger fired (plan 0015): the held-back, drag-bound anchor <paramref name="Button"/> moved past its drag distance,
+    /// where a <see cref="HandBack"/> would have come. Resolve it at the window under <paramref name="Start"/> with
+    /// <see cref="Hold"/>, what the press held; the output plays at the start point, and the pointer is then at
+    /// (<paramref name="X"/>, <paramref name="Y"/>). When no command matches, the press goes back to the app as a hand-back
+    /// would (its down at the start point), and <see cref="DragTriggerEnded"/> releases it. What it holds stays held until
+    /// <see cref="DragTriggerEnded"/>.
+    /// </summary>
+    public sealed record DragTrigger(MouseButton Button, CapturePoint Start, int X, int Y) : CaptureOutcome
+    {
+        public PressHold Hold { get; init; }
+    }
+
+    /// <summary>The drag of <paramref name="Button"/> is over (its release, a release elsewhere, its press again after a missed release): release what the drag holds (plan 0015 decision 6).</summary>
+    public sealed record DragTriggerEnded(MouseButton Button) : CaptureOutcome;
+
+    /// <summary>
     /// A held-back anchor (not the stroke button) goes back to the app: inject its down at <paramref name="Start"/>, then put
     /// the pointer back at (<paramref name="X"/>, <paramref name="Y"/>), so a drag or a long press starts where it began.
     /// </summary>

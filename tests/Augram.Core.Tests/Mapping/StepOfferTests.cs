@@ -20,7 +20,7 @@ namespace Augram.Core.Tests.Mapping;
 public sealed class StepOfferTests
 {
     private const string OnlyStep = "A Remap step is a command's only step.";
-    private const string NotHere = "Remap is for a command under a hold remap or with a button trigger.";
+    private const string NotHere = "Remap is for a command under a hold remap or with a button or drag trigger.";
     private const HostPlatform Windows = HostPlatform.Windows;
 
     private static readonly Trigger RightLeft = Trigger.ForButton(MouseButton.Left, new TriggerHold(HeldButtons.Right));

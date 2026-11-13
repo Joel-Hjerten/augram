@@ -33,14 +33,28 @@ public abstract record RemapOutput
         return keys == KeyModifiers.None ? what : $"{HotkeyText.Format(keys, KeyCode.None, names: names)} + {what}";
     }
 
-    /// <summary>A mouse button held for as long as the input is held; <paramref name="Modifiers"/> are pressed around its down only.</summary>
+    /// <summary>
+    /// A mouse button held for as long as the input is held; <paramref name="Modifiers"/> are pressed around its down only;
+    /// <see cref="HeldKey"/>, when set, is held through the whole press (plan 0015 decision 4: "Left with Space held").
+    /// </summary>
     public sealed record Button(MouseButton MouseButton, KeyModifiers Modifiers = KeyModifiers.None) : RemapOutput
     {
         public override RemapOutputKind Kind => RemapOutputKind.Button;
 
         public override KeyModifiers Modifiers { get; init; } = Modifiers;
 
-        public override string Describe(HostPlatform names) => WithModifiers(MouseButton.ToString(), names);
+        /// <summary>
+        /// A key held through the whole press (plan 0015, Photoshop's Space + Left pan), <see cref="KeyCode.None"/> for none: at the
+        /// press the held key goes down, then the modifiers, the button, the modifiers up; at the release the button up, then the
+        /// held key. Never auto-repeated, and never a modifier (the rules refuse one: <c>HoldRemapRules.HeldKeyProblem</c>).
+        /// </summary>
+        public KeyCode HeldKey { get; init; }
+
+        public override string Describe(HostPlatform names)
+        {
+            var button = WithModifiers(MouseButton.ToString(), names);
+            return HeldKey == KeyCode.None ? button : $"{button} with {HotkeyText.KeyName(HeldKey, names)} held";
+        }
     }
 
     /// <summary>

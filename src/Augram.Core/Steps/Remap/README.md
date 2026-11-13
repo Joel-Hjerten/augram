@@ -1,12 +1,12 @@
 # Steps/Remap
 
-The **Remap** step (key `remap`, category Mouse, platform-neutral, **offered only for commands under a hold remap**, and since plan 0005 for a button trigger): while the hold key is held, the command's input is played as this output, press for press and release for release (Left held → Middle held, so a drag stays a drag). On a button trigger ("Right + Left", plan 0005) its output must be a key, held while both buttons are down: the engine worker plays it from the window's `Mapping/ButtonOutputs`. Requirements F9, plan 0002; the model it lives in is `../../HoldRemaps/`.
+The **Remap** step (key `remap`, category Mouse, platform-neutral, **offered only for commands under a hold remap**, and since plan 0005 for a button trigger): while the hold key is held, the command's input is played as this output, press for press and release for release (Left held → Middle held, so a drag stays a drag). On a button trigger ("Right + Left", plan 0005) its output must be a key, held while both buttons are down: the engine worker plays it from the window's `Mapping/ButtonOutputs`. On a drag trigger ("Right + drag", plan 0015) its output must be a button, held from the drag's start until the release, from the same `ButtonOutputs`. Requirements F9, plan 0002; the model it lives in is `../../HoldRemaps/`.
 
 | File | Role |
 |---|---|
-| `RemapStep` | record: `Output` · `Summary` "Remap to Ctrl + Middle", "Remap to G", "Remap to Ctrl + wheel up", "Remap (no key set)"; `SummaryOn(platform)` names the modifiers in that platform's words (Opt, Cmd) |
-| `RemapOutput` | closed set with value equality: `Button(MouseButton, Modifiers)`, `Key(KeyCode, Modifiers, RightHand)`, `Wheel(ScrollDirection, Modifiers)`; `Kind` (`RemapOutputKind`), `IsSet` (false only for a key output with no key), `Describe(names)` |
-| `RemapStepType` | metadata and JSON (below); `HoldRemapsOnly` true (`IStepType.HoldRemapsOnly`: offered under a hold remap or on a button trigger, greyed elsewhere, `../../Mapping/StepOffer`, which also makes the new step: fitted to the input, a key output on a button trigger); `CreateDefault()` is Middle with nothing held (Joel's orbit); `Convert` is always the same step; `Execute` skips (below) |
+| `RemapStep` | record: `Output` · `Summary` "Remap to Ctrl + Middle", "Remap to Left with Space held", "Remap to G", "Remap to Ctrl + wheel up", "Remap (no key set)"; `SummaryOn(platform)` names the modifiers in that platform's words (Opt, Cmd) |
+| `RemapOutput` | closed set with value equality: `Button(MouseButton, Modifiers)` with `HeldKey` (plan 0015, `KeyCode.None` by default: a key held through the whole press, never a modifier, `HoldRemaps/HoldRemapRules.HeldKeyProblem`), `Key(KeyCode, Modifiers, RightHand)`, `Wheel(ScrollDirection, Modifiers)`; `Kind` (`RemapOutputKind`), `IsSet` (false only for a key output with no key), `Describe(names)` |
+| `RemapStepType` | metadata and JSON (below); `HoldRemapsOnly` true (`IStepType.HoldRemapsOnly`: offered under a hold remap or on a button or drag trigger, greyed elsewhere, `../../Mapping/StepOffer`, which also makes the new step: fitted to the input, a key output on a button trigger, Left on a drag trigger); `CreateDefault()` is Middle with nothing held (Joel's orbit); `Convert` is always the same step; `Execute` skips (below) |
 
 There is no executor: the **engine worker** plays the output (plan 0002 step 3, `Engine/Hosting/EngineWorker.HoldRemaps.cs`), not the command executor.
 
@@ -14,7 +14,7 @@ There is no executor: the **engine worker** plays the output (plan 0002 step 3, 
 
 As Joel's AutoHotkey script has it (`+{MButton Down}`):
 
-- **Button output**: the modifiers are pressed around the button's **down only** (Blender reads them when the drag starts; nothing stays held through it).
+- **Button output**: the modifiers are pressed around the button's **down only** (Blender reads them when the drag starts; nothing stays held through it). Its **held key** (plan 0015 decision 4, "Left with Space held": Photoshop's pan) is the exception: at the press the held key goes down, then the modifiers, the button, the modifiers up; at the release the button up, then the held key. Never auto-repeated; never a modifier ("Left Shift cannot be held through the press: Ctrl, Alt, Shift and Win are the output's modifiers."). Allowed on any button output, under a hold remap too.
 - **Key output**: the modifiers are held for the **whole press**, so the key's repeats keep them; `RightHand` says which are the right-hand key, as a Hotkey step's.
 - **Wheel output**: the modifiers are held around the notch. For a wheel input only (`HoldRemaps/HoldRemapRules`).
 
@@ -22,12 +22,13 @@ As Joel's AutoHotkey script has it (`+{MButton Down}`):
 
 ```json
 { "output": "Button", "button": "Middle", "modifiers": "Shift" }
+{ "output": "Button", "button": "Left", "heldKey": "Space" }
 { "output": "Key", "key": "R", "modifiers": "Control, Alt, Shift", "rightHand": "Alt" }
 { "output": "Wheel", "direction": "Up", "modifiers": "Control" }
 ```
 
 - `output`: `Button`, `Key` or `Wheel` (`RemapOutputKind`), case-insensitive; absent = `Button`.
-- `button`: a `MouseButton` name; absent = `Middle`. `key`: a `KeyCode` name; absent = `None` (no key set). `direction`: a `ScrollDirection` name (`Up`, `Down`, `Left`, `Right`); absent = `Up`. Only the member of the output's kind is written.
+- `button`: a `MouseButton` name; absent = `Middle`. `key`: a `KeyCode` name; absent = `None` (no key set). `direction`: a `ScrollDirection` name (`Up`, `Down`, `Left`, `Right`); absent = `Up`. Only the member of the output's kind is written. `heldKey` (a button output's, config schema 10): a `KeyCode` name; written only when set; absent = `None`.
 - `modifiers`: `KeyModifiers` names, comma-separated, read as every step's modifier set is (`StepParameters.ReadFlags`); written only when there are any. `rightHand`: the same, for a key output, cut down to `modifiers`; written only when there are any.
 - A bad name or shape is a `StepFormatException` naming the member, like every step type's.
 

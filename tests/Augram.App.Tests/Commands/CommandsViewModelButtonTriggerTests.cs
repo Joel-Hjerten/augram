@@ -207,7 +207,7 @@ public sealed class CommandsViewModelButtonTriggerTests
     {
         var (vm, store) = GlobalWithSteps("Magnifier", RightLeft);
         Select(vm, "Close window");
-        Assert.Equal("Remap is for a command under a hold remap or with a button trigger.", Assert.Single(vm.SelectedCommand!.StepRefusals).Value);
+        Assert.Equal("Remap is for a command under a hold remap or with a button or drag trigger.", Assert.Single(vm.SelectedCommand!.StepRefusals).Value);
 
         Select(vm, "Magnifier");
         Assert.Empty(vm.SelectedCommand!.StepRefusals);

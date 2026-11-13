@@ -60,6 +60,19 @@ internal sealed partial class EngineWorker
             case CaptureOutcome.ButtonTriggerEnded ended:
                 EndButtonTrigger(ended.Button);
                 break;
+            case CaptureOutcome.DragTrigger drag:
+                // Plan 0015 step 3 replaces this stand-in: until the worker resolves the drag and holds its output, a drag
+                // trigger goes back to the app exactly as a hand-back does (the same fallback it keeps when no command matches).
+                var dragPressed = _simulator.Press(drag.Button, drag.Start.X, drag.Start.Y);
+                var dragMoved = _simulator.MoveTo(drag.X, drag.Y);
+                _log.Debug(LogSources.Capture, "Press handed back", ("button", drag.Button), ("x", drag.Start.X), ("y", drag.Start.Y), ("result", dragPressed == SimulationResult.Success ? dragMoved : dragPressed));
+                break;
+            case CaptureOutcome.DragTriggerEnded dragEnded when e is not CaptureEvent.ButtonReleasedElsewhere:
+                // Plan 0015 step 3 replaces this stand-in: the handed-back down above gets its release (A19); after another
+                // program's release the OS has it up already, as for ReleaseHandedBack.
+                var dragReleased = _simulator.Release(dragEnded.Button);
+                _log.Debug(LogSources.Capture, "Handed-back press released", ("button", dragEnded.Button), ("result", dragReleased));
+                break;
             case CaptureOutcome.Cancelled { Reason: CancelReason.ReleasedElsewhere } when e is CaptureEvent.ButtonReleasedElsewhere elsewhere:
                 // Rare and worth seeing: another program took the release (plan 0005 decision 10), so nothing is replayed or fired.
                 _log.Info(LogSources.Capture, "Press released elsewhere", ("button", elsewhere.Button), ("x", elsewhere.X), ("y", elsewhere.Y));
