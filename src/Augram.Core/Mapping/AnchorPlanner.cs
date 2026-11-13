@@ -75,6 +75,7 @@ public static class AnchorPlanner
         var plan = AnchorPlan.None;
         var drags = AnchorDragDistances.None;
         List<ButtonOutput>? outputs = null;
+        List<Trigger>? stepDrags = null;
         foreach (var (command, trigger) in Holding(mapping, group, perCommand ?? [], platform, excludedBy))
         {
             if (excludedBy is not null && trigger.Hold.ForStrokeButton(strokeButton).HoldsStroke)
@@ -88,9 +89,14 @@ public static class AnchorPlanner
             {
                 (outputs ??= []).Add(output);
             }
+            else if (trigger is Trigger.DragTrigger && Plays(command, trigger, platform, strokeButton))
+            {
+                // A drag with ordinary steps (plan 0015 decision 3): the worker enqueues it and hands nothing back to the app.
+                (stepDrags ??= []).Add(trigger);
+            }
         }
 
-        return new AnchorAnswer(plan, drags, outputs is null ? ButtonOutputs.Empty : ButtonOutputs.Of(outputs));
+        return new AnchorAnswer(plan, drags, outputs is null && stepDrags is null ? ButtonOutputs.Empty : ButtonOutputs.Of(outputs ?? [], stepDrags));
     }
 
     /// <summary>
@@ -174,7 +180,7 @@ public static class AnchorPlanner
     /// </summary>
     private static ButtonOutput? OutputOf(Command command, Trigger trigger, HostPlatform platform, MouseButton strokeButton)
     {
-        if (trigger is not (Trigger.ButtonTrigger or Trigger.DragTrigger) || command.IsOverrideToNothingOn(platform) || trigger.Hold.ForStrokeButton(strokeButton).HoldsStroke)
+        if (trigger is not (Trigger.ButtonTrigger or Trigger.DragTrigger) || !Plays(command, trigger, platform, strokeButton))
         {
             return null;
         }
@@ -186,4 +192,8 @@ public static class AnchorPlanner
             _ => null,
         };
     }
+
+    /// <summary>The command does something here and its trigger does not hold this machine's stroke button (a button or drag trigger there holds nothing back).</summary>
+    private static bool Plays(Command command, Trigger trigger, HostPlatform platform, MouseButton strokeButton)
+        => !command.IsOverrideToNothingOn(platform) && !trigger.Hold.ForStrokeButton(strokeButton).HoldsStroke;
 }

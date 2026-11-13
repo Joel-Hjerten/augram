@@ -156,13 +156,16 @@ internal sealed partial class EngineWorker
 
     private SimulationResult Tap(KeyCode key) => InputSimulation.Worst(_simulator.KeyPress(key), _simulator.KeyRelease(key));
 
-    /// <summary>A button output: its modifiers around the down only (Blender reads them when the drag starts), the simulator's own way; a key output: its modifiers held until its release.</summary>
+    /// <summary>
+    /// A button output: its held key first and through the press (plan 0015), its modifiers around the down only (Blender reads them
+    /// when the drag starts), the simulator's own way; a key output: its modifiers held until its release.
+    /// </summary>
     private SimulationResult PressOutput(RemapOutput output, int x, int y)
     {
         switch (output)
         {
             case RemapOutput.Button button:
-                return _simulator.PressRemapButton(button.MouseButton, button.Modifiers & HotkeyKeys.AllModifiers, x, y);
+                return _simulator.PressRemapButton(button.MouseButton, button.Modifiers & HotkeyKeys.AllModifiers, x, y, button.HeldKey);
             case RemapOutput.Key { IsSet: true } key:
                 return InputSimulation.Worst(_simulator.PressKeys(ModifierKeysOf(key)), _simulator.KeyPress(key.KeyCode));
             default:
@@ -178,7 +181,7 @@ internal sealed partial class EngineWorker
                 _releasedDrags = (_drags, _dragFailures);
                 _drags = 0;
                 _dragFailures = 0;
-                return _simulator.ReleaseRemapButton(button.MouseButton);
+                return _simulator.ReleaseRemapButton(button.MouseButton, button.HeldKey);
             case RemapOutput.Key { IsSet: true } key:
                 return InputSimulation.Worst(_simulator.KeyRelease(key.KeyCode), _simulator.ReleaseKeys(ModifierKeysOf(key)));
             default:

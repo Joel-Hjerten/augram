@@ -36,12 +36,17 @@ public interface IInputSimulator
     /// A hold remap's button output (F9) down at the given position: <paramref name="modifiers"/> pressed (the left-hand keys,
     /// Ctrl, Alt, Shift, Win in that order), <paramref name="button"/> pressed with them held, the modifiers released, so the
     /// app reads them when the drag starts and nothing stays held through it (Blender's Shift + Middle pan). Only the four
-    /// modifiers count. The button stays down until <see cref="ReleaseRemapButton"/>, always (A19).
+    /// modifiers count. The button stays down until <see cref="ReleaseRemapButton"/>, always (A19). <paramref name="heldKey"/>, when
+    /// set (plan 0015 decision 4, Photoshop's "Left with Space held"), goes down first, before the modifiers, and stays down
+    /// through the whole press; never auto-repeated. <see cref="KeyCode.None"/> for none.
     /// </summary>
-    SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y);
+    SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y, KeyCode heldKey = KeyCode.None);
 
-    /// <summary><paramref name="button"/> up where the pointer is now: the release of a <see cref="PressRemapButton"/>.</summary>
-    SimulationResult ReleaseRemapButton(MouseButton button);
+    /// <summary>
+    /// <paramref name="button"/> up where the pointer is now: the release of a <see cref="PressRemapButton"/>; then its
+    /// <paramref name="heldKey"/> up, when it held one (the same key it was pressed with).
+    /// </summary>
+    SimulationResult ReleaseRemapButton(MouseButton button, KeyCode heldKey = KeyCode.None);
 
     /// <summary>
     /// One swallowed physical move re-posted as a drag of <paramref name="button"/>, which <see cref="PressRemapButton"/> holds:

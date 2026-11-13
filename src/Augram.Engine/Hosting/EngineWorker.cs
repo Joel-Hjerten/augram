@@ -73,8 +73,9 @@ internal sealed partial class EngineWorker
         }
 
         EndTrail();
-        // The engine stops: nothing a hold remap or a button trigger pressed may stay down (A19).
+        // The engine stops: nothing a hold remap, a button trigger or a drag trigger pressed may stay down (A19).
         ReleaseButtonOutput("engine stopped");
+        ReleaseDrag("engine stopped", ownerUpAlready: false);
         ResetHold("engine stopped");
     }
 
@@ -213,6 +214,7 @@ internal sealed partial class EngineWorker
         }
 
         ReleaseButtonOutput(reason);
+        ReleaseDrag(reason, ownerUpAlready: false);
 
         _machine.Reset();
         EndTrail();

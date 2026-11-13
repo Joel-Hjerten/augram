@@ -14,9 +14,11 @@ namespace Augram.Platform.MacOS.Input;
 /// <item><see cref="PressRemapButton"/>: a <c>kCGEventFlagsChanged</c> event per modifier (<see cref="MacRemapButtonEvents"/>),
 /// the button's down at the position with the modifiers' flags set on it (<c>CGEventSetFlags</c>), then a flagsChanged per
 /// modifier without it. Shift and Ctrl pressed through SharpHook never reached Blender with a posted Middle (the spike's first
-/// run: Ctrl + Middle orbited instead of zooming).</item>
+/// run: Ctrl + Middle orbited instead of zooming). A held key (plan 0015, Photoshop's "Left with Space held") goes down first, as
+/// a CoreGraphics key event at the same tap with the session's flags (<see cref="MacVirtualKeys.TryMapForPosting"/>; a key with no
+/// virtual key there goes through the inner simulator).</item>
 /// <item><see cref="ReleaseRemapButton"/>: the button's up where the pointer is now; if CoreGraphics cannot build it, the inner
-/// simulator's release, so the button is never left down (A19).</item>
+/// simulator's release, so the button is never left down (A19); then the held key's up, the same way.</item>
 /// <item><see cref="DragRemapButton"/>: the button's dragged event at the position with <c>kCGMouseEventDeltaX</c> and
 /// <c>DeltaY</c> (fields 4 and 5) set to the deltas and the session's modifier flags as they are now.
 /// <see cref="RepostsRemapDrags"/> is true: macOS does not move a posted Middle with physical right-drags (left-drags it
@@ -63,11 +65,12 @@ public sealed class MacRemapButtonSimulator : IInputSimulator
 
     public bool RepostsRemapDrags => true;
 
-    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y)
+    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y, KeyCode heldKey = KeyCode.None)
     {
         var mouse = MacRemapButtonEvents.For(button);
         var keys = MacRemapButtonEvents.Modifiers(modifiers);
-        var result = SimulationResult.Success;
+        // Plan 0015: the held key first, a CoreGraphics key event at the same tap, so the app has it before the button (Space + Left).
+        var result = heldKey == KeyCode.None ? SimulationResult.Success : PostHeldKey(heldKey, keyDown: true);
         foreach (var change in keys.Downs)
         {
             result = InputSimulation.Worst(result, PostFlagsChanged(change, keyDown: true));
@@ -82,11 +85,13 @@ public sealed class MacRemapButtonSimulator : IInputSimulator
         return result;
     }
 
-    public SimulationResult ReleaseRemapButton(MouseButton button)
+    public SimulationResult ReleaseRemapButton(MouseButton button, KeyCode heldKey = KeyCode.None)
     {
         var mouse = MacRemapButtonEvents.For(button);
         var result = MacPointer.TryRead(out var at) ? PostButton(mouse.Up, mouse.Button, at, flags: 0, beforePost: () => _announce?.Release(button)) : SimulationResult.Failed;
-        return result == SimulationResult.Success ? result : _inner.ReleaseRemapButton(button);
+        result = result == SimulationResult.Success ? result : _inner.ReleaseRemapButton(button);
+        // The held key up last, whatever the button's release answered (A19 for the key too).
+        return heldKey == KeyCode.None ? result : InputSimulation.Worst(result, PostHeldKey(heldKey, keyDown: false));
     }
 
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy)
@@ -133,6 +138,24 @@ public sealed class MacRemapButtonSimulator : IInputSimulator
         MacNative.CGEventSetIntegerValueField(cgEvent, MacNative.CGMouseEventDeltaY, dy);
         MacNative.CGEventSetFlags(cgEvent, MacNative.CGEventSourceFlagsState(MacNative.CGEventSourceStateCombinedSession));
         _announce?.Move();
+        return Post(cgEvent);
+    }
+
+    /// <summary>
+    /// A remap button's held key (plan 0015) down or up as a CoreGraphics key event with the session's modifier flags as they are
+    /// now (a flagless key event would read as every modifier up); a key with no virtual key here (<see cref="MacVirtualKeys.TryMapForPosting"/>)
+    /// or an event CoreGraphics cannot build goes through the inner simulator, so its up is never lost. Not announced: the hook
+    /// drops every simulated key event.
+    /// </summary>
+    private SimulationResult PostHeldKey(KeyCode key, bool keyDown)
+    {
+        var cgEvent = MacVirtualKeys.TryMapForPosting(key, out var virtualKey) ? MacNative.CGEventCreateKeyboardEvent(0, virtualKey, keyDown ? (byte)1 : (byte)0) : 0;
+        if (cgEvent == 0)
+        {
+            return keyDown ? _inner.KeyPress(key) : _inner.KeyRelease(key);
+        }
+
+        MacNative.CGEventSetFlags(cgEvent, MacNative.CGEventSourceFlagsState(MacNative.CGEventSourceStateCombinedSession));
         return Post(cgEvent);
     }
 

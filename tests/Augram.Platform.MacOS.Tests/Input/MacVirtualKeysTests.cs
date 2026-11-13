@@ -45,4 +45,24 @@ public sealed class MacVirtualKeysTests
     [InlineData(KeyCode.NumPad4)]
     [InlineData(KeyCode.VolumeUp)]
     public void AKeyWithANameOfItsOwnIsNotTranslated(KeyCode key) => Assert.False(MacVirtualKeys.TryMap(key, out _));
+
+    [Theory]
+    [InlineData(KeyCode.Space, 0x31)]
+    [InlineData(KeyCode.A, 0x00)]
+    [InlineData(KeyCode.F1, 0x7A)]
+    [InlineData(KeyCode.Escape, 0x35)]
+    [InlineData(KeyCode.NumPad4, 0x56)]
+    [InlineData(KeyCode.Up, 0x7E)]
+    public void AHeldKeyIsPostedAsItsVirtualKey(KeyCode key, int virtualKey)
+    {
+        Assert.True(MacVirtualKeys.TryMapForPosting(key, out var mapped));
+        Assert.Equal(virtualKey, mapped);
+    }
+
+    [Theory]
+    [InlineData(KeyCode.None)]
+    [InlineData(KeyCode.LeftShift)]
+    [InlineData(KeyCode.VolumeUp)]
+    [InlineData(KeyCode.F24)]
+    public void AModifierMediaOrMissingKeyHasNoVirtualKeyToPost(KeyCode key) => Assert.False(MacVirtualKeys.TryMapForPosting(key, out _));
 }

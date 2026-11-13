@@ -79,6 +79,21 @@ public sealed class SharpHookInputSimulatorTests
     }
 
     [Fact]
+    public void ARemapButtonsHeldKey_GoesDownFirst_AndUpAfterTheButton()
+    {
+        using var hook = new TestGlobalHook();
+        var simulator = new SharpHookInputSimulator(hook);
+
+        Assert.Equal(SimulationResult.Success, simulator.PressRemapButton(MouseButton.Left, KeyModifiers.Control, 40, 50, KeyCode.Space));
+        Assert.Equal(SimulationResult.Success, simulator.ReleaseRemapButton(MouseButton.Left, KeyCode.Space));
+
+        // Photoshop's pan (plan 0015): Space held through the whole press, the modifiers around the down only.
+        Assert.Equal(
+            ["KeyPressed VcSpace", "KeyPressed VcLeftControl", "MousePressed Button1@40,50", "KeyReleased VcLeftControl", "MouseReleased Button1", "KeyReleased VcSpace"],
+            Posted(hook));
+    }
+
+    [Fact]
     public void AHotkeyIsItsModifierKeysAroundTheKey_RightHandWhereAsked()
     {
         using var hook = new TestGlobalHook();

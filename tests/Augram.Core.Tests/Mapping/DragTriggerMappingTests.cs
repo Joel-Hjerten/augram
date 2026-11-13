@@ -135,14 +135,17 @@ public sealed class DragTriggerMappingTests
     }
 
     [Fact]
-    public void OrdinarySteps_BindTheDrag_ButHoldNoOutput()
+    public void OrdinarySteps_BindTheDrag_HoldNoOutput_AndRunStepsForTheirKeysOnly()
     {
         var mapping = MappingRules.ValidDocument(Document(NewGlobal(NewCommand("Back", RightDrag, NewStep("back")))));
 
         var answer = AnchorPlanner.Answer(mapping, null, HostPlatform.Windows, Stroke);
 
         Assert.True(answer.Drags.IsDragBound(MouseButton.Right));
-        Assert.True(answer.Outputs.IsEmpty);
+        Assert.Empty(answer.Outputs.Outputs);
+        Assert.True(answer.Outputs.RunsSteps(Pressed(new PressHold(HeldButtons.Right, Stroke))));
+        Assert.False(answer.Outputs.RunsSteps(Pressed(new PressHold(HeldButtons.Right, Stroke, BeforeKeys: KeyModifiers.Shift))), "no command takes Shift + Right + drag: the press is handed back");
+        Assert.False(answer.Outputs.RunsSteps(new PressedTrigger(new Trigger.ButtonTrigger(MouseButton.Left), new PressHold(HeldButtons.Right, Stroke))));
     }
 
     [Fact]

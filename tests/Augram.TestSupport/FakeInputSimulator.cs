@@ -117,10 +117,28 @@ public sealed class FakeInputSimulator : IInputSimulator
 
     public SimulationResult Release(MouseButton button) => RecordMouse($"up {button}");
 
-    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y)
-        => RecordMouse(modifiers == KeyModifiers.None ? $"down {button}@{x},{y}" : $"down {modifiers}+{button}@{x},{y}");
+    /// <summary>A held key (plan 0015) is recorded as its own key press first: "press Space", then "down Left@10,20".</summary>
+    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y, KeyCode heldKey = KeyCode.None)
+    {
+        if (heldKey != KeyCode.None)
+        {
+            Record($"press {heldKey}", PressResult);
+        }
 
-    public SimulationResult ReleaseRemapButton(MouseButton button) => RecordMouse($"up {button}");
+        return RecordMouse(modifiers == KeyModifiers.None ? $"down {button}@{x},{y}" : $"down {modifiers}+{button}@{x},{y}");
+    }
+
+    /// <summary>"up Left", then the held key's "release Space" when it held one.</summary>
+    public SimulationResult ReleaseRemapButton(MouseButton button, KeyCode heldKey = KeyCode.None)
+    {
+        var result = RecordMouse($"up {button}");
+        if (heldKey != KeyCode.None)
+        {
+            Record($"release {heldKey}", ReleaseResult);
+        }
+
+        return result;
+    }
 
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => RecordMouse($"drag {button}@{x},{y} by {dx},{dy}");
 
