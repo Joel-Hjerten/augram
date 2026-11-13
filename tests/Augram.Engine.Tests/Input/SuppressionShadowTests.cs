@@ -49,7 +49,7 @@ public sealed class SuppressionShadowTests
             }
         }
 
-        // HandedBack, ButtonFiring and DragFiring need an anchor besides the stroke button: ChordPairingTests covers them (DragFiring from plan 0015 step 3).
+        // HandedBack, ButtonFiring and DragFiring need an anchor besides the stroke button: ChordPairingTests covers them.
         foreach (var state in Enum.GetValues<CaptureState>().Where(state => state is not (CaptureState.HandedBack or CaptureState.ButtonFiring or CaptureState.DragFiring)))
         {
             foreach (var kind in new[] { RawInputKind.ButtonDown, RawInputKind.ButtonUp, RawInputKind.Wheel })

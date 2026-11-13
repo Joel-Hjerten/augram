@@ -45,6 +45,51 @@ public sealed class MacRemapButtonSimulatorTests
     }
 
     [Fact]
+    public void AHeldKey_IsPostedBeforeTheModifiersAndTheButton_AndUpAfterTheButton()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        var announced = new List<string>();
+        var posted = 0;
+        var inner = new FakeInputSimulator();
+        var announce = new MacPostedInput(
+            Press: button => announced.Add($"press {button} after {posted}"),
+            Release: button => announced.Add($"release {button} after {posted}"),
+            Move: () => announced.Add($"move after {posted}"));
+        var simulator = new MacRemapButtonSimulator(inner, announce, _ => posted++);
+
+        Assert.Equal(SimulationResult.Success, simulator.PressRemapButton(MouseButton.Left, KeyModifiers.Shift, 40, 50, KeyCode.Space));
+        Assert.Equal(SimulationResult.Success, simulator.ReleaseRemapButton(MouseButton.Left, KeyCode.Space));
+
+        // Space down (1), Shift down (2), the down announced then posted (3), Shift up (4); the up announced then posted (5), Space up (6).
+        Assert.Equal(["press Left after 2", "release Left after 4"], announced);
+        Assert.Equal(6, posted);
+        Assert.Empty(inner.All);
+    }
+
+    [Fact]
+    public void AHeldKeyWithNoVirtualKey_GoesThroughTheInnerSimulator()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        var posted = 0;
+        var inner = new FakeInputSimulator();
+        var simulator = new MacRemapButtonSimulator(inner, announce: null, _ => posted++);
+
+        simulator.PressRemapButton(MouseButton.Left, KeyModifiers.None, 1, 2, KeyCode.F24);
+        simulator.ReleaseRemapButton(MouseButton.Left, KeyCode.F24);
+
+        Assert.Equal(["press F24", "release F24"], inner.All);
+        Assert.Equal(2, posted);
+    }
+
+    [Fact]
     public void WithoutAnnouncementsItStillPosts()
     {
         if (!OperatingSystem.IsMacOS())

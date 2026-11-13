@@ -12,14 +12,18 @@ namespace Augram.Engine.Hosting;
 /// press's <see cref="ButtonOutputs"/> (its window's, handed over with the anchor's press) holds its key output here, pressed at
 /// once and released when the chord ends, at a reset and at engine stop (decision 9: never through the executor, whose queue may
 /// drop the release; A19: nothing stays held). Any other goes to the executor as a wheel trigger does, and runs at the press.
-/// While a key output with modifiers is held the gate is told (<see cref="InputGate.PublishChordHoldsModifiers"/>): where the
+/// While a key output with modifiers is held the gate is told (<see cref="InputGate.PublishRepostMoves"/>): where the
 /// simulator re-posts (macOS) the hook swallows each move and it is re-posted here through <see cref="IInputSimulator.RepostMove"/>,
-/// with the delta from the previous physical position, so no hardware move resets the modifiers held.
+/// with the delta from the previous physical position, so no hardware move resets the modifiers held. A drag trigger's held
+/// button output (<c>EngineWorker.DragTriggers.cs</c>) has its swallowed moves re-posted here too, as drags of it.
 /// </summary>
 internal sealed partial class EngineWorker
 {
     private ButtonOutputs _pressOutputs = ButtonOutputs.Empty;
     private HeldButtonOutput? _buttonHeld;
+
+    /// <summary>The chord held now holds a key output with modifiers: moves are swallowed and re-posted (macOS).</summary>
+    private bool _chordRepostsMoves;
 
     /// <summary>A re-posted move failed under the output held now: warned once, as a drag is.</summary>
     private bool _repostFailed;
@@ -46,7 +50,8 @@ internal sealed partial class EngineWorker
         // The machine ends a chord before it fires another; this only guards a held key against a lost end.
         ReleaseButtonOutput("another chord");
         // Before the press: no move may pass between the modifiers going down and the hook knowing.
-        _gate.PublishChordHoldsModifiers(output.Output is RemapOutput.Key { IsSet: true } key && (key.Modifiers & HotkeyKeys.AllModifiers) != 0);
+        _chordRepostsMoves = output.Output is RemapOutput.Key { IsSet: true } key && (key.Modifiers & HotkeyKeys.AllModifiers) != 0;
+        PublishRepostMoves();
         _repostFailed = false;
         var result = PressOutput(output.Output, fired.Start.X, fired.Start.Y);
         _buttonHeld = new HeldButtonOutput(fired.Button, output);
@@ -79,7 +84,8 @@ internal sealed partial class EngineWorker
 
         _buttonHeld = null;
         var result = ReleaseOutput(held.Output.Output);
-        _gate.PublishChordHoldsModifiers(false);
+        _chordRepostsMoves = false;
+        PublishRepostMoves();
         if (result != SimulationResult.Success)
         {
             _log.Warning(LogSources.Execution, "Button output release failed", ("command", held.Output.Name), ("output", held.Output.Output.Describe(HotkeyText.Names)), ("result", result));
@@ -91,10 +97,17 @@ internal sealed partial class EngineWorker
 
     /// <summary>
     /// A move the hook swallowed while a chord held a key output with modifiers, re-posted at its position with the delta from
-    /// the previous physical one. Re-posted even when the chord has ended since (the hook decided first), so the pointer never freezes.
+    /// the previous physical one; while a drag trigger holds a button output, re-posted as a drag of it (plan 0015). Re-posted
+    /// even when the chord or the drag has ended since (the hook decided first), so the pointer never freezes.
     /// </summary>
     private void RepostMove(CaptureEvent.Move move)
     {
+        if (_dragHeld is { Button: not null } drag)
+        {
+            DragHeld(drag, move.X, move.Y, move.X - _physicalX, move.Y - _physicalY);
+            return;
+        }
+
         var result = _simulator.RepostMove(move.X, move.Y, move.X - _physicalX, move.Y - _physicalY);
         if (result != SimulationResult.Success && !_repostFailed)
         {

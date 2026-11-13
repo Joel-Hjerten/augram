@@ -24,8 +24,8 @@ namespace Augram.Engine.Hosting;
 /// decision 10) ends the press it owns in the shadow, is posted for the machine, and is never suppressed. Moves are forwarded only while a press
 /// is owed or the machine is not Idle; where the simulator re-posts drags (macOS) a move is also swallowed and posted as a
 /// hold <c>Move</c> while the hold remap holds a button output (one field read, one more message), and swallowed and forwarded
-/// for the worker to re-post while a button trigger's chord holds a key output with modifiers (one more volatile, written by the
-/// worker: <see cref="PublishChordHoldsModifiers"/>). A full queue drops moves,
+/// for the worker to re-post while a button trigger's chord holds a key output with modifiers or a drag trigger holds a button
+/// output (one more volatile, written by the worker: <see cref="PublishRepostMoves"/>). A full queue drops moves,
 /// ticks and key notes (a move it could not post for a drag passes); a press that cannot be enqueued is passed through and
 /// the shadow restored; a release is still consumed (A19) and the worker resets the machines when it sees the drop count.
 /// The worker publishes state and the applied stroke button here; the App writes <see cref="Enabled"/> and
@@ -65,7 +65,7 @@ internal sealed partial class InputGate
     private WhileHoldingSet _foregroundHolding = WhileHoldingSet.None;
     private int _pointerX;
     private int _pointerY;
-    private bool _chordHoldsModifiers;
+    private bool _repostMoves;
     private IgnoreListWatch? _watch;
 
     /// <param name="writer">The hook-to-worker channel.</param>
@@ -162,11 +162,13 @@ internal sealed partial class InputGate
     }
 
     /// <summary>
-    /// Worker: a button trigger's chord holds a key output with modifiers (set before its press, cleared after its release).
-    /// Where the simulator re-posts (<see cref="RepostsRemapDrags"/>, macOS) the hook then swallows each move and the worker
-    /// re-posts it with the modifiers held: a passing hardware move would reset them (Engine README, "Button triggers").
+    /// Worker: a button trigger's chord holds a key output with modifiers, or a drag trigger holds a button output (plan 0015;
+    /// set before the output's press, cleared after its release). Where the simulator re-posts (<see cref="RepostsRemapDrags"/>,
+    /// macOS) the hook then swallows each move and the worker re-posts it: with the chord's modifiers held, since a passing hardware
+    /// move would reset them, or as a drag of the output button, which physical drags of another button do not move (Engine
+    /// README, "Button triggers" and "Drag triggers").
     /// </summary>
-    public void PublishChordHoldsModifiers(bool held) => Volatile.Write(ref _chordHoldsModifiers, held);
+    public void PublishRepostMoves(bool repost) => Volatile.Write(ref _repostMoves, repost);
 
     /// <summary>Worker: the injections of one message the hook counted as a pending replay are made.</summary>
     public void HoldReplayDone() => _hold.ReplayDone();
@@ -230,10 +232,10 @@ internal sealed partial class InputGate
                     suppress = Post(WorkerMessage.Hold(new HoldRemapEvent.Move(input.X, input.Y, input.TimestampMs), hookSuppressed: true), critical: false);
                 }
 
-                // macOS: a passing hardware move carries no modifier flags and resets the ones a chord's key output holds. While
-                // it holds some, the move is swallowed and the worker re-posts it with them (one volatile read); a move that cannot
-                // be enqueued passes.
-                var repost = !suppress && _repostsRemapDrags && Volatile.Read(ref _chordHoldsModifiers);
+                // macOS: a passing hardware move carries no modifier flags and resets the ones a chord's key output holds, and does
+                // not drag a drag trigger's posted button. While either is held, the move is swallowed and the worker re-posts it
+                // (one volatile read); a move that cannot be enqueued passes.
+                var repost = !suppress && _repostsRemapDrags && Volatile.Read(ref _repostMoves);
 
                 // The shadow knows about a consumed press before the worker has run the machine; forward from that moment.
                 if (repost || state != CaptureState.Idle || _shadow.Owed.HasValue)

@@ -72,11 +72,22 @@ public sealed class SharpHookInputSimulator : IInputSimulator
     /// <summary>False: on Windows the physical moves drive a posted button as they are (the AutoHotkey script proves it).</summary>
     public bool RepostsRemapDrags => false;
 
-    /// <summary>The left modifier keys down, <see cref="Press"/>, the keys up in reverse: exactly what the worker posted itself before plan 0002 step 3a.</summary>
-    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y)
-        => this.WithModifiersHeld(HotkeyKeys.LeftKeys(modifiers), () => Press(button, x, y));
+    /// <summary>
+    /// The held key down (plan 0015, when set), the left modifier keys down, <see cref="Press"/>, the keys up in reverse: without a
+    /// held key exactly what the worker posted itself before plan 0002 step 3a.
+    /// </summary>
+    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y, KeyCode heldKey = KeyCode.None)
+    {
+        var held = heldKey == KeyCode.None ? SimulationResult.Success : KeyPress(heldKey);
+        return Combine(held, this.WithModifiersHeld(HotkeyKeys.LeftKeys(modifiers), () => Press(button, x, y)));
+    }
 
-    public SimulationResult ReleaseRemapButton(MouseButton button) => Release(button);
+    /// <summary><see cref="Release"/>, then the held key up (when set), whatever the release answered.</summary>
+    public SimulationResult ReleaseRemapButton(MouseButton button, KeyCode heldKey = KeyCode.None)
+    {
+        var released = Release(button);
+        return heldKey == KeyCode.None ? released : Combine(released, KeyRelease(heldKey));
+    }
 
     /// <summary>Not offered (<see cref="RepostsRemapDrags"/> is false): the engine never calls it here.</summary>
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => SimulationResult.Unsupported;

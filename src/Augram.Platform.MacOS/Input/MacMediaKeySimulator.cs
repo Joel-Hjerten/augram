@@ -26,9 +26,9 @@ public sealed class MacMediaKeySimulator(IInputSimulator inner) : IInputSimulato
 
     public bool RepostsRemapDrags => inner.RepostsRemapDrags;
 
-    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y) => inner.PressRemapButton(button, modifiers, x, y);
+    public SimulationResult PressRemapButton(MouseButton button, KeyModifiers modifiers, int x, int y, KeyCode heldKey = KeyCode.None) => inner.PressRemapButton(button, modifiers, x, y, heldKey);
 
-    public SimulationResult ReleaseRemapButton(MouseButton button) => inner.ReleaseRemapButton(button);
+    public SimulationResult ReleaseRemapButton(MouseButton button, KeyCode heldKey = KeyCode.None) => inner.ReleaseRemapButton(button, heldKey);
 
     public SimulationResult DragRemapButton(MouseButton button, int x, int y, int dx, int dy) => inner.DragRemapButton(button, x, y, dx, dy);
 

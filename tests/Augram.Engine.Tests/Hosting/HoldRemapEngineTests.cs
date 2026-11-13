@@ -1,6 +1,9 @@
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Diagnostics;
+using Augram.Core.HoldRemaps;
+using Augram.Core.Mapping;
+using Augram.Core.Steps.Remap;
 using Augram.Engine.Hosting;
 using Augram.Engine.Input;
 using Xunit;
@@ -35,6 +38,28 @@ public sealed class HoldRemapEngineTests
         Assert.Equal(["down Middle@100,100", "up Middle"], harness.Simulator.All);
         Assert.Empty(harness.Trail.Calls);
         Assert.Empty(harness.Events);
+        AssertNoMismatch(harness);
+    }
+
+    [Fact]
+    public void AButtonOutputsHeldKey_GoesDownBeforeTheButton_AndUpAfterIt()
+    {
+        // Plan 0015 decision 4: a held key is allowed on any button output, a hold remap's too ("Left with Space held" under F).
+        var f = HoldRemap.For(KeyCode.F);
+        var pan = new Command(CommandId.New(), "Pan", Trigger.ForInput(HoldInput.Of(Middle)), IsActive: true, [new CommandStep(new RemapStep(new RemapOutput.Button(Left) { HeldKey = KeyCode.Space }), HostPlatform.Windows)]) { HoldRemapId = f.Id };
+        var group = new AppGroup(GroupId.New(), "Blender", IsActive: true, SuppressGlobals: false, new AppMatcher { WindowsProcessNames = [BlenderHold.Process] }, [pan]) { HoldRemaps = [f] };
+        using var harness = new EngineHarness(mapping: MappingRules.ValidDocument(new MappingDocument([AppGroup.EmptyGlobal, group], [])));
+        harness.Windows.Window = BlenderHold.Window;
+        harness.Windows.ForegroundWindow = BlenderHold.Window;
+        EngineHarness.WaitFor(() => !harness.Host.ForegroundHoldPlan.IsEmpty, "F's hold remap in front");
+
+        Assert.True(harness.KeyDown(KeyCode.F, 0));
+        Assert.True(harness.Down(Middle, 100, 100, 20));
+        Assert.True(harness.Up(Middle, 150, 100, 40));
+        Assert.True(harness.KeyUp(KeyCode.F, 60));
+        harness.WaitForLog(LogSources.Hold, "Tap not sent");
+
+        Assert.Equal(["press Space", "down Left@100,100", "up Left", "release Space"], harness.Simulator.All);
         AssertNoMismatch(harness);
     }
 
