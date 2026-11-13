@@ -6,6 +6,8 @@ Joel works on a **Windows 11 PC** and a **Mac**; both run Augram and sync throug
 
 ## 0. Right now
 
+**2026-11-13: [plan 0015](plans/0015-button-drag-trigger.md) PROPOSED, awaiting Joel's word on decisions 1–10.** A Drag trigger: a held-back button's drag (Right in Photoshop) played as a Remap (Left with Space held, the pan), its click still replayed so the context menu opens. Needs a held key on Remap button outputs.
+
 **2026-10-21, the Wacom pen (PC session; Joel on the Mac for the day, PC testing resumes tonight).**
 - **0.20.5, merged and checked on the PC:** Windows takes the input other programs post, as the Mac has since 0.20.4. Wacom's pen mode injects the pen's clicks, and Augram used to drop them. The Mac's behaviour is unchanged (only the Windows simulator and `EngineModule`'s choice changed), so installing 0.20.5 on the Mac is optional.
 - **What the PC check found** ([learnings 0006 §7](learnings/0006-other-programs-on-the-mouse.md), last two paragraphs):
