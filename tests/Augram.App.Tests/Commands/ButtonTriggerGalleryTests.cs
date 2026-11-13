@@ -62,7 +62,13 @@ public sealed class ButtonTriggerGalleryTests
         var form = new SectionForm { Screen = Assert.IsType<FormScreen>(ButtonTriggerGalleryPage.Page()) };
         new Window { Content = form, Width = 1000, Height = 1400 }.Show();
 
-        var headers = form.GetVisualDescendants().OfType<CommandHeader>().ToList();
+        var all = form.GetVisualDescendants().OfType<CommandHeader>().ToList();
+
+        // Plan 0015: then Zoom in's wheel card, Back changed to Drag, and a gesture's Drag draft.
+        Assert.Equal(["Zoom in", "Back", "Close window"], all.Skip(3).Select(header => header.NameText));
+        Assert.Equal(["Then wheel", null, null], all.Skip(3).Select(header => header.ThenLabel is { } then && header.HasThenChoice ? then : null));
+        Assert.Equal([false, true, true], all.Skip(3).Select(header => header.IsDragKind));
+        var headers = all.Take(3).ToList();
         Assert.Equal(["Magnifier", "Magnifier", "Back"], headers.Select(header => header.NameText));
         Assert.All(headers, header => Assert.True(header.IsButtonKind));
         Assert.Equal(

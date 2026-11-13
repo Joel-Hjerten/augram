@@ -7,14 +7,19 @@ namespace Augram.App.Components.CommandTree;
 
 /// <summary>
 /// The one place a <see cref="Trigger"/> becomes a <see cref="TriggerKind"/> and the words the header, the row badge and the
-/// summary show for it: "Gesture" / "Wheel" / "Button" / "Click" / "No trigger" in the dropdown (Joel's order; Button since plan
-/// 0005, Click since 2026-10-13), "Right + wheel up", "Right + Left", "Shift + Undo", "Shift + click", "Click" for a whole trigger, the hint beside the kind, and the
-/// trigger's words in the header's note on a draft ("Stroke button + wheel up", "Change the direction, a button or a key.").
+/// summary show for it: "Gesture" / "Wheel" / "Button" / "Drag" / "Click" / "No trigger" in the dropdown (Joel's order; Button
+/// since plan 0005, Click since 2026-10-13, Drag since plan 0015), "Right + wheel up", "Right + Left", "Right + drag", "Shift +
+/// Undo", "Shift + click", "Click" for a whole trigger, the hint beside the kind, the label of the row under While holding
+/// ("Then press", "Then wheel", "Then drag"), and the trigger's words in the header's note on a draft ("Stroke button + wheel
+/// up", "Change the direction, a button or a key.").
 /// </summary>
 public static class TriggerKindExtensions
 {
-    /// <summary>The dropdown's entries, in Joel's order (2026-10-09; Button after Wheel, plan 0005, the lead's order; Click before No trigger, 2026-10-13).</summary>
-    public static IReadOnlyList<TriggerKind> All { get; } = [TriggerKind.Gesture, TriggerKind.Wheel, TriggerKind.Button, TriggerKind.Click, TriggerKind.None];
+    /// <summary>
+    /// The dropdown's entries, in Joel's order (2026-10-09; Button after Wheel, plan 0005, the lead's order; Click before No
+    /// trigger, 2026-10-13; Drag after Button, plan 0015).
+    /// </summary>
+    public static IReadOnlyList<TriggerKind> All { get; } = [TriggerKind.Gesture, TriggerKind.Wheel, TriggerKind.Button, TriggerKind.Drag, TriggerKind.Click, TriggerKind.None];
 
     /// <summary>The wheel direction choice beside the kind, in this order.</summary>
     public static IReadOnlyList<WheelDirection> Directions { get; } = [WheelDirection.Up, WheelDirection.Down];
@@ -30,8 +35,22 @@ public static class TriggerKindExtensions
         TriggerKind.Gesture => "Gesture",
         TriggerKind.Wheel => "Wheel",
         TriggerKind.Button => "Button",
+        TriggerKind.Drag => "Drag",
         TriggerKind.Click => "Click",
         _ => "No trigger",
+    };
+
+    /// <summary>
+    /// The label of the header's row under While holding, in the order things happen (Joel, 2026-11-13: "While held… / then…"):
+    /// "Then press" for a button trigger, "Then wheel" for a wheel trigger, "Then drag" for a drag trigger; null for the kinds
+    /// that have no such row (a gesture, a click, no trigger).
+    /// </summary>
+    public static string? ThenLabel(this TriggerKind kind) => kind switch
+    {
+        TriggerKind.Button => "Then press",
+        TriggerKind.Wheel => "Then wheel",
+        TriggerKind.Drag => "Then drag",
+        _ => null,
     };
 
     public static string Label(this WheelDirection direction) => direction == WheelDirection.Up ? "Up" : "Down";
@@ -52,6 +71,7 @@ public static class TriggerKindExtensions
             Trigger.GestureTrigger => TriggerKind.Gesture,
             Trigger.WheelTrigger => TriggerKind.Wheel,
             Trigger.ButtonTrigger => TriggerKind.Button,
+            Trigger.DragTrigger => TriggerKind.Drag,
             Trigger.ClickTrigger => TriggerKind.Click,
             _ => TriggerKind.None,
         };
@@ -99,8 +119,21 @@ public static class TriggerKindExtensions
         Trigger.GestureTrigger => "Change the gesture, a button or a key.",
         Trigger.InputTrigger => "Choose another input.",
         Trigger.ButtonTrigger => "Change the button pressed, a button held or a key.",
+        Trigger.DragTrigger => "Change the button held or a key.",
         _ => "Change a button or a key.",
     };
+
+    /// <summary>
+    /// What a drag trigger that does not hold exactly one button lacks (plan 0015 decision 1), for the header's note: "tick the
+    /// button to hold, as Right for Right + drag." with none ticked, "hold one button only, as Right for Right + drag." with several.
+    /// </summary>
+    public static string HoldOneButton(Trigger.DragTrigger trigger)
+    {
+        ArgumentNullException.ThrowIfNull(trigger);
+        return trigger.Hold.Physical == HeldButtons.None
+            ? "tick the button to hold, as Right for Right + drag."
+            : "hold one button only, as Right for Right + drag.";
+    }
 
     /// <summary>
     /// What a button trigger that holds no button lacks (plan 0005 decision 2), for the header's note: "tick a button to hold, as
@@ -130,6 +163,8 @@ public static class TriggerKindExtensions
             Trigger.ClickTrigger => $"Click the stroke button while holding {holding}; with nothing else bound here the click goes to the app, keys and all.",
             Trigger.ButtonTrigger button when trigger.Hold.Physical != HeldButtons.None
                 => $"Hold {holding}, then press {button.Button}: it fires at the press, and a Remap step's key is held until either button is released.",
+            Trigger.DragTrigger when trigger.Hold.Physical.Buttons().Count() == 1
+                => $"Hold {holding} and move past the drag distance: it fires there, and a Remap step's output is held until you let go. A click without moving still reaches the app.",
             _ => null,
         };
     }

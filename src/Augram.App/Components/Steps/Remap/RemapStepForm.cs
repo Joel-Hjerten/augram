@@ -3,6 +3,7 @@ using Augram.App.Components.Steps.Scroll;
 using Augram.App.Declarations;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Hotkey;
@@ -19,7 +20,11 @@ namespace Augram.App.Components.Steps.Remap;
 /// they mean. Changing the kind keeps the modifiers and brings back the last button, key or direction chosen in this form.
 /// On a button trigger (plan 0005, the <see cref="StepFormContext"/>) the output is a key, held while both buttons are down:
 /// Key is the only kind offered (a stored Button or Wheel output stays listed, so it can be changed to a key), with that
-/// trigger's help and note. Every edit emits one new <see cref="RemapStep"/>; the rules (a wheel output only for a wheel input,
+/// trigger's help and note. On a drag trigger (plan 0015) the output is a button, held from the drag's start to the release:
+/// Button is the only kind offered, the same way. A button output has, on any trigger, "Hold key through the press" (plan 0015
+/// decision 4: "Left with Space held"), a capture field in one-key mode that refuses a modifier with Core's reason
+/// (<see cref="HoldRemapRules.HeldKeyProblem"/>) before it stores it; Clear stores none.
+/// Every edit emits one new <see cref="RemapStep"/>; the rules (a wheel output only for a wheel input,
 /// a key output on a button trigger, …) are Core's and answer through the host's message line, which then shows the stored
 /// step again.
 /// </summary>
@@ -34,6 +39,18 @@ public sealed class RemapStepForm : IStepForm
 
     /// <summary>The Output ⓘ on a button trigger (plan 0005 decision 8).</summary>
     public const string ButtonTriggerOutputHelp = "A button trigger holds a key, with its modifiers, for as long as both buttons are down. Button and Wheel outputs are for a hold remap's inputs.";
+
+    /// <summary>The note on a drag trigger's Remap step (plan 0015 decision 3).</summary>
+    public const string DragTriggerNote = "Pressed where the drag started once it passes the drag distance; held until the button is released.";
+
+    /// <summary>The Output ⓘ on a drag trigger (plan 0015 decision 3).</summary>
+    public const string DragTriggerOutputHelp = "A drag trigger holds a button, with its keys, from the drag's start until the held button is released. Key and Wheel outputs are for other triggers.";
+
+    /// <summary>The label of a button output's one-key field (plan 0015 decision 4: "Left with Space held").</summary>
+    public const string HeldKeyLabel = "Hold key through the press";
+
+    /// <summary>Its ⓘ.</summary>
+    public const string HeldKeyHelp = "A key held down before the button and released after it, as Space for Photoshop's pan (Left with Space held). Not a modifier: those are the keys held above. Clear for none.";
 
     private static readonly IReadOnlyList<Choice<RemapOutputKind>> Kinds = Choice.FromEnum<RemapOutputKind>();
 
@@ -50,12 +67,14 @@ public sealed class RemapStepForm : IStepForm
         ArgumentNullException.ThrowIfNull(context);
         var form = new State(StepParameters.Expect<RemapStep>(current, RemapStepType.Instance).Output, output => changed(new RemapStep(output)));
         var onButtonTrigger = context.Trigger is Trigger.ButtonTrigger;
-        IReadOnlyList<Choice<RemapOutputKind>> kinds = onButtonTrigger ? [.. Kinds.Where(kind => kind.Value == RemapOutputKind.Key || kind.Value == form.Output.Kind)] : Kinds;
+        var onDragTrigger = context.Trigger is Trigger.DragTrigger;
+        var only = onButtonTrigger ? RemapOutputKind.Key : RemapOutputKind.Button;
+        IReadOnlyList<Choice<RemapOutputKind>> kinds = onButtonTrigger || onDragTrigger ? [.. Kinds.Where(kind => kind.Value == only || kind.Value == form.Output.Kind)] : Kinds;
         var screen = new FormScreen("Remap",
         [
             new Section("Remap",
             [
-                new DropdownField<RemapOutputKind>("Output", kinds, form.Binding(() => form.Output.Kind, form.SetKind), onButtonTrigger ? ButtonTriggerOutputHelp : OutputHelp),
+                new DropdownField<RemapOutputKind>("Output", kinds, form.Binding(() => form.Output.Kind, form.SetKind), onButtonTrigger ? ButtonTriggerOutputHelp : onDragTrigger ? DragTriggerOutputHelp : OutputHelp),
                 new DropdownField<MouseButton>("Button", Buttons, form.Binding(() => form.ShownButton, form.SetButton)) { Visible = form.Shows(RemapOutputKind.Button) },
                 new CustomField("Keys", () => form.KeyBox, Help: "Capture, press the key or the combination, then Accept or click anywhere else.") { Visible = form.Shows(RemapOutputKind.Key) },
                 new DropdownField<KeyCode>("Key", HotkeyChoices.Keys, form.Binding(() => form.ShownKey, form.SetKey), "Also for a key the capture cannot see.") { Visible = form.Shows(RemapOutputKind.Key) },
@@ -65,7 +84,8 @@ public sealed class RemapStepForm : IStepForm
                 {
                     Visible = form.Hides(RemapOutputKind.Key),
                 },
-                new NoteField("Note", onButtonTrigger ? ButtonTriggerNote : Note),
+                new CustomField(HeldKeyLabel, () => form.HeldKeyBox, Help: HeldKeyHelp) { Visible = form.Shows(RemapOutputKind.Button) },
+                new NoteField("Note", onButtonTrigger ? ButtonTriggerNote : onDragTrigger ? DragTriggerNote : Note),
             ]),
         ]);
         return new SectionForm.SectionForm { Screen = screen };
@@ -82,6 +102,7 @@ public sealed class RemapStepForm : IStepForm
         private readonly StepFormState<RemapOutput> _form;
         private MouseButton _button = MouseButton.Middle;
         private KeyCode _key = KeyCode.None;
+        private KeyCode _heldKey = KeyCode.None;
         private KeyModifiers _rightHand = KeyModifiers.None;
         private ScrollDirection _direction = ScrollDirection.Up;
 
@@ -91,6 +112,16 @@ public sealed class RemapStepForm : IStepForm
             Remember(output);
             KeyBox = new HotkeyCaptureBox();
             KeyBox.Committed += (_, e) => Emit(new RemapOutput.Key(e.Key, e.Modifiers, e.RightHand & e.Modifiers));
+
+            // Plan 0015 decision 4: one key, never a modifier (Core's reason, before the key is taken); Clear stores None.
+            HeldKeyBox = new HotkeyCaptureBox { SingleKey = true, KeyProblem = key => HoldRemapRules.HeldKeyProblem(key) };
+            HeldKeyBox.Committed += (_, e) =>
+            {
+                if (Output is RemapOutput.Button button)
+                {
+                    Emit(button with { HeldKey = e.Key });
+                }
+            };
             _form.OnEdit(ShowKeyBox);
             ShowKeyBox();
         }
@@ -100,6 +131,9 @@ public sealed class RemapStepForm : IStepForm
         /// <summary>The capture field of a key output: the key and its modifiers (and their sides) in one press.</summary>
         public HotkeyCaptureBox KeyBox { get; }
 
+        /// <summary>A button output's key held through its press ("Left with Space held"), in one-key mode.</summary>
+        public HotkeyCaptureBox HeldKeyBox { get; }
+
         public DelegateBinding<T> Binding<T>(Func<T> get, Action<T> set) => _form.Refreshed(get, set);
 
         public IValueBinding<bool> Shows(RemapOutputKind kind) => Binding(() => Output.Kind == kind, _ => { });
@@ -108,7 +142,7 @@ public sealed class RemapStepForm : IStepForm
 
         public void SetKind(RemapOutputKind kind) => Emit(kind switch
         {
-            RemapOutputKind.Button => new RemapOutput.Button(_button, Output.Modifiers),
+            RemapOutputKind.Button => new RemapOutput.Button(_button, Output.Modifiers) { HeldKey = _heldKey },
             RemapOutputKind.Key => new RemapOutput.Key(_key, Output.Modifiers, _rightHand & Output.Modifiers),
             _ => new RemapOutput.Wheel(_direction, Output.Modifiers),
         });
@@ -171,6 +205,7 @@ public sealed class RemapStepForm : IStepForm
             {
                 case RemapOutput.Button button:
                     _button = button.MouseButton;
+                    _heldKey = button.HeldKey;
                     break;
                 case RemapOutput.Key key:
                     _key = key.KeyCode;
@@ -188,6 +223,7 @@ public sealed class RemapStepForm : IStepForm
             KeyBox.Modifiers = key?.Modifiers ?? KeyModifiers.None;
             KeyBox.RightHand = key?.RightHand ?? KeyModifiers.None;
             KeyBox.Key = key?.KeyCode ?? KeyCode.None;
+            HeldKeyBox.Key = Output is RemapOutput.Button button ? button.HeldKey : KeyCode.None;
         }
     }
 }

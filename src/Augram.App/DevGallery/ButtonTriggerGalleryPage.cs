@@ -3,6 +3,8 @@ using Augram.App.Components.CommandHeader;
 using Augram.App.Components.CommandTree;
 using Augram.App.Components.FormDialog;
 using Augram.App.Components.StepList;
+using Augram.App.Components.Steps;
+using Augram.App.Components.Steps.Remap;
 using Augram.App.Declarations;
 using Augram.App.Dialogs;
 using Augram.App.ViewModels.Commands;
@@ -10,6 +12,7 @@ using Augram.Core.Abstractions;
 using Augram.Core.Capture;
 using Augram.Core.Gestures;
 using Augram.Core.Mapping;
+using Augram.Core.Steps.Remap;
 using Avalonia.Data;
 
 namespace Augram.App.DevGallery;
@@ -20,7 +23,9 @@ namespace Augram.App.DevGallery;
 /// Magnifier selected (the pressed button beside the kind, the While holding boxes with the stroke button's and Left's locked, the
 /// Drag distance row, the Also in row naming Blender, its Remap step's form offering a key only, the step picker offering
 /// Remap); headers in the states of the trigger: Magnifier as stored (with its Also in row), pressed with Right instead (the
-/// draft waits for a button to hold), and Back given Left, which Magnifier uses (Take it and Swap in the note); and the Also in
+/// draft waits for a button to hold), and Back given Left, which Magnifier uses (Take it and Swap in the note); Zoom in's wheel
+/// trigger and Back changed to Drag (plan 0015), each with its Then row under While holding, a gesture changed to Drag (the draft
+/// waits for the button), the Remap form on a drag trigger with Left with Space held; and the Also in
 /// dialog (plan 0005 decision 7) with entries, the unused ones with their ✕, and with none.
 /// </summary>
 public static class ButtonTriggerGalleryPage
@@ -47,6 +52,25 @@ public static class ButtonTriggerGalleryPage
         new Section("Back given Left, which Magnifier uses: Take it and Swap in the note",
         [
             new CustomField("Back", () => Header("Back", item => new(CommandTreeAction.SetTriggerButton, command: item, button: MouseButton.Left))),
+        ]),
+        new Section("Zoom in, Right + wheel up: Then wheel under While holding, then the Drag distance row (Joel, 2026-11-13)",
+        [
+            new CustomField("Zoom in", () => Header("Zoom in")),
+        ]),
+        new Section("Back changed to Drag (plan 0015): Right + drag, the Then drag row with its distance",
+        [
+            new CustomField("Back", () => Header("Back", item => new(CommandTreeAction.SetTriggerKind, command: item, kind: TriggerKind.Drag))),
+        ]),
+        new Section("Close window (a gesture) changed to Drag: no button to keep, the draft waits for the one to hold",
+        [
+            new CustomField("Close window", () => Header("Close window", item => new(CommandTreeAction.SetTriggerKind, command: item, kind: TriggerKind.Drag))),
+        ]),
+        new Section("The Remap form on a drag trigger: Button only, Left with Space held",
+        [
+            new CustomField("Remap", () => new RemapStepForm().Build(
+                new RemapStep(new RemapOutput.Button(MouseButton.Left) { HeldKey = KeyCode.Space }),
+                _ => { },
+                StepFormContext.For(Trigger.ForDrag(new TriggerHold(HeldButtons.Right))))),
         ]),
         new Section("The Also in dialog for Magnifier: the plain Exclusions › Global entries by name, Blender ticked, A Plague Tale inactive and DaVinci Resolve unused with their ✕ (VMware disables Augram while focused: not offered)",
         [

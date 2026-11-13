@@ -26,6 +26,15 @@ public sealed partial class CommandHeader
     public static readonly StyledProperty<bool> IsWheelKindProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(IsWheelKind));
 
+    public static readonly StyledProperty<bool> IsDragKindProperty =
+        AvaloniaProperty.Register<CommandHeader, bool>(nameof(IsDragKind));
+
+    public static readonly StyledProperty<string?> ThenLabelProperty =
+        AvaloniaProperty.Register<CommandHeader, string?>(nameof(ThenLabel));
+
+    public static readonly StyledProperty<bool> HasThenChoiceProperty =
+        AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasThenChoice));
+
     public static readonly StyledProperty<bool> HasHoldMembersProperty =
         AvaloniaProperty.Register<CommandHeader, bool>(nameof(HasHoldMembers));
 
@@ -75,6 +84,31 @@ public sealed partial class CommandHeader
     {
         get => GetValue(IsWheelKindProperty);
         private set => SetValue(IsWheelKindProperty, value);
+    }
+
+    /// <summary>The trigger is a drag trigger (plan 0015): the Drag distance row is its "Then drag" row.</summary>
+    public bool IsDragKind
+    {
+        get => GetValue(IsDragKindProperty);
+        private set => SetValue(IsDragKindProperty, value);
+    }
+
+    /// <summary>
+    /// The label of the row under While holding (Joel, 2026-11-13: the card reads in the order things happen): "Then press" with
+    /// the pressed button, "Then wheel" with Up / Down, "Then drag" on the drag distance row; null hides the row (and for a drag
+    /// trigger, whose row is the Drag distance row).
+    /// </summary>
+    public string? ThenLabel
+    {
+        get => GetValue(ThenLabelProperty);
+        private set => SetValue(ThenLabelProperty, value);
+    }
+
+    /// <summary>Shows the row under While holding with the wheel's direction or the pressed button.</summary>
+    public bool HasThenChoice
+    {
+        get => GetValue(HasThenChoiceProperty);
+        private set => SetValue(HasThenChoiceProperty, value);
     }
 
     /// <summary>Shows the capture choice: the trigger holds keys, or buttons besides its anchor.</summary>
@@ -186,8 +220,9 @@ public sealed partial class CommandHeader
 
     /// <summary>
     /// Puts the boxes and the choices on the command's real trigger: the stroke box is locked ticked for a gesture or a click,
-    /// free for a wheel trigger, and locked unticked for a button trigger (plan 0005 decision 2), whose pressed button's box is
-    /// locked unticked too (it is never a member of its own set).
+    /// free for a wheel trigger, and locked unticked for a button trigger (plan 0005 decision 2) or a drag trigger (plan 0015: the
+    /// stroke button's movement draws); a button trigger's pressed button's box is locked unticked too (it is never a member of
+    /// its own set). The row under While holding ("Then press", "Then wheel") follows the kind.
     /// </summary>
     private void ApplyHold()
     {
@@ -195,8 +230,12 @@ public sealed partial class CommandHeader
         var trigger = item?.Trigger ?? Trigger.None;
         var hold = trigger.Hold;
         var isWheel = trigger is Trigger.WheelTrigger;
+        var isDrag = trigger is Trigger.DragTrigger;
         var pressed = trigger is Trigger.ButtonTrigger button ? button.Button.Flag() : (HeldButtons?)null;
         IsWheelKind = isWheel;
+        IsDragKind = isDrag;
+        ThenLabel = TriggerKindExtensions.KindOf(trigger).ThenLabel();
+        HasThenChoice = isWheel || pressed is not null;
         HasHoldMembers = trigger.IsBound && hold.HasMembers;
         _applying = true;
         try
@@ -204,9 +243,9 @@ public sealed partial class CommandHeader
             foreach (var (flag, box) in _buttonBoxes)
             {
                 var stroke = flag == HeldButtons.Stroke;
-                var locked = pressed is { } own ? stroke || flag == own : stroke && !isWheel;
+                var locked = stroke ? !isWheel : flag == pressed;
                 box.IsEnabled = item is not null && !locked;
-                box.IsChecked = (stroke && !isWheel && pressed is null) || (!locked && (hold.Buttons & flag) != 0);
+                box.IsChecked = stroke && !isWheel ? pressed is null && !isDrag : !locked && (hold.Buttons & flag) != 0;
             }
 
             foreach (var (flag, box) in _keyBoxes)

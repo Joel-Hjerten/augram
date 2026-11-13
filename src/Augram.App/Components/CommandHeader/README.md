@@ -1,6 +1,6 @@
 # CommandHeader
 
-The selected command's header on a Commands sub-tab (F5a): name, trigger (kind, gesture glyph and picker, "While holding", a button trigger's button, drag distance), or for a command under a hold remap its Input, then category, Use on, the Not in and Also in rows, and a refused trigger's draft note with Take it and Swap. Everything only asks (`CommandTreeActionEventArgs` out, the same actions as the tree) and then shows its item again.
+The selected command's header on a Commands sub-tab (F5a): name, trigger (kind, gesture glyph and picker, "While holding", then in the order things happen (Joel, 2026-11-13) a row "Then press" with a button trigger's button or "Then wheel" with the wheel's direction, and the drag distance, which for a drag trigger is the "Then drag" row, plan 0015), or for a command under a hold remap its Input, then category, Use on, the Not in and Also in rows, and a refused trigger's draft note with Take it and Swap. Everything only asks (`CommandTreeActionEventArgs` out, the same actions as the tree) and then shows its item again.
 
 | Type | Job |
 |---|---|

@@ -10,8 +10,9 @@ namespace Augram.App.Components.CommandHeader;
 
 /// <summary>
 /// The button trigger half of <see cref="CommandHeader"/> (plan 0005, Joel 2026-10-10: "Right + Left", Eyeris's loupe chord in
-/// Augram): for the Button kind, <c>PART_TriggerButton</c> beside the kind dropdown chooses the button pressed (Left, Right,
-/// Middle, X1, X2), as the wheel's Up / Down sits beside Wheel. The buttons held are the "While holding" boxes, where the
+/// Augram): for the Button kind, <c>PART_TriggerButton</c> on the "Then press" row under While holding (Joel, 2026-11-13: the
+/// card reads in the order things happen) chooses the button pressed (Left, Right, Middle, X1, X2), as the wheel's Up / Down
+/// sits on "Then wheel". The buttons held are the "While holding" boxes, where the
 /// stroke button's box and the pressed button's are locked unticked (<c>ApplyHold</c>). It only asks
 /// (<see cref="CommandTreeAction.SetTriggerButton"/>) and then shows the item's trigger: the stored one, or the host's draft.
 /// </summary>

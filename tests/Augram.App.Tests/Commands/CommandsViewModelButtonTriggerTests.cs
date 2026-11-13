@@ -292,6 +292,55 @@ public sealed class CommandsViewModelButtonTriggerTests
         Assert.False(vm.CanUndo);
     }
 
+    /// <summary>Plan 0015: Drag keeps the one button held besides the stroke button, and the card reads "Then drag" under While holding.</summary>
+    [AvaloniaFact]
+    public void Drag_KeepsTheOneButtonHeld_AndTheCardReadsThenDrag()
+    {
+        var (vm, store) = GlobalWith(("Pan", Trigger.ForWheel(WheelDirection.Up, Right with { Keys = KeyModifiers.Shift })));
+        Select(vm, "Pan");
+        var header = Bound(vm);
+
+        Handle(vm, CommandTreeAction.SetTriggerKind, kind: TriggerKind.Drag);
+
+        var shiftRightDrag = Trigger.ForDrag(Right with { Keys = KeyModifiers.Shift });
+        Assert.Equal(shiftRightDrag, Find(store, "Pan").Trigger);
+        Assert.Equal(TriggerKind.Drag, TriggerKindExtensions.KindOf(shiftRightDrag));
+        Assert.Equal((TriggerKind.Drag, "Shift + Right + drag", null), (vm.SelectedCommand!.TriggerKind, vm.SelectedCommand.TriggerText, vm.SelectedCommand.DraftNote));
+        Assert.Equal("Shift + Right + drag", Item(vm, "Pan").TriggerText);
+        Assert.Equal("Right clicks in every app wait until you release or move.", vm.SelectedCommand.AnchorWarning);
+        Assert.Equal(TriggerKindExtensions.All.ToList().IndexOf(TriggerKind.Drag), header.KindIndex);
+        Assert.Equal((true, false, true, "Then drag"), (header.IsDragKind, header.HasThenChoice, header.ShowsDragDistanceRow, header.DragDistanceLabel));
+        Assert.Equal((false, false), (Box(header, "PART_HoldStroke").IsEnabled, Box(header, "PART_HoldStroke").IsChecked == true));
+        Assert.Equal((true, true), (Box(header, "PART_HoldRight").IsEnabled, Box(header, "PART_HoldRight").IsChecked == true));
+
+        // Back to Wheel keeps the set, and the card reads "Then wheel" with the drag distance on its own row again.
+        Handle(vm, CommandTreeAction.SetTriggerKind, kind: TriggerKind.Wheel);
+        Assert.Equal(Trigger.ForWheel(WheelDirection.Up, Right with { Keys = KeyModifiers.Shift }), Find(store, "Pan").Trigger);
+        Assert.Equal((false, true, "Then wheel", "Drag distance"), (header.IsDragKind, header.HasThenChoice, header.ThenLabel, header.DragDistanceLabel));
+    }
+
+    [AvaloniaFact]
+    public void Drag_WithNoButtonToKeep_WaitsAsADraft_UntilExactlyOneIsTicked()
+    {
+        var (vm, store) = GlobalWith();
+        Select(vm, "Close window");
+        var stored = Find(store, "Close window").Trigger;
+
+        Handle(vm, CommandTreeAction.SetTriggerKind, kind: TriggerKind.Drag);
+
+        Assert.Equal(stored, Find(store, "Close window").Trigger);
+        Assert.Equal((TriggerKind.Drag, "Not saved yet: tick the button to hold, as Right for Right + drag."), (vm.SelectedCommand!.TriggerKind, vm.SelectedCommand.DraftNote));
+        Assert.False(store.CanUndo);
+
+        Handle(vm, CommandTreeAction.SetTriggerHold, hold: new TriggerHold(HeldButtons.Right | HeldButtons.Left));
+        Assert.Equal("Not saved yet: hold one button only, as Right for Right + drag.", vm.SelectedCommand!.DraftNote);
+
+        Handle(vm, CommandTreeAction.SetTriggerHold, hold: new TriggerHold(HeldButtons.Left));
+        Assert.Equal(Trigger.ForDrag(new TriggerHold(HeldButtons.Left)), Find(store, "Close window").Trigger);
+        Assert.Null(vm.SelectedCommand!.DraftNote);
+        Assert.Equal("Left + drag", Item(vm, "Close window").TriggerText);
+    }
+
     /// <summary>The test mapping's Global group with <paramref name="commands"/> added to Media (a 10 ms wait each), and no undo history.</summary>
     private static (CommandsViewModel Vm, MappingStore Store) GlobalWith(params (string Name, Trigger Trigger)[] commands)
         => Global([.. commands.Select(command => (command.Name, command.Trigger, new IStep[] { new DelayStep(10) }))]);

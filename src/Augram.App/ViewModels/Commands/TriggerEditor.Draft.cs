@@ -107,6 +107,11 @@ internal sealed partial class TriggerEditor
                 return new DraftRefusal($"Not saved yet: {TriggerKindExtensions.HoldAButton(button)}", null);
             }
 
+            if (trigger is Trigger.DragTrigger drag && drag.Hold.Physical.Buttons().Count() != 1)
+            {
+                return new DraftRefusal($"Not saved yet: {TriggerKindExtensions.HoldOneButton(drag)}", null);
+            }
+
             if (trigger.IsBound && !trigger.Hold.HasAnchor)
             {
                 return new DraftRefusal("Not saved yet: a wheel trigger needs the stroke button or another button held.", null);

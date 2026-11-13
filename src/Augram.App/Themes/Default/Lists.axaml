@@ -776,9 +776,6 @@
                         <TextBlock DockPanel.Dock="Left" Classes="bench-label bench-label-column wrap-label" Text="Trigger" />
                         <WrapPanel ItemSpacing="{StaticResource Space.M}" LineSpacing="{StaticResource Space.S}">
                           <ComboBox Name="PART_TriggerKind" Classes="field-editor" />
-                          <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
-                          <!-- Plan 0005: a button trigger's pressed button (Left in Right + Left); the buttons held are the While holding boxes. -->
-                          <ComboBox Name="PART_TriggerButton" Classes="field-editor" IsVisible="{TemplateBinding IsButtonKind}" />
                           <Button Name="PART_PickGesture" Classes="toolbar" IsVisible="{TemplateBinding IsGestureKind}">
                             <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}">
                               <glyph:GestureGlyph Classes="row-glyph" Points="{TemplateBinding Points}" />
@@ -815,13 +812,24 @@
                           <ComboBox Name="PART_Capture" Classes="field-editor" IsVisible="{TemplateBinding HasHoldMembers}" />
                         </WrapPanel>
                       </DockPanel>
-                      <!-- Plan 0004: how far a held-back button's press (Right in Right + wheel) may move before it goes to the app as a drag; the Options value or the command's own. -->
-                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding ShowsDragDistance}">
+                      <!-- The card reads in the order things happen (Joel, 2026-11-13: "While held… / then…"): under While holding, Then wheel [Up/Down] or
+                           Then press [Left…X2] (plan 0005: a button trigger's pressed button; the buttons held are the While holding boxes). A drag trigger's
+                           Then drag is the drag distance row below. -->
+                      <DockPanel HorizontalSpacing="{StaticResource Space.M}" IsVisible="{TemplateBinding HasThenChoice}">
+                        <TextBlock DockPanel.Dock="Left" Classes="bench-label bench-label-column wrap-label" Text="{TemplateBinding ThenLabel}" />
+                        <WrapPanel ItemSpacing="{StaticResource Space.M}" LineSpacing="{StaticResource Space.S}">
+                          <ComboBox Name="PART_WheelDirection" Classes="field-editor" IsVisible="{TemplateBinding IsWheelKind}" />
+                          <ComboBox Name="PART_TriggerButton" Classes="field-editor" IsVisible="{TemplateBinding IsButtonKind}" />
+                        </WrapPanel>
+                      </DockPanel>
+                      <!-- Plan 0004: how far a held-back button's press (Right in Right + wheel) may move before it goes to the app as a drag; the Options value or the command's own.
+                           Plan 0015: for a drag trigger it is the Then drag row, the distance that fires it, and its choices wait for the button to hold. -->
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.M}" IsVisible="{TemplateBinding ShowsDragDistanceRow}">
                         <StackPanel Classes="bench-label-column" Orientation="Horizontal" VerticalAlignment="Center">
-                          <TextBlock Classes="bench-label" Text="Drag distance" />
-                          <TextBlock Classes="help-icon" ToolTip.Tip="{x:Static header:CommandHeader.DragDistanceHelp}" />
+                          <TextBlock Classes="bench-label" Text="{TemplateBinding DragDistanceLabel}" />
+                          <TextBlock Classes="help-icon" ToolTip.Tip="{TemplateBinding DragDistanceTip}" />
                         </StackPanel>
-                        <ComboBox Name="PART_DragDistanceMode" Classes="field-editor" />
+                        <ComboBox Name="PART_DragDistanceMode" Classes="field-editor" IsVisible="{TemplateBinding ShowsDragDistance}" />
                         <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space.S}" IsVisible="{TemplateBinding HasOwnDragDistance}">
                           <NumericUpDown Name="PART_DragDistance" Classes="field-editor" />
                           <TextBlock Classes="bench-label" Text="px" />

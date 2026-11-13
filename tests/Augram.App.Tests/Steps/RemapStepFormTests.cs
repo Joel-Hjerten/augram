@@ -4,6 +4,7 @@ using Augram.App.Components.Steps;
 using Augram.App.Components.Steps.Remap;
 using Augram.Core.Abstractions;
 using Augram.Core.Capture;
+using Augram.Core.HoldRemaps;
 using Augram.Core.Mapping;
 using Augram.Core.Steps;
 using Augram.Core.Steps.Remap;
@@ -28,7 +29,7 @@ public sealed class RemapStepFormTests
     {
         var form = Show(new RemapStep(new RemapOutput.Button(MouseButton.Middle, KeyModifiers.Shift)), _ => { });
 
-        Assert.Equal(["Output", "Button", "Keys held", "Note"], VisibleLabels(form));
+        Assert.Equal(["Output", "Button", "Keys held", RemapStepForm.HeldKeyLabel, "Note"], VisibleLabels(form));
         Assert.Contains(form.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == RemapStepForm.Note);
         Assert.Equal(["Button", "Middle"], form.GetVisualDescendants().OfType<ComboBox>().Where(IsShown).Select(combo => (string)combo.SelectedItem!));
         var keys = form.GetVisualDescendants().OfType<CheckBox>().Where(IsShown).ToList();
@@ -73,7 +74,7 @@ public sealed class RemapStepFormTests
         Assert.True(form.GetVisualDescendants().OfType<ModifierToggle>().Single(toggle => toggle.IsOn).IsEffectivelyVisible);
 
         var capture = new FakeKeyCapture();
-        var box = form.GetVisualDescendants().OfType<HotkeyCaptureBox>().Single();
+        var box = form.GetVisualDescendants().OfType<HotkeyCaptureBox>().Single(IsShown);
         box.KeyCapture = capture;
         box.BeginCapture();
         capture.Press(KeyCode.LeftControl);
@@ -108,6 +109,37 @@ public sealed class RemapStepFormTests
 
         // Elsewhere every kind is offered, as before.
         Assert.Equal(["Button", "Key", "Wheel"], Combo(Show(new RemapStep(new RemapOutput.Key(KeyCode.None)), _ => { }), "Output").ItemsSource!.Cast<string>());
+    }
+
+    /// <summary>
+    /// Plan 0015 decision 4: a button output holds one key through its press ("Left with Space held"); a modifier is refused with
+    /// Core's reason before anything is stored, and Clear stores none. On a drag trigger only Button is offered.
+    /// </summary>
+    [AvaloniaFact]
+    public void AButtonOutputHoldsAKeyThroughThePress_AModifierIsRefused_ClearStoresNone()
+    {
+        var changes = new List<IStep>();
+        var context = StepFormContext.For(Trigger.ForDrag(new TriggerHold(HeldButtons.Right)));
+        var form = Show(new RemapStep(new RemapOutput.Button(MouseButton.Left)), changes.Add, context);
+        Assert.Equal(["Button"], Combo(form, "Output").ItemsSource!.Cast<string>());
+        Assert.Contains(form.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == RemapStepForm.DragTriggerNote);
+
+        var capture = new FakeKeyCapture();
+        var box = form.GetVisualDescendants().OfType<FieldRow>().Single(row => row.Label == RemapStepForm.HeldKeyLabel).GetVisualDescendants().OfType<HotkeyCaptureBox>().Single();
+        box.KeyCapture = capture;
+        box.BeginCapture();
+        capture.Press(KeyCode.LeftShift);
+        Assert.Equal(HoldRemapRules.HeldKeyProblem(KeyCode.LeftShift), box.StatusText);
+        Assert.Empty(changes);
+
+        capture.Press(KeyCode.Space);
+        box.Accept();
+        var held = new RemapStep(new RemapOutput.Button(MouseButton.Left) { HeldKey = KeyCode.Space });
+        Assert.Equal(held, Assert.Single(changes));
+        Assert.Equal("Remap to Left with Space held", held.Summary);
+
+        box.Clear();
+        Assert.Equal(new RemapStep(new RemapOutput.Button(MouseButton.Left)), changes[^1]);
     }
 
     private static Control Show(IStep step, Action<IStep> changed, StepFormContext? context = null)

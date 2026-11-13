@@ -11,7 +11,7 @@ namespace Augram.App.ViewModels.Commands;
 
 /// <summary>
 /// The header's trigger and input edits of <see cref="CommandsViewModel"/> (F1 "Triggers as combinations", Joel 2026-10-09):
-/// the kind (Gesture through the Select Gesture picker, Wheel, Button (plan 0005), Click (Joel 2026-10-13: the stroke button
+/// the kind (Gesture through the Select Gesture picker, Wheel, Button (plan 0005), Drag (plan 0015), Click (Joel 2026-10-13: the stroke button
 /// clicked without drawing, bare or with the set held), No trigger), the wheel direction, a button
 /// trigger's pressed button and the "While holding" set; under a hold remap (F9, plan 0002 step 4) the input that takes a
 /// trigger's place (<see cref="Trigger.InputTrigger"/>). What is edited is this platform's trigger
@@ -111,6 +111,9 @@ internal sealed partial class TriggerEditor
             case TriggerKind.Button:
                 ChooseButton(command.Id);
                 break;
+            case TriggerKind.Drag:
+                ChooseDrag(command.Id);
+                break;
             case TriggerKind.Click:
                 EditTrigger(command.Id, current => Trigger.ForClick(Held(current)));
                 break;
@@ -121,9 +124,9 @@ internal sealed partial class TriggerEditor
     }
 
     /// <summary>
-    /// Wheel up with the keys and buttons held now (the stroke button alone by default; a button trigger's set as it is, so
-    /// Right + Left becomes Right + wheel up). When the rules refuse it (wheel up is the volume's here, say) the free direction is
-    /// saved instead; when both are taken, wheel up waits as the draft with its note.
+    /// Wheel up with the keys and buttons held now (the stroke button alone by default; a button or drag trigger's set as it is,
+    /// so Right + Left and Right + drag become Right + wheel up). When the rules refuse it (wheel up is the volume's here, say) the
+    /// free direction is saved instead; when both are taken, wheel up waits as the draft with its note.
     /// </summary>
     private void ChooseWheel(CommandId id)
     {
@@ -133,7 +136,7 @@ internal sealed partial class TriggerEditor
             return;
         }
 
-        var held = current is Trigger.ButtonTrigger ? current.Hold : Held(current);
+        var held = current is Trigger.ButtonTrigger or Trigger.DragTrigger ? current.Hold : Held(current);
         var up = Trigger.ForWheel(WheelDirection.Up, held);
         if (!TrySaveTrigger(id, up) && !TrySaveTrigger(id, Trigger.ForWheel(WheelDirection.Down, held)))
         {
@@ -158,6 +161,30 @@ internal sealed partial class TriggerEditor
 
         var held = current.IsBound ? current.Hold with { Buttons = current.Hold.Physical } : new TriggerHold(HeldButtons.None);
         EditTrigger(id, _ => Trigger.ForButton(MouseButton.Left, held));
+    }
+
+    /// <summary>
+    /// A drag trigger (plan 0015 decision 1): the keys held now, and the button held now when exactly one besides the stroke button
+    /// (and besides this machine's stroke button named as itself) is held, so Right + wheel up becomes Right + drag; with none or
+    /// several, no button, and the edit waits as the draft whose note says to tick the one to hold.
+    /// </summary>
+    private void ChooseDrag(CommandId id)
+    {
+        var current = DraftedTrigger(id);
+        if (current is Trigger.DragTrigger)
+        {
+            return;
+        }
+
+        var buttons = current.IsBound ? current.Hold.Physical : HeldButtons.None;
+        if (_host.StrokeButton is { } stroke)
+        {
+            buttons &= ~stroke.Flag();
+        }
+
+        var one = buttons.Buttons().Count() == 1 ? buttons : HeldButtons.None;
+        var held = current.IsBound ? current.Hold with { Buttons = one } : new TriggerHold(HeldButtons.None);
+        EditTrigger(id, _ => Trigger.ForDrag(held));
     }
 
     /// <summary>
