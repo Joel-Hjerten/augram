@@ -317,6 +317,9 @@ public sealed partial class CommandsViewModel : StoreViewModel, IDisposable, ICo
             case CommandTreeAction.Paste:
                 PasteCommand(PasteTargetOf(e.Section));
                 break;
+            case CommandTreeAction.Duplicate when e.Command is null && e.Section is { CanDuplicate: true } section:
+                DuplicateGroup(section);
+                break;
             case CommandTreeAction.Export when e.Section is { CanExport: true } section:
                 _ = ExportAsync(section);
                 break;

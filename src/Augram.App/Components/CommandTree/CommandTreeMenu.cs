@@ -16,12 +16,13 @@ internal static class CommandTreeMenu
         ("Delete", CommandTreeAction.Delete),
         ("Copy", CommandTreeAction.Copy),
         ("Paste", CommandTreeAction.Paste),
+        ("Duplicate", CommandTreeAction.Duplicate),
         ("Export…", CommandTreeAction.Export));
 
     /// <summary>
     /// Labels the new-section entry as the host does and shows or disables the entries that depend on the
     /// selection, as the section allows: rename and delete for any section or command, copy per <see cref="SectionItem"/>,
-    /// New hold remap only where the section offers it (an app group, plan 0002), Export… only on a section header that exports
+    /// New hold remap and Duplicate only where the section offers it (an app group, plan 0002 and Joel 2026-11-14), Export… only on a section header that exports
     /// (an app group or a Global category, plan 0003), and New command only with a section to put it in (Joel, 2026-10-11:
     /// nothing selected makes nothing); a command can always be renamed, deleted and copied.
     /// </summary>
@@ -34,7 +35,7 @@ internal static class CommandTreeMenu
                 case CommandTreeAction.NewSection:
                     item.Header = newSectionLabel;
                     break;
-                case CommandTreeAction.NewHoldRemap or CommandTreeAction.Export:
+                case CommandTreeAction.NewHoldRemap or CommandTreeAction.Duplicate or CommandTreeAction.Export:
                     item.IsVisible = Allows(action, section, command);
                     break;
                 case CommandTreeAction.NewCommand:
@@ -50,7 +51,7 @@ internal static class CommandTreeMenu
     /// <summary>
     /// Whether the selection allows the action at all: a section only as its <see cref="SectionItem"/> says; Rename and Delete
     /// need a command or a section (every section has both); Copy a command or a section that copies itself (a hold remap);
-    /// New hold remap an app group's section; Export a section header that exports, with no command selected.
+    /// New hold remap an app group's section, Duplicate one with no command selected; Export a section header that exports, with no command selected.
     /// </summary>
     public static bool Allows(CommandTreeAction action, SectionItem? section, CommandItem? command) => action switch
     {
@@ -58,6 +59,7 @@ internal static class CommandTreeMenu
         CommandTreeAction.ToggleActive => command is not null || section is { CanToggleActive: true },
         CommandTreeAction.Copy => command is not null || section is { CanCopy: true },
         CommandTreeAction.NewHoldRemap => section is { CanAddHoldRemap: true },
+        CommandTreeAction.Duplicate => command is null && section is { CanDuplicate: true },
         CommandTreeAction.Export => command is null && section is { CanExport: true },
         _ => true,
     };
@@ -74,6 +76,7 @@ internal static class CommandTreeMenu
             (keymap.Delete, CommandTreeAction.Delete),
             (keymap.Copy, CommandTreeAction.Copy),
             (keymap.Paste, CommandTreeAction.Paste),
+            (keymap.Duplicate, CommandTreeAction.Duplicate),
             (keymap.Undo, CommandTreeAction.Undo),
             (keymap.Redo, CommandTreeAction.Redo),
             (keymap.Find, CommandTreeAction.Find));

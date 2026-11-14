@@ -151,4 +151,37 @@ public sealed record AppGroup(
     /// <summary>The one predicate behind the lists above: the command's parent is <paramref name="holdRemap"/> (null: none) and it is used on <paramref name="platform"/> (null: anywhere).</summary>
     private bool IsUnder(Command command, HoldRemapId? holdRemap, Abstractions.HostPlatform? platform)
         => command.HoldRemapId == holdRemap && (platform is not { } here || IsCommandUsedOn(command, here));
+
+    /// <summary>
+    /// A copy of this app group as a second group (Joel, 2026-11-14: the same set of commands kept for another app, say Chrome's
+    /// for Firefox): <paramref name="id"/> and <paramref name="name"/> as given, fresh ids for every command, category and hold
+    /// remap (ids are unique across the document), the commands following their category and hold remap to the new ids, and
+    /// the matcher without its executable names and paths on either platform, so two groups never target the same app: the
+    /// user sets the copy's executable. Its titles and classes stay. Not for Global, which has no second.
+    /// </summary>
+    public AppGroup Duplicated(GroupId id, string name)
+    {
+        if (IsGlobal)
+        {
+            throw new MappingValidationException("The Global group cannot be duplicated.");
+        }
+
+        var categories = Categories.ToDictionary(category => category.Id, _ => CategoryId.New());
+        var holdRemaps = HoldRemaps.ToDictionary(holdRemap => holdRemap.Id, _ => HoldRemapId.New());
+        var commands = Commands.Select(command => command with
+        {
+            Id = CommandId.New(),
+            CategoryId = command.CategoryId is { } category && categories.TryGetValue(category, out var newCategory) ? newCategory : null,
+            HoldRemapId = command.HoldRemapId is { } holdRemap && holdRemaps.TryGetValue(holdRemap, out var newHoldRemap) ? newHoldRemap : null,
+        }).ToArray();
+        return this with
+        {
+            Id = id,
+            Name = name,
+            Matcher = Matcher is null ? null : Matcher with { WindowsProcessNames = [], MacProcessNames = [], ProcessPath = null, MacProcessPath = null },
+            Commands = commands,
+            Categories = Categories.Select(category => category with { Id = categories[category.Id] }).ToArray(),
+            HoldRemaps = HoldRemaps.Select(holdRemap => holdRemap with { Id = holdRemaps[holdRemap.Id] }).ToArray(),
+        };
+    }
 }

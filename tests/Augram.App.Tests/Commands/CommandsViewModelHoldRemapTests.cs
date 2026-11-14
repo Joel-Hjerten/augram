@@ -242,4 +242,30 @@ public sealed class CommandsViewModelHoldRemapTests
         Assert.Equal("A command named 'Pan' already exists under 'Space' in 'Blender'.", vm.Message);
         Assert.Equal("Orbit (2)", store.FindCommand(copy.Id)!.Value.Command.Name);
     }
+
+    /// <summary>Duplicate on an app group (Joel, 2026-11-14): a second group with the commands and hold remaps, no executable, one undo step.</summary>
+    [AvaloniaFact]
+    public void DuplicateAGroupTakesItsCommandsAndHoldRemaps_WithoutAnExecutable_InOneUndoStep()
+    {
+        var (vm, store, _) = CreateBlender();
+        Assert.True(CommandTreeMenu.Allows(CommandTreeAction.Duplicate, Section(vm, "Blender"), null));
+        Assert.False(CommandTreeMenu.Allows(CommandTreeAction.Duplicate, Section(vm, "Blender"), Item(vm, "Undo")));
+        Assert.False(CommandTreeMenu.Allows(CommandTreeAction.Duplicate, HoldRemapSection(vm, "Space"), null));
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Duplicate, Section(vm, "Blender")));
+
+        var copy = Group(store, "Blender (2)");
+        Assert.NotEqual(Blender(store).Id, copy.Id);
+        Assert.Empty(copy.Matcher!.WindowsProcessNames);
+        Assert.Equal(["Grab", "Orbit", "Pan", "Undo", "Zoom both"], copy.Commands.Select(command => command.Name));
+        var space = Assert.Single(copy.HoldRemaps);
+        Assert.NotEqual(Space(store).Id, space.Id);
+        Assert.Equal(4, copy.Commands.Count(command => command.HoldRemapId == space.Id));
+        Assert.Equal(["Blender", "Space", "Blender (2)", "Space", "Chrome"], Names(vm));
+        Assert.Equal(SectionId.ForGroup(copy.Id), vm.SelectedSectionId);
+        Assert.Equal("Duplicated 'Blender' as 'Blender (2)' with its 5 commands. Set the app it is for in its form.", vm.Message);
+
+        vm.Handle(new CommandTreeActionEventArgs(CommandTreeAction.Undo));
+        Assert.Equal(["Blender", "Space", "Chrome"], Names(vm));
+    }
 }

@@ -143,6 +143,7 @@ internal static class CommandSections
         {
             CanEditDefinition = true,
             CanToggleActive = true,
+            CanDuplicate = true,
             CanAddHoldRemap = true,
             CanExport = true,
             HoldRemapCount = holdRemaps.Count,

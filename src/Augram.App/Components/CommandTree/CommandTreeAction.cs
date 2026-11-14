@@ -74,6 +74,9 @@ public enum CommandTreeAction
     /// <summary>Paste the copied command into the section (a hold remap keeps it under it), or a copied hold remap into the section's app group.</summary>
     Paste,
 
+    /// <summary>Duplicate the section's app group (Joel, 2026-11-14): a second group with the same commands and hold remaps, without an executable, so the user sets which app it is for.</summary>
+    Duplicate,
+
     /// <summary>Export the section's app group to an Augram file (plan 0003; a group's or a category's menu): the export dialog with that group, or Global, preselected.</summary>
     Export,
 

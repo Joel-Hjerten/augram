@@ -8,7 +8,7 @@ namespace Augram.App.Components.CommandTree;
 /// 2026-10-11), or a hold remap (F9, plan 0002) nested in its app group's section (<see cref="IsNested"/>, listed right after
 /// it). Every section can be renamed and deleted. The item says what else its header offers, so the tree never asks which tab
 /// it is on: <see cref="CanEditDefinition"/> (the app group form), <see cref="CanToggleActive"/>, <see cref="CanCopy"/>,
-/// <see cref="CanAddHoldRemap"/> and <see cref="CanExport"/>. It carries all its commands, sorted by the store; the tree hides
+/// <see cref="CanDuplicate"/>, <see cref="CanAddHoldRemap"/> and <see cref="CanExport"/>. It carries all its commands, sorted by the store; the tree hides
 /// them while the section (or the section it is nested in) is collapsed.
 /// </summary>
 public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool IsExpanded, IReadOnlyList<CommandItem> Commands)
@@ -21,6 +21,9 @@ public sealed record SectionItem(SectionId Id, string Name, bool IsActive, bool 
 
     /// <summary>Copy acts on the section itself: a hold remap, with its commands.</summary>
     public bool CanCopy { get; init; }
+
+    /// <summary>The menu offers Duplicate here: an app group on the Apps tab (Joel, 2026-11-14; never Global, never a hold remap or a category).</summary>
+    public bool CanDuplicate { get; init; }
 
     /// <summary>The menu offers New hold remap here: an app group on the Apps tab (never Global, plan 0002 decision 1).</summary>
     public bool CanAddHoldRemap { get; init; }
